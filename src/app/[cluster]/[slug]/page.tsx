@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { listIndex, readModuleMdx } from "@/lib/content";
+import { listIndex, listSlugs, readModuleMdx } from "@/lib/content";
 import { clusterUrlSlug } from "@/lib/clusters";
 import { listClusters } from "@/lib/cluster-store";
 import { MdxBody } from "@/lib/mdx";
@@ -7,16 +7,23 @@ import { ModulePageShell } from "@/components/ModulePageShell";
 import { SidebarNav } from "@/components/SidebarNav";
 import { InlineMd } from "@/components/InlineMd";
 
-// Static export: every module page is prerendered from content/index.json at
-// build time; anything not in the index is a 404.
+// Static export: every .mdx in content/modules is prerendered at build time.
+// content/index.json only controls the homepage/sidebar listing, so a module
+// missing from the index is built but unlisted (reachable only by URL).
 export const dynamicParams = false;
 
 export async function generateStaticParams() {
-  const [items, clusterList] = await Promise.all([listIndex(), listClusters()]);
-  return items.map((e) => ({
-    cluster: clusterUrlSlug(e.cluster, clusterList),
-    slug: e.slug,
-  }));
+  const [slugs, clusterList] = await Promise.all([listSlugs(), listClusters()]);
+  const params = [];
+  for (const slug of slugs) {
+    const mod = await readModuleMdx(slug);
+    if (!mod) continue;
+    params.push({
+      cluster: clusterUrlSlug(mod.frontmatter.cluster, clusterList),
+      slug,
+    });
+  }
+  return params;
 }
 
 export default async function ModulePage({

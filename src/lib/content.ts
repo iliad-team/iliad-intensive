@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import YAML from "yaml";
 
@@ -35,6 +35,20 @@ export async function listIndex(): Promise<IndexEntry[]> {
   try {
     const raw = await readFile(INDEX_FILE, "utf8");
     return JSON.parse(raw) as IndexEntry[];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Every .mdx file in content/modules gets a page, whether or not it is in
+ * content/index.json — the index only controls what the homepage and sidebar
+ * list. Files absent from the index are reachable but unlisted.
+ */
+export async function listSlugs(): Promise<string[]> {
+  try {
+    const files = await readdir(CONTENT_DIR);
+    return files.filter((f) => f.endsWith(".mdx")).map((f) => f.replace(/\.mdx$/, ""));
   } catch {
     return [];
   }

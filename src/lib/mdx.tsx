@@ -1,7 +1,8 @@
 /**
- * MDX renderer. The component catalogue is kept in lockstep with the
- * curriculum admin's src/lib/mdx/render.tsx — same components, same
- * attribute names — so modules render identically across sites.
+ * MDX renderer. The component and attribute NAMES match what the tex -> mdx
+ * converter emits (the same catalogue as the curriculum admin's
+ * src/lib/mdx/render.tsx); the styling here is this site's own and
+ * intentionally diverges from the admin/public-site look.
  */
 import { compileMDX } from "next-mdx-remote/rsc";
 import { createHash } from "node:crypto";
@@ -57,8 +58,8 @@ const components = {
     id?: string;
     children: ReactNode;
   }) => (
-    <section id={id} className="my-6 border border-zinc-300 rounded-md p-4">
-      <header className="text-sm uppercase tracking-wide text-zinc-500 mb-2">
+    <section id={id} className="my-6 border border-orange-300 bg-orange-50 rounded-md p-4">
+      <header className="text-sm uppercase tracking-wide text-orange-700 mb-2">
         Exercise · difficulty {difficulty}/5
       </header>
       <div>{children}</div>
@@ -79,25 +80,25 @@ const components = {
   ),
 
   /**
-   * Definition — bolded named-concept block.
-   * Usage: <Definition term="RLCT" id="optional-anchor">Real Log Canonical Threshold; see Watanabe.</Definition>
+   * Definition — named-concept box, exercise-style: the term lives in the
+   * header stamp ("Definition 2.1 · entropy"), the body is just the text.
+   * Usage: <Definition term="RLCT" num="1.2" id="optional-anchor">Real Log Canonical Threshold; see Watanabe.</Definition>
    */
   Definition: ({ term, num, id, children }: { term: string; num?: string; id?: string; children: ReactNode }) => (
     <section
       id={id}
-      className="my-4 rounded-md border border-zinc-300 bg-zinc-50 px-4 py-3"
+      className="my-4 rounded-md border border-indigo-300 bg-indigo-50 px-4 py-3"
       data-component="definition"
     >
-      <header className="text-xs uppercase tracking-wider text-zinc-500">
-        Definition{num ? ` ${num}` : ""}
+      <header className="text-xs uppercase tracking-wider text-indigo-700">
+        Definition
+        {num ? ` ${num}` : ""}
+        {term ? ` · ${term}` : ""}
       </header>
       {/* Block-safe wrapper: definition bodies may contain paragraphs, lists,
           or display math (block elements), which are invalid inside <p>/<span>
           and cause a "<p> cannot be a descendant of <p>" hydration error. */}
-      <div className="mt-1">
-        <strong className="font-semibold">{term}.</strong>{" "}
-        {children}
-      </div>
+      <div className="mt-1">{children}</div>
     </section>
   ),
 
