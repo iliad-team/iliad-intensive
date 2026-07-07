@@ -1,0 +1,169 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+/* LessWrong-inspired type system: serif body, generous line-height,
+   slightly off-white background, slightly off-black text. */
+:root {
+  --background: #fcfcfa;
+  --foreground: #0c0c0c;
+  --muted: #5a5a55;
+  --rule: #e5e5e0;
+  --link: #2a4d8f;
+  --link-hover: #1a3162;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans), system-ui, -apple-system, "Segoe UI",
+    Helvetica, Arial, sans-serif;
+  --font-serif: var(--font-serif), "Source Serif 4", "Source Serif Pro",
+    Charter, Cambria, Georgia, serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* keep light mode only — LW-style isn't dark */
+    --background: #fcfcfa;
+    --foreground: #0c0c0c;
+  }
+}
+
+html {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-serif), "Source Serif 4", Charter, Georgia, serif;
+  font-size: 18px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Chrome elements (badges, buttons, nav) should stay sans-serif. */
+.font-sans,
+button,
+input,
+select,
+nav,
+.text-xs,
+.text-sm {
+  font-family: var(--font-sans);
+}
+
+/* LW-style prose tweaks on top of @tailwindcss/typography defaults. */
+.prose {
+  font-family: var(--font-serif), "Source Serif 4", Charter, Georgia, serif;
+  font-size: 1.0625rem; /* ~17px */
+  line-height: 1.55;
+  color: var(--foreground);
+  max-width: 680px;
+}
+
+.prose p {
+  margin-top: 0.8em;
+  margin-bottom: 0.8em;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  font-family: var(--font-serif), "Source Serif 4", Charter, Georgia, serif;
+  color: var(--foreground);
+  letter-spacing: -0.005em;
+  font-weight: 600;
+}
+
+.prose h2 {
+  font-size: 1.4em;
+  margin-top: 1.7em;
+  margin-bottom: 0.5em;
+  line-height: 1.2;
+}
+
+.prose h3 {
+  font-size: 1.15em;
+  margin-top: 1.3em;
+  margin-bottom: 0.35em;
+  line-height: 1.25;
+}
+
+.prose h4 {
+  font-size: 1.05em;
+  margin-top: 1.1em;
+  margin-bottom: 0.3em;
+}
+
+.prose ul,
+.prose ol {
+  margin-top: 0.6em;
+  margin-bottom: 0.6em;
+}
+
+.prose ul > li,
+.prose ol > li {
+  margin-top: 0.2em;
+  margin-bottom: 0.2em;
+}
+
+.katex-display {
+  margin: 0.9em 0 !important;
+}
+
+.prose a {
+  color: var(--link);
+  text-decoration: underline;
+  text-decoration-color: rgba(42, 77, 143, 0.4);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  font-weight: inherit;
+}
+
+.prose a:hover {
+  color: var(--link-hover);
+  text-decoration-color: var(--link-hover);
+}
+
+.prose blockquote {
+  font-style: normal;
+  border-left-color: var(--rule);
+  color: var(--muted);
+}
+
+.prose code {
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 0.88em;
+  background: rgba(0, 0, 0, 0.045);
+  padding: 0.12em 0.35em;
+  border-radius: 3px;
+  font-weight: 400;
+}
+
+.prose code::before,
+.prose code::after {
+  content: none;
+}
+
+.prose pre {
+  background: #f6f5f0;
+  color: #1f1f1f;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-size: 0.9em;
+  line-height: 1.55;
+}
+
+.prose ul > li::marker,
+.prose ol > li::marker {
+  color: var(--muted);
+}
+
+.prose hr {
+  border-color: var(--rule);
+}
+
