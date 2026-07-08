@@ -239,7 +239,7 @@ if (iliadBlock) {
 
 // ---------------- static contract checks (iliad.sty dialect) --------------
 if (usesExerciseEnv && !iliadBlock) {
-  advise("no %--- iliad --- frontmatter block at the top of main.tex — cluster/summary/learningOutcomes will be emitted as TODO");
+  advise("no %--- iliad --- frontmatter block at the top of main.tex — cluster/summary will be missing");
 }
 { // duplicate labels break cross-referencing (last definition silently wins)
   const seen = new Set();
@@ -355,21 +355,23 @@ if (authorM) {
   const g = readGroup(preamble, authorM.index + authorM[0].length - 1);
   if (g) contributors = g.content.split(/\\and\b/).map((a) => texToPlain(a)).filter(Boolean);
 }
-if (!contributors.length) contributors = ["TODO"];
-
-// frontmatter: title/contributors from the .tex header; cluster/summary/
-// learningOutcomes from the %--- iliad --- block (TODO placeholders if absent).
+// frontmatter: nothing is mandatory. title/contributors fall back to
+// \title{}/\author{} — an explicit frontmatter key takes precedence.
+// Missing title/cluster/contributors draw advisories, never failures.
 const blockKeys = new Set((iliadBlock ?? []).filter((l) => /^[A-Za-z]/.test(l)).map((l) => l.split(":")[0]));
 const front = [
   "---",
-  ...(blockKeys.has("title") ? [] : [`title: ${JSON.stringify(title)}`]),
-  ...(blockKeys.has("contributors") ? [] : ["contributors:", ...contributors.map((c) => `  - ${c}`)]),
+  ...(blockKeys.has("title") || title === "TODO" ? [] : [`title: ${JSON.stringify(title)}`]),
+  ...(blockKeys.has("contributors") || !contributors.length ? [] : ["contributors:", ...contributors.map((c) => `  - ${c}`)]),
   ...(iliadBlock ?? []),
-  ...(blockKeys.has("cluster") ? [] : ["cluster: TODO"]),
-  ...(blockKeys.has("summary") ? [] : ["summary: TODO"]),
-  ...(blockKeys.has("learningOutcomes") ? [] : ["learningOutcomes:", "  - TODO"]),
   "---",
 ].join("\n");
+if (!blockKeys.has("title") && title === "TODO")
+  advise("no title: in the frontmatter block and no \\title{} — the page falls back to its slug");
+if (!blockKeys.has("cluster"))
+  advise("no cluster: in the frontmatter block — the page is ungrouped (URL under /page/)");
+if (!blockKeys.has("contributors") && !contributors.length)
+  advise("no contributors: in the frontmatter block and no \\author{} — the page shows no authors");
 
 // ------------------------------ run ---------------------------------------
 // AST emit (two passes handled inside emit-ast)

@@ -101,13 +101,13 @@ export const THM_FAMILY = new Set([
 // Redefining these breaks the converter's guarantees (checked when the sheet
 // uses the iliad.sty exercise dialect).
 export const CONTRACT_NAMES = new Set([
-  "exercise", "solution", "proof", "callout", "remark",
+  "exercise", "solution", "proof", "callout", "remark", "learningoutcomes",
   "definition", "theorem", "lemma", "proposition", "corollary", "fact", "example",
   "label", "cref", "Cref", "hint", "note", "solutionbox", "exercisebox", "ifsolutions",
 ]);
 
 export const KNOWN_FRONT_KEYS = new Set([
-  "title", "cluster", "summary", "learningOutcomes", "contributors", "slug",
+  "title", "cluster", "summary", "contributors", "slug",
   // unlisted: true — page is built and reachable by URL but excluded from
   // content/index.json (homepage/sidebar). Used by the template worksheet.
   "unlisted",

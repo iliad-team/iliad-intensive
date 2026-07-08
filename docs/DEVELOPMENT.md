@@ -1,0 +1,85 @@
+# Development & pipeline
+
+Maintainer documentation. Writers only need the root [README](../README.md).
+
+## Architecture
+
+Minimal static website for the Iliad Intensive curriculum. The repo holds
+the **site code** and the **LaTeX worksheet sources**; everything derived
+from them is a build artifact that never gets committed:
+
+```
+tex/<slug>/main.tex            <- the ONLY content in git (+ biblo.bib, fig/)
+   |  scripts/build-content.mjs  (runs scripts/tex2mdx/, the AST converter)
+   v
+content/modules/<slug>.mdx     page body            (gitignored)
+content/index.json             listing              (gitignored)
+public/uploads/<slug>/*.svg    figures + content-addressed TikZ (gitignored)
+public/downloads/<slug>/       <slug>.pdf/.tex/.mdx per-page downloads (gitignored)
+   |  next build (output: "export")
+   v
+out/                           static site -> GitHub Pages
+```
+
+The site is a Next.js 16 app configured for full static export
+(`output: "export"`): `next build` emits a plain `out/` servable by any
+static host. `tex/iliad.sty` is the single shared style (worksheets load it
+as `../iliad`); `scripts/tex2mdx/shims.mjs` is its web-side twin — the two
+together define the authoring contract.
+
+## Content build
+
+- `node scripts/build-content.mjs` (or `./run content`) — full build.
+  `--check` = converter + KaTeX render gate only (fast). `--only <slug>`
+  restricts to one worksheet. Non-zero exit on any failure, with the
+  converter's `file:line` messages. Converter WARNs fail the build;
+  advisories don't.
+- **Order matters**: the PDF compiles BEFORE conversion because the converter
+  resolves `\cref`/`\ref` through LaTeX's `.aux` — a fresh checkout has none,
+  and converting without it reports every `\cref` as unresolved (this exact
+  bug broke CI once). `--check` runs one best-effort `pdflatex` pass when the
+  `.aux` is missing.
+- An `unlisted: true` frontmatter key builds the page but keeps it out of
+  `content/index.json` — reachable by URL, linked from nowhere (the template
+  uses this).
+- Generated MDX is host-agnostic (`/uploads/…` URLs); the site's `Figure`
+  component and download links apply `NEXT_PUBLIC_BASE_PATH` at render time.
+  Never bake the base path into generated content — it double-prefixes.
+
+## CI & deploy
+
+- `.github/workflows/site.yml` — every PR runs the full ladder (conversion,
+  render gate, PDFs, site build); pushes to `main` also deploy to GitHub
+  Pages. TikZ SVGs are content-addressed and cached, so unchanged diagrams
+  never recompile.
+- Push protection: `git config core.hooksPath .githooks` enables a pre-push
+  hook that rejects pushes when conversion fails (bypass once with
+  `--no-verify`). For hard enforcement, make the `build` job a required
+  status check on `main`.
+
+## Local site dev
+
+Requires Node ≥ 20.9 (system Node 18 won't do) — the `./run` wrapper selects
+Node 22 via nvm from any shell, fish included:
+
+```bash
+npm install                          # once
+node scripts/build-content.mjs      # tex -> mdx/index/uploads/downloads
+./run                                # dev server -> http://localhost:3000
+./run build                          # static export -> out/
+```
+
+For hosting under a sub-path (e.g. a GitHub Pages project site), build with
+`NEXT_PUBLIC_BASE_PATH=/iliad-intensive ./run build`.
+
+## What renders a module
+
+- `src/lib/mdx.tsx` — MDX → React with KaTeX math (incl. per-page `\gdef`
+  macros) and the curriculum components (Callout, Exercise, Solution,
+  LearningOutcomes, Definition, Theorem, Figure). Component/attribute NAMES
+  match what the converter emits; the styling is this site's own.
+- `src/app/[cluster]/[slug]/page.tsx` — module page: header (title, cluster,
+  summary, contributors, downloads) + sidebar + body. Pages are statically
+  generated from `content/modules/*.mdx`; `content/index.json` only controls
+  the homepage/sidebar listing.
+- `content/clusters.json` — cluster ids → labels/URL slugs (hand-edited).

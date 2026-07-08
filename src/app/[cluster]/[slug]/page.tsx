@@ -1,16 +1,22 @@
 import { notFound } from "next/navigation";
-import { listIndex, listSlugs, readModuleMdx } from "@/lib/content";
+import { listDownloads, listIndex, listSlugs, readModuleMdx } from "@/lib/content";
 import { clusterUrlSlug } from "@/lib/clusters";
 import { listClusters } from "@/lib/cluster-store";
 import { MdxBody } from "@/lib/mdx";
 import { ModulePageShell } from "@/components/ModulePageShell";
 import { SidebarNav } from "@/components/SidebarNav";
-import { InlineMd } from "@/components/InlineMd";
 
 // Static export: every .mdx in content/modules is prerendered at build time.
 // content/index.json only controls the homepage/sidebar listing, so a module
 // missing from the index is built but unlisted (reachable only by URL).
 export const dynamicParams = false;
+
+// Evaluated once during `next build` — pages are static, so this is the
+// moment the deployed page was actually built.
+const BUILT_AT = new Date().toLocaleString("en-GB", {
+  day: "numeric", month: "long", year: "numeric",
+  hour: "2-digit", minute: "2-digit", timeZone: "UTC", hour12: false,
+}) + " UTC";
 
 export async function generateStaticParams() {
   const [slugs, clusterList] = await Promise.all([listSlugs(), listClusters()]);
@@ -33,10 +39,11 @@ export default async function ModulePage({
 }) {
   const { cluster: clusterParam, slug } = await params;
 
-  const [mod, modules, clusterList] = await Promise.all([
+  const [mod, modules, clusterList, downloads] = await Promise.all([
     readModuleMdx(slug),
     listIndex(),
     listClusters(),
+    listDownloads(slug),
   ]);
 
   if (!mod) notFound();
@@ -74,38 +81,53 @@ export default async function ModulePage({
             </p>
           )}
           {/* Downloads: build artifacts emitted by scripts/build-content.mjs.
-              Plain <a> tags — static files bypass Next's router, so the
-              basePath prefix is applied manually. */}
-          <p className="mt-3 flex gap-x-4 font-sans text-xs uppercase tracking-wide">
-            {(["pdf", "tex", "mdx"] as const).map((ext) => (
-              <a
-                key={ext}
-                href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/downloads/${slug}/${slug}.${ext}`}
-                className="text-zinc-500 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-800"
-                download
-              >
-                {ext === "pdf" ? "PDF" : ext === "tex" ? "LaTeX" : "Markdown"}
-              </a>
-            ))}
-          </p>
-          {fm.learningOutcomes && fm.learningOutcomes.length > 0 && (
-            <section className="mt-6 rounded border border-zinc-200 bg-white/60 p-4">
-              <h2 className="font-sans text-xs uppercase tracking-[0.15em] text-zinc-500">
-                What you&rsquo;ll learn
-              </h2>
-              <ul className="mt-2 list-disc pl-5 font-serif text-[1rem] leading-relaxed text-zinc-800 space-y-1">
-                {fm.learningOutcomes.map((o, i) => (
-                  <li key={i}>
-                    <InlineMd text={o} />
-                  </li>
+              Only the files that exist are offered (MDX-authored sheets have
+              no .tex). Plain <a> tags — static files bypass Next's router,
+              so the basePath prefix is applied manually. */}
+          {downloads.length > 0 && (
+            <p className="mt-3 flex gap-x-4 font-sans text-xs uppercase tracking-wide">
+              {(["pdf", "tex", "mdx"] as const)
+                .filter((ext) => downloads.includes(`${slug}.${ext}`))
+                .map((ext) => (
+                  <a
+                    key={ext}
+                    href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/downloads/${slug}/${slug}.${ext}`}
+                    className="text-zinc-500 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-800"
+                    download
+                  >
+                    {ext === "pdf" ? "PDF" : ext === "tex" ? "LaTeX" : "Markdown"}
+                  </a>
                 ))}
-              </ul>
-            </section>
+            </p>
           )}
         </header>
         <div className="prose">
           <MdxBody source={mod.body} />
         </div>
+        <footer className="not-prose mt-12 border-t border-zinc-200 pt-4 font-sans text-xs text-zinc-500">
+          Built {BUILT_AT}
+          {(() => {
+            // Link the file the page was actually built from: the LaTeX
+            // source when it exists, else the authored MDX.
+            const src = downloads.includes(`${slug}.tex`)
+              ? `${slug}.tex`
+              : downloads.includes(`${slug}.mdx`)
+                ? `${slug}.mdx`
+                : null;
+            return src ? (
+              <>
+                {" from "}
+                <a
+                  href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/downloads/${slug}/${src}`}
+                  className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800"
+                >
+                  {src}
+                </a>
+              </>
+            ) : null;
+          })()}
+          .
+        </footer>
       </article>
     </ModulePageShell>
   );

@@ -10,7 +10,6 @@ export type Frontmatter = {
   timeMinutes?: number;
   contributors?: string[];
   summary?: string;
-  learningOutcomes?: string[];
 };
 
 export type HeadingEntry = {
@@ -30,6 +29,21 @@ export type IndexEntry = {
 
 const CONTENT_DIR = path.join(process.cwd(), "content", "modules");
 const INDEX_FILE = path.join(process.cwd(), "content", "index.json");
+const DOWNLOADS_DIR = path.join(process.cwd(), "public", "downloads");
+
+/**
+ * Files available under public/downloads/<slug>/ — build artifacts from
+ * scripts/build-content.mjs. LaTeX-authored sheets have pdf+tex+mdx;
+ * MDX-authored sheets have pdf+mdx.
+ */
+export async function listDownloads(slug: string): Promise<string[]> {
+  try {
+    const files = await readdir(path.join(DOWNLOADS_DIR, slug));
+    return files.filter((f) => !f.startsWith(".")).sort();
+  } catch {
+    return [];
+  }
+}
 
 export async function listIndex(): Promise<IndexEntry[]> {
   try {

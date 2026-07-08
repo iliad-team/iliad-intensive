@@ -1,14 +1,19 @@
 % YAML frontmatter for the website sits in the block below. LaTeX ignores it
 % (it is a comment); the tex->mdx converter lifts it verbatim into the module
 % frontmatter and CI validates it (pure YAML only — no prose inside the block).
-% `title` and `contributors` are NOT set here — they come from \title / \author.
+% Keys: title, cluster, summary, contributors. Nothing is mandatory:
+% `title`/`contributors` fall back to \title{}/\author{} when omitted
+% (an explicit key here wins), and a missing title/cluster/contributors
+% draws a build advisory. (`unlisted: true` is a maintainer flag: the page
+% is built but linked from nowhere — you almost certainly don't want it.)
 %--- iliad -------------------------------------------------------------------
-% cluster:
-% unlisted: true
+% title: "Example Worksheet: The Kitchen Sink"
+% cluster: D
 % summary: A dummy worksheet demonstrating every construct the pipeline supports.
-% learningOutcomes:
-%   - Recognise every markup element the tex -> MDX pipeline supports
-%   - Copy this file as the starting point for a new worksheet
+% contributors:
+%   - Jane Doe
+%   - John Roe
+% unlisted: true
 %--- end ----------------------------------------------------------------------
 \documentclass[11pt]{article}
 
@@ -17,7 +22,7 @@
 % the \ifsolutions toggle, and loads hyperref+cleveref (configure hyperref
 % with \hypersetup{...}; don't re-load it). PDF styling is plain by default —
 % style your PDF however you like, or pass [boxes] for ready-made colour boxes.
-\usepackage[boxes]{iliad}
+\usepackage[boxes]{../iliad}
 
 % \solutionsfalse   % uncomment to hide all solutions from the PDF
 
@@ -38,10 +43,27 @@
 \begin{document}
 \maketitle
 
+% The "What you'll learn" box. Usually sits right here, after \maketitle.
+\begin{learningoutcomes}
+  \item Recognise every markup element the tex $\to$ MDX pipeline supports.
+  \item Copy this file as the starting point for a new worksheet.
+\end{learningoutcomes}
+
 This dummy worksheet demonstrates every construct that survives the round trip
 from \LaTeX{} to the curriculum website. Compile it with \texttt{pdflatex}
 (twice, then \texttt{bibtex}, then twice again for the bibliography), or just
 read the source side by side with the rendered page.
+
+%===============================================================================
+\section{Prerequisites}
+\label{sec:prereqs}
+
+Prerequisites, further reading, and anything else you want to say are just
+ordinary \LaTeX{} — no special markup. For this sheet:
+\begin{itemize}
+  \item comfort with probability on finite sets ($\E$, distributions);
+  \item one variable of calculus (we differentiate $-t \log t$ once).
+\end{itemize}
 
 %===============================================================================
 \section{Prose, math, and cross-references}
@@ -124,9 +146,9 @@ note-style callout.
 \label{sec:exercises}
 
 The optional argument of an exercise is its title, exactly as in amsthm.
-Two optional marks go right after the label: \verb|\difficulty{10}| (Knuth's
-00--40 scale) and \verb|\skippable| (skip on a first pass). Subparts are a
-plain \texttt{enumerate}; label an item to reference it. Every solution
+An optional \verb|\skippable| mark (skip on a first pass) goes right after
+the label. Subparts are a plain \texttt{enumerate}; label an item to
+reference it. Every solution
 \emph{names its exercise} — \texttt{[ex:label]} is mandatory — so you may
 place solutions right after each exercise or collect them at the end, as you
 prefer. Exercises don't require solutions; label any exercise a solution or
@@ -134,7 +156,6 @@ reference points at.
 
 \begin{exercise}[Entropy warm-up]
 \label{ex:warmup}
-\difficulty{10}
 Let $p$ be a distribution on a finite set $\mathcal{X}$.
 \begin{enumerate}
   \item Show that $H(p) \geq 0$.
@@ -151,7 +172,7 @@ a point mass. \hint{when is $-t \log t = 0$ on $[0,1]$?}
 
 \begin{exercise}[Gibbs, the hard direction]
 \label{ex:gibbs-hard}
-\difficulty{25}\skippable
+\skippable
 Prove the equality case of \cref{thm:gibbs} directly, without citing Jensen's
 equality condition. \note{this one is solved at the end of the sheet instead
 of inline, to demonstrate both solution placements.}
@@ -162,11 +183,11 @@ of inline, to demonstrate both solution placements.}
 \label{sec:figures}
 
 Figures use \texttt{figure} + \verb|\includegraphics| (export TikZ to PDF the
-same way; keep assets in \texttt{figures/}).
+same way; keep assets in \texttt{fig/}).
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=0.45\linewidth]{figures/value-curve.pdf}
+  \includegraphics[width=0.45\linewidth]{fig/value-curve.pdf}
   \caption{An example figure. On the web this becomes a \texttt{Figure}
   component.}
   \label{fig:value}
@@ -190,6 +211,6 @@ and equality forces $t_x = 1$ wherever $p(x) > 0$, i.e.\ $p = q$.
 \end{solution}
 
 \bibliographystyle{plain}
-\bibliography{refs}
+\bibliography{biblo}
 
 \end{document}

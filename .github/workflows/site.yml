@@ -24,12 +24,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: TeX Live + poppler
+      - name: TeX Live + poppler + pandoc
         run: |
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends \
             texlive-latex-extra texlive-pictures texlive-science \
-            texlive-fonts-recommended poppler-utils
+            texlive-fonts-recommended poppler-utils pandoc
           # contributor LaTeX is untrusted: never enable shell-escape
 
       - uses: actions/setup-node@v4

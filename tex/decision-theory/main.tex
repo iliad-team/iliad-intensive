@@ -8,14 +8,6 @@
 %   a primitive.
 % contributors:
 %   - Fernando E. Rosas
-% learningOutcomes:
-%   - Explain when preference relations over trajectories admit ordinal utility
-%     representations, and what fails without completeness or transitivity.
-%   - State and prove the von Neumann--Morgenstern theorem, and distinguish
-%     ordinal from cardinal utility.
-%   - Derive the Markov reward representation from the temporal
-%     gamma-indifference axiom, and explain reward non-uniqueness and
-%     potential-based shaping.
 %--- end ---
 \documentclass[11pt]{article}
 
@@ -65,9 +57,18 @@
 \author{Fernando E. Rosas}
 \date{\today}
 
+% learning-outcomes box (normally from ../iliad.sty, which this sheet predates)
+\newenvironment{learningoutcomes}{\par\medskip\noindent\textbf{What you'll learn.}\begin{itemize}}{\end{itemize}\medskip}
+
 \begin{document}
 
 \maketitle
+
+\begin{learningoutcomes}
+  \item Explain when preference relations over trajectories admit ordinal utility representations, and what fails without completeness or transitivity.
+  \item State and prove the von Neumann--Morgenstern theorem, and distinguish ordinal from cardinal utility.
+  \item Derive the Markov reward representation from the temporal gamma-indifference axiom, and explain reward non-uniqueness and potential-based shaping.
+\end{learningoutcomes}
 
 \begin{abstract}
 \noindent
@@ -1069,7 +1070,7 @@ that goals are primitively rewards, but as the claim that sufficiently
 structured preferences over trajectories can be represented by rewards.
 
 \bibliographystyle{plainnat}
-\bibliography{main}
+\bibliography{biblo}
 
 
 

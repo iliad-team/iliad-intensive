@@ -58,6 +58,7 @@ const ENV_SIGNATURES = {
   proposition: { signature: "o" }, corollary: { signature: "o" },
   definition: { signature: "o" }, fact: { signature: "o" },
   example: { signature: "o" }, remark: { signature: "o" },
+  learningoutcomes: {},
   abstract: {}, figure: { signature: "o" }, table: { signature: "o" },
   tabular: { signature: "m" }, quote: {}, quotation: {},
   itemize: { signature: "o" }, enumerate: { signature: "o" }, description: { signature: "o" },
@@ -322,8 +323,9 @@ function emitEnv(n) {
   let mdx = null;
   switch (env) {
     case "exercise": {
+      // A leading \difficulty renders as the same plain [n] the PDF prints —
+      // no component attribute, no UI chrome, no validation (author's choice).
       const { dd, star, rest } = takeMarks(n.content);
-      if (dd && !/^\d{1,2}$/.test(dd)) warn(`\\difficulty{${dd}} is not a Knuth 00–40 rating`, `\\difficulty{${dd}}`);
       counters.ex[secNum()] = (counters.ex[secNum()] || 0) + 1;
       const num = `${secNum()}.${counters.ex[secNum()]}`;
       const wasIn = inExercise; inExercise = true;
@@ -331,11 +333,14 @@ function emitEnv(n) {
       inExercise = wasIn;
       if (!label) advise(`exercise ${num} has no \\label — no stable anchor emitted, and no solution can reference it`, snippetOf(printRaw(n.content)));
       if (label) for (const l of allLabels(n.content)) if (!(l in anchorMap)) anchorMap[l] = slug(label);
-      mdx = `<Exercise${dd ? ` difficulty={${bucket(dd)}}` : ""}${id}>\n` +
+      mdx = `<Exercise${id}>\n` +
         `**Exercise ${num}${star ? " (★)" : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}${dd ? ` [${dd}]` : ""}.** ` +
         `${inner.trim()}\n</Exercise>`;
       break;
     }
+    case "learningoutcomes":
+      mdx = `<LearningOutcomes>\n\n${walk(n.content).trim()}\n\n</LearningOutcomes>`;
+      break;
     case "solution": {
       let lead = "";
       if (opt) {
@@ -497,7 +502,9 @@ function emitMacro(n) {
     case "footnote": case "footnotetext": return ` (${walkArg(n, n.args ? n.args.length - 1 : 0)})`;
     case "hint": return `[*Hint:* ${walkArg(n, 0)}]`;
     case "note": return `[*Note:* ${walkArg(n, 0)}]`;
-    case "difficulty": return `**[${lastArgRaw(n) ?? ""}]** `;   // stray, outside an exercise
+    // \difficulty is not contract UI — it renders as the same plain [n]
+    // text the PDF prints, wherever the author put it.
+    case "difficulty": return `**[${lastArgRaw(n) ?? ""}]** `;
     case "skippable": return "**(★)** ";
     case "paragraph": return `\n\n**${walkArg(n, 0).trim()}.** `;
     case "ifdef": case "ifdefined": case "ifcsdef": {

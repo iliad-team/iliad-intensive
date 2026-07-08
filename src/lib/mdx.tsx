@@ -44,25 +44,41 @@ const components = {
   ),
 
   /**
-   * Exercise — boxed practice problem with 1–5 difficulty stamp.
-   * Usage: <Exercise difficulty={N} id="optional-anchor">problem</Exercise>
+   * Exercise — boxed practice problem.
+   * Usage: <Exercise id="optional-anchor">problem</Exercise>
    * The optional `id` makes the box a link target for cross-references,
    * e.g. [Problem 2.2](#prob-2-2) — the MDX equivalent of LaTeX \cref.
    */
   Exercise: ({
-    difficulty = 1,
     id,
     children,
   }: {
-    difficulty?: number;
     id?: string;
     children: ReactNode;
   }) => (
     <section id={id} className="my-6 border border-orange-300 bg-orange-50 rounded-md p-4">
       <header className="text-sm uppercase tracking-wide text-orange-700 mb-2">
-        Exercise · difficulty {difficulty}/5
+        Exercise
       </header>
       <div>{children}</div>
+    </section>
+  ),
+
+  /**
+   * LearningOutcomes — "What you'll learn" box, emitted by the converter
+   * from the learningoutcomes LaTeX environment. Children are a list.
+   */
+  LearningOutcomes: ({ children }: { children: ReactNode }) => (
+    <section
+      className="my-6 rounded border border-zinc-200 bg-white/60 p-4"
+      data-component="learning-outcomes"
+    >
+      <header className="font-sans text-xs uppercase tracking-[0.15em] text-zinc-500">
+        What you&rsquo;ll learn
+      </header>
+      <div className="mt-2 font-serif text-[1rem] leading-relaxed text-zinc-800">
+        {children}
+      </div>
     </section>
   ),
 

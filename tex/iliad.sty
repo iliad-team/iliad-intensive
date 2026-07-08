@@ -1,5 +1,9 @@
 % iliad.sty — the Iliad Intensive worksheet contract
-% Version 0.2 (2026-07-07)
+% Version 0.3 (2026-07-08)
+%
+% ONE shared copy lives at tex/iliad.sty; worksheets load it with
+%     \usepackage[boxes]{../iliad}
+% from inside their own folder. Never copy it into a worksheet folder.
 %
 % This package defines the SMALL set of semantic environments that the
 % tex -> MDX converter understands (the "contract zone"). Everything else —
@@ -15,11 +19,13 @@
 %
 %   \begin{exercise}[Optional Title]  ... \end{exercise}
 %       Standard amsthm note semantics: the optional argument IS the title.
-%       Optional marks, written right after the \label:
-%         \difficulty{10}   Knuth-scale 00-40 rating
+%       Optional mark, written right after the \label:
 %         \skippable        "(*) skip on a first pass" marker
 %       Label the exercise if anything (a solution, a \cref) needs to point
 %       at it; unlabeled exercises are allowed but draw a CI advisory.
+%   \begin{learningoutcomes} \item ... \end{learningoutcomes}
+%       Bulleted "What you'll learn" box, usually right after \maketitle.
+%       Renders as the matching box on the web.
 %   \begin{solution}[ex:some-label] ... \end{solution}
 %       MUST name its exercise (compile error otherwise). Placement is free:
 %       right after the exercise, or collected at the end — both fine.
@@ -126,10 +132,12 @@
   \ifiliad@boxes\end{exercisebox}\else\par\medskip\fi
 }
 
-% Optional marks, written right after the exercise's \label:
-%   \difficulty{10}  ->  [10]        \skippable  ->  (*)
-\newcommand{\difficulty}[1]{\textbf{[#1]}\ \ignorespaces}
+% Optional mark, written right after the exercise's \label:
+%   \skippable  ->  (*)
 \newcommand{\skippable}{\textbf{($\ast$)}\ \ignorespaces}
+% \difficulty{10} is legacy: it still prints [10] in the PDF so older sheets
+% compile, but it is NOT part of the contract and the website ignores it.
+\newcommand{\difficulty}[1]{\textbf{[#1]}\ \ignorespaces}
 
 % -------------------------------------------------------------- solution ---
 % \begin{solution}[ex:label] — the label of its exercise is REQUIRED, so a
@@ -198,6 +206,17 @@
 \newenvironment{remark}{%
   \iliad@calloutbegin{Remark}{blue}%
 }{%
+  \iliad@calloutend
+}
+
+% ---------------------------------------------------- learning outcomes ---
+% \begin{learningoutcomes} \item ... \end{learningoutcomes}
+% A bulleted "What you'll learn" box, typically right after \maketitle.
+\newenvironment{learningoutcomes}{%
+  \iliad@calloutbegin{What you'll learn}{blue}%
+  \begin{itemize}[leftmargin=1.4em]%
+}{%
+  \end{itemize}%
   \iliad@calloutend
 }
 

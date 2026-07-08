@@ -1,18 +1,11 @@
 %--- iliad ---
+% title: AIXI
 % cluster: D
 % summary: How an idealized agent should act. AIXI is the Bayes-optimal policy over a
 %   universal mixture of environments; it learns to act as well as if it knew the true
 %   environment -- on-policy value convergence, cannot be fooled, and self-optimizing.
 % contributors:
 %   - David Quarel (Australian National University)
-% learningOutcomes:
-%   - Formalize the agent-environment interaction, value functions, and the Bayes-optimal
-%     policy that defines AIXI.
-%   - Derive the explicit expectimax form of AIXI.
-%   - Prove on-policy value convergence and that AIXI cannot be fooled in deterministic
-%     environments.
-%   - Prove the self-optimizing property via likelihood-ratio martingales and change of
-%     measure.
 %--- end ---
 \documentclass[fontsize=11pt, parskip=half]{scrartcl}
 \usepackage[paperwidth=6.5in, paperheight=9.5in,
@@ -29,11 +22,11 @@
 \usepackage{cancel}
 \usepackage{stmaryrd}
 
-\usepackage[draft]{commenting}
+\usepackage[draft]{../commenting}
 \declareauthor{david}{DQ}{blue}
 \authorcommand{david}{comment}
 
-\usepackage[boxes]{iliad}
+\usepackage[boxes]{../iliad}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -71,6 +64,13 @@
 \author{David Quarel}
 \date{\today}
 \maketitle
+
+\begin{learningoutcomes}
+  \item Formalize the agent-environment interaction, value functions, and the Bayes-optimal policy that defines AIXI.
+  \item Derive the explicit expectimax form of AIXI.
+  \item Prove on-policy value convergence and that AIXI cannot be fooled in deterministic environments.
+  \item Prove the self-optimizing property via likelihood-ratio martingales and change of measure.
+\end{learningoutcomes}
 
 \medskip
 \noindent

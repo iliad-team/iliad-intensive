@@ -1,79 +1,116 @@
-# Iliad Intensive — curriculum site
+# Iliad Intensive worksheets
 
-Minimal static website for the Iliad Intensive curriculum. The repo holds the
-**site code** and (eventually) the **LaTeX worksheet sources**; everything
-derived from them is a build artifact that never gets committed:
+You write LaTeX; the machinery does the rest. Each folder in `tex/` becomes
+a page on the course site, a PDF (with and without solutions), and per-page
+downloads. Only your `.tex`, `biblo.bib`, and `fig/` go in git — never build
+outputs.
 
-```
-tex sources  ──(tex → mdx converter, CI)──▶  content/modules/*.mdx   (gitignored)
-                                             content/index.json      (gitignored)
-                                             public/uploads/*        (gitignored, figures)
-                        site build  ──▶      out/                    (static export)
-```
+## Start a worksheet
 
-The site is a Next.js 16 app configured for full static export
-(`output: "export"`), so `next build` emits a plain `out/` directory servable
-by any static host, GitHub Pages included.
+    cp -r tex/template tex/your-slug      # folder name = the page's URL slug
 
-## The pipeline
+Your folder sits next to the one shared style file:
 
-```
-tex/<slug>/main.tex            <- the ONLY content in git
-   |  scripts/build-content.mjs  (runs scripts/tex2mdx/, the AST converter)
-   v
-content/modules/<slug>.mdx     page body            (gitignored)
-content/index.json             listing              (gitignored)
-public/uploads/<slug>/*.svg    diagrams, content-addressed (gitignored)
-public/downloads/<slug>/       <slug>.pdf/.tex/.mdx per-page downloads (gitignored)
-   |  next build (output: "export")
-   v
-out/                           static site -> GitHub Pages
-```
+    tex/
+      iliad.sty          shared style — never edit or copy it
+      your-slug/
+        main.tex         your worksheet   (\usepackage[boxes]{../iliad})
+        biblo.bib        your bibliography
+        fig/             your figures, exported to PDF
 
-- `node scripts/build-content.mjs` — full build. `--check` = converter +
-  KaTeX render gate only (fast). `--only <slug>` restricts to one worksheet.
-  Non-zero exit on any failure, with the converter's `file:line` messages.
-- CI: `.github/workflows/site.yml` — every PR runs the full ladder
-  (conversion, render gate, PDFs, site build); pushes to `main` also deploy
-  to Pages. Diagram SVGs are cached by content hash, so unchanged diagrams
-  never recompile.
-- Push protection: `git config core.hooksPath .githooks` enables a pre-push
-  hook that rejects pushes when conversion fails (bypass once with
-  `--no-verify`). For hard enforcement, make the `build` job a required
-  status check on `main`.
-- Authoring contract for `tex/` worksheets: see
-  `tex/template/main.tex` (living example) — bare-title exercises,
-  `\difficulty{}`/`\skippable` marks, labelled solutions.
+`tex/template/main.tex` is the living example — every supported construct,
+with comments. Read it side by side with its rendered page.
 
-## Local build
+## Prefer Markdown to LaTeX?
 
-Requires Node ≥ 20.9 (system Node 18 won't do) — the `./run` wrapper selects
-Node 22 via nvm from any shell, fish included:
+Author `tex/your-slug/main.mdx` instead of `main.tex` — it is served as the
+page directly, no conversion. Rules:
 
-```bash
-npm install     # once (run inside `nvm use 22` shell, or: ./run — it prints the node used)
-./run           # dev server → http://localhost:3000
-./run build     # static export → out/
-```
+- Start with a `---` YAML frontmatter block (`title`, `cluster`, `summary`,
+  `contributors` — same keys as the LaTeX block, and here `title` is
+  required since there's no `\title{}` to fall back on).
+- Math is KaTeX: `$inline$` and `$$display$$`.
+- The site components are available as JSX:
+  `<Exercise id="…">`, `<Solution>`, `<Callout type="note|tip|warning">`,
+  `<Definition term="…">`, `<Theorem kind="…">`, `<LearningOutcomes>`,
+  `<Figure src="/uploads/your-slug/name.svg" caption="…" />`.
+- Figures still live in `fig/` (PDFs are converted to SVG; svg/png copy
+  through) and are referenced as `/uploads/your-slug/<name>.svg`.
+- Downloads offered: **PDF** (generated from your markdown via pandoc) and
+  **Markdown** — no LaTeX download for MDX-authored sheets.
 
-With no generated content present the homepage shows "No public modules yet."
-To preview with content, drop files into the (gitignored) artifact paths:
+## The contract
 
-- `content/modules/<slug>.mdx` — a converted module
-- `content/index.json` — the module index the homepage/sidebar read
-  (array of `{slug, title, cluster, position?, frontmatter, headings?}`;
-  see `src/lib/content.ts` for the exact types)
-- `public/uploads/<slug>/…` — any figures the MDX references
+Everything not listed here is a free zone: arbitrary notation, extra
+packages, custom macros (they become web math macros automatically).
 
-For hosting under a sub-path (e.g. a GitHub Pages project site), build with
-`NEXT_PUBLIC_BASE_PATH=/iliad-intensive ./run build`.
+1. **The `%--- iliad ---` block** at the top of `main.tex` (YAML, in
+   comments) carries `title`, `cluster`, `summary`, `contributors`.
+   Nothing is mandatory — `title` and `contributors` fall back to
+   `\title{}`/`\author{}` (an explicit key wins), and a missing title,
+   cluster, or contributors draws a build advisory, not a failure.
+   Everything else — prerequisites, reading lists, difficulty notes —
+   is normal LaTeX in the body.
+2. **`\usepackage[boxes]{../iliad}` is the one required package.** It
+   provides the environments below plus `\ifsolutions`, hyperref,
+   cleveref. Don't re-load hyperref; configure it with `\hypersetup{}`.
+3. **Exercises**: `\begin{exercise}[Optional Title]`, optionally marked
+   `\skippable`. Give every exercise a `\label` — unlabelled exercises get
+   no stable link and no solution can reference them.
+4. **Solutions**: `\begin{solution}[ex:your-label]` — naming the exercise
+   is mandatory. Solutions render collapsed on the site and are dropped
+   from the no-solutions PDF.
+5. **Learning outcomes**: `\begin{learningoutcomes} \item … \end{learningoutcomes}`,
+   usually right after `\maketitle` — a "What you'll learn" box in both
+   the PDF and the site.
+6. **Other semantic blocks**: `definition`, `theorem`, `lemma`,
+   `proposition`, `corollary`, `fact`, `example`, `proof`, `remark`,
+   `callout[note|tip|warning]`. `\label` goes on its own line right after
+   `\begin{…}`. Never `\renewcommand` these names.
+7. **Figures**: export to PDF into your `fig/`, then a normal `figure` +
+   `\includegraphics{fig/name.pdf}` + `\caption` + `\label`. Inline
+   `tikzpicture`/`tikzcd` is also converted automatically.
+8. **Citations**: entries in your `biblo.bib`, cite normally.
 
-## What renders a module
+## Check your work
 
-- `src/lib/mdx.tsx` — MDX → React with KaTeX math (incl. per-page `\gdef`
-  macros) and the curriculum components (Callout, Exercise, Solution,
-  Definition, Theorem, Figure). Kept in lockstep with the curriculum admin's
-  `src/lib/mdx/render.tsx`.
-- `src/app/[cluster]/[slug]/page.tsx` — module page: frontmatter header
-  (title, cluster, summary, contributors, learning outcomes) + sidebar + body.
-- `content/clusters.json` — cluster ids → labels/URL slugs (hand-edited).
+    cd tex/your-slug
+    pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex
+
+The PDF is ground truth for your content. If you have Node ≥ 20, you can
+also run the exact web-conversion gate CI runs:
+
+    node scripts/build-content.mjs --check --only your-slug
+
+It prints `file:line` for anything it can't translate. No Node? Just open
+the PR — CI runs the same gate.
+
+## Preview the website locally (optional)
+
+One-time install:
+
+1. **TeX Live** (you have it if `pdflatex` runs) and **poppler-utils**
+   (`pdftocairo`, for figure/diagram SVGs):
+   `sudo apt install texlive-latex-extra texlive-pictures texlive-science poppler-utils`
+2. **pandoc** — only needed for MDX-authored sheets' PDFs: `sudo apt install pandoc`
+3. **Node ≥ 20.9** — easiest via [nvm](https://github.com/nvm-sh/nvm):
+   `nvm install 22`. (The repo's `./run` wrapper auto-selects it afterwards,
+   from any shell including fish.)
+4. In the repo root: `npm install`
+
+Then the edit loop is:
+
+    node scripts/build-content.mjs --only your-slug   # source → page (+ your PDF)
+    ./run                                             # dev server → http://localhost:3000
+
+Edit your `main.tex`/`main.mdx`, re-run the first line, refresh the browser.
+What you see is exactly what deploys — same converter, same renderer.
+(`./run content` rebuilds every worksheet at once.)
+
+## Publish
+
+Branch, commit your folder, open a PR. Green CI + merge to `main` = live on
+the site minutes later.
+
+---
+*Maintainer & pipeline docs: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)*

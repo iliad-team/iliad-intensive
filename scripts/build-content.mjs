@@ -38,12 +38,16 @@ const args = process.argv.slice(2);
 const CHECK_ONLY = args.includes("--check");
 const only = args.includes("--only") ? args[args.indexOf("--only") + 1] : null;
 
+// A worksheet is authored either in LaTeX (main.tex — converted to MDX) or
+// directly in MDX (main.mdx — served as-is, PDF via pandoc). tex wins if
+// a folder somehow has both.
 const slugs = readdirSync(TEX, { withFileTypes: true })
-  .filter((d) => d.isDirectory() && existsSync(path.join(TEX, d.name, "main.tex")))
+  .filter((d) => d.isDirectory()
+    && (existsSync(path.join(TEX, d.name, "main.tex")) || existsSync(path.join(TEX, d.name, "main.mdx"))))
   .map((d) => d.name)
   .filter((s) => !only || s === only);
 
-if (slugs.length === 0) { console.error("no tex/<slug>/main.tex sources found"); process.exit(1); }
+if (slugs.length === 0) { console.error("no tex/<slug>/main.tex or main.mdx sources found"); process.exit(1); }
 mkdirSync(MODULES, { recursive: true });
 
 let failed = false;
@@ -53,23 +57,93 @@ for (const slug of slugs) {
   const dir = path.join(TEX, slug);
   const mdxOut = path.join(MODULES, `${slug}.mdx`);
   process.stdout.write(`▸ ${slug} `);
+  const run = (cmd) => execSync(cmd, { cwd: dir, stdio: "pipe" });
+  const isTex = existsSync(path.join(dir, "main.tex"));
 
-  // 1. convert (tex → mdx + content-addressed SVGs). The converter exits 2 on
-  //    warnings and prints file:line messages — surface them verbatim.
-  try {
-    const out = execFileSync("node", [CONVERTER, path.join(dir, "main.tex"),
-      "-o", mdxOut,
-      "--tikz-dir", path.join(UPLOADS, slug),
-      "--tikz-src", `/uploads/${slug}/`,
-    ], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-    const note = out.match(/NOTE \(advisory[^]*?(?=\nWrote )/);
-    if (note) console.log("\n" + note[0].trim());
-  } catch (e) {
-    fail(slug, `conversion failed:\n${e.stdout ?? ""}${e.stderr ?? ""}`);
-    continue;
+  if (isTex) {
+    // 1. PDF FIRST: the converter resolves \cref/\ref through LaTeX's .aux, so
+    //    the compile must happen before conversion — a fresh CI checkout has no
+    //    .aux, and converting without one reports every \cref as unresolved.
+    if (!CHECK_ONLY) {
+      try {
+        run("pdflatex -interaction=nonstopmode -halt-on-error main.tex");
+        try { run("bibtex main"); } catch { /* no citations — fine */ }
+        run("pdflatex -interaction=nonstopmode -halt-on-error main.tex");
+        run("pdflatex -interaction=nonstopmode -halt-on-error main.tex");
+      } catch {
+        const log = path.join(dir, "main.log");
+        const errLine = existsSync(log)
+          ? (readFileSync(log, "utf8").split("\n").find((l) => l.startsWith("!")) ?? "pdflatex failed")
+          : "pdflatex failed";
+        fail(slug, `PDF build failed: ${errLine.trim()} (see ${path.relative(ROOT, log)})`);
+        continue;
+      }
+    } else if (!existsSync(path.join(dir, "main.aux"))) {
+      // --check skips the full PDF build, but the converter still needs the
+      // .aux. One best-effort pass generates it; if it fails, the converter's
+      // unresolved-ref warnings say exactly what's missing.
+      try { run("pdflatex -interaction=nonstopmode -halt-on-error main.tex"); } catch { /* see above */ }
+    }
+
+    // 2. convert (tex → mdx + content-addressed SVGs). The converter exits 2 on
+    //    warnings and prints file:line messages — surface them verbatim.
+    try {
+      const out = execFileSync("node", [CONVERTER, path.join(dir, "main.tex"),
+        "-o", mdxOut,
+        "--tikz-dir", path.join(UPLOADS, slug),
+        "--tikz-src", `/uploads/${slug}/`,
+      ], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+      const note = out.match(/NOTE \(advisory[^]*?(?=\nWrote )/);
+      if (note) console.log("\n" + note[0].trim());
+    } catch (e) {
+      fail(slug, `conversion failed:\n${e.stdout ?? ""}${e.stderr ?? ""}`);
+      continue;
+    }
+  } else {
+    // MDX-authored worksheet: no conversion — main.mdx IS the page. It must
+    // open with a YAML frontmatter block (the index builder reads it).
+    const raw = readFileSync(path.join(dir, "main.mdx"), "utf8");
+    if (!/^---\n[\s\S]*?\n---\n/.test(raw)) {
+      fail(slug, "main.mdx must start with a `---` YAML frontmatter block (title/cluster/summary/contributors)");
+      continue;
+    }
+    copyFileSync(path.join(dir, "main.mdx"), mdxOut);
+
+    // PDF via pandoc (markdown source, KaTeX-style math; JSX component tags
+    // are raw HTML to pandoc and are dropped from the PDF — their contents
+    // survive). No .tex is generated for MDX-authored sheets.
+    if (!CHECK_ONLY) {
+      try {
+        run("pandoc main.mdx --from markdown+tex_math_dollars --metadata link-citations " +
+            "-V geometry:margin=1in -o main.pdf");
+      } catch (e) {
+        fail(slug, `pandoc PDF build failed: ${String(e.stderr ?? e.message).trim().split("\n")[0]}`);
+        continue;
+      }
+    }
   }
 
-  // 2. render gate: the MDX must compile and every KaTeX span must render
+  // 3. author figures: fig/*.pdf → public/uploads/<slug>/*.svg; web-native
+  //    assets (svg/png/jpg) copy through as-is. The MDX references them by
+  //    basename under /uploads/<slug>/; TikZ snippets are handled separately.
+  const figDir = path.join(dir, "fig");
+  if (existsSync(figDir)) {
+    const up = path.join(UPLOADS, slug);
+    mkdirSync(up, { recursive: true });
+    for (const f of readdirSync(figDir)) {
+      if (/\.pdf$/i.test(f)) {
+        try {
+          execFileSync("pdftocairo", ["-svg", path.join(figDir, f), path.join(up, f.replace(/\.pdf$/i, ".svg"))], { stdio: "pipe" });
+        } catch {
+          fail(slug, `figure conversion failed: fig/${f}`);
+        }
+      } else if (/\.(svg|png|jpe?g|gif|webp)$/i.test(f)) {
+        copyFileSync(path.join(figDir, f), path.join(up, f));
+      }
+    }
+  }
+
+  // 4. render gate: the MDX must compile and every KaTeX span must render
   try {
     execFileSync("node", [CHECKER, mdxOut], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
   } catch (e) {
@@ -77,26 +151,13 @@ for (const slug of slugs) {
     continue;
   }
 
+  // 5. downloads (the PDF was already built in step 1). MDX-authored sheets
+  //    offer pdf + mdx only — there is no .tex to serve.
   if (!CHECK_ONLY) {
-    // 3. PDF (solutions shown) + downloads
     const dl = path.join(DOWNLOADS, slug);
     mkdirSync(dl, { recursive: true });
-    try {
-      const run = (cmd) => execSync(cmd, { cwd: dir, stdio: "pipe" });
-      run("pdflatex -interaction=nonstopmode -halt-on-error main.tex");
-      try { run("bibtex main"); } catch { /* no citations — fine */ }
-      run("pdflatex -interaction=nonstopmode -halt-on-error main.tex");
-      run("pdflatex -interaction=nonstopmode -halt-on-error main.tex");
-      copyFileSync(path.join(dir, "main.pdf"), path.join(dl, `${slug}.pdf`));
-    } catch (e) {
-      const log = path.join(dir, "main.log");
-      const errLine = existsSync(log)
-        ? (readFileSync(log, "utf8").split("\n").find((l) => l.startsWith("!")) ?? "pdflatex failed")
-        : "pdflatex failed";
-      fail(slug, `PDF build failed: ${errLine.trim()} (see ${path.relative(ROOT, log)})`);
-      continue;
-    }
-    copyFileSync(path.join(dir, "main.tex"), path.join(dl, `${slug}.tex`));
+    copyFileSync(path.join(dir, "main.pdf"), path.join(dl, `${slug}.pdf`));
+    if (isTex) copyFileSync(path.join(dir, "main.tex"), path.join(dl, `${slug}.tex`));
     copyFileSync(mdxOut, path.join(dl, `${slug}.mdx`));
   }
   console.log("✓");

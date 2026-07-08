@@ -1,4 +1,5 @@
 %--- iliad ---
+% title: Solomonoff Induction
 % cluster: D
 % summary: How an idealized agent should predict. A Bayesian mixture over a countable
 %   class of computable hypotheses learns to predict any sequence, with total error
@@ -6,14 +7,6 @@
 % contributors:
 %   - David Quarel (Australian National University)
 %   - Leon Lang (University of Amsterdam)
-% learningOutcomes:
-%   - Define the Bayesian mixture over a class of environments and prove it is a proper
-%     predictor whose posterior updates multiplicatively.
-%   - Prove the cumulative prediction-error bound and specialize it to the Solomonoff
-%     prior to recover the Occam bound.
-%   - Show the mixture makes boundedly many mistakes and is Pareto-optimal under KL and
-%     squared loss.
-%   - Bound the misspecified case when the truth lies outside the model class.
 %--- end ---
 \documentclass[fontsize=11pt, parskip=half]{scrartcl}
 \usepackage[paperwidth=6.5in, paperheight=9.5in,
@@ -24,11 +17,11 @@
 
 \usepackage[dvipsnames]{xcolor}
 
-\usepackage[draft]{commenting}
+\usepackage[draft]{../commenting}
 \declareauthor{leon}{LL}{blue}
 \authorcommand{leon}{comment}
 
-\usepackage[boxes]{iliad}
+\usepackage[boxes]{../iliad}
 
 % sheet notation
 \renewcommand{\thesection}{\arabic{section}}
@@ -47,6 +40,13 @@
 \author{David Quarel \and Leon Lang}
 \date{\today}
 \maketitle
+
+\begin{learningoutcomes}
+  \item Define the Bayesian mixture over a class of environments and prove it is a proper predictor whose posterior updates multiplicatively.
+  \item Prove the cumulative prediction-error bound and specialize it to the Solomonoff prior to recover the Occam bound.
+  \item Show the mixture makes boundedly many mistakes and is Pareto-optimal under KL and squared loss.
+  \item Bound the misspecified case when the truth lies outside the model class.
+\end{learningoutcomes}
 
 \medskip
 \noindent
