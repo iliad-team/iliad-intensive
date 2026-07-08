@@ -81,8 +81,27 @@ const exec = (cmd, argv, opts = {}) =>
 // guaranteed spoiler-free. Solution environments never nest.
 const stripTexSolutions = (tex) =>
   tex.replace(/[ \t]*\\begin\{solution\}[\s\S]*?\\end\{solution\}[ \t]*\n?/g, "");
-const stripMdxSolutions = (mdx) =>
-  mdx.replace(/[ \t]*<Solution\b[^>]*>[\s\S]*?<\/Solution>[ \t]*\n?/g, "");
+// MDX: strip only bare <Solution> answer blocks — titled ones
+// (<Solution title="Hint">, ...title="Proof">) stay, matching what
+// stripTexSolutions keeps in the .tex. Depth-aware because an answer may
+// itself contain a titled proof block.
+const stripMdxSolutions = (mdx) => {
+  let out = "", i = 0;
+  for (;;) {
+    const s = mdx.indexOf("<Solution>", i);
+    if (s === -1) return out + mdx.slice(i);
+    let depth = 0, j = s;
+    for (;;) {
+      const o = mdx.indexOf("<Solution", j), c = mdx.indexOf("</Solution>", j);
+      if (c === -1) { j = -1; break; }
+      if (o !== -1 && o < c) { depth++; j = o + "<Solution".length; }
+      else { depth--; j = c + "</Solution>".length; if (depth === 0) break; }
+    }
+    if (j === -1) return out + mdx.slice(i);   // unbalanced — leave untouched
+    out += mdx.slice(i, s).replace(/[ \t]+$/, "");
+    i = j + (mdx[j] === "\n" ? 1 : 0);
+  }
+};
 
 /** Build one worksheet. Returns { ok, text } — text is the complete,
  *  atomically printable log block for this slug. */

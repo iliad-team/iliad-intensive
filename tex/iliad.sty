@@ -1,5 +1,5 @@
 % iliad.sty — the Iliad Intensive worksheet contract
-% Version 0.5 (2026-07-08)
+% Version 0.6 (2026-07-08)
 %
 % ONE shared copy lives at tex/iliad.sty. Worksheets load it local-first —
 % a copy next to main.tex (the Overleaf setup) wins, else the shared parent
@@ -47,6 +47,10 @@
 %       right after the exercise, or collected at the end — both fine.
 %       Exercises do not require solutions. Collapsible on the web.
 %       Hidden from the PDF by \solutionsfalse.
+%   \begin{hint} ... \end{hint}
+%       Unnumbered, never labeled, renders where it is written. PDF: a bold
+%       "Hint:" lead-in. Web: a collapsible drop-down, like solutions.
+%       (Short inline hints keep the \hint{...} command: "[Hint: ...]".)
 %   \begin{proof} ... \end{proof}            (amsthm; collapsible on the web)
 %   \begin{callout}[note|tip|warning] ... \end{callout}
 %   \begin{remark} ... \end{remark}          (aside; note callout on the web)
@@ -72,7 +76,7 @@
 %     (CI rejects it — the converter relies on these definitions).
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{iliad}[2026/07/08 v0.5 Iliad Intensive worksheet contract]
+\ProvidesPackage{iliad}[2026/07/08 v0.6 Iliad Intensive worksheet contract]
 
 \newif\ifiliad@boxes
 \iliad@boxesfalse
@@ -191,6 +195,23 @@
   \fi
 }
 
+% ------------------------------------------------------------------ hint ---
+% One name, two contract forms:
+%   \hint{try induction}           inline: prints "[Hint: try induction]"
+%   \begin{hint} ... \end{hint}    block: bold "Hint:" lead-in in the PDF;
+%                                  a collapsible drop-down on the web.
+% The block form is unnumbered, takes no label, and renders where written.
+% \hint dispatches on \@currenvir, so the one spot the INLINE form cannot
+% sit is the top level of a hint environment (there, just write the words).
+\newcommand{\iliad@hint@inline}[1]{[\emph{Hint:} #1]}
+\newcommand{\iliad@hint@block}{\par\medskip\noindent\textbf{Hint:}\enspace\ignorespaces}
+\newcommand{\hint}{%
+  \ifdefstring{\@currenvir}{hint}{\iliad@hint@block}{\iliad@hint@inline}}
+% \def, not \newcommand: the kernel's \@ifdefinable refuses every \end...
+% name (its "already defined" error is misleading), reserving them for
+% environments — which is exactly what this is.
+\def\endhint{\par\medskip}
+
 % --------------------------------------------------------------- callout ---
 % \begin{callout}[note|tip|warning]  (default: note)
 \ifiliad@boxes
@@ -263,7 +284,6 @@
 \newenvironment{summary}{\begin{quotation}\noindent\itshape}{\end{quotation}}
 
 % ----------------------------------------------------------- conveniences ---
-\newcommand{\hint}[1]{[\emph{Hint:} #1]}
 \providecommand{\note}[1]{[\emph{Note:} #1]}
 
 \endinput

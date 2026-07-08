@@ -48,11 +48,12 @@ around it (CI also rejects redefinitions of contract names).
 | `summary` | env | one-paragraph lede; italic block in the PDF, page summary on the web |
 | `definition` `theorem` `lemma` `proposition` `corollary` `fact` `example` | envs | amsthm family sharing one per-section counter |
 | `proof` | env | amsthm; collapsible on the web |
+| `hint` | env | unnumbered block hint, rendered in place; collapsible on the web |
 | `callout` | env | `[note\|tip\|warning]` coloured aside |
 | `remark` | env | aside in the theorem register; note-style callout on the web |
 | `\important` | mark | ★ after an exercise's label: one of the sheet's key exercises |
 | `\authorname{}` `\affiliation{}` | cmds | structured `\author{}` entries (byline extraction) |
-| `\hint{}` `\note{}` | cmds | inline `[Hint: …]` / `[Note: …]` |
+| `\hint{}` `\note{}` | cmds | inline `[Hint: …]` / `[Note: …]` (don't use inline `\hint{}` at the top level of a `hint` environment) |
 | `\ifsolutions` | toggle | `\solutionsfalse` hides every solution from the PDF |
 | `\skippable`, `\difficulty{}` | legacy | still compile ( (∗) / `[10]` ) but are not part of the contract |
 

@@ -36,9 +36,27 @@ For \cref{ex:warmup-a}: each term is non-negative. \hint{when is $-t\log t = 0$?
 
 - `[ex:label]` is **mandatory** (compile error without it) — that binding is
   why placement is free: right after the exercise or collected at the end.
+- The PDF keeps your placement; **the web always moves each solution directly
+  beneath its exercise** (a solutions section left empty by the move is
+  dropped from the page — don't `\cref` it from prose).
 - Collapsed (`<details>`) on the web; hidden from the PDF by
   `\solutionsfalse`; stripped entirely from the `-nosol` downloads.
 - MDX: `<Solution>…</Solution>`
+
+## Hints
+
+```latex
+\begin{hint}
+Consider $f(t) = t - 1 - \log t$.
+\end{hint}
+```
+
+- Unnumbered, never labeled, renders exactly where it is written (no
+  relocation, unlike solutions).
+- PDF: a bold "Hint:" lead-in. Web: a collapsible drop-down, like solutions —
+  and unlike solutions, hints survive `\solutionsfalse` and the `-nosol`
+  downloads.
+- MDX: `<Hint>…</Hint>`
 
 ## Learning outcomes and summary
 

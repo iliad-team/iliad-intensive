@@ -97,6 +97,19 @@ const components = {
   ),
 
   /**
+   * Hint — collapsible like a Solution, but a separate component on purpose:
+   * hints are not spoilers, so the -nosol stripper (which removes every
+   * <Solution> block) must not match them.
+   * Usage: <Hint>nudge in the right direction</Hint>
+   */
+  Hint: ({ children }: { children: ReactNode }) => (
+    <details className="my-3 rounded-md border border-zinc-200 px-3 py-2">
+      <summary className="cursor-pointer font-medium">Hint</summary>
+      <div className="mt-2">{children}</div>
+    </details>
+  ),
+
+  /**
    * Definition — coloured box; the converter puts the bold lead
    * ("**Definition 2.1 (entropy).**") in the body, so titles can carry math.
    * Usage: <Definition id="optional-anchor">**Definition 2.1 (RLCT).** …</Definition>

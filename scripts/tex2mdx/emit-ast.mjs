@@ -59,7 +59,7 @@ const ENV_SIGNATURES = {
   proposition: { signature: "o" }, corollary: { signature: "o" },
   definition: { signature: "o" }, fact: { signature: "o" },
   example: { signature: "o" }, remark: { signature: "o" },
-  learningoutcomes: {}, summary: {},
+  learningoutcomes: {}, summary: {}, hint: {},
   abstract: {}, figure: { signature: "o" }, table: { signature: "o" },
   tabular: { signature: "m" }, quote: {}, quotation: {},
   itemize: { signature: "o" }, enumerate: { signature: "o" }, description: { signature: "o" },
@@ -413,6 +413,12 @@ function emitEnv(n) {
     }
     case "proof":
       mdx = `<Solution title="${opt ? attr(opt) : "Proof"}">\n\n${walk(n.content).trim()}\n\n</Solution>`;
+      break;
+    // hint environment — its own component, NOT <Solution title="Hint">:
+    // hints are unbound (never relocated) and must survive the -nosol
+    // variants, whose stripper removes every <Solution> block.
+    case "hint":
+      mdx = `<Hint>\n\n${walk(n.content).trim()}\n\n</Hint>`;
       break;
     default: {
       if (declared) {
