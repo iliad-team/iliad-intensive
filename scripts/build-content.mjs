@@ -101,6 +101,17 @@ async function buildSlug(slug) {
     exec(argv[0], argv.slice(1), { cwd: dir });
   const isTex = existsSync(path.join(dir, "main.tex"));
 
+  // Guardrail: main.tex loads iliad.sty local-first (for standalone use of a
+  // copied folder), so a stray per-folder copy in the repo tree would shadow
+  // the shared tex/iliad.sty and build differently here than on CI. Gitignore
+  // keeps them out of commits; this keeps them from skewing local builds.
+  const localSty = path.join(dir, "iliad.sty");
+  if (existsSync(localSty)
+      && readFileSync(localSty, "utf8") !== readFileSync(path.join(TEX, "iliad.sty"), "utf8")) {
+    return done(false, `tex/${slug}/iliad.sty differs from the shared tex/iliad.sty — ` +
+      "delete the local copy (the build uses ../iliad.sty in the repo)");
+  }
+
   if (isTex) {
     // 1. PDF FIRST: the converter resolves \cref/\ref through LaTeX's .aux, so
     //    the compile must happen before conversion — a fresh CI checkout has no

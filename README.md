@@ -22,6 +22,11 @@ Your folder sits next to the one shared style file:
 `tex/example/main.tex` is the living example — every supported construct,
 with comments. Read it side by side with its rendered page.
 
+Working **outside the repo** (your own machine, Overleaf)? Put a copy of
+`iliad.sty` next to your `main.tex` — it looks there first, then one level
+up. Don't commit that copy (the repo gitignores it): inside the repo,
+everyone builds against the shared `tex/iliad.sty`.
+
 ## Prefer Markdown to LaTeX?
 
 Author `tex/your-slug/main.mdx` instead of `main.tex` — it is served as the

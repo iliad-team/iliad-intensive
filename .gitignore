@@ -14,6 +14,11 @@ content/index.json
 public/uploads/
 public/downloads/
 
+# Per-folder iliad.sty copies are for working OUTSIDE the repo (main.tex
+# looks locally first, then one level up). In the repo everyone uses the
+# shared tex/iliad.sty, so local copies must never be committed.
+tex/*/iliad.sty
+
 # LaTeX build artifacts (compiled PDFs are downstream artifacts too —
 # figure PDFs under tex/*/fig/ are the one committed exception)
 tex/*/main-nosol.*
