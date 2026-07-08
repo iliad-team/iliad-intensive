@@ -1,9 +1,10 @@
 # Iliad Intensive worksheets
 
 You write LaTeX; the machinery does the rest. Each folder in `tex/` becomes
-a page on the course site, a PDF (with and without solutions), and per-page
-downloads. Only your `.tex`, `biblo.bib`, and `fig/` go in git — never build
-outputs.
+a page on the course site plus per-page downloads — PDF, LaTeX, and
+Markdown, each in a with-solutions and a solutions-stripped variant (the
+stripped ones are safe to hand out or paste into an LLM). Only your `.tex`,
+`biblo.bib`, and `fig/` go in git — never build outputs.
 
 ## Start a worksheet
 
@@ -37,7 +38,8 @@ page directly, no conversion. Rules:
 - Figures still live in `fig/` (PDFs are converted to SVG; svg/png copy
   through) and are referenced as `/uploads/your-slug/<name>.svg`.
 - Downloads offered: **PDF** (generated from your markdown via pandoc) and
-  **Markdown** — no LaTeX download for MDX-authored sheets.
+  **Markdown**, each with the with/without-solutions toggle — no LaTeX
+  download for MDX-authored sheets.
 
 ## The contract
 

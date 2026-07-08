@@ -15,7 +15,8 @@ public/uploads/
 public/downloads/
 
 # LaTeX build artifacts (compiled PDFs are downstream artifacts too —
-# figure PDFs under tex/*/figures/ are the one committed exception)
+# figure PDFs under tex/*/fig/ are the one committed exception)
+tex/*/main-nosol.*
 *.aux
 *.log
 *.out

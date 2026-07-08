@@ -5,6 +5,7 @@ import { listClusters } from "@/lib/cluster-store";
 import { MdxBody } from "@/lib/mdx";
 import { ModulePageShell } from "@/components/ModulePageShell";
 import { SidebarNav } from "@/components/SidebarNav";
+import { DownloadsRow } from "@/components/DownloadsRow";
 
 // Static export: every .mdx in content/modules is prerendered at build time.
 // content/index.json only controls the homepage/sidebar listing, so a module
@@ -80,26 +81,14 @@ export default async function ModulePage({
               {fm.contributors.join(", ")}
             </p>
           )}
-          {/* Downloads: build artifacts emitted by scripts/build-content.mjs.
-              Only the files that exist are offered (MDX-authored sheets have
-              no .tex). Plain <a> tags — static files bypass Next's router,
-              so the basePath prefix is applied manually. */}
-          {downloads.length > 0 && (
-            <p className="mt-3 flex gap-x-4 font-sans text-xs uppercase tracking-wide">
-              {(["pdf", "tex", "mdx"] as const)
-                .filter((ext) => downloads.includes(`${slug}.${ext}`))
-                .map((ext) => (
-                  <a
-                    key={ext}
-                    href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/downloads/${slug}/${slug}.${ext}`}
-                    className="text-zinc-500 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-800"
-                    download
-                  >
-                    {ext === "pdf" ? "PDF" : ext === "tex" ? "LaTeX" : "Markdown"}
-                  </a>
-                ))}
-            </p>
-          )}
+          {/* Downloads: build artifacts from scripts/build-content.mjs, each
+              in a with-solutions and -nosol variant. The row only offers what
+              exists (MDX-authored sheets have no .tex). */}
+          <DownloadsRow
+            slug={slug}
+            files={downloads}
+            basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ""}
+          />
         </header>
         <div className="prose">
           <MdxBody source={mod.body} />

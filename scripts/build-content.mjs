@@ -53,6 +53,14 @@ mkdirSync(MODULES, { recursive: true });
 let failed = false;
 const fail = (slug, why) => { failed = true; console.error(`\n✗ ${slug}: ${why}`); };
 
+// "No solutions" variants of every download format are derived by stripping
+// solution blocks from the source — so a handout (or an LLM prompt) can be
+// guaranteed spoiler-free. Solution environments never nest.
+const stripTexSolutions = (tex) =>
+  tex.replace(/[ \t]*\\begin\{solution\}[\s\S]*?\\end\{solution\}[ \t]*\n?/g, "");
+const stripMdxSolutions = (mdx) =>
+  mdx.replace(/[ \t]*<Solution\b[^>]*>[\s\S]*?<\/Solution>[ \t]*\n?/g, "");
+
 for (const slug of slugs) {
   const dir = path.join(TEX, slug);
   const mdxOut = path.join(MODULES, `${slug}.mdx`);
@@ -76,6 +84,20 @@ for (const slug of slugs) {
           ? (readFileSync(log, "utf8").split("\n").find((l) => l.startsWith("!")) ?? "pdflatex failed")
           : "pdflatex failed";
         fail(slug, `PDF build failed: ${errLine.trim()} (see ${path.relative(ROOT, log)})`);
+        continue;
+      }
+      // no-solutions PDF: compile a solution-stripped copy of the source.
+      // Stripping (rather than \solutionsfalse) works for both dialects and
+      // doubles as the spoiler-free .tex download.
+      writeFileSync(path.join(dir, "main-nosol.tex"),
+        stripTexSolutions(readFileSync(path.join(dir, "main.tex"), "utf8")));
+      try {
+        run("pdflatex -interaction=nonstopmode -halt-on-error main-nosol.tex");
+        try { run("bibtex main-nosol"); } catch { /* no citations — fine */ }
+        run("pdflatex -interaction=nonstopmode -halt-on-error main-nosol.tex");
+        run("pdflatex -interaction=nonstopmode -halt-on-error main-nosol.tex");
+      } catch {
+        fail(slug, `no-solutions PDF build failed (see ${path.relative(ROOT, path.join(dir, "main-nosol.log"))})`);
         continue;
       }
     } else if (!existsSync(path.join(dir, "main.aux"))) {
@@ -113,9 +135,12 @@ for (const slug of slugs) {
     // are raw HTML to pandoc and are dropped from the PDF — their contents
     // survive). No .tex is generated for MDX-authored sheets.
     if (!CHECK_ONLY) {
+      writeFileSync(path.join(dir, "main-nosol.mdx"), stripMdxSolutions(raw));
       try {
         run("pandoc main.mdx --from markdown+tex_math_dollars --metadata link-citations " +
             "-V geometry:margin=1in -o main.pdf");
+        run("pandoc main-nosol.mdx --from markdown+tex_math_dollars --metadata link-citations " +
+            "-V geometry:margin=1in -o main-nosol.pdf");
       } catch (e) {
         fail(slug, `pandoc PDF build failed: ${String(e.stderr ?? e.message).trim().split("\n")[0]}`);
         continue;
@@ -151,14 +176,20 @@ for (const slug of slugs) {
     continue;
   }
 
-  // 5. downloads (the PDF was already built in step 1). MDX-authored sheets
-  //    offer pdf + mdx only — there is no .tex to serve.
+  // 5. downloads (PDFs were already built in step 1). Every format ships a
+  //    with-solutions file and a -nosol variant; MDX-authored sheets have no
+  //    .tex to serve.
   if (!CHECK_ONLY) {
     const dl = path.join(DOWNLOADS, slug);
     mkdirSync(dl, { recursive: true });
     copyFileSync(path.join(dir, "main.pdf"), path.join(dl, `${slug}.pdf`));
-    if (isTex) copyFileSync(path.join(dir, "main.tex"), path.join(dl, `${slug}.tex`));
+    copyFileSync(path.join(dir, "main-nosol.pdf"), path.join(dl, `${slug}-nosol.pdf`));
     copyFileSync(mdxOut, path.join(dl, `${slug}.mdx`));
+    writeFileSync(path.join(dl, `${slug}-nosol.mdx`), stripMdxSolutions(readFileSync(mdxOut, "utf8")));
+    if (isTex) {
+      copyFileSync(path.join(dir, "main.tex"), path.join(dl, `${slug}.tex`));
+      copyFileSync(path.join(dir, "main-nosol.tex"), path.join(dl, `${slug}-nosol.tex`));
+    }
   }
   console.log("✓");
 }
