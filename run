@@ -1,16 +1,37 @@
 #!/usr/bin/env bash
 #
-# ./run — start the Next.js dev server with the right Node version.
+# ./run — run the site's npm scripts with the right Node version.
 #
 # Works from any shell (fish included): the bash shebang means nvm — which is a
 # bash-only sourced function and cannot run under fish — is loaded here in bash.
 # Next.js 16 needs Node >= 20.9.0; system Node is 18.x, so we select nvm's Node.
-#
-# Usage:
-#   ./run          # start the dev server (default)
-#   ./run build    # run any other npm script, e.g. build / start
 
 set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+./run — Iliad Intensive site, with the right Node version selected via nvm
+
+Usage:
+  ./run                start the dev server -> http://localhost:3000
+  ./run content        build all worksheets: tex/mdx -> pages, PDFs, downloads
+  ./run verify         everything CI tests: content build + static site build
+                       (fails fast with file:line error messages; exit 0 = CI green)
+  ./run build          static-export the site -> out/
+  ./run start          serve a production build
+  ./run <script>       any other script from package.json
+
+The edit loop for a worksheet:
+  node scripts/build-content.mjs --only <your-slug>   # rebuild one worksheet
+  ./run                                               # then refresh the browser
+
+More: README.md (writing worksheets) · docs/DEVELOPMENT.md (pipeline internals)
+EOF
+}
+
+case "${1:-}" in
+  -h|--help|help) usage; exit 0 ;;
+esac
 
 # Load nvm.
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
