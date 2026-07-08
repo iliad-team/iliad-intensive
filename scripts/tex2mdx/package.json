@@ -1,0 +1,26 @@
+{
+  "name": "tex2mdx",
+  "private": true,
+  "type": "module",
+  "description": "ILIAD worksheet .tex -> .mdx converter + KaTeX render gate",
+  "bin": {
+    "tex2mdx": "./tex2mdx.mjs",
+    "tex2mdx-check": "./tex2mdx-check.mjs"
+  },
+  "engines": {
+    "node": ">=18.11"
+  },
+  "dependencies": {
+    "@mdx-js/mdx": "^3",
+    "@unified-latex/unified-latex-util-arguments": "^1.8.4",
+    "@unified-latex/unified-latex-util-macros": "^1.8.4",
+    "@unified-latex/unified-latex-util-parse": "^1.8.4",
+    "@unified-latex/unified-latex-util-print-raw": "^1.8.4",
+    "@unified-latex/unified-latex-util-visit": "^1.8.4",
+    "bibtex-parse": "^2.1.0",
+    "katex": "^0.16",
+    "rehype-katex": "^7",
+    "remark-math": "^6",
+    "yaml": "^2"
+  }
+}

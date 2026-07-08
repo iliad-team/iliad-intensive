@@ -1,0 +1,14 @@
+#!/bin/sh
+# Reject pushes whose worksheets no longer convert cleanly. Runs the
+# converter + render gate only (no PDF builds) — typically a few seconds.
+# The converter's messages carry file:line for whatever broke.
+#
+# Enable once per clone:   git config core.hooksPath .githooks
+echo "pre-push: checking tex -> mdx conversion..."
+if ! node scripts/build-content.mjs --check; then
+  echo ""
+  echo "✗ push rejected: conversion or render gate failed (see messages above)."
+  echo "  Fix the reported file:line, or bypass ONCE with: git push --no-verify"
+  exit 1
+fi
+echo "✓ conversion clean"

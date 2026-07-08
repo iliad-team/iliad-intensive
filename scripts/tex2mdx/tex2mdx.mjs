@@ -1,0 +1,408 @@
+#!/usr/bin/env node
+/**
+ * tex2mdx.mjs — faithful converter from an ILIAD worksheet .tex to MDX.
+ *
+ * Pipeline stages (each in its own module):
+ *   util.mjs   tokenizer primitives          state.mjs  warnings + file:line
+ *   shims.mjs  ALL dialect tables/transforms tikz.mjs   diagrams -> SVG
+ *   this file  parse + emit (the stage the unified-latex port will replace)
+ *
+ * Design: copy prose and math byte-for-byte; translate only known markup;
+ * fail loud (file:line WARN + visible TODO marker) on anything unrecognised.
+ * Cross-references come from LaTeX's own .aux. Exit code 2 on warnings.
+ *
+ * Usage: tex2mdx.mjs input.tex [-o out.mdx] [--aux f.aux] [--tikz-dir d]
+ *        [--tikz-src /url/prefix/] [--no-render-tikz]
+ */
+import { readFileSync, writeFileSync, existsSync, mkdtempSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
+import { parseArgs } from "node:util";
+import { pathToFileURL } from "node:url";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { readGroup, readOpt, readArg, stripComments, slug, ghSlug, tidy } from "./util.mjs";
+import { SRC_FILES, lineOf, warnings, warn, advisories, advise, fmtIssue, snippetOf } from "./state.mjs";
+import { MACRO_OVERRIDE, MACRO_SKIP, applyShims, applyMathShims, trimMacroBody,
+         CREF_NAME_DEFAULTS, THM_FAMILY, CONTRACT_NAMES, KNOWN_FRONT_KEYS } from "./shims.mjs";
+import { initTikz, renderTikzSnippets, tikzCount } from "./tikz.mjs";
+import { emitDocument, texToPlain } from "./emit-ast.mjs";
+import { entries as bibtexEntries } from "bibtex-parse";
+
+// Optional yaml lib (from the public repo's node_modules) for strict
+// frontmatter validation; structural checks are the fallback.
+let YAMLLIB = null;
+{
+  const here = path.dirname(new URL(import.meta.url).pathname);
+  const candidates = [
+    here, path.resolve(here, ".."), path.resolve(here, "../.."), process.cwd(),
+  ];
+  const repo = candidates.find((c) => existsSync(path.join(c, "node_modules/yaml")));
+  if (repo) {
+    try {
+      const req = createRequire(path.join(repo, "package.json"));
+      YAMLLIB = (await import(pathToFileURL(req.resolve("yaml")).href)).default;
+    } catch { /* structural fallback below */ }
+  }
+}
+
+// ----------------------------- args ---------------------------------------
+let parsed;
+try {
+  parsed = parseArgs({
+    allowPositionals: true,
+    options: {
+      output: { type: "string", short: "o" },
+      aux: { type: "string" },
+      "tikz-dir": { type: "string" },
+      "tikz-src": { type: "string" },
+      "no-render-tikz": { type: "boolean", default: false },
+      help: { type: "boolean", short: "h", default: false },
+    },
+  });
+} catch (e) {
+  console.error(String(e.message)); process.exit(1);
+}
+if (parsed.values.help || parsed.positionals.length !== 1) {
+  console.log("usage: tex2mdx.mjs input.tex [-o out.mdx] [--aux f.aux] [--tikz-dir d] [--tikz-src /url/] [--no-render-tikz]");
+  process.exit(parsed.values.help ? 0 : 1);
+}
+const input = parsed.positionals[0];
+const output = parsed.values.output
+  ?? path.join(path.dirname(input), path.basename(input, path.extname(input)) + ".mdx");
+const auxPath = parsed.values.aux ?? null;
+let tikzDir = parsed.values["tikz-dir"] ?? null;
+let tikzSrc = parsed.values["tikz-src"] ?? null;
+const renderTikz = !parsed.values["no-render-tikz"];
+// TikZ assets: content-addressed SVGs (tikz-<sha>.svg). Defaults keep local
+// preview working; CI points --tikz-dir at public/uploads/<slug>/.
+const moduleSlug = path.basename(output, ".mdx");
+if (!tikzDir) tikzDir = path.join(path.dirname(output), moduleSlug + "-tikz");
+if (!tikzSrc) tikzSrc = `/uploads/${moduleSlug}/`;
+if (!tikzSrc.endsWith("/")) tikzSrc += "/";
+
+// ----------------------------- .aux → refs --------------------------------
+// Build label -> { name, num }.  name from cleveref type: section/subsection
+// => "Problem", the shared theorem counter => "Theorem".
+function ensureAux(texFile) {
+  if (auxPath && existsSync(auxPath)) return auxPath;
+  const sib = path.join(path.dirname(texFile), path.basename(texFile, ".tex") + ".aux");
+  if (existsSync(sib)) return sib;
+  // generate
+  const dir = mkdtempSync(path.join(tmpdir(), "tex2mdx-"));
+  try {
+    execFileSync("pdflatex", ["-interaction=nonstopmode", "-output-directory=" + dir, path.resolve(texFile)],
+      { cwd: path.dirname(path.resolve(texFile)), stdio: "ignore" });
+  } catch { /* nonstop: warnings are fine as long as the aux got written */ }
+  const gen = path.join(dir, path.basename(texFile, ".tex") + ".aux");
+  if (!existsSync(gen)) { console.error("Could not generate .aux (pdflatex failed). Pass --aux."); process.exit(1); }
+  return gen;
+}
+// Printed name per cref type. Defaults are the capitalised type; a sheet's own
+// \crefname{type}{Singular}{Plural} declarations (preamble) override — this is
+// how the AIXI dialect's section->"Problem" mapping is picked up.
+const CREF_NAME = { ...CREF_NAME_DEFAULTS };
+function applyCrefnames(pre) {
+  const re = /\\[cC]refname\{([a-zA-Z]+)\}\{([^}]*)\}\{[^}]*\}/g;
+  let m;
+  while ((m = re.exec(pre))) {
+    const name = m[2].trim();
+    if (name) CREF_NAME[m[1]] = name[0].toUpperCase() + name.slice(1);
+  }
+  // thmtools: \declaretheorem[..., name=X or refname={X,Xs}, ...]{env}
+  const dt = /\\declaretheorem\s*\[([^\]]*)\]\s*\{([a-zA-Z]+)\}/g;
+  while ((m = dt.exec(pre))) {
+    const rn = m[1].match(/refname=\{?([^,}\]]+)/);
+    const nm = rn || m[1].match(/name=([^,\]]+)/);
+    if (nm) { const t = nm[1].trim(); if (t) CREF_NAME[m[2]] = t[0].toUpperCase() + t.slice(1); }
+  }
+}
+function parseAux(auxFile) {
+  const aux = readFileSync(auxFile, "utf8");
+  const refs = {};
+  // \newlabel{KEY@cref}{{[type][..][..]NUMBER}{...}...}  — NUMBER may itself be
+  // braced (e.g. {3.1(a)} for enumerate subparts aliased to a counter).
+  const re = /\\newlabel\{([^}]+)@cref\}\{\{\[([a-zA-Z]+)\](?:\[[^\]]*\])*\s*([^}]*)\}/g;
+  let m;
+  while ((m = re.exec(aux))) {
+    const key = m[1], type = m[2];
+    let num = m[3].trim();
+    if (num.startsWith("{")) num = num.slice(1);   // braced number: {3.1(a)}
+    refs[key] = { name: CREF_NAME[type] || (type[0].toUpperCase() + type.slice(1)), num };
+  }
+  // plain (non-cleveref) labels: \newlabel{key}{{NUM}{page}...} — no type
+  // info, so refs print just the number (which is what \ref prints anyway)
+  const re2 = /\\newlabel\{([^}]+)\}\{\{([^{}]*)\}/g;
+  while ((m = re2.exec(aux))) {
+    if (m[1].endsWith("@cref") || m[1] in refs) continue;
+    refs[m[1]] = { name: "", num: m[2].replace(/\\[a-zA-Z]+\s*/g, "").trim() };
+  }
+  return refs;
+}
+
+// --------------------------- read + split ---------------------------------
+const rawTex = readFileSync(input, "utf8");
+// Inline \input{file} recursively (multi-file worksheets are fine — pdflatex
+// resolves them, so the converter must too; silently dropping them would lose
+// content). \input{preamble}-style extensionless names get .tex appended.
+function inlineInputs(src, dir, depth = 0) {
+  if (depth > 8) { warn("\\input nesting too deep — stopping"); return src; }
+  return src.replace(/\\input\{([^}]+)\}/g, (m0, f) => {
+    const file = path.join(dir, /\.\w+$/.test(f) ? f : f + ".tex");
+    if (!existsSync(file)) { warn(`\\input{${f}} not found — file missing, content dropped`, m0); return ""; }
+    const sub = stripComments(readFileSync(file, "utf8"));
+    SRC_FILES.push({ name: path.relative(path.dirname(input), file) || f, text: sub });
+    return inlineInputs(sub, path.dirname(file), depth + 1);
+  });
+}
+const mainStripped = stripComments(rawTex);
+SRC_FILES.push({ name: path.basename(input), text: mainStripped });
+const tex = inlineInputs(mainStripped, path.dirname(input));
+
+const docStart = tex.indexOf("\\begin{document}");
+const docEnd = tex.indexOf("\\end{document}");
+const preamble = tex.slice(0, docStart);
+let body = tex.slice(docStart + "\\begin{document}".length, docEnd);
+
+applyCrefnames(preamble);                    // before parseAux: names depend on it
+const refs = parseAux(ensureAux(input));
+initTikz({ tikzDir, tikzSrc, getRefs: () => refs }, preamble);
+// dialect detection: iliad.sty sheets use the exercise env; legacy sheets use
+const usesExerciseEnv = /\\begin\{exercise\}/.test(body);
+// legacy sheets may declare remark as a numbered theorem-family env
+const remarkNumbered = /\\newtheorem\{remark\}/.test(preamble);
+
+// Author-declared theorem-like environments (\newtheorem / thmtools
+// \declaretheorem). Any declared env the converter doesn't handle natively is
+// auto-mapped to a numbered callout — authors' custom envs are free-zone.
+const declaredThms = {};
+for (const m of preamble.matchAll(/\\declaretheorem\s*(\[[^\]]*\])?\s*\{([a-zA-Z]+)\}/g)) {
+  const nm = (m[1] ?? "").match(/name=([^,\]]+)/);
+  declaredThms[m[2]] = nm ? nm[1].trim() : m[2][0].toUpperCase() + m[2].slice(1);
+}
+for (const m of preamble.matchAll(/\\newtheorem\*?\{([a-zA-Z]+)\}(?:\[[a-zA-Z]*\])?\{([^}]*)\}/g)) {
+  declaredThms[m[1]] = m[2];
+}
+
+// margin-comment commands from the commenting package (\declareauthor{leon}..
+// => \leon{...} is a review comment): dropped entirely, with their argument.
+const commentCmds = new Set();
+for (const m of preamble.matchAll(/\\declareauthor\{([a-zA-Z]+)\}/g)) commentCmds.add(m[1]);
+
+// ------------------- %--- iliad --- frontmatter block ---------------------
+// A YAML block carried in comments at the top of the .tex (invisible to
+// LaTeX). Lifted verbatim into the MDX frontmatter.
+function parseIliadBlock(raw) {
+  const open = raw.match(/^%---\s*iliad\s*-*\s*$/m);
+  if (!open) return null;                            // absent → advisory later
+  const close = raw.match(/^%---\s*end\s*-*\s*$/m);
+  if (!close || close.index < open.index) {
+    warn("frontmatter block: '%--- iliad ---' opened but no '%--- end ---' terminator found");
+    return null;
+  }
+  const out = [];
+  for (const l of raw.slice(open.index + open[0].length, close.index).split("\n")) {
+    if (/^\s*$/.test(l)) continue;
+    if (!/^%/.test(l)) { warn(`frontmatter block: non-comment line inside the block: "${l.trim().slice(0, 50)}"`, l.trim().slice(0, 50)); continue; }
+    out.push(l.replace(/^%[ \t]?/, ""));
+  }
+  return out.length ? out : null;
+}
+const iliadBlock = parseIliadBlock(rawTex);
+// A present-but-misspecified block is a hard failure (WARN => exit 2);
+// a missing block only draws an advisory (TODO placeholders are emitted).
+if (iliadBlock) {
+  const text = iliadBlock.join("\n");
+  if (YAMLLIB) {
+    try {
+      const parsed = YAMLLIB.parse(text);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        warn("frontmatter block is not a YAML mapping (expected `key: value` lines)");
+      } else {
+        for (const k of Object.keys(parsed)) {
+          if (!KNOWN_FRONT_KEYS.has(k)) warn(`unknown frontmatter key "${k}" — known keys: ${[...KNOWN_FRONT_KEYS].join(", ")}`, `${k}:`);
+        }
+      }
+    } catch (e) {
+      warn(`frontmatter block is not valid YAML: ${String(e.message).split("\n")[0]}`);
+    }
+  } else {
+    // structural fallback: every line must be a key or a list item
+    for (const l of iliadBlock) {
+      if (!/^[A-Za-z][\w-]*:/.test(l) && !/^\s+- /.test(l) && !/^\s+\w+:/.test(l))
+        warn(`frontmatter block line doesn't look like YAML: "${l.slice(0, 50)}"`, l.slice(0, 50));
+      const km = l.match(/^([A-Za-z][\w-]*):/);
+      if (km && !KNOWN_FRONT_KEYS.has(km[1])) warn(`unknown frontmatter key "${km[1]}" — known keys: ${[...KNOWN_FRONT_KEYS].join(", ")}`, `${km[1]}:`);
+    }
+  }
+}
+
+// ---------------- static contract checks (iliad.sty dialect) --------------
+if (usesExerciseEnv && !iliadBlock) {
+  advise("no %--- iliad --- frontmatter block at the top of main.tex — cluster/summary/learningOutcomes will be emitted as TODO");
+}
+{ // duplicate labels break cross-referencing (last definition silently wins)
+  const seen = new Set();
+  for (const m of tex.matchAll(/\\label\{([^}]*)\}/g)) {
+    if (seen.has(m[1])) warn(`duplicate \\label{${m[1]}} — labels must be unique within a worksheet`, m[0]);
+    seen.add(m[1]);
+  }
+}
+// redefining the contract breaks the converter's guarantees
+if (usesExerciseEnv) {
+  for (const m of tex.matchAll(/\\renew(?:command|environment)\s*\{?\\?([a-zA-Z]+)\}?/g)) {
+    if (CONTRACT_NAMES.has(m[1])) warn(`redefining contract name "${m[1]}" is forbidden — the converter relies on iliad.sty's definition`, m[0]);
+  }
+}
+
+const PROSE_MACROS = {};   // retained for buildGdef bookkeeping only
+
+// --------------------------- preamble → gdef ------------------------------
+function buildGdef(pre) {
+  const parts = [];
+  const seen = new Set();
+  const add = (name, arity, bodyStr) => {
+    if (seen.has(name) || MACRO_SKIP.has(name)) return;
+    // a body containing $ would terminate the $-delimited \gdef block itself,
+    // silently killing every macro defined after it — skip, contained
+    if (bodyStr.includes("$")) { warn(`macro ${name} body contains $ (text-mode construct) — not exported to KaTeX`, name); seen.add(name); return; }
+    seen.add(name);
+    if (MACRO_OVERRIDE[name] !== undefined) { parts.push(`\\gdef${name}${MACRO_OVERRIDE[name] === "" ? "" : "{" + MACRO_OVERRIDE[name] + "}"}`); return; }
+    const params = Array.from({ length: arity }, (_, k) => `#${k + 1}`).join("");
+    parts.push(`\\gdef${name}${params}{${bodyStr}}`);
+  };
+  // \newcommand{\name}[n][opt]{body}  and \renewcommand
+  // macro names may be braced ({\foo}) or bare (\foo)
+  const nc = /\\(?:new|renew|provide)command\s*\{?(\\[a-zA-Z]+)\}?\s*(?:\[(\d+)\])?\s*(?:\[[^\]]*\])?\s*/g;
+  let m;
+  while ((m = nc.exec(pre))) {
+    const name = m[1], arity = m[2] ? parseInt(m[2]) : 0;
+    const g = readGroup(pre, nc.lastIndex);
+    if (!g) continue;
+    const hasOpt = /\]\s*\[/.test(pre.slice(m.index, nc.lastIndex)) || /\[\d+\]\s*\[/.test(pre.slice(m.index, nc.lastIndex));
+    if (hasOpt && !MACRO_OVERRIDE[name]) { warn(`macro ${name} has an optional arg; not auto-translated (override or expand manually)`, name); }
+    if (MACRO_SKIP.has(name)) { nc.lastIndex = g.end; continue; }
+    add(name, arity, applyShims(trimMacroBody(g.content)));
+    // also register for PROSE expansion (usage outside math): unknown prose
+    // commands matching an author macro get expanded and re-processed
+    if (!hasOpt && !(name.slice(1) in PROSE_MACROS)) PROSE_MACROS[name.slice(1)] = { arity, body: g.content };
+    nc.lastIndex = g.end;
+  }
+  // simple \def\name{body} (parameterless) — common toggle idiom
+  const df = /\\def\s*\\([a-zA-Z]+)\s*\{/g;
+  while ((m = df.exec(pre))) {
+    const g = readGroup(pre, m.index + m[0].length - 1);
+    if (!g) continue;
+    if (!(m[1] in PROSE_MACROS)) PROSE_MACROS[m[1]] = { arity: 0, body: g.content };
+    df.lastIndex = g.end;
+  }
+  // \DeclareMathOperator*{\name}{body} — body read with readGroup (it may
+  // contain nested braces, e.g. {\mathbf{H}}, which a [^}]* regex truncates)
+  const op = /\\DeclareMathOperator(\*?)\s*\{(\\[a-zA-Z]+)\}\s*/g;
+  while ((m = op.exec(pre))) {
+    const star = m[1] ? "*" : "", name = m[2];
+    const g = readGroup(pre, m.index + m[0].length);
+    if (!g) continue;
+    if (MACRO_OVERRIDE[name] !== undefined) add(name, 0, "");
+    else add(name, 0, `\\operatorname${star}{${applyShims(g.content)}}`);
+    op.lastIndex = g.end;
+  }
+  return parts.join("");
+}
+const gdef = buildGdef(preamble + "\n" + body);   // \newcommand is legal mid-document too
+
+// --------------------------- bib → citations ------------------------------
+function parseBib() {
+  // \bibliography{name} names the .bib; fall back to the legacy biblo.bib
+  const bm = tex.match(/\\bibliography\{([^}]+)\}/);
+  const stem = bm ? bm[1].trim().replace(/\.bib$/, "") : "biblo";
+  let bibFile = path.join(path.dirname(input), stem + ".bib");
+  if (!existsSync(bibFile)) bibFile = path.join(path.dirname(input), "biblo.bib");
+  if (!existsSync(bibFile)) return {};
+  const out = {};
+  let entries;
+  try { entries = bibtexEntries(readFileSync(bibFile, "utf8")); }
+  catch (e) { warn(`could not parse ${path.basename(bibFile)}: ${String(e.message).slice(0, 80)}`); return {}; }
+  for (const e of entries) {
+    if (!e.key) continue;
+    const author = e.AUTHOR ?? null, year = e.YEAR ?? null;
+    const url = e.URL ?? e.HOWPUBLISHED ?? null;
+    let disp = e.key;
+    if (author) {
+      const names = String(author).replace(/[{}]/g, "").split(/\s+and\s+/)
+        .map((a) => (a.includes(",") ? a.split(",")[0].trim() : a.trim().split(/\s+/).pop()));
+      disp = names.length === 1 ? names[0] : names.length === 2 ? `${names[0]} & ${names[1]}` : `${names[0]} et al.`;
+      if (year) disp += ` ${year}`;
+    }
+    out[e.key] = { disp, url: url && /^https?:/.test(String(url)) ? String(url) : null };
+  }
+  return out;
+}
+const BIB = parseBib();
+
+// ------------------------------ frontmatter -------------------------------
+// title: \title{} (standard classes) falls back to the legacy \mytitle{}.
+const stdTitleM = preamble.match(/\\title\{/);
+let title = "TODO";
+if (stdTitleM) {
+  const g = readGroup(preamble, stdTitleM.index + stdTitleM[0].length - 1);
+  if (g) title = texToPlain(g.content.split("\\hfill")[0]);
+}
+// contributors: \author{A \and B} else the legacy header-line heuristic
+let contributors = [];
+const authorM = preamble.match(/\\author\{/);
+if (authorM) {
+  const g = readGroup(preamble, authorM.index + authorM[0].length - 1);
+  if (g) contributors = g.content.split(/\\and\b/).map((a) => texToPlain(a)).filter(Boolean);
+}
+if (!contributors.length) contributors = ["TODO"];
+
+// frontmatter: title/contributors from the .tex header; cluster/summary/
+// learningOutcomes from the %--- iliad --- block (TODO placeholders if absent).
+const blockKeys = new Set((iliadBlock ?? []).filter((l) => /^[A-Za-z]/.test(l)).map((l) => l.split(":")[0]));
+const front = [
+  "---",
+  ...(blockKeys.has("title") ? [] : [`title: ${JSON.stringify(title)}`]),
+  ...(blockKeys.has("contributors") ? [] : ["contributors:", ...contributors.map((c) => `  - ${c}`)]),
+  ...(iliadBlock ?? []),
+  ...(blockKeys.has("cluster") ? [] : ["cluster: TODO"]),
+  ...(blockKeys.has("summary") ? [] : ["summary: TODO"]),
+  ...(blockKeys.has("learningOutcomes") ? [] : ["learningOutcomes:", "  - TODO"]),
+  "---",
+].join("\n");
+
+// ------------------------------ run ---------------------------------------
+// AST emit (two passes handled inside emit-ast)
+const bodyMdx = tidy(emitDocument(body, {
+  refs,
+  preamble,
+  declaredThms,
+  declaredEnvSigs: Object.fromEntries(Object.keys(declaredThms).map((e) => [e, { signature: "o" }])),
+  remarkNumbered,
+  commentCmds,
+  BIB,
+  tikzSrc,
+  macroOverride: MACRO_OVERRIDE,
+  warnSnapshot: () => [warnings.length, advisories.length],
+  warnRestore: ([w, a]) => { warnings.length = w; advisories.length = a; },
+}));
+const result = `${front}\n\n$${gdef}$\n\n${bodyMdx}\n`;
+writeFileSync(output, result);
+
+// render extracted diagrams (content-addressed: unchanged ones are skipped,
+// which is what makes this incremental in CI)
+let tikzRendered = 0;
+if (renderTikz) tikzRendered = renderTikzSnippets();
+
+console.log(`gdef macros: ${(gdef.match(/\\gdef/g) || []).length}  |  bib: ${Object.keys(BIB).length}  |  aux refs: ${Object.keys(refs).length}${tikzCount() ? `  |  tikz: ${tikzCount()} diagrams (${tikzRendered} newly rendered -> ${tikzDir})` : ""}`);
+const uniqW = Array.from(new Set(warnings.map(fmtIssue)));
+console.log(`WARN (${warnings.length} total, ${uniqW.length} unique):`);
+console.log(uniqW.slice(0, 40).map((w) => "  - " + w).join("\n"));
+const uniqA = Array.from(new Set(advisories.map(fmtIssue)));
+if (uniqA.length) {
+  console.log(`NOTE (advisory, does not fail CI) (${uniqA.length}):`);
+  console.log(uniqA.slice(0, 40).map((a) => "  - " + a).join("\n"));
+}
+console.log(`Wrote ${output} (${result.split("\n").length} lines)`);
+// non-zero exit when anything WARN'd, so CI/hooks can gate on it (advisories don't count)
+if (warnings.length) process.exitCode = 2;

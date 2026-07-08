@@ -15,6 +15,36 @@ The site is a Next.js 16 app configured for full static export
 (`output: "export"`), so `next build` emits a plain `out/` directory servable
 by any static host, GitHub Pages included.
 
+## The pipeline
+
+```
+tex/<slug>/main.tex            <- the ONLY content in git
+   |  scripts/build-content.mjs  (runs scripts/tex2mdx/, the AST converter)
+   v
+content/modules/<slug>.mdx     page body            (gitignored)
+content/index.json             listing              (gitignored)
+public/uploads/<slug>/*.svg    diagrams, content-addressed (gitignored)
+public/downloads/<slug>/       <slug>.pdf/.tex/.mdx per-page downloads (gitignored)
+   |  next build (output: "export")
+   v
+out/                           static site -> GitHub Pages
+```
+
+- `node scripts/build-content.mjs` — full build. `--check` = converter +
+  KaTeX render gate only (fast). `--only <slug>` restricts to one worksheet.
+  Non-zero exit on any failure, with the converter's `file:line` messages.
+- CI: `.github/workflows/site.yml` — every PR runs the full ladder
+  (conversion, render gate, PDFs, site build); pushes to `main` also deploy
+  to Pages. Diagram SVGs are cached by content hash, so unchanged diagrams
+  never recompile.
+- Push protection: `git config core.hooksPath .githooks` enables a pre-push
+  hook that rejects pushes when conversion fails (bypass once with
+  `--no-verify`). For hard enforcement, make the `build` job a required
+  status check on `main`.
+- Authoring contract for `tex/` worksheets: see
+  `tex/template/main.tex` (living example) — bare-title exercises,
+  `\difficulty{}`/`\skippable` marks, labelled solutions.
+
 ## Local build
 
 Requires Node ≥ 20.9 (system Node 18 won't do) — the `./run` wrapper selects

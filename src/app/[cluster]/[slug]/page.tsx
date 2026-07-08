@@ -73,6 +73,21 @@ export default async function ModulePage({
               {fm.contributors.join(", ")}
             </p>
           )}
+          {/* Downloads: build artifacts emitted by scripts/build-content.mjs.
+              Plain <a> tags — static files bypass Next's router, so the
+              basePath prefix is applied manually. */}
+          <p className="mt-3 flex gap-x-4 font-sans text-xs uppercase tracking-wide">
+            {(["pdf", "tex", "mdx"] as const).map((ext) => (
+              <a
+                key={ext}
+                href={`${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/downloads/${slug}/${slug}.${ext}`}
+                className="text-zinc-500 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-800"
+                download
+              >
+                {ext === "pdf" ? "PDF" : ext === "tex" ? "LaTeX" : "Markdown"}
+              </a>
+            ))}
+          </p>
           {fm.learningOutcomes && fm.learningOutcomes.length > 0 && (
             <section className="mt-6 rounded border border-zinc-200 bg-white/60 p-4">
               <h2 className="font-sans text-xs uppercase tracking-[0.15em] text-zinc-500">

@@ -12,6 +12,21 @@ next-env.d.ts
 content/modules/
 content/index.json
 public/uploads/
+public/downloads/
+
+# LaTeX build artifacts (compiled PDFs are downstream artifacts too —
+# figure PDFs under tex/*/figures/ are the one committed exception)
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.pdf
+!tex/*/figures/*.pdf
 
 # misc
 .DS_Store

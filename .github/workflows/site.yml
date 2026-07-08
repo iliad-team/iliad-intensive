@@ -1,0 +1,79 @@
+# tex -> mdx -> static site. Only tex/ sources live in git; MDX, SVGs, PDFs
+# and the site itself are build artifacts. PRs get the full check ladder
+# (conversion + render gate + PDF builds); pushes to main also deploy to
+# GitHub Pages.
+name: site
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  # GitHub Pages project site is served under /<repo>. Clear this if the site
+  # moves to a custom domain / root path.
+  NEXT_PUBLIC_BASE_PATH: /iliad-intensive
+
+concurrency:
+  group: site-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: TeX Live + poppler
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-extra texlive-pictures texlive-science \
+            texlive-fonts-recommended poppler-utils
+          # contributor LaTeX is untrusted: never enable shell-escape
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            scripts/tex2mdx/package-lock.json
+
+      - name: Install deps
+        run: |
+          npm ci
+          npm ci --prefix scripts/tex2mdx
+
+      # Diagrams are content-addressed (tikz-<sha>.svg): restoring the cache
+      # means unchanged diagrams are never recompiled.
+      - name: Restore diagram cache
+        uses: actions/cache@v4
+        with:
+          path: public/uploads
+          key: tikz-${{ hashFiles('tex/**') }}
+          restore-keys: tikz-
+
+      - name: Build content (tex -> mdx + render gate + PDFs)
+        run: node scripts/build-content.mjs
+
+      - name: Build site (static export)
+        run: npx next build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
