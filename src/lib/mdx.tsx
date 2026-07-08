@@ -143,12 +143,15 @@ const components = {
   Figure: ({ src, alt, caption }: { src: string; alt?: string; caption?: string }) => (
     <figure className="my-6 text-center" data-component="figure">
       {/* eslint-disable-next-line @next/next/no-img-element */}
+      {/* w-full: TikZ SVGs carry their natural TeX size in pt as intrinsic
+          dimensions, which renders diagrams far smaller than they appear in
+          the PDF. Stretch to the content column — SVG scales losslessly. */}
       <img
         src={src.startsWith("/") ? `${BASE_PATH}${src}` : src}
         alt={alt ?? caption ?? ""}
         loading="lazy"
         decoding="async"
-        className="mx-auto h-auto max-w-full rounded"
+        className="mx-auto h-auto w-full rounded"
       />
       {caption ? (
         <figcaption className="mt-2 text-sm text-zinc-600">{caption}</figcaption>
