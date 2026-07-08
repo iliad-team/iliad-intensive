@@ -1,5 +1,25 @@
 # Iliad Intensive worksheets
 
+## Setup (one-time)
+
+```
+git clone git@github.com:iliad-team/iliad-intensive.git
+cd iliad-intensive
+chmod +x setup
+./setup        # Installs TeX Live + poppler + pandoc (apt), Node 22 (nvm), npm deps
+```
+
+## Render the website
+
+```
+./run watch name-of-your-material     # dev server + rebuild on every save
+```
+
+Edit `main.tex`/`main.mdx`, save, refresh, see http://localhost:3000
+
+See `./run --help` for details.
+`./run ci` runs the CI action as if you had pushed to the repo.
+
 ## Folder structure
 
 Each folder in `tex/` represents a page on the course site.
@@ -81,23 +101,6 @@ that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
 * Figures: export to PDF into your `fig/`, then a normal `figure` +
   `\includegraphics{fig/name.pdf}` + `\caption` + `\label`. 
 * Citations: entries in `biblo.bib`, cite normally.
-
-## Preview the website locally
-
-One-time install — from the repo root:
-```
-    ./setup        # TeX Live + poppler + pandoc (apt), Node 22 (nvm), npm deps
-```
-Then live authoring is one command:
-```
-    ./run watch your-slug     # dev server + rebuild on every save
-```
-Edit `main.tex`/`main.mdx`, save, refresh http://localhost:3000
-
-Before opening a PR, `./run ci` runs exactly what GitHub CI will (all PDFs,
-conversion, render gate, site build); `./run --help` lists the rest.
-Errors and warnings carry `file.tex:line` locations wherever the converter
-can know them.
 
 ## How to contribute
 
