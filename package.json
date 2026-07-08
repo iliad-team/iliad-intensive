@@ -8,7 +8,7 @@
     "start": "next start",
     "content": "node scripts/build-content.mjs",
     "watch": "node scripts/watch.mjs",
-    "ci": "node scripts/build-content.mjs && next build"
+    "ci": "node scripts/build-content.mjs && NEXT_PUBLIC_BASE_PATH=/iliad-intensive next build"
   },
   "dependencies": {
     "katex": "^0.16.45",

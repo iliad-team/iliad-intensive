@@ -9,11 +9,6 @@ on:
   push:
     branches: [main]
 
-env:
-  # GitHub Pages project site is served under /<repo>. Clear this if the site
-  # moves to a custom domain / root path.
-  NEXT_PUBLIC_BASE_PATH: /iliad-intensive
-
 concurrency:
   group: site-${{ github.ref }}
   cancel-in-progress: true
@@ -25,11 +20,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: TeX Live + poppler + pandoc
+        # Keep this list in sync with ./setup — it is the reference package
+        # set. cm-super: scalable CM fonts, needed by microtype's font
+        # expansion under [T1]{fontenc}.
         run: |
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends \
             texlive-latex-extra texlive-pictures texlive-science \
-            texlive-fonts-recommended poppler-utils pandoc
+            texlive-fonts-recommended cm-super poppler-utils pandoc
           # contributor LaTeX is untrusted: never enable shell-escape
 
       - uses: actions/setup-node@v4
@@ -54,11 +52,10 @@ jobs:
           key: tikz-${{ hashFiles('tex/**') }}
           restore-keys: tikz-
 
-      - name: Build content (tex -> mdx + render gate + PDFs)
-        run: node scripts/build-content.mjs
-
-      - name: Build site (static export)
-        run: npx next build
+      # The SAME command developers and the pre-push hook run locally
+      # (./run ci) — one definition in package.json, no drift.
+      - name: Build (identical to ./run ci)
+        run: npm run ci
 
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -8,8 +8,10 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 echo "== system packages (TeX Live, poppler, pandoc) =="
+# Keep this list in sync with .github/workflows/site.yml — installing the
+# same packages keeps "passes locally, fails on CI" surprises to a minimum.
 need=()
-command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-science texlive-fonts-recommended)
+command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-science texlive-fonts-recommended cm-super)
 command -v pdftocairo >/dev/null || need+=(poppler-utils)
 command -v pandoc     >/dev/null || need+=(pandoc)
 if [ ${#need[@]} -gt 0 ]; then
@@ -37,6 +39,11 @@ echo
 echo "== npm dependencies =="
 npm install --no-audit --no-fund
 npm install --no-audit --no-fund --prefix scripts/tex2mdx
+
+echo
+echo "== git hooks =="
+git config core.hooksPath .githooks
+echo "pre-push hook enabled (runs ./run ci; bypass once with --no-verify)"
 
 echo
 echo "Done. Next steps:"
