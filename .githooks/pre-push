@@ -7,17 +7,25 @@
 #
 # Enable once per clone:   git config core.hooksPath .githooks   (./setup does this)
 # Bypass once:             git push --no-verify
+# Reject the push with a consistent explanation: WHY it failed, WHERE the
+# details are, and the escape hatch. The GitHub CI runs the same ladder, so
+# a push that fails here would fail CI too.
+reject() {
+  echo ""
+  echo "✗ push rejected: $1"
+  echo "  The same CI ladder runs on GitHub, so this push would fail there too."
+  echo "  Fix the errors reported above, then push again."
+  echo ""
+  echo "  If you know what you are doing, use 'git push --no-verify' to override."
+  exit 1
+}
+
 slugs=$(git ls-files 'tex/*/main.tex' 'tex/*/main.mdx' | cut -d/ -f2 | sort -u | tr '\n' ' ')
 echo "pre-push: CI ladder on tracked worksheets: $slugs"
 if ! ./run content $slugs; then
-  echo ""
-  echo "✗ push rejected: content build failed (see file:line messages above)."
-  echo "  Fix it, or bypass ONCE with: git push --no-verify"
-  exit 1
+  reject "worksheet content build failed (see the file:line messages above)."
 fi
 if ! NEXT_PUBLIC_BASE_PATH=/iliad-intensive ./run build; then
-  echo ""
-  echo "✗ push rejected: site build failed (see messages above)."
-  exit 1
+  reject "static site build failed (see the messages above)."
 fi
 echo "✓ CI ladder green — pushing"
