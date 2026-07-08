@@ -1,18 +1,14 @@
-% YAML frontmatter for the website sits in the block below. LaTeX ignores it
-% (it is a comment); the tex->mdx converter lifts it verbatim into the module
-% frontmatter and CI validates it (pure YAML only — no prose inside the block).
-% Keys: title, cluster, summary, contributors. Nothing is mandatory:
-% `title`/`contributors` fall back to \title{}/\author{} when omitted
-% (an explicit key here wins), and a missing title/cluster/contributors
-% draws a build advisory. (`unlisted: true` is a maintainer flag: the page
-% is built but linked from nowhere — you almost certainly don't want it.)
+% YAML frontmatter for the website sits in the block below — SIMPLE one-line
+% values only. LaTeX ignores it (it is a comment); the converter lifts it
+% verbatim into the module frontmatter and CI validates it (pure YAML).
+% Keys: title, cluster, summary, contributors — all optional. The website
+% extracts title/contributors/summary from \title{}, \author{}, and
+% \begin{summary} in the LaTeX; a frontmatter key here overrides the
+% extracted value. (`unlisted: true` is a maintainer flag: the page is
+% built but linked from nowhere — you almost certainly don't want it.)
 %--- iliad -------------------------------------------------------------------
 % title: "Example Worksheet: The Kitchen Sink"
 % cluster: D
-% summary: A dummy worksheet demonstrating every construct the pipeline supports.
-% contributors:
-%   - Jane Doe
-%   - John Roe
 % unlisted: true
 %--- end ----------------------------------------------------------------------
 \documentclass[11pt]{article}
@@ -38,11 +34,19 @@
 \DeclareMathOperator*{\argmax}{arg\,max}
 
 \title{Example Worksheet: The Kitchen Sink}
-\author{Jane Doe \and John Roe}
+\author{\authorname{Jane Doe}\\ \affiliation{Example University}
+  \and John Roe}
 \date{\today}
 
 \begin{document}
 \maketitle
+
+% The one-paragraph lede: shown under the title on the web and in the
+% module index. (A one-line `summary:` frontmatter key also works and
+% takes precedence.)
+\begin{summary}
+A dummy worksheet demonstrating every construct the pipeline supports.
+\end{summary}
 
 % The "What you'll learn" box. Usually sits right here, after \maketitle.
 \begin{learningoutcomes}

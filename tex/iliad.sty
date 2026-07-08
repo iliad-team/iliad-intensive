@@ -32,6 +32,16 @@
 %   \begin{learningoutcomes} \item ... \end{learningoutcomes}
 %       Bulleted "What you'll learn" box, usually right after \maketitle.
 %       Renders as the matching box on the web.
+%   \begin{summary} ... \end{summary}
+%       One-paragraph lede. Becomes the page's summary on the web and in
+%       the module index; prints as an italic block in the PDF.
+%
+% Title block: the website extracts its byline from \title{} and \author{}.
+% \author supports affiliations:
+%   \author{\authorname{Ada Lovelace}\\ \affiliation{Analytical Engines}
+%           \and \authorname{...}\\ \affiliation{...}}
+% Plain \author{A \and B} works too. The %--- iliad --- frontmatter block is
+% only for simple one-line values (and takes precedence when both exist).
 %   \begin{solution}[ex:some-label] ... \end{solution}
 %       MUST name its exercise (compile error otherwise). Placement is free:
 %       right after the exercise, or collected at the end — both fine.
@@ -241,6 +251,16 @@
   \end{itemize}%
   \iliad@calloutend
 }
+
+% ------------------------------------------------------------ title block ---
+% \author affiliation support (see header). On paper the affiliation sits
+% under the name in a smaller face; on the web it becomes "Name (Affiliation)".
+\newcommand{\authorname}[1]{#1}
+\newcommand{\affiliation}[1]{\normalfont\small #1}
+
+% \begin{summary} ... \end{summary} — the one-paragraph lede; hoisted into
+% the page's frontmatter on the web, italic block in the PDF.
+\newenvironment{summary}{\begin{quotation}\noindent\itshape}{\end{quotation}}
 
 % ----------------------------------------------------------- conveniences ---
 \newcommand{\hint}[1]{[\emph{Hint:} #1]}

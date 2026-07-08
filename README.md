@@ -46,11 +46,14 @@ page directly, no conversion. Rules:
 Everything not listed here is a free zone: arbitrary notation, extra
 packages, custom macros (they become web math macros automatically).
 
-1. **The `%--- iliad ---` block** at the top of `main.tex` (YAML, in
-   comments) carries `title`, `cluster`, `summary`, `contributors`.
-   Nothing is mandatory — `title` and `contributors` fall back to
-   `\title{}`/`\author{}` (an explicit key wins), and a missing title,
-   cluster, or contributors draws a build advisory, not a failure.
+1. **Your LaTeX is the source of the page metadata**: the title comes from
+   `\title{}`, the byline from `\author{}` (affiliations supported:
+   `\authorname{Ada}\\ \affiliation{Somewhere}` renders "Ada (Somewhere)"),
+   and the lede from `\begin{summary}…\end{summary}`. The
+   **`%--- iliad ---` block** (YAML, in comments) is for simple one-line
+   values only — usually just `cluster:` — and an explicit key there
+   overrides the extracted value. Nothing is mandatory; missing
+   title/cluster/contributors draw a build advisory, not a failure.
    Everything else — prerequisites, reading lists, difficulty notes —
    is normal LaTeX in the body.
 2. **`\usepackage[boxes]{../iliad}` is the one required package.** It

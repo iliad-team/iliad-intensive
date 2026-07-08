@@ -341,31 +341,56 @@ function parseBib() {
 const BIB = parseBib();
 
 // ------------------------------ frontmatter -------------------------------
-// title: \title{} (standard classes) falls back to the legacy \mytitle{}.
-const stdTitleM = preamble.match(/\\title\{/);
+// title: \title{...} anywhere in the (comment-stripped) document — some
+// sheets set it after \begin{document}, which LaTeX allows before \maketitle.
+const stdTitleM = tex.match(/\\title\{/);
 let title = "TODO";
 if (stdTitleM) {
-  const g = readGroup(preamble, stdTitleM.index + stdTitleM[0].length - 1);
+  const g = readGroup(tex, stdTitleM.index + stdTitleM[0].length - 1);
   if (g) title = texToPlain(g.content.split("\\hfill")[0]);
 }
-// contributors: \author{A \and B} else the legacy header-line heuristic
+// contributors: \author{...}. Plain "A \and B" works; so do affiliation
+// blocks — \authorname{X}\\ \affiliation{Y} renders as "X (Y)".
 let contributors = [];
-const authorM = preamble.match(/\\author\{/);
+const authorM = tex.match(/\\author\{/);
 if (authorM) {
-  const g = readGroup(preamble, authorM.index + authorM[0].length - 1);
-  if (g) contributors = g.content.split(/\\and\b/).map((a) => texToPlain(a)).filter(Boolean);
+  const g = readGroup(tex, authorM.index + authorM[0].length - 1);
+  if (g) {
+    contributors = g.content.split(/\\and\b/).map((chunk) => {
+      const arg = (cmd) => {
+        const m = chunk.match(new RegExp(`\\\\${cmd}\\s*\\{`));
+        if (!m) return null;
+        const gg = readGroup(chunk, m.index + m[0].length - 1);
+        return gg ? texToPlain(gg.content).trim() : null;
+      };
+      const name = arg("authorname")
+        ?? texToPlain(chunk.replace(/\\affiliation\s*\{[^{}]*\}/g, " ").replace(/\\\\/g, " ")).trim();
+      const affil = arg("affiliation");
+      return affil ? `${name} (${affil})` : name;
+    }).filter(Boolean);
+  }
 }
-// frontmatter: nothing is mandatory. title/contributors fall back to
-// \title{}/\author{} — an explicit frontmatter key takes precedence.
+// summary: \begin{summary}...\end{summary} in the body — hoisted into the
+// frontmatter (the env renders nothing on the web; the page header shows it).
+let bodySummary = null;
+const sumM = body.match(/\\begin\{summary\}([\s\S]*?)\\end\{summary\}/);
+if (sumM) bodySummary = texToPlain(sumM[1]).replace(/\s+/g, " ").trim();
+
+// frontmatter: nothing is mandatory, and the block is for SIMPLE one-line
+// values only — title/contributors/summary fall back to \title{}/\author{}/
+// \begin{summary} in the LaTeX. An explicit frontmatter key takes precedence.
 // Missing title/cluster/contributors draw advisories, never failures.
 const blockKeys = new Set((iliadBlock ?? []).filter((l) => /^[A-Za-z]/.test(l)).map((l) => l.split(":")[0]));
 const front = [
   "---",
   ...(blockKeys.has("title") || title === "TODO" ? [] : [`title: ${JSON.stringify(title)}`]),
   ...(blockKeys.has("contributors") || !contributors.length ? [] : ["contributors:", ...contributors.map((c) => `  - ${c}`)]),
+  ...(blockKeys.has("summary") || !bodySummary ? [] : [`summary: ${JSON.stringify(bodySummary)}`]),
   ...(iliadBlock ?? []),
   "---",
 ].join("\n");
+if (blockKeys.has("summary") && bodySummary)
+  advise("summary given both as a frontmatter key and a \\begin{summary} block — the frontmatter key wins");
 if (!blockKeys.has("title") && title === "TODO")
   advise("no title: in the frontmatter block and no \\title{} — the page falls back to its slug");
 if (!blockKeys.has("cluster"))

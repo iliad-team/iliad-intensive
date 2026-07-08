@@ -4,9 +4,6 @@
 % summary: How an idealized agent should predict. A Bayesian mixture over a countable
 %   class of computable hypotheses learns to predict any sequence, with total error
 %   bounded by the description length of the truth -- a formal Occam's razor.
-% contributors:
-%   - David Quarel (Australian National University)
-%   - Leon Lang (University of Amsterdam)
 %--- end ---
 \documentclass[fontsize=11pt, parskip=half]{scrartcl}
 \usepackage[paperwidth=6.5in, paperheight=9.5in,
@@ -17,9 +14,6 @@
 
 \usepackage[dvipsnames]{xcolor}
 
-\IfFileExists{commenting.sty}{\usepackage[draft]{commenting}}{\usepackage[draft]{../commenting}}
-\declareauthor{leon}{LL}{blue}
-\authorcommand{leon}{comment}
 
 % iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty
 \IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
@@ -38,7 +32,8 @@
 \begin{document}
 
 \title{Solomonoff Induction Exercises}
-\author{David Quarel \and Leon Lang}
+\author{\authorname{David Quarel}\\ \affiliation{Australian National University}
+  \and \authorname{Leon Lang}\\ \affiliation{University of Amsterdam}}
 \date{\today}
 \maketitle
 

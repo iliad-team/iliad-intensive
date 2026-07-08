@@ -58,7 +58,7 @@ const ENV_SIGNATURES = {
   proposition: { signature: "o" }, corollary: { signature: "o" },
   definition: { signature: "o" }, fact: { signature: "o" },
   example: { signature: "o" }, remark: { signature: "o" },
-  learningoutcomes: {},
+  learningoutcomes: {}, summary: {},
   abstract: {}, figure: { signature: "o" }, table: { signature: "o" },
   tabular: { signature: "m" }, quote: {}, quotation: {},
   itemize: { signature: "o" }, enumerate: { signature: "o" }, description: { signature: "o" },
@@ -305,6 +305,9 @@ function emitEnv(n) {
     return "\n\n" + walk(n.content).trim().split("\n").map((l) => (l ? "> " + l : ">")).join("\n") + "\n\n";
   }
   if (env === "abstract") return `\n\n**Abstract.** ${walk(n.content).trim()}\n\n`;
+  // summary is hoisted into the frontmatter (tex2mdx.mjs); the page header
+  // displays it, so it renders nothing in the body.
+  if (env === "summary") return "";
   if (env === "verbatim" || env === "lstlisting" || env === "alltt") {
     return "\n\n```\n" + printRaw(n.content).trim() + "\n```\n\n";
   }

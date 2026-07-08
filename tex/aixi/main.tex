@@ -1,11 +1,7 @@
 %--- iliad ---
 % title: AIXI
 % cluster: D
-% summary: How an idealized agent should act. AIXI is the Bayes-optimal policy over a
-%   universal mixture of environments; it learns to act as well as if it knew the true
-%   environment -- on-policy value convergence, cannot be fooled, and self-optimizing.
-% contributors:
-%   - David Quarel (Australian National University)
+% summary: Exploring the Bayesian optimal policy for history based reinforcement learning.
 %--- end ---
 \documentclass[fontsize=11pt, parskip=half]{scrartcl}
 \usepackage[paperwidth=6.5in, paperheight=9.5in,
@@ -22,9 +18,6 @@
 \usepackage{cancel}
 \usepackage{stmaryrd}
 
-\IfFileExists{commenting.sty}{\usepackage[draft]{commenting}}{\usepackage[draft]{../commenting}}
-\declareauthor{david}{DQ}{blue}
-\authorcommand{david}{comment}
 
 % iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty
 \IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
@@ -62,7 +55,7 @@
 \begin{document}
 
 \title{AIXI Exercises}
-\author{David Quarel}
+\author{\authorname{David Quarel}\\ \affiliation{Australian National University}}
 \date{\today}
 \maketitle
 
@@ -75,7 +68,8 @@
 
 \medskip
 \noindent
-Much of this material is drawn from \href{https://www.hutter1.net/publ/uaibook2.pdf}{\textit{An Introduction to Universal Artificial Intelligence}}~\cite{Hutter:24uaibook2}. The book provides fuller explanations, additional context, and proofs omitted here.
+Much of this material is drawn from \cite{Hutter:24uaibook2}. 
+The book provides fuller explanations, additional context, and proofs omitted here.
 
 \medskip
 \noindent

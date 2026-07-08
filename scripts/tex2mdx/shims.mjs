@@ -101,7 +101,8 @@ export const THM_FAMILY = new Set([
 // Redefining these breaks the converter's guarantees (checked when the sheet
 // uses the iliad.sty exercise dialect).
 export const CONTRACT_NAMES = new Set([
-  "exercise", "solution", "proof", "callout", "remark", "learningoutcomes",
+  "exercise", "solution", "proof", "callout", "remark", "learningoutcomes", "summary",
+  "authorname", "affiliation",
   "definition", "theorem", "lemma", "proposition", "corollary", "fact", "example",
   "label", "cref", "Cref", "hint", "note", "important", "solutionbox", "exercisebox", "ifsolutions",
 ]);
