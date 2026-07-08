@@ -57,8 +57,10 @@
 \author{Fernando E. Rosas}
 \date{\today}
 
-% learning-outcomes box (normally from ../iliad.sty, which this sheet predates)
-\newenvironment{learningoutcomes}{\par\medskip\noindent\textbf{What you'll learn.}\begin{itemize}}{\end{itemize}\medskip}
+% Shared contract pieces (learningoutcomes box, marks) from iliad.sty in
+% compat mode: defines only what this legacy preamble is missing. Local
+% copy wins (Overleaf); falls back to the shared ../iliad.sty in the repo.
+\IfFileExists{iliad.sty}{\usepackage[compat]{iliad}}{\usepackage[compat]{../iliad}}
 
 \begin{document}
 

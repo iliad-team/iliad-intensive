@@ -20,10 +20,14 @@ Usage:
   ./run build          static-export the site -> out/
   ./run start          serve a production build
   ./run <script>       any other script from package.json
+Extra arguments pass through, e.g.:
+  ./run content --only <slug>           rebuild ONE worksheet (PDFs + page)
+  ./run content --check --only <slug>   fast contract check of one worksheet
+  ./run content --jobs 8                more parallel workers
 
 The edit loop for a worksheet:
-  node scripts/build-content.mjs --only <your-slug>   # rebuild one worksheet
-  ./run                                               # then refresh the browser
+  ./run content --only <your-slug>      # rebuild just your worksheet
+  ./run                                 # then refresh the browser
 
 More: README.md (writing worksheets) · docs/DEVELOPMENT.md (pipeline internals)
 EOF
@@ -51,5 +55,11 @@ fi
 
 echo "Using $(node --version) via nvm"
 
-# Run the requested npm script (defaults to dev).
-npm run "${1:-dev}"
+# Run the requested npm script (defaults to dev); extra args pass through.
+script="${1:-dev}"
+shift 2>/dev/null || true
+if [ $# -gt 0 ]; then
+  npm run "$script" -- "$@"
+else
+  npm run "$script"
+fi
