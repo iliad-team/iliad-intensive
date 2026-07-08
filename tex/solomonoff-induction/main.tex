@@ -17,11 +17,12 @@
 
 \usepackage[dvipsnames]{xcolor}
 
-\usepackage[draft]{../commenting}
+\IfFileExists{commenting.sty}{\usepackage[draft]{commenting}}{\usepackage[draft]{../commenting}}
 \declareauthor{leon}{LL}{blue}
 \authorcommand{leon}{comment}
 
-\usepackage[boxes]{../iliad}
+% iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
 
 % sheet notation
 \renewcommand{\thesection}{\arabic{section}}

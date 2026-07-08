@@ -103,7 +103,7 @@ export const THM_FAMILY = new Set([
 export const CONTRACT_NAMES = new Set([
   "exercise", "solution", "proof", "callout", "remark", "learningoutcomes",
   "definition", "theorem", "lemma", "proposition", "corollary", "fact", "example",
-  "label", "cref", "Cref", "hint", "note", "solutionbox", "exercisebox", "ifsolutions",
+  "label", "cref", "Cref", "hint", "note", "important", "solutionbox", "exercisebox", "ifsolutions",
 ]);
 
 export const KNOWN_FRONT_KEYS = new Set([

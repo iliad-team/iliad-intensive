@@ -24,12 +24,15 @@ const components = {
    */
   Callout: ({
     type = "note",
+    id,
     children,
   }: {
     type?: "note" | "warning" | "tip";
+    id?: string;
     children: ReactNode;
   }) => (
     <div
+      id={id}
       className={
         "my-4 rounded-md border-l-4 px-4 py-3 " +
         (type === "warning"
@@ -44,7 +47,8 @@ const components = {
   ),
 
   /**
-   * Exercise — boxed practice problem.
+   * Exercise — boxed practice problem. No header row: the converter's bold
+   * "Exercise 2.1." lead inside the body already identifies it.
    * Usage: <Exercise id="optional-anchor">problem</Exercise>
    * The optional `id` makes the box a link target for cross-references,
    * e.g. [Problem 2.2](#prob-2-2) — the MDX equivalent of LaTeX \cref.
@@ -57,10 +61,7 @@ const components = {
     children: ReactNode;
   }) => (
     <section id={id} className="my-6 border border-orange-300 bg-orange-50 rounded-md p-4">
-      <header className="text-sm uppercase tracking-wide text-orange-700 mb-2">
-        Exercise
-      </header>
-      <div>{children}</div>
+      {children}
     </section>
   ),
 

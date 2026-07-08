@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "content": "node scripts/build-content.mjs"
+    "content": "node scripts/build-content.mjs",
+    "verify": "node scripts/build-content.mjs && next build"
   },
   "dependencies": {
     "katex": "^0.16.45",

@@ -20,6 +20,7 @@
  */
 import { execFileSync, execSync } from "node:child_process";
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, copyFileSync, rmSync } from "node:fs";
+import YAML from "yaml";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -133,14 +134,22 @@ for (const slug of slugs) {
 
     // PDF via pandoc (markdown source, KaTeX-style math; JSX component tags
     // are raw HTML to pandoc and are dropped from the PDF — their contents
-    // survive). No .tex is generated for MDX-authored sheets.
+    // survive). The frontmatter title becomes a normal \maketitle title;
+    // contributors map to \author. No .tex is generated for MDX sheets.
     if (!CHECK_ONLY) {
       writeFileSync(path.join(dir, "main-nosol.mdx"), stripMdxSolutions(raw));
+      let authors = [];
       try {
-        run("pandoc main.mdx --from markdown+tex_math_dollars --metadata link-citations " +
-            "-V geometry:margin=1in -o main.pdf");
-        run("pandoc main-nosol.mdx --from markdown+tex_math_dollars --metadata link-citations " +
-            "-V geometry:margin=1in -o main-nosol.pdf");
+        const fm = YAML.parse(raw.match(/^---\n([\s\S]*?)\n---\n/)[1]) ?? {};
+        if (Array.isArray(fm.contributors)) authors = fm.contributors.map(String);
+      } catch { /* frontmatter validity is the render gate's problem */ }
+      const pandocArgs = (src, out) => [src, "--from", "markdown+tex_math_dollars",
+        "-V", "geometry:margin=1in",
+        ...authors.flatMap((a) => ["--metadata", `author=${a}`]),
+        "-o", out];
+      try {
+        execFileSync("pandoc", pandocArgs("main.mdx", "main.pdf"), { cwd: dir, stdio: "pipe" });
+        execFileSync("pandoc", pandocArgs("main-nosol.mdx", "main-nosol.pdf"), { cwd: dir, stdio: "pipe" });
       } catch (e) {
         fail(slug, `pandoc PDF build failed: ${String(e.stderr ?? e.message).trim().split("\n")[0]}`);
         continue;

@@ -1,9 +1,10 @@
 % iliad.sty — the Iliad Intensive worksheet contract
 % Version 0.3 (2026-07-08)
 %
-% ONE shared copy lives at tex/iliad.sty; worksheets load it with
-%     \usepackage[boxes]{../iliad}
-% from inside their own folder. Never copy it into a worksheet folder.
+% ONE shared copy lives at tex/iliad.sty. Worksheets load it local-first —
+% a copy next to main.tex (the Overleaf setup) wins, else the shared parent
+% copy:
+%     \IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
 %
 % This package defines the SMALL set of semantic environments that the
 % tex -> MDX converter understands (the "contract zone"). Everything else —
@@ -20,7 +21,7 @@
 %   \begin{exercise}[Optional Title]  ... \end{exercise}
 %       Standard amsthm note semantics: the optional argument IS the title.
 %       Optional mark, written right after the \label:
-%         \skippable        "(*) skip on a first pass" marker
+%         \important        "(★) among the most important exercises" marker
 %       Label the exercise if anything (a solution, a \cref) needs to point
 %       at it; unlabeled exercises are allowed but draw a CI advisory.
 %   \begin{learningoutcomes} \item ... \end{learningoutcomes}
@@ -40,9 +41,10 @@
 % The rules (all of them):
 %   1. Pure-YAML frontmatter comment block at the very top of main.tex
 %      (between "%--- iliad ---" and "%--- end ---").
-%   2. \usepackage{iliad}.
-%   3. Put \label{...} on its own line immediately after \begin{exercise},
-%      \begin{definition}, \begin{theorem}, ... .
+%   2. Load this package (see the \IfFileExists line above).
+%   3. \label anything you want to reference — exercises, theorems, callouts,
+%      remarks all take labels. Any placement LaTeX binds correctly is valid
+%      (top level of the environment); right after \begin{...} is clearest.
 %   4. Exercise subparts are a plain enumerate; \label an \item to
 %      cross-reference it ("Exercise 1.2(a)").
 %   5. Solutions always carry [ex:label]; place them wherever you like.
@@ -51,7 +53,6 @@
 % Notes:
 %   * hyperref and cleveref are loaded HERE (cleveref must come last).
 %     Configure hyperref via \hypersetup{...}, do not re-load it.
-%   * Don't \label inside callout/remark (they are unnumbered).
 %   * Don't \renewcommand/\renewenvironment anything this package defines
 %     (CI rejects it — the converter relies on these definitions).
 
@@ -133,10 +134,12 @@
 }
 
 % Optional mark, written right after the exercise's \label:
-%   \skippable  ->  (*)
+%   \important  ->  (★)   flags the most important exercises
+\newcommand{\important}{\textbf{($\bigstar$)}\ \ignorespaces}
+% Legacy marks: older sheets still compile, but these are NOT part of the
+% contract. \skippable meant "skip on a first pass" (note: the OPPOSITE of
+% \important) and prints a small (∗); \difficulty{10} prints [10].
 \newcommand{\skippable}{\textbf{($\ast$)}\ \ignorespaces}
-% \difficulty{10} is legacy: it still prints [10] in the PDF so older sheets
-% compile, but it is NOT part of the contract and the website ignores it.
 \newcommand{\difficulty}[1]{\textbf{[#1]}\ \ignorespaces}
 
 % -------------------------------------------------------------- solution ---
@@ -191,7 +194,20 @@
   \ifiliad@boxes\end{iliadcalloutbox}\else\par\medskip\fi
 }
 
+% Callouts and remarks may be \label'ed and \cref'ed: each has a discreet
+% per-section counter (no number shown in the box; \cref prints e.g.
+% "Callout 2.1" / "Remark 2.3" and hyperlinks to the box).
+\newcounter{callout}[section]
+\renewcommand{\thecallout}{\thesection.\arabic{callout}}
+\crefname{callout}{Callout}{Callouts}
+\Crefname{callout}{Callout}{Callouts}
+\newcounter{remark}[section]
+\renewcommand{\theremark}{\thesection.\arabic{remark}}
+\crefname{remark}{Remark}{Remarks}
+\Crefname{remark}{Remark}{Remarks}
+
 \newenvironment{callout}[1][note]{%
+  \refstepcounter{callout}%
   \ifstrequal{#1}{warning}%
     {\def\iliad@co@color{red}\def\iliad@co@title{Warning}}%
     {\ifstrequal{#1}{tip}%
@@ -202,8 +218,9 @@
   \iliad@calloutend
 }
 
-% remark — an unnumbered aside; renders as a note callout on the web.
+% remark — an aside; renders as a note callout on the web.
 \newenvironment{remark}{%
+  \refstepcounter{remark}%
   \iliad@calloutbegin{Remark}{blue}%
 }{%
   \iliad@calloutend

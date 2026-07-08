@@ -22,7 +22,8 @@
 % the \ifsolutions toggle, and loads hyperref+cleveref (configure hyperref
 % with \hypersetup{...}; don't re-load it). PDF styling is plain by default —
 % style your PDF however you like, or pass [boxes] for ready-made colour boxes.
-\usepackage[boxes]{../iliad}
+% iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
 
 % \solutionsfalse   % uncomment to hide all solutions from the PDF
 
@@ -99,8 +100,9 @@ are fine too:
 \section{Definitions, theorems, and callouts}
 \label{sec:results}
 
-Give every definition and theorem a label on its own line, right after the
-\texttt{begin}. (That placement is the one hard formatting rule.)
+Label anything you want to reference. Any placement \LaTeX{} binds correctly
+is valid (top level of the environment); right after the \texttt{begin} is
+clearest.
 
 \begin{definition}[entropy]
 \label{def:entropy}
@@ -131,14 +133,17 @@ Apply \cref{thm:gibbs} with $q$ uniform.
 \end{proof}
 
 \begin{callout}[warning]
+\label{co:pitfall}
 Callouts flag pitfalls, tips, or side notes. Types: \texttt{note},
-\texttt{tip}, \texttt{warning}. Don't put a \texttt{label} on a callout —
-they are unnumbered.
+\texttt{tip}, \texttt{warning}. They may be labelled and referenced,
+like this one.
 \end{callout}
 
 \begin{remark}
-A \texttt{remark} is an unnumbered aside; on the website it renders as a
-note-style callout.
+\label{rem:aside}
+A \texttt{remark} is an aside; on the website it renders as a note-style
+callout. Referencing works: see \cref{co:pitfall} above (and this remark is
+\cref{rem:aside}).
 \end{remark}
 
 %===============================================================================
@@ -146,9 +151,9 @@ note-style callout.
 \label{sec:exercises}
 
 The optional argument of an exercise is its title, exactly as in amsthm.
-An optional \verb|\skippable| mark (skip on a first pass) goes right after
-the label. Subparts are a plain \texttt{enumerate}; label an item to
-reference it. Every solution
+An optional \verb|\important| mark (a $\bigstar$ flagging the sheet's most
+important exercises) goes right after the label. Subparts are a plain
+\texttt{enumerate}; label an item to reference it. Every solution
 \emph{names its exercise} — \texttt{[ex:label]} is mandatory — so you may
 place solutions right after each exercise or collect them at the end, as you
 prefer. Exercises don't require solutions; label any exercise a solution or
@@ -172,7 +177,7 @@ a point mass. \hint{when is $-t \log t = 0$ on $[0,1]$?}
 
 \begin{exercise}[Gibbs, the hard direction]
 \label{ex:gibbs-hard}
-\skippable
+\important
 Prove the equality case of \cref{thm:gibbs} directly, without citing Jensen's
 equality condition. \note{this one is solved at the end of the sheet instead
 of inline, to demonstrate both solution placements.}

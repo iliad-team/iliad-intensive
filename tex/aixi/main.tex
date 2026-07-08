@@ -22,11 +22,12 @@
 \usepackage{cancel}
 \usepackage{stmaryrd}
 
-\usepackage[draft]{../commenting}
+\IfFileExists{commenting.sty}{\usepackage[draft]{commenting}}{\usepackage[draft]{../commenting}}
 \declareauthor{david}{DQ}{blue}
 \authorcommand{david}{comment}
 
-\usepackage[boxes]{../iliad}
+% iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
 

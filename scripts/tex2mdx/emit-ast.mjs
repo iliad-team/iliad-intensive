@@ -64,7 +64,7 @@ const ENV_SIGNATURES = {
   itemize: { signature: "o" }, enumerate: { signature: "o" }, description: { signature: "o" },
 };
 const CONTRACT_MACROS = {
-  difficulty: { signature: "m" }, skippable: { signature: "" },
+  difficulty: { signature: "m" }, skippable: { signature: "" }, important: { signature: "" },
   hint: { signature: "m" }, note: { signature: "m" },
   texorpdfstring: { signature: "m m" }, eqref: { signature: "m" },
   citep: { signature: "o o m" }, citet: { signature: "o o m" },
@@ -210,12 +210,14 @@ function walkStr(texStr) {           // parse a raw string fragment and walk it
 // item text beginning with display math must paragraph-break after the marker
 const itemJoin = (lead, txt) => (txt.startsWith("$$") ? `${lead}\n\n${txt}` : `${lead} ${txt}`);
 
-// first \label among the leading nodes of an environment (contract placement)
+// The \label bound to the environment itself: the first \label at the TOP
+// LEVEL of the env body. LaTeX binds any top-level \label to the environment
+// (labels inside nested enumerates/equations bind to those instead, so we
+// don't descend). Placement is the author's choice; right after \begin is
+// merely the clearest style.
 function leadingLabel(nodes) {
   for (const n of nodes) {
-    if (n.type === "whitespace" || n.type === "parbreak" || n.type === "comment") continue;
     if (n.type === "macro" && n.content === "label") return lastArgRaw(n);
-    return null;
   }
   return null;
 }
@@ -229,20 +231,22 @@ function allLabels(nodes) {
   rec(nodes);
   return out;
 }
-// consume a leading contract mark macro (\difficulty / \skippable) from nodes
+// consume leading contract mark macros (\important, plus the legacy
+// \difficulty / \skippable) from nodes
 function takeMarks(nodes) {
-  let dd = "", star = false;
+  let dd = "", star = false, skip = false;
   const rest = [];
   let scanning = true;
   for (const n of nodes) {
     if (scanning && (n.type === "whitespace" || n.type === "parbreak")) { rest.push(n); continue; }
     if (scanning && n.type === "macro" && n.content === "difficulty") { dd = (lastArgRaw(n) ?? "").trim(); continue; }
-    if (scanning && n.type === "macro" && n.content === "skippable") { star = true; continue; }
+    if (scanning && n.type === "macro" && n.content === "important") { star = true; continue; }
+    if (scanning && n.type === "macro" && n.content === "skippable") { skip = true; continue; }
     if (scanning && n.type === "macro" && n.content === "label") { rest.push(n); continue; }
     scanning = false;
     rest.push(n);
   }
-  return { dd, star, rest };
+  return { dd, star, skip, rest };
 }
 
 // ------------------------------------------------------------------ lists ---
@@ -325,7 +329,7 @@ function emitEnv(n) {
     case "exercise": {
       // A leading \difficulty renders as the same plain [n] the PDF prints —
       // no component attribute, no UI chrome, no validation (author's choice).
-      const { dd, star, rest } = takeMarks(n.content);
+      const { dd, star, skip, rest } = takeMarks(n.content);
       counters.ex[secNum()] = (counters.ex[secNum()] || 0) + 1;
       const num = `${secNum()}.${counters.ex[secNum()]}`;
       const wasIn = inExercise; inExercise = true;
@@ -333,8 +337,9 @@ function emitEnv(n) {
       inExercise = wasIn;
       if (!label) advise(`exercise ${num} has no \\label — no stable anchor emitted, and no solution can reference it`, snippetOf(printRaw(n.content)));
       if (label) for (const l of allLabels(n.content)) if (!(l in anchorMap)) anchorMap[l] = slug(label);
+      // ★ = \important (the sheet's key exercises); (∗) = legacy \skippable
       mdx = `<Exercise${id}>\n` +
-        `**Exercise ${num}${star ? " (★)" : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}${dd ? ` [${dd}]` : ""}.** ` +
+        `**Exercise ${num}${star ? " (★)" : ""}${skip ? " (∗)" : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}${dd ? ` [${dd}]` : ""}.** ` +
         `${inner.trim()}\n</Exercise>`;
       break;
     }
@@ -370,7 +375,7 @@ function emitEnv(n) {
       break;
     case "callout": {
       const type = ["note", "tip", "warning"].includes((opt ?? "").trim()) ? opt.trim() : "note";
-      mdx = `<Callout type="${type}">\n\n${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="${type}"${id}>\n\n${walk(n.content).trim()}\n\n</Callout>`;
       break;
     }
     case "proof":
@@ -505,7 +510,8 @@ function emitMacro(n) {
     // \difficulty is not contract UI — it renders as the same plain [n]
     // text the PDF prints, wherever the author put it.
     case "difficulty": return `**[${lastArgRaw(n) ?? ""}]** `;
-    case "skippable": return "**(★)** ";
+    case "important": return "**(★)** ";
+    case "skippable": return "**(∗)** ";   // legacy "skip on a first pass" mark
     case "paragraph": return `\n\n**${walkArg(n, 0).trim()}.** `;
     case "ifdef": case "ifdefined": case "ifcsdef": {
       const nm = (argRaw(n, 0) ?? "").trim().replace(/^\\/, "");

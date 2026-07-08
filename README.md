@@ -57,8 +57,9 @@ packages, custom macros (they become web math macros automatically).
    provides the environments below plus `\ifsolutions`, hyperref,
    cleveref. Don't re-load hyperref; configure it with `\hypersetup{}`.
 3. **Exercises**: `\begin{exercise}[Optional Title]`, optionally marked
-   `\skippable`. Give every exercise a `\label` — unlabelled exercises get
-   no stable link and no solution can reference them.
+   `\important` (a ★ flagging the sheet's key exercises). Give every
+   exercise a `\label` — unlabelled exercises get no stable link and no
+   solution can reference them.
 4. **Solutions**: `\begin{solution}[ex:your-label]` — naming the exercise
    is mandatory. Solutions render collapsed on the site and are dropped
    from the no-solutions PDF.
@@ -67,8 +68,10 @@ packages, custom macros (they become web math macros automatically).
    the PDF and the site.
 6. **Other semantic blocks**: `definition`, `theorem`, `lemma`,
    `proposition`, `corollary`, `fact`, `example`, `proof`, `remark`,
-   `callout[note|tip|warning]`. `\label` goes on its own line right after
-   `\begin{…}`. Never `\renewcommand` these names.
+   `callout[note|tip|warning]`. All of them — callouts and remarks
+   included — can be `\label`ed and `\cref`ed. Put the `\label` anywhere at
+   the top level of the environment (right after `\begin{…}` is clearest).
+   Never `\renewcommand` these names.
 7. **Figures**: export to PDF into your `fig/`, then a normal `figure` +
    `\includegraphics{fig/name.pdf}` + `\caption` + `\label`. Inline
    `tikzpicture`/`tikzcd` is also converted automatically.
@@ -108,6 +111,14 @@ Then the edit loop is:
 Edit your `main.tex`/`main.mdx`, re-run the first line, refresh the browser.
 What you see is exactly what deploys — same converter, same renderer.
 (`./run content` rebuilds every worksheet at once.)
+
+To test **everything CI tests** in one command — every worksheet's PDF,
+conversion, KaTeX render gate, downloads, and the site build:
+
+    ./run verify
+
+It stops at the first failure with the converter's `file:line` error
+messages; exit code 0 means CI will be green.
 
 ## Publish
 
