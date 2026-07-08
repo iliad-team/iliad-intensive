@@ -1,129 +1,111 @@
 # Iliad Intensive worksheets
 
-You write LaTeX; the machinery does the rest. Each folder in `tex/` becomes
-a page on the course site plus per-page downloads — PDF, LaTeX, and
-Markdown, each in a with-solutions and a solutions-stripped variant (the
-stripped ones are safe to hand out or paste into an LLM). Only your `.tex`,
-`biblo.bib`, and `fig/` go in git — never build outputs.
+## Folder structure
+
+Each folder in `tex/` represents a page on the course site.
+Structure folder as follows:
+```
+name-of-my-material/
+├── fig
+│   └── ... # figures
+├── biblo.bib
+├── slides.[tex|mdx|pdf]
+└── main.[tex|mdx]
+```
+
+You can write either in LaTeX or Markdown, as you prefer.
+The main file for the material is `main.[tex|mdx]` (`.tex` files are converted
+to `mdx` by the repo's own converter, `scripts/tex2mdx/`; pandoc is only used
+to build the PDF of Markdown-authored sheets).
+The slides for the material are `slides.[tex|mdx|pdf]`. Avoid using PDF slides,
+ideally write LaTeX slides using beamer (Google Slides are annoying with math
+and not machine-readable). *(Slides are not built by the pipeline yet.)*
 
 ## Start a worksheet
 
-    cp -r tex/example tex/your-slug       # folder name = the page's URL slug
+```
+cp -r tex/example tex/name-of-your-material
+```
+`tex/example/main.tex` includes an example of every supported construct
+that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
 
-Your folder sits next to the one shared style file:
+## LaTeX Format
 
-    tex/
-      iliad.sty          shared style — never edit or copy it
-      your-slug/
-        main.tex         your worksheet   (\usepackage[boxes]{../iliad})
-        biblo.bib        your bibliography
-        fig/             your figures, exported to PDF
+1. **Required metadata** (the build warns if missing, but never fails):
+   * `\title{}`
+   * `\author{}` 
+    - * affiliations supported:
+    ```
+    \author{
+      \authorname{John Doe}\\
+      \affiliation{Nowhere University}
+      \and
+      \authorname{Jane Doe}\\
+      \affiliation{Institute of Science}
+      \and
+      ... % more authors
+    }
+    ```
 
-`tex/example/main.tex` is the living example — every supported construct,
-with comments. Read it side by side with its rendered page.
+2. **Optional metadata**:
+    * `\begin{summary} ... \end{summary}` summarizes the material, and is extracted
+    and displayed in the page index and under the page title.
+    * ```
+       \begin{learningoutcomes} 
+       \item ...
+       \item ... 
+       \end{learningoutcomes}
+      ``` 
+      lists the learning outcomes of the material; renders as a
+      "What you'll learn" box wherever you put it (usually right after
+      `\maketitle`).
+    * The `%--- iliad ---` comment block at the very top of `main.tex` holds
+      simple one-line YAML values — usually just the cluster the page is
+      grouped under:
+      ```
+      %--- iliad ---
+      % cluster: D
+      %--- end ---
+      ```
+      `title:`, `summary:`, and `contributors:` keys are also accepted there
+      and override whatever is extracted from the LaTeX.
 
-Working **outside the repo** (your own machine, Overleaf)? Put a copy of
-`iliad.sty` next to your `main.tex` — it looks there first, then one level
-up. Don't commit that copy (the repo gitignores it): inside the repo,
-everyone builds against the shared `tex/iliad.sty`.
+3. **Commands**: See `docs/commands.md` for details.
+* Exercises: `\begin{exercise}[Optional Title]\label{ex:your-label} ... \end{exercise}`
+  - Labels are optional if no solutions are provided.
+* Solutions: `\begin{solution}[ex:your-label] ... \end{solution}`
+  - Label is mandatory to pair with the exercise.
+* Other semantic blocks: `definition`, `theorem`, `lemma`,
+  `proposition`, `corollary`, `fact`, `example`, `proof`, `remark`,
+  `callout[note|tip|warning]`. All of them can be `\label`ed and `\cref`ed. 
+* Figures: export to PDF into your `fig/`, then a normal `figure` +
+  `\includegraphics{fig/name.pdf}` + `\caption` + `\label`. 
+* Citations: entries in `biblo.bib`, cite normally.
 
-## Prefer Markdown to LaTeX?
-
-Author `tex/your-slug/main.mdx` instead of `main.tex` — it is served as the
-page directly, no conversion. Rules:
-
-- Start with a `---` YAML frontmatter block (`title`, `cluster`, `summary`,
-  `contributors` — same keys as the LaTeX block, and here `title` is
-  required since there's no `\title{}` to fall back on).
-- Math is KaTeX: `$inline$` and `$$display$$`.
-- The site components are available as JSX:
-  `<Exercise id="…">`, `<Solution>`, `<Callout type="note|tip|warning">`,
-  `<Definition term="…">`, `<Theorem kind="…">`, `<LearningOutcomes>`,
-  `<Figure src="/uploads/your-slug/name.svg" caption="…" />`.
-- Figures still live in `fig/` (PDFs are converted to SVG; svg/png copy
-  through) and are referenced as `/uploads/your-slug/<name>.svg`.
-- Downloads offered: **PDF** (generated from your markdown via pandoc) and
-  **Markdown**, each with the with/without-solutions toggle — no LaTeX
-  download for MDX-authored sheets.
-
-## The contract
-
-Everything not listed here is a free zone: arbitrary notation, extra
-packages, custom macros (they become web math macros automatically).
-
-1. **Your LaTeX is the source of the page metadata**: the title comes from
-   `\title{}`, the byline from `\author{}` (affiliations supported:
-   `\authorname{Ada}\\ \affiliation{Somewhere}` renders "Ada (Somewhere)"),
-   and the lede from `\begin{summary}…\end{summary}`. The
-   **`%--- iliad ---` block** (YAML, in comments) is for simple one-line
-   values only — usually just `cluster:` — and an explicit key there
-   overrides the extracted value. Nothing is mandatory; missing
-   title/cluster/contributors draw a build advisory, not a failure.
-   Everything else — prerequisites, reading lists, difficulty notes —
-   is normal LaTeX in the body.
-2. **`\usepackage[boxes]{../iliad}` is the one required package.** It
-   provides the environments below plus `\ifsolutions`, hyperref,
-   cleveref. Don't re-load hyperref; configure it with `\hypersetup{}`.
-3. **Exercises**: `\begin{exercise}[Optional Title]`, optionally marked
-   `\important` (a ★ flagging the sheet's key exercises). Give every
-   exercise a `\label` — unlabelled exercises get no stable link and no
-   solution can reference them.
-4. **Solutions**: `\begin{solution}[ex:your-label]` — naming the exercise
-   is mandatory. Solutions render collapsed on the site and are dropped
-   from the no-solutions PDF.
-5. **Learning outcomes**: `\begin{learningoutcomes} \item … \end{learningoutcomes}`,
-   usually right after `\maketitle` — a "What you'll learn" box in both
-   the PDF and the site.
-6. **Other semantic blocks**: `definition`, `theorem`, `lemma`,
-   `proposition`, `corollary`, `fact`, `example`, `proof`, `remark`,
-   `callout[note|tip|warning]`. All of them — callouts and remarks
-   included — can be `\label`ed and `\cref`ed. Put the `\label` anywhere at
-   the top level of the environment (right after `\begin{…}` is clearest).
-   Never `\renewcommand` these names.
-7. **Figures**: export to PDF into your `fig/`, then a normal `figure` +
-   `\includegraphics{fig/name.pdf}` + `\caption` + `\label`. Inline
-   `tikzpicture`/`tikzcd` is also converted automatically.
-8. **Citations**: entries in your `biblo.bib`, cite normally.
-
-## Check your work
-
-    cd tex/your-slug
-    pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex
-
-The PDF is ground truth for your content. If you have Node ≥ 20, you can
-also run the exact web-conversion gate CI runs:
-
-    ./run content --check your-slug
-
-It prints `file:line` for anything it can't translate. No Node? Just open
-the PR — CI runs the same gate.
-
-## Preview the website locally (optional)
+## Preview the website locally
 
 One-time install — from the repo root:
-
+```
     ./setup        # TeX Live + poppler + pandoc (apt), Node 22 (nvm), npm deps
-
+```
 Then live authoring is one command:
-
+```
     ./run watch your-slug     # dev server + rebuild on every save
+```
+Edit `main.tex`/`main.mdx`, save, refresh http://localhost:3000
 
-Edit `main.tex`/`main.mdx`, save, refresh http://localhost:3000 — what you
-see is exactly what deploys (same converter, same renderer). Other commands:
-
-    ./run content your-slug   # one full worksheet build: page + PDFs + downloads
-    ./run content             # build everything
-    ./run ci                  # exactly what GitHub CI runs; exit 0 = CI green
-    ./run --help              # the rest
-
+Before opening a PR, `./run ci` runs exactly what GitHub CI will (all PDFs,
+conversion, render gate, site build); `./run --help` lists the rest.
 Errors and warnings carry `file.tex:line` locations wherever the converter
-can know them; PDF compile failures quote the first `!` line of the LaTeX
-log plus the log path.
+can know them.
 
-## Publish
+## How to contribute
 
-Branch, commit your folder, open a PR. Green CI + merge to `main` = live on
-the site minutes later.
+Make a branch, work in your branch, commit your changes, open a PR to `main`,
+and David will merge it into the main branch.
+
+If you prefer to work in Overleaf, you can fork the repo, and then 
+[sync your fork](https://docs.overleaf.com/integrations-and-add-ons/git-integration-and-github-synchronization) to Overleaf. PR to upstream when ready. 
 
 ---
 *Maintainer & pipeline docs: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)*
