@@ -30,9 +30,11 @@ export function DownloadsRow({
           key={ext}
           href={`${basePath}/downloads/${slug}/${name(ext)}`}
           className="text-zinc-500 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-800"
+          title={name(ext)}
           download
         >
           {LABELS[ext]}
+          {solutions ? "" : " (no solutions)"}
         </a>
       ))}
       <label className="flex cursor-pointer select-none items-center gap-1.5 normal-case tracking-normal text-zinc-500">
