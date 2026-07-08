@@ -57,20 +57,17 @@
 \author{Fernando E. Rosas}
 \date{\today}
 
-% Shared contract pieces (learningoutcomes box, marks) from iliad.sty in
-% compat mode: defines only what this legacy preamble is missing. Local
-% copy wins (Overleaf); falls back to the shared ../iliad.sty in the repo.
-\IfFileExists{iliad.sty}{\usepackage[compat]{iliad}}{\usepackage[compat]{../iliad}}
 
 \begin{document}
 
 \maketitle
 
-\begin{learningoutcomes}
+\paragraph*{What you'll learn.}
+\begin{itemize}
   \item Explain when preference relations over trajectories admit ordinal utility representations, and what fails without completeness or transitivity.
   \item State and prove the von Neumann--Morgenstern theorem, and distinguish ordinal from cardinal utility.
   \item Derive the Markov reward representation from the temporal gamma-indifference axiom, and explain reward non-uniqueness and potential-based shaping.
-\end{learningoutcomes}
+\end{itemize}
 
 \begin{abstract}
 \noindent

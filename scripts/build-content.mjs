@@ -16,10 +16,12 @@
  * Exit codes: 0 ok · 1 something failed (converter warnings, KaTeX errors,
  * or a PDF build failure) — error messages carry file:line from the converter.
  *
+ * Usage:
+ *   build-content.mjs [flags] [slug ...]   no slugs = build every worksheet
+ *
  * Flags:
  *   --check        converter + render gate only (fast; no PDFs/downloads) —
  *                  what the pre-push hook runs
- *   --only <slug>  restrict to one worksheet
  *   --jobs N       parallel worksheet builds (default 4)
  */
 import { execFile } from "node:child_process";
@@ -42,17 +44,30 @@ const CHECKER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx-check.mjs");
 
 const args = process.argv.slice(2);
 const CHECK_ONLY = args.includes("--check");
-const only = args.includes("--only") ? args[args.indexOf("--only") + 1] : null;
 const JOBS = Math.max(1, parseInt(args.includes("--jobs") ? args[args.indexOf("--jobs") + 1] : "4", 10) || 4);
+// positional args are worksheet slugs; none = build everything
+const wanted = [];
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--check") continue;
+  if (args[i] === "--jobs") { i++; continue; }
+  if (args[i].startsWith("-")) { console.error(`unknown flag ${args[i]} — usage: build-content.mjs [--check] [--jobs N] [slug ...]`); process.exit(1); }
+  wanted.push(args[i]);
+}
 
 // A worksheet is authored either in LaTeX (main.tex — converted to MDX) or
 // directly in MDX (main.mdx — served as-is, PDF via pandoc). tex wins if
 // a folder somehow has both.
-const slugs = readdirSync(TEX, { withFileTypes: true })
+const allWorksheets = readdirSync(TEX, { withFileTypes: true })
   .filter((d) => d.isDirectory()
     && (existsSync(path.join(TEX, d.name, "main.tex")) || existsSync(path.join(TEX, d.name, "main.mdx"))))
-  .map((d) => d.name)
-  .filter((s) => !only || s === only);
+  .map((d) => d.name);
+for (const w of wanted) {
+  if (!allWorksheets.includes(w)) {
+    console.error(`no such worksheet: tex/${w}/ needs a main.tex or main.mdx — available: ${allWorksheets.join(", ")}`);
+    process.exit(1);
+  }
+}
+const slugs = wanted.length ? wanted : allWorksheets;
 
 if (slugs.length === 0) { console.error("no tex/<slug>/main.tex or main.mdx sources found"); process.exit(1); }
 mkdirSync(MODULES, { recursive: true });

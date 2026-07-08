@@ -29,12 +29,17 @@ together define the authoring contract.
 
 ## Content build
 
-- `node scripts/build-content.mjs` (or `./run content`) — full build.
-  `--check` = converter + KaTeX render gate only (fast). `--only <slug>`
-  restricts to one worksheet. `--jobs N` sets parallel worksheet builds
+- `node scripts/build-content.mjs [slug ...]` (or `./run content [slug]`) —
+  full build; no slugs = every worksheet. `--check` = converter + KaTeX
+  render gate only (fast). `--jobs N` sets parallel worksheet builds
   (default 4; worksheets are independent, logs are buffered per sheet).
   Non-zero exit on any failure, with the converter's `file:line` messages.
   Converter WARNs fail the build; advisories don't.
+- `./run watch [slug]` — live loop: dev server + fast rebuild on every save
+  (scripts/watch.mjs; ignores LaTeX build artifacts to avoid loops).
+- `./run ci` — the full CI ladder (content build + static site build).
+- `./setup` — idempotent local install (apt TeX/poppler/pandoc, nvm Node 22,
+  npm deps).
 - **Order matters**: the PDF compiles BEFORE conversion because the converter
   resolves `\cref`/`\ref` through LaTeX's `.aux` — a fresh checkout has none,
   and converting without it reports every `\cref` as unresolved (this exact

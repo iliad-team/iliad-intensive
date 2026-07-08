@@ -85,40 +85,32 @@ packages, custom macros (they become web math macros automatically).
 The PDF is ground truth for your content. If you have Node ≥ 20, you can
 also run the exact web-conversion gate CI runs:
 
-    node scripts/build-content.mjs --check --only your-slug
+    ./run content --check your-slug
 
 It prints `file:line` for anything it can't translate. No Node? Just open
 the PR — CI runs the same gate.
 
 ## Preview the website locally (optional)
 
-One-time install:
+One-time install — from the repo root:
 
-1. **TeX Live** (you have it if `pdflatex` runs) and **poppler-utils**
-   (`pdftocairo`, for figure/diagram SVGs):
-   `sudo apt install texlive-latex-extra texlive-pictures texlive-science poppler-utils`
-2. **pandoc** — only needed for MDX-authored sheets' PDFs: `sudo apt install pandoc`
-3. **Node ≥ 20.9** — easiest via [nvm](https://github.com/nvm-sh/nvm):
-   `nvm install 22`. (The repo's `./run` wrapper auto-selects it afterwards,
-   from any shell including fish.)
-4. In the repo root: `npm install`
+    ./setup        # TeX Live + poppler + pandoc (apt), Node 22 (nvm), npm deps
 
-Then the edit loop is:
+Then live authoring is one command:
 
-    node scripts/build-content.mjs --only your-slug   # source → page (+ your PDF)
-    ./run                                             # dev server → http://localhost:3000
+    ./run watch your-slug     # dev server + rebuild on every save
 
-Edit your `main.tex`/`main.mdx`, re-run the first line, refresh the browser.
-What you see is exactly what deploys — same converter, same renderer.
-(`./run content` rebuilds every worksheet at once.)
+Edit `main.tex`/`main.mdx`, save, refresh http://localhost:3000 — what you
+see is exactly what deploys (same converter, same renderer). Other commands:
 
-To test **everything CI tests** in one command — every worksheet's PDF,
-conversion, KaTeX render gate, downloads, and the site build:
+    ./run content your-slug   # one full worksheet build: page + PDFs + downloads
+    ./run content             # build everything
+    ./run ci                  # exactly what GitHub CI runs; exit 0 = CI green
+    ./run --help              # the rest
 
-    ./run verify
-
-It stops at the first failure with the converter's `file:line` error
-messages; exit code 0 means CI will be green.
+Errors and warnings carry `file.tex:line` locations wherever the converter
+can know them; PDF compile failures quote the first `!` line of the LaTeX
+log plus the log path.
 
 ## Publish
 

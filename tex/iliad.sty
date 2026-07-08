@@ -1,5 +1,5 @@
 % iliad.sty — the Iliad Intensive worksheet contract
-% Version 0.4 (2026-07-08)
+% Version 0.5 (2026-07-08)
 %
 % ONE shared copy lives at tex/iliad.sty. Worksheets load it local-first —
 % a copy next to main.tex (the Overleaf setup) wins, else the shared parent
@@ -11,17 +11,15 @@
 % prose, math, \newcommand macros, extra packages, citations — is the
 % "free zone": write whatever LaTeX you like and it converts faithfully.
 %
+% The contract is strict about its own names: worksheets must NOT define
+% their own theorem/exercise/solution machinery — a clash is a loud compile
+% error on purpose. Port legacy material to this format rather than working
+% around it.
+%
 % PDF styling is PLAIN by default — style your PDF however you like (the
 % website look is decided downstream and doesn't depend on it). Pass the
 % [boxes] option for ready-made tcolorbox styling:
 %     \usepackage[boxes]{iliad}
-%
-% Legacy sheets with their own preamble machinery (own theorem envs, own
-% solution handling) load COMPAT mode instead, which defines only the
-% additive pieces — learningoutcomes, callout, remark, the marks — and
-% skips everything that would clash (guards let the sheet's own
-% definitions win):
-%     \IfFileExists{iliad.sty}{\usepackage[compat]{iliad}}{\usepackage[compat]{../iliad}}
 %
 % Contract environments:
 %
@@ -64,28 +62,17 @@
 %     (CI rejects it — the converter relies on these definitions).
 
 \NeedsTeXFormat{LaTeX2e}
-\ProvidesPackage{iliad}[2026/07/08 v0.4 Iliad Intensive worksheet contract]
+\ProvidesPackage{iliad}[2026/07/08 v0.5 Iliad Intensive worksheet contract]
 
 \newif\ifiliad@boxes
 \iliad@boxesfalse
-\newif\ifiliad@compat
-\iliad@compatfalse
 \DeclareOption{boxes}{\iliad@boxestrue}
-\DeclareOption{compat}{\iliad@compattrue}
 \ProcessOptions\relax
 
-\RequirePackage{etoolbox}      % conditionals used below (compat-safe)
-
-% ---------------------------------------------------------------- toggle ---
-% Defined in BOTH modes, before the mode split: TeX's conditional skipping
-% only stays balanced if \ifsolutions has \if-meaning while the full-mode
-% block is being skipped. Guarded so a legacy sheet's own toggle wins.
-\ifcsundef{ifsolutions}{\newif\ifsolutions \solutionstrue}{}
-
-\unless\ifiliad@compat
 \RequirePackage{amsmath}
 \RequirePackage{amssymb}
 \RequirePackage{amsthm}
+\RequirePackage{etoolbox}
 \RequirePackage{enumitem}
 \RequirePackage{graphicx}
 \RequirePackage{verbatim}      % comment machinery used to hide solutions
@@ -96,6 +83,10 @@
 \RequirePackage{hyperref}
 \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
 \RequirePackage[capitalise,noabbrev]{cleveref}
+
+% ---------------------------------------------------------------- toggle ---
+\newif\ifsolutions
+\solutionstrue   % authors write \solutionsfalse in main.tex to hide solutions
 
 % -------------------------------------------------------- theorem family ---
 % One shared counter, numbered within section.
@@ -147,6 +138,15 @@
   \ifiliad@boxes\end{exercisebox}\else\par\medskip\fi
 }
 
+% Optional mark, written right after the exercise's \label:
+%   \important  ->  (★)   flags the most important exercises
+\newcommand{\important}{\textbf{($\bigstar$)}\ \ignorespaces}
+% Legacy marks: older sheets still compile, but these are NOT part of the
+% contract. \skippable meant "skip on a first pass" (note: the OPPOSITE of
+% \important) and prints a small (∗); \difficulty{10} prints [10].
+\newcommand{\skippable}{\textbf{($\ast$)}\ \ignorespaces}
+\newcommand{\difficulty}[1]{\textbf{[#1]}\ \ignorespaces}
+
 % -------------------------------------------------------------- solution ---
 % \begin{solution}[ex:label] — the label of its exercise is REQUIRED, so a
 % solution is bound to its exercise no matter where it sits (adjacent or in a
@@ -180,21 +180,6 @@
     \expandafter\endcomment
   \fi
 }
-\fi % ---- end of full (non-compat) mode -------------------------------------
-
-% ============================================================================
-% Everything below is defined in BOTH modes. \providecommand / \ifcsundef
-% guards mean a legacy sheet's own definitions always win.
-% ============================================================================
-
-% Optional mark, written right after the exercise's \label:
-%   \important  ->  (★)   flags the most important exercises
-\providecommand{\important}{\textbf{($\bigstar$)}\ \ignorespaces}
-% Legacy marks: older sheets still compile, but these are NOT part of the
-% contract. \skippable meant "skip on a first pass" (note: the OPPOSITE of
-% \important) and prints a small (∗); \difficulty{10} prints [10].
-\providecommand{\skippable}{\textbf{($\ast$)}\ \ignorespaces}
-\providecommand{\difficulty}[1]{\textbf{[#1]}\ \ignorespaces}
 
 % --------------------------------------------------------------- callout ---
 % \begin{callout}[note|tip|warning]  (default: note)
@@ -203,72 +188,62 @@
     title={#1}, fonttitle=\bfseries\normalsize, breakable, top=4pt, bottom=4pt}
 \fi
 
-\providecommand{\iliad@calloutbegin}[2]{%
+\newcommand{\iliad@calloutbegin}[2]{%
   \ifiliad@boxes
     \begin{iliadcalloutbox}{#1}{#2}%
   \else
     \par\medskip\noindent\textbf{#1.}\enspace\ignorespaces
   \fi
 }
-\providecommand{\iliad@calloutend}{%
+\newcommand{\iliad@calloutend}{%
   \ifiliad@boxes\end{iliadcalloutbox}\else\par\medskip\fi
 }
 
 % Callouts and remarks may be \label'ed and \cref'ed: each has a discreet
 % per-section counter (no number shown in the box; \cref prints e.g.
-% "Callout 2.1" / "Remark 2.3" and hyperlinks to the box). crefnames only
-% apply when cleveref is present (always in full mode; the sheet's choice
-% in compat mode).
-\ifcsundef{c@callout}{%
-  \newcounter{callout}[section]%
-  \renewcommand{\thecallout}{\thesection.\arabic{callout}}%
-  \ifdef{\crefname}{\crefname{callout}{Callout}{Callouts}\Crefname{callout}{Callout}{Callouts}}{}%
-}{}
-\ifcsundef{c@remark}{%
-  \newcounter{remark}[section]%
-  \renewcommand{\theremark}{\thesection.\arabic{remark}}%
-  \ifdef{\crefname}{\crefname{remark}{Remark}{Remarks}\Crefname{remark}{Remark}{Remarks}}{}%
-}{}
+% "Callout 2.1" / "Remark 2.3" and hyperlinks to the box).
+\newcounter{callout}[section]
+\renewcommand{\thecallout}{\thesection.\arabic{callout}}
+\crefname{callout}{Callout}{Callouts}
+\Crefname{callout}{Callout}{Callouts}
+\newcounter{remark}[section]
+\renewcommand{\theremark}{\thesection.\arabic{remark}}
+\crefname{remark}{Remark}{Remarks}
+\Crefname{remark}{Remark}{Remarks}
 
-\ifcsundef{callout}{%
-  \newenvironment{callout}[1][note]{%
-    \refstepcounter{callout}%
-    \ifstrequal{#1}{warning}%
-      {\def\iliad@co@color{red}\def\iliad@co@title{Warning}}%
-      {\ifstrequal{#1}{tip}%
-        {\def\iliad@co@color{green!55!black}\def\iliad@co@title{Tip}}%
-        {\def\iliad@co@color{blue}\def\iliad@co@title{Note}}}%
-    \iliad@calloutbegin{\iliad@co@title}{\iliad@co@color}%
-  }{%
-    \iliad@calloutend
-  }%
-}{}
+\newenvironment{callout}[1][note]{%
+  \refstepcounter{callout}%
+  \ifstrequal{#1}{warning}%
+    {\def\iliad@co@color{red}\def\iliad@co@title{Warning}}%
+    {\ifstrequal{#1}{tip}%
+      {\def\iliad@co@color{green!55!black}\def\iliad@co@title{Tip}}%
+      {\def\iliad@co@color{blue}\def\iliad@co@title{Note}}}%
+  \iliad@calloutbegin{\iliad@co@title}{\iliad@co@color}%
+}{%
+  \iliad@calloutend
+}
 
 % remark — an aside; renders as a note callout on the web.
-\ifcsundef{remark}{%
-  \newenvironment{remark}{%
-    \refstepcounter{remark}%
-    \iliad@calloutbegin{Remark}{blue}%
-  }{%
-    \iliad@calloutend
-  }%
-}{}
+\newenvironment{remark}{%
+  \refstepcounter{remark}%
+  \iliad@calloutbegin{Remark}{blue}%
+}{%
+  \iliad@calloutend
+}
 
 % ---------------------------------------------------- learning outcomes ---
 % \begin{learningoutcomes} \item ... \end{learningoutcomes}
 % A bulleted "What you'll learn" box, typically right after \maketitle.
-\ifcsundef{learningoutcomes}{%
-  \newenvironment{learningoutcomes}{%
-    \iliad@calloutbegin{What you'll learn}{blue}%
-    \begin{itemize}%
-  }{%
-    \end{itemize}%
-    \iliad@calloutend
-  }%
-}{}
+\newenvironment{learningoutcomes}{%
+  \iliad@calloutbegin{What you'll learn}{blue}%
+  \begin{itemize}[leftmargin=1.4em]%
+}{%
+  \end{itemize}%
+  \iliad@calloutend
+}
 
 % ----------------------------------------------------------- conveniences ---
-\providecommand{\hint}[1]{[\emph{Hint:} #1]}
+\newcommand{\hint}[1]{[\emph{Hint:} #1]}
 \providecommand{\note}[1]{[\emph{Note:} #1]}
 
 \endinput

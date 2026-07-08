@@ -13,21 +13,21 @@ usage() {
 ./run — Iliad Intensive site, with the right Node version selected via nvm
 
 Usage:
-  ./run                start the dev server -> http://localhost:3000
-  ./run content        build all worksheets: tex/mdx -> pages, PDFs, downloads
-  ./run verify         everything CI tests: content build + static site build
-                       (fails fast with file:line error messages; exit 0 = CI green)
-  ./run build          static-export the site -> out/
-  ./run start          serve a production build
-  ./run <script>       any other script from package.json
-Extra arguments pass through, e.g.:
-  ./run content --only <slug>           rebuild ONE worksheet (PDFs + page)
-  ./run content --check --only <slug>   fast contract check of one worksheet
-  ./run content --jobs 8                more parallel workers
+  ./run                 start the dev server -> http://localhost:3000
+  ./run watch [slug]    LIVE authoring: dev server + rebuild on every save
+                        (slug = only that worksheet; without = any worksheet)
+  ./run content [slug]  build worksheets: tex/mdx -> pages, PDFs, downloads
+                        (no slug = all; add --check for the fast gate only)
+  ./run ci              exactly what the GitHub CI action runs: full content
+                        build + static site build; exit 0 = CI will be green
+  ./run build           static-export the site -> out/
+  ./run <script>        any other script from package.json
+
+First time here? ./setup installs everything (TeX Live, poppler, pandoc,
+Node via nvm, npm deps).
 
 The edit loop for a worksheet:
-  ./run content --only <your-slug>      # rebuild just your worksheet
-  ./run                                 # then refresh the browser
+  ./run watch your-slug                 # edit main.tex, save, refresh browser
 
 More: README.md (writing worksheets) · docs/DEVELOPMENT.md (pipeline internals)
 EOF
