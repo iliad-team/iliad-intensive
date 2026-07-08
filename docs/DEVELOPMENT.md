@@ -31,9 +31,10 @@ together define the authoring contract.
 
 - `node scripts/build-content.mjs` (or `./run content`) — full build.
   `--check` = converter + KaTeX render gate only (fast). `--only <slug>`
-  restricts to one worksheet. Non-zero exit on any failure, with the
-  converter's `file:line` messages. Converter WARNs fail the build;
-  advisories don't.
+  restricts to one worksheet. `--jobs N` sets parallel worksheet builds
+  (default 4; worksheets are independent, logs are buffered per sheet).
+  Non-zero exit on any failure, with the converter's `file:line` messages.
+  Converter WARNs fail the build; advisories don't.
 - **Order matters**: the PDF compiles BEFORE conversion because the converter
   resolves `\cref`/`\ref` through LaTeX's `.aux` — a fresh checkout has none,
   and converting without it reports every `\cref` as unresolved (this exact
