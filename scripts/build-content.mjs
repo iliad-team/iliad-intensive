@@ -267,8 +267,8 @@ if (!failed) {
     }
     entries.push({ slug, title: fm.title ?? slug, cluster: fm.cluster ?? "0", frontmatter: fm, position: entries.length + 1, headings });
   }
-  // stable ordering: cluster then title; template last (it's the format demo)
-  entries.sort((a, b) => (a.slug === "template") - (b.slug === "template") || String(a.cluster).localeCompare(String(b.cluster)) || a.title.localeCompare(b.title));
+  // stable ordering: cluster then title; the example sheet last (format demo)
+  entries.sort((a, b) => (a.slug === "example") - (b.slug === "example") || String(a.cluster).localeCompare(String(b.cluster)) || a.title.localeCompare(b.title));
   entries.forEach((e, i) => (e.position = i + 1));
   writeFileSync(path.join(ROOT, "content", "index.json"), JSON.stringify(entries, null, 2) + "\n");
   console.log(`index.json: ${entries.length} modules`);

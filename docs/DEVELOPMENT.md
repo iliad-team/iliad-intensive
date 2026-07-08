@@ -46,8 +46,8 @@ together define the authoring contract.
   bug broke CI once). `--check` runs one best-effort `pdflatex` pass when the
   `.aux` is missing.
 - An `unlisted: true` frontmatter key builds the page but keeps it out of
-  `content/index.json` — reachable by URL, linked from nowhere (the template
-  uses this).
+  `content/index.json` — reachable by URL, linked from nowhere (the example
+  sheet uses this).
 - Generated MDX is host-agnostic (`/uploads/…` URLs); the site's `Figure`
   component and download links apply `NEXT_PUBLIC_BASE_PATH` at render time.
   Never bake the base path into generated content — it double-prefixes.

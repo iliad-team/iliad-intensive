@@ -8,7 +8,7 @@ stripped ones are safe to hand out or paste into an LLM). Only your `.tex`,
 
 ## Start a worksheet
 
-    cp -r tex/template tex/your-slug      # folder name = the page's URL slug
+    cp -r tex/example tex/your-slug       # folder name = the page's URL slug
 
 Your folder sits next to the one shared style file:
 
@@ -19,7 +19,7 @@ Your folder sits next to the one shared style file:
         biblo.bib        your bibliography
         fig/             your figures, exported to PDF
 
-`tex/template/main.tex` is the living example — every supported construct,
+`tex/example/main.tex` is the living example — every supported construct,
 with comments. Read it side by side with its rendered page.
 
 ## Prefer Markdown to LaTeX?
