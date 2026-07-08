@@ -1,6 +1,8 @@
 # Development & pipeline
 
 Maintainer documentation. Writers only need the root [README](../README.md).
+For the file-level map of the site (what reads what, where the code came
+from), see [INTERNALS.md](INTERNALS.md).
 
 ## Architecture
 

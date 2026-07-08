@@ -6,13 +6,13 @@
 git clone git@github.com:iliad-team/iliad-intensive.git
 cd iliad-intensive
 chmod +x setup
-./setup        # Installs TeX Live + poppler + pandoc (apt), Node 22 (nvm), npm deps
+./setup
 ```
 
 ## Render the website
 
 ```
-./run watch name-of-your-material     # dev server + rebuild on every save
+./run watch name-of-your-material
 ```
 
 Edit `main.tex`/`main.mdx`, save, refresh, see http://localhost:3000
