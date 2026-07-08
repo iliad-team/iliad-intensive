@@ -1,5 +1,4 @@
 %--- iliad ---
-% title: AIXI
 % cluster: D
 % summary: Exploring the Bayesian optimal policy for history based reinforcement learning.
 %--- end ---
@@ -54,7 +53,7 @@
 %===================================
 \begin{document}
 
-\title{AIXI Exercises}
+\title{AIXI}
 \author{\authorname{David Quarel}\\ \affiliation{Australian National University}}
 \date{\today}
 \maketitle
@@ -470,7 +469,9 @@ Show that the posterior updates multiplicatively:
 \[
     w(\nu \mid \aes_{1:t}) ~=~ w(\nu \mid \aes_{<t}) \frac{\nu(e_t \mid \aes_{<t} a_t)}{\xi(e_t \mid \aes_{<t} a_t)}.
 \]
-\textit{Hint:} Use the definitions of $w(\nu \mid \aes_{1:t})$ and $w(\nu \mid \aes_{<t})$, and apply \cref{prob:chain_rule}.
+\begin{hint}
+Use the definitions of $w(\nu \mid \aes_{1:t})$ and $w(\nu \mid \aes_{<t})$, and apply \cref{prob:chain_rule}.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:posterior_update]
@@ -494,7 +495,9 @@ Starting from $\xi(\aes_{1:t}) = \sum_{\nu \in \cM} w_\nu \nu(\aes_{1:t})$, deri
 \[
     \xi(e_t \mid \aes_{<t} a_t) ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \nu(e_t \mid \aes_{<t} a_t).
 \]
-\textit{Hint:} Write $\xi(e_t \mid \aes_{<t} a_t) = \xi(\aes_{1:t}) / \xi(\aes_{<t})$, expand the numerator, and use \cref{prob:chain_rule}.
+\begin{hint}
+Write $\xi(e_t \mid \aes_{<t} a_t) = \xi(\aes_{1:t}) / \xi(\aes_{<t})$, expand the numerator, and use \cref{prob:chain_rule}.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:one_step]
@@ -518,7 +521,9 @@ Expanding the numerator using $\xi(\aes_{1:t}) = \sum_\nu w_\nu \nu(\aes_{1:t})$
 Show that $V_\nu^{\pi,m}(\aes_{<t}) \in [0,1]$ for any $\nu, \pi, m \in \mathbb{N} \cup \{\infty\}, \aes_{<t}$.
 
 
-\textit{Hint:} Recall the formula for geometric series: $(1-\gamma)\sum_{k=0}^{n} \gamma^k = 1 - \gamma^{n+1}$.
+\begin{hint}
+Recall the formula for geometric series: $(1-\gamma)\sum_{k=0}^{n} \gamma^k = 1 - \gamma^{n+1}$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:bounded_value]
@@ -543,7 +548,9 @@ Extend \cref{prob:one_step} to multi-step histories: show that for finite $m \ge
     \xi^\pi(\aes_{t:m} \mid \aes_{<t})
     ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \nu^\pi(\aes_{t:m} \mid \aes_{<t}).
 \]
-\textit{Hint:} Apply the general chain rule (\cref{prob:chain_rule_nupi}) to $\xi(\aes_{1:m}) = \sum_\nu w_\nu \nu(\aes_{1:m})$, then use factorization (\cref{prob:factorization}).
+\begin{hint}
+Apply the general chain rule (\cref{prob:chain_rule_nupi}) to $\xi(\aes_{1:m}) = \sum_\nu w_\nu \nu(\aes_{1:m})$, then use factorization (\cref{prob:factorization}).
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:multi_step_xi]
@@ -597,7 +604,8 @@ Show that for finite $m$ and $t \leq m$:
 \]
 % where $\aes'_t = a'_t e'_t$ is a single action--percept step, $\nu^\pi(\aes'_t \mid \aes_{<t}) = \pi(a'_t \mid \aes_{<t})\, \nu(e'_t \mid \aes_{<t} a'_t)$, and $\aes_{<t}\, \aes'_t$ denotes the history $\aes_{<t}$ extended by that step.
 
-\textit{Hint:} Use the general chain rule (\Cref{prob:chain_rule_nupi}) to peel off the
+\begin{hint}
+Use the general chain rule (\Cref{prob:chain_rule_nupi}) to peel off the
 \emph{first} step,
 \[
     \nu^\pi(\aes_{t:m} \mid \aes_{<t})
@@ -606,6 +614,7 @@ Show that for finite $m$ and $t \leq m$:
 Break up the sum $\sum_{\aes_{t:m}} = \sum_{\aes_t} \sum_{\aes_{t+1:m}}$,
 and factor out $r'_t$ using $\sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes) = 1$
 for any history $\aes$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:bellman_finite]
@@ -716,8 +725,10 @@ Hence:
 Show that the pointwise limit $V_\nu^*(\aes_{<t}) := \lim_{m \to \infty} V_\nu^{*,m}(\aes_{<t})$ exists for all histories $\aes_{<t}$.
 
 
-\textit{Hint:} Show $V_\nu^{*,m+1}(\aes_{<t}) \geq V_\nu^{*,m}(\aes_{<t})$ by expanding $V_\nu^{*,m+1}$. Use this and \cref{prob:bounded_value}
+\begin{hint}
+Show $V_\nu^{*,m+1}(\aes_{<t}) \geq V_\nu^{*,m}(\aes_{<t})$ by expanding $V_\nu^{*,m+1}$. Use this and \cref{prob:bounded_value}
 and \href{https://en.wikipedia.org/wiki/Monotone_convergence_theorem}{Monotone Convergence Theorem} to obtain the result.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:inf_horizon]
@@ -881,7 +892,9 @@ Show that for finite $m$:
     ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, V_\nu^{\pi,m}(\aes_{<t}).
 \]
 
-\textit{Hint:} Use the multi-step posterior linearity of $\xi^\pi$ (\cref{prob:multi_step_xi}).
+\begin{hint}
+Use the multi-step posterior linearity of $\xi^\pi$ (\cref{prob:multi_step_xi}).
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:linearity_finite]
@@ -914,8 +927,10 @@ Show that the result extends to $m = \infty$:
     ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, V_\nu^\pi(\aes_{<t}).
 \]
 
-\textit{Hint:} Take $m \to \infty$ in the finite-horizon result. You will need \cref{thm:dom_conv} to exchange limit and sum
+\begin{hint}
+Take $m \to \infty$ in the finite-horizon result. You will need \cref{thm:dom_conv} to exchange limit and sum
 for countably infinite $\cM$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:linearity_inf]
@@ -947,7 +962,9 @@ Using \cref{prob:linearity_finite}, show that for finite $m$:
 \[
     V_\xi^{*,m}(\aes_{<t}) ~\leq~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, V_\nu^{*,m}(\aes_{<t}).
 \]
-\textit{Hint:} Apply \cref{prob:linearity_finite} with $\pi = \pi_\xi^*$, the Bayes-optimal policy for $\xi$.
+\begin{hint}
+Apply \cref{prob:linearity_finite} with $\pi = \pi_\xi^*$, the Bayes-optimal policy for $\xi$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:convex_opt]
@@ -972,7 +989,9 @@ Since $w(\nu \mid \aes_{<t}) \geq 0$:
 Show by example that the inequality in \cref{prob:convex_opt} can be strict, i.e.\ $V_\xi^{*,m}$ is \emph{not} linear in $\nu$.
 
 
-\textit{Hint:} Consider $\cM = \{\nu_0, \nu_1\}$: predicting a two-headed coin vs.\ a two-tailed coin.
+\begin{hint}
+Consider $\cM = \{\nu_0, \nu_1\}$: predicting a two-headed coin vs.\ a two-tailed coin.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:nonlinear_opt]
@@ -1017,7 +1036,9 @@ $}
 \]
 
 
-\textit{Hint:} Prove the first display by backward induction on $t$ from $m$ down to $1$, using the finite-horizon Bellman optimality equation (\cref{prob:bellman_opt}) and the return recursion $G_{t-1:m} = r_t + \gamma\, G_{t:m}$ (\cref{def:return}). At each step the leftover reward term $(1-\gamma)\, r_t$ is constant in the deeper variables; carry it inward using $\sum_{e_k} \xi(e_k \mid \aes_{<k} a_k) = 1$ and $c + \max(\cdot) = \max(c + \cdot)$.
+\begin{hint}
+Prove the first display by backward induction on $t$ from $m$ down to $1$, using the finite-horizon Bellman optimality equation (\cref{prob:bellman_opt}) and the return recursion $G_{t-1:m} = r_t + \gamma\, G_{t:m}$ (\cref{def:return}). At each step the leftover reward term $(1-\gamma)\, r_t$ is constant in the deeper variables; carry it inward using $\sum_{e_k} \xi(e_k \mid \aes_{<k} a_k) = 1$ and $c + \max(\cdot) = \max(c + \cdot)$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:expectimax_derivation]
@@ -1094,7 +1115,9 @@ Let $f : \Omega \to [0, c]$. Show that
 $\big|\Ex_P[f] - \Ex_Q[f]\big| \leq c \cdot \TV[\Omega](P, Q)$.
 
 
-\textit{Hint:} Define $A^+ = \{\omega \in \Omega : P(\omega) \geq Q(\omega)\}$ and decompose the expectation difference as a sum over $A^+$ and its complement $A^- = \Omega \setminus A^+$.
+\begin{hint}
+Define $A^+ = \{\omega \in \Omega : P(\omega) \geq Q(\omega)\}$ and decompose the expectation difference as a sum over $A^+$ and its complement $A^- = \Omega \setminus A^+$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:auto3]
@@ -1292,7 +1315,9 @@ Applying \cref{prob:tv_bound}:
 Show that $\xi^\pi$ covers $\mu^\pi$ (\cref{def:covering}).
 
 
-\textit{Hint:} Use \cref{prob:dominance}.
+\begin{hint}
+Use \cref{prob:dominance}.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:covering_proof]
@@ -1350,8 +1375,10 @@ By \cref{prob:covering_proof}, $\xi^\pi$ covers $\mu^\pi$. By \cref{fact:BD} (Bl
 Prove \cref{fact:BD}.
 
 
-\textit{Hint:} See \cite{Blackwell:62}. The proof uses the Radon--Nikodym derivative $dP/dQ$, L\'{e}vy's martingale convergence theorem, and the Lebesgue decomposition.
+\begin{hint}
+See \cite{Blackwell:62}. The proof uses the Radon--Nikodym derivative $dP/dQ$, L\'{e}vy's martingale convergence theorem, and the Lebesgue decomposition.
 No elementary proof is known that avoids graduate-level measure theory.
+\end{hint}
 
 
 %===================================
@@ -1369,7 +1396,9 @@ If $\mu \in \cM$ is deterministic and $V_\mu^*(\aes_{<t}) > \varepsilon > 0$ for
 Show that $V_\xi^*(\aes_{<t}) \geq w(\mu \mid \aes_{<t}) \cdot V_\mu^*(\aes_{<t})$.
 
 
-\textit{Hint:} Use linearity of $V^\pi$ (\cref{prob:linearity_inf}).
+\begin{hint}
+Use linearity of $V^\pi$ (\cref{prob:linearity_inf}).
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:xi_lower_bound]
@@ -1483,7 +1512,9 @@ $X_{\nu,t}$ is a \emph{function} of the history $\aes_{1:t}$, not a number: diff
 Show that $X_{\nu,t}$ is a $\mu^\pi$-martingale: $\Ex_{\mu^\pi}[X_{\nu,t} \mid \aes_{<t}] = X_{\nu,t-1}$.
 
 
-\textit{Hint:} Write $X_{\nu,t}(\aes_{1:t}) = X_{\nu,t-1}(\aes_{<t}) \cdot \nu(e_t \mid \aes_{<t} a_t)/\mu(e_t \mid \aes_{<t} a_t)$. Sum over $a_t, e_t$; $\mu$ cancels, leaving $\sum_{e_t} \nu(e_t \mid \aes_{<t} a_t) = 1$.
+\begin{hint}
+Write $X_{\nu,t}(\aes_{1:t}) = X_{\nu,t-1}(\aes_{<t}) \cdot \nu(e_t \mid \aes_{<t} a_t)/\mu(e_t \mid \aes_{<t} a_t)$. Sum over $a_t, e_t$; $\mu$ cancels, leaving $\sum_{e_t} \nu(e_t \mid \aes_{<t} a_t) = 1$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:martingale]
@@ -1552,7 +1583,9 @@ Let $A$ be a set of finite histories of length $m$. Show:
 \[
     \nu^\pi[\aes_{1:m} \in A] ~=~ \Ex_{\mu^\pi}\big[X_{\nu,m} \cdot \llbracket \aes_{1:m} \in A \rrbracket\big].
 \]
-\textit{Hint:} Use \cref{prob:factorization} to show $\nu^\pi/\mu^\pi = \nu/\mu = X_{\nu,m}$.
+\begin{hint}
+Use \cref{prob:factorization} to show $\nu^\pi/\mu^\pi = \nu/\mu = X_{\nu,m}$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:cm_finite]
@@ -1598,7 +1631,9 @@ Let $E$ be an event of infinite histories. For any $\varepsilon > 0$, show that
 \[
     \mu^\pi\big[E \cap \{X_{\nu,\infty} \geq \varepsilon\}\big] ~\leq~ \frac{\nu^\pi[E]}{\varepsilon}.
 \]
-\textit{Hint:} On $E \cap \{X_{\nu,\infty} \geq \varepsilon\}$, $X_{\nu,\infty} \geq \varepsilon$ pointwise. Take $\mu^\pi$-expectations and apply \cref{prob:cm_extension}.
+\begin{hint}
+On $E \cap \{X_{\nu,\infty} \geq \varepsilon\}$, $X_{\nu,\infty} \geq \varepsilon$ pointwise. Take $\mu^\pi$-expectations and apply \cref{prob:cm_extension}.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:markov_cm]
@@ -1639,7 +1674,9 @@ Show:
     0 ~\leq~ w(\mu \mid \aes_{<t}) \big[V_\mu^* - V_\mu^{\pi_\xi^*}\big]
     ~\leq~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \delta_{\nu,t}.
 \]
-\textit{Hint:} Use $V_\xi^{\pi_\xi^*} \geq V_\xi^{\tilde\pi}$ and \cref{prob:linearity_inf}.
+\begin{hint}
+Use $V_\xi^{\pi_\xi^*} \geq V_\xi^{\tilde\pi}$ and \cref{prob:linearity_inf}.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:chain_ineq]
@@ -1677,7 +1714,9 @@ Rearranging: $\sum_\nu w(\nu)[V_\nu^* - V_\nu^{\pi_\xi^*}] \leq \sum_\nu w(\nu)[
 Show: if $X_{\nu,\infty} = 0$ then $w(\nu \mid \aes_{<t}) \to 0$ $\mu^\pi$-a.s.
 
 
-\textit{Hint:} Show $w(\nu \mid \aes_{<t}) = w_\nu X_{\nu,t-1}/X_{\xi,t-1}$ and use \cref{prob:X_bounded_mu}.
+\begin{hint}
+Show $w(\nu \mid \aes_{<t}) = w_\nu X_{\nu,t-1}/X_{\xi,t-1}$ and use \cref{prob:X_bounded_mu}.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:vanishing_posterior]
@@ -1699,7 +1738,9 @@ If $X_{\nu,\infty} = 0$, then $X_{\nu,t-1} \to 0$ $\mu^\pi$-a.s.\ (\cref{prob:X_
 Let $F := \{\aes_{1:\infty} : \delta_{\nu,t}(\aes_{<t}) \not\to 0\}$, the set of infinite histories on which the suboptimality gap fails to vanish. Show that $\mu^\pi\big[F \cap \{X_{\nu,\infty} > 0\}\big] = 0$.
 
 
-\textit{Hint:} Self-optimizing (\cref{def:selfopt}) gives $\nu^\pi[F] = 0$. Apply \cref{prob:markov_cm} with $E = F$ and $\varepsilon = 1/n$ to conclude $\mu^\pi[F \cap \{X_{\nu,\infty} \geq 1/n\}] = 0$ for each $n \geq 1$. Then note $\{X_{\nu,\infty} > 0\} = \bigcup_{n \geq 1} \{X_{\nu,\infty} \geq 1/n\}$ and take the countable union (\cref{def:events}).
+\begin{hint}
+Self-optimizing (\cref{def:selfopt}) gives $\nu^\pi[F] = 0$. Apply \cref{prob:markov_cm} with $E = F$ and $\varepsilon = 1/n$ to conclude $\mu^\pi[F \cap \{X_{\nu,\infty} \geq 1/n\}] = 0$ for each $n \geq 1$. Then note $\{X_{\nu,\infty} > 0\} = \bigcup_{n \geq 1} \{X_{\nu,\infty} \geq 1/n\}$ and take the countable union (\cref{def:events}).
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:delta_transfer]
@@ -1749,7 +1790,9 @@ Combine \cref{prob:single_term}, \cref{prob:chain_ineq}, \cref{prob:X_bounded_mu
  main result of \cref{thm:selfopt}.
 
 
-\textit{Hint:} $w(\mu \mid \aes_{<t}) = w_\mu/X_{\xi,t-1}$.
+\begin{hint}
+$w(\mu \mid \aes_{<t}) = w_\mu/X_{\xi,t-1}$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:auto6]

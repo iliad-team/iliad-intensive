@@ -1,5 +1,4 @@
 %--- iliad ---
-% title: Solomonoff Induction
 % cluster: D
 % summary: How an idealized agent should predict. A Bayesian mixture over a countable
 %   class of computable hypotheses learns to predict any sequence, with total error
@@ -31,7 +30,7 @@
 %===================================
 \begin{document}
 
-\title{Solomonoff Induction Exercises}
+\title{Solomonoff Induction}
 \author{\authorname{David Quarel}\\ \affiliation{Australian National University}
   \and \authorname{Leon Lang}\\ \affiliation{University of Amsterdam}}
 \date{\today}
@@ -46,7 +45,8 @@
 
 \medskip
 \noindent
-Much of this material is drawn from Hutter's \emph{An Introduction to Universal Artificial Intelligence}~\cite{Hutter:24uaibook2} (Chapter~3 in particular) and the earlier \emph{Universal Artificial Intelligence}~\cite{Hutter:04uaibook}; both books provide fuller explanations, additional context, and proofs that we gloss over here.
+Much of this material is drawn from \cite[Chapter 3]{Hutter:24uaibook2}
+and the earlier \cite{Hutter:04uaibook}; both books provide fuller explanations, additional context, and proofs that we gloss over here.
 
 \medskip
 \noindent
@@ -193,7 +193,9 @@ Starting from $\xi(x_{1:t}) = \sum_{\nu \in \Mc} w_\nu\, \nu(x_{1:t})$, show tha
 \]
 and conclude that $\sum_{x_t \in \mathbb{B}} \xi(x_t \mid x_{<t}) = 1$, i.e.\ $\xi(\cdot \mid x_{<t})$ is a probability distribution over $\mathbb{B}$.
 
-\textit{Hint:} Write $\xi(x_t \mid x_{<t}) = \xi(x_{1:t}) / \xi(x_{<t})$, expand the numerator, and use the chain rule $\nu(x_{1:t}) = \nu(x_{<t})\, \nu(x_t \mid x_{<t})$ (\cref{def:environment}). For the last part, note that the posterior weights sum to $1$.
+\begin{hint}
+Write $\xi(x_t \mid x_{<t}) = \xi(x_{1:t}) / \xi(x_{<t})$, expand the numerator, and use the chain rule $\nu(x_{1:t}) = \nu(x_{<t})\, \nu(x_t \mid x_{<t})$ (\cref{def:environment}). For the last part, note that the posterior weights sum to $1$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:one_step_ex]
@@ -262,7 +264,9 @@ Rearranging gives the claim. \qedhere
 \]
 That is: the \emph{same} posterior $w(\nu \mid x_{<t})$ governs $\xi$'s predictions for arbitrarily many steps into the future, not just the next one. Show this.
 
-\textit{Hint:} Write $\xi(x_{t:m} \mid x_{<t}) = \xi(x_{1:m}) / \xi(x_{<t})$, expand the numerator using the mixture definition, and apply the generalized chain rule (\cref{prob:chain_rule_gen_ex} with $p=1$, $q=t-1$, $r=m$) to factor each $\nu(x_{1:m}) = \nu(x_{<t})\,\nu(x_{t:m} \mid x_{<t})$.
+\begin{hint}
+Write $\xi(x_{t:m} \mid x_{<t}) = \xi(x_{1:m}) / \xi(x_{<t})$, expand the numerator using the mixture definition, and apply the generalized chain rule (\cref{prob:chain_rule_gen_ex} with $p=1$, $q=t-1$, $r=m$) to factor each $\nu(x_{1:m}) = \nu(x_{<t})\,\nu(x_{t:m} \mid x_{<t})$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:multi_step_xi_ex]
@@ -348,7 +352,9 @@ D_n(\nu \parallel \rho) ~=~ \sum_{t=1}^{n} d_t(\nu \parallel \rho),
 \]
 where on the right-hand side, the $t=1$ summand uses the conventions $\nu(x_1 \mid x_{<1}) := \nu(x_1)$, $\rho(x_1 \mid x_{<1}) := \rho(x_1)$.
 
-\textit{Hint:} For the induction step, factor $\nu(x_{1:n}) = \nu(x_{<n})\,\nu(x_n \mid x_{<n})$ (and likewise for $\rho$) inside the log; the log splits additively into two pieces matching $D_{n-1}(\nu \parallel \rho)$ and $d_n(\nu \parallel \rho)$.
+\begin{hint}
+For the induction step, factor $\nu(x_{1:n}) = \nu(x_{<n})\,\nu(x_n \mid x_{<n})$ (and likewise for $\rho$) inside the log; the log splits additively into two pieces matching $D_{n-1}(\nu \parallel \rho)$ and $d_n(\nu \parallel \rho)$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:telescope_ex]
@@ -489,7 +495,9 @@ Show that
 S_{\infty}^{\mu} \leq - \ln w_\mu.
 \]
 
-\textit{Hint:} You need \cref{thm:pinsker}, \cref{prob:telescope_ex} and \cref{prob:dominance_ex}.
+\begin{hint}
+You need \cref{thm:pinsker}, \cref{prob:telescope_ex} and \cref{prob:dominance_ex}.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:bound_ex]
@@ -649,9 +657,11 @@ $\mu$-trajectory is at most
   ~\leq~ -2 \ln w_\mu.
 \]
 
-\textit{Hint.} At a mistake step, $\xi(x_t^* \mid x_{<t}) \leq \tfrac12$ (why?).
+\begin{hint}
+At a mistake step, $\xi(x_t^* \mid x_{<t}) \leq \tfrac12$ (why?).
 The per-step squared error along the deterministic $\mu$-trajectory
 simplifies dramatically; bound it from below, then sum.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:mistakes_ex]
@@ -753,7 +763,9 @@ For \emph{any} predictor $\rho$ with $\rho(x_{1:n}) > 0$ on every $x_{1:n} \in \
 \]
 
 
-\textit{Hint.} Take the difference between the two summation terms.
+\begin{hint}
+Take the difference between the two summation terms.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:kl_pythag]
@@ -792,9 +804,11 @@ Show that $\xi$ is Pareto-optimal under $D_n(\nu \parallel \rho)$ in the sense o
 \]
 then $\rho = \xi$.
 
-\textit{Hint.} Multiply the assumed inequality by $w_\nu \geq 0$ and sum over
+\begin{hint}
+Multiply the assumed inequality by $w_\nu \geq 0$ and sum over
 $\nu \in \Mc$; then apply the KL Pythagorean identity to recognize the extra
 non-negative term, which must vanish.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:kl_pareto]
@@ -835,7 +849,9 @@ Show that for all $\hat\mu \in \Mc$,
   D_n(\mu \parallel \xi) ~\leq~ -\ln w_{\hat\mu} ~+~ D_n(\mu \parallel \hat\mu).
 \]
 
-\textit{Hint.} Use \cref{prob:dominance_ex}.
+\begin{hint}
+Use \cref{prob:dominance_ex}.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:misspec_ex]
@@ -890,13 +906,15 @@ $x_t \in \mathbb{B}$ and any predictor $\rho$, show
   \sum_{\nu \in \Mc} w(\nu \mid x_{<t})\,\bigl(\nu(x_t \mid x_{<t}) - \rho(x_t \mid x_{<t})\bigr)^{2}.
 \end{align*}
 
-\textit{Hint.} Add and subtract $\xi(x_t \mid x_{<t})$ inside the squared term,
+\begin{hint}
+Add and subtract $\xi(x_t \mid x_{<t})$ inside the squared term,
 then expand. Use $\sum_\nu w(\nu \mid x_{<t}) = 1$ and the posterior-predictive
 form of $\xi$ (\cref{def:mixture}), $\sum_\nu w(\nu \mid x_{<t})\,\nu(x_t \mid x_{<t})
 = \xi(x_t \mid x_{<t})$, to kill the cross-term. The weighting must be
 \emph{posterior} weights $w(\nu \mid x_{<t})$ (not prior weights $w_\nu$),
 because $\xi(x_t \mid x_{<t})$ is the posterior-weighted mean of the
 $\nu(x_t \mid x_{<t})$'s, not the prior one.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:sq_pythag]
@@ -955,12 +973,14 @@ surely) and every $x_t \in \mathbb{B}$. Histories that the mixture never reaches
 ($\xi(x_{<t}) = 0$, i.e., reached by no $\nu \in \Mc$ either) are invisible
 to the loss and are not pinned down.
 
-\textit{Hint.} Multiply the assumed inequality by $w_\nu \geq 0$ and sum over
+\begin{hint}
+Multiply the assumed inequality by $w_\nu \geq 0$ and sum over
 $\nu$; then for each fixed history $x_{<t}$, multiply the per-history
 Pythagorean identity from above by $\xi(x_{<t})$ and use the Bayes identity
 $w(\nu \mid x_{<t})\,\xi(x_{<t}) = w_\nu \,\nu(x_{<t})$ to bridge from posterior
 weights (inside the identity) to prior weights (in the aggregated Pareto
 inequality).
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:sq_pareto]
