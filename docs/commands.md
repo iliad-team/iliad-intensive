@@ -70,9 +70,11 @@ The \emph{entropy} of $p$ is …
 
 `definition`, `theorem`, `lemma`, `proposition`, `corollary`, `fact`,
 `example` share one per-section counter; `proof` is collapsible on the web.
-The optional argument is a name/attribution shown in the header.
-MDX: `<Definition term="entropy" num="2.1" id="def-entropy">`,
-`<Theorem kind="lemma" name="Gibbs" num="2.2" id="thm-gibbs">`.
+The optional argument is a name/attribution; on the web every box renders
+axiom-style — a bold lead ("**Lemma 2.2 (Gibbs' inequality).**") inside the
+coloured box, so names can contain math.
+MDX: `<Definition id="def-entropy">**Definition 2.1 (entropy).** …</Definition>`,
+`<Theorem id="thm-gibbs">**Lemma 2.2 (Gibbs).** …</Theorem>`.
 
 ## Callouts and remarks
 

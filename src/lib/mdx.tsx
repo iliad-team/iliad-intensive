@@ -97,61 +97,34 @@ const components = {
   ),
 
   /**
-   * Definition — named-concept box, exercise-style: the term lives in the
-   * header stamp ("Definition 2.1 · entropy"), the body is just the text.
-   * Usage: <Definition term="RLCT" num="1.2" id="optional-anchor">Real Log Canonical Threshold; see Watanabe.</Definition>
+   * Definition — coloured box; the converter puts the bold lead
+   * ("**Definition 2.1 (entropy).**") in the body, so titles can carry math.
+   * Usage: <Definition id="optional-anchor">**Definition 2.1 (RLCT).** …</Definition>
    */
-  Definition: ({ term, num, id, children }: { term: string; num?: string; id?: string; children: ReactNode }) => (
+  Definition: ({ id, children }: { id?: string; children: ReactNode }) => (
     <section
       id={id}
       className="my-4 rounded-md border border-indigo-300 bg-indigo-50 px-4 py-3"
       data-component="definition"
     >
-      <header className="text-xs uppercase tracking-wider text-indigo-700">
-        Definition
-        {num ? ` ${num}` : ""}
-        {term ? ` · ${term}` : ""}
-      </header>
-      {/* Block-safe wrapper: definition bodies may contain paragraphs, lists,
-          or display math (block elements), which are invalid inside <p>/<span>
-          and cause a "<p> cannot be a descendant of <p>" hydration error. */}
-      <div className="mt-1">{children}</div>
+      {children}
     </section>
   ),
 
   /**
-   * Theorem — formal statement.
-   * Usage: <Theorem kind="theorem|lemma|proposition|corollary" name="optional attribution" id="optional-anchor">statement</Theorem>
+   * Theorem family (theorem/lemma/proposition/corollary) — coloured box;
+   * the bold lead in the body names the kind and number.
+   * Usage: <Theorem id="optional-anchor">**Lemma 2.3 (Gibbs).** …</Theorem>
    */
-  Theorem: ({
-    kind = "theorem",
-    name,
-    num,
-    id,
-    children,
-  }: {
-    kind?: "theorem" | "lemma" | "proposition" | "corollary";
-    name?: string;
-    num?: string;
-    id?: string;
-    children: ReactNode;
-  }) => {
-    const label = kind.charAt(0).toUpperCase() + kind.slice(1);
-    return (
-      <section
-        id={id}
-        className="my-5 border-l-4 border-violet-500 bg-violet-50 px-4 py-3 rounded-r"
-        data-component="theorem"
-      >
-        <header className="text-xs uppercase tracking-wider text-violet-700">
-          {label}
-          {num ? ` ${num}` : ""}
-          {name ? ` · ${name}` : ""}
-        </header>
-        <div className="mt-1 italic">{children}</div>
-      </section>
-    );
-  },
+  Theorem: ({ id, children }: { id?: string; children: ReactNode }) => (
+    <section
+      id={id}
+      className="my-5 border-l-4 border-violet-500 bg-violet-50 px-4 py-3 rounded-r"
+      data-component="theorem"
+    >
+      {children}
+    </section>
+  ),
 
   /**
    * Figure — image with caption.

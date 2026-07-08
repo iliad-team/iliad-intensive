@@ -361,12 +361,16 @@ function emitEnv(n) {
       mdx = `<Solution>\n\n${lead}${walk(n.content).trim()}\n\n</Solution>`;
       break;
     }
+    // Definition/theorem family render axiom-style: a bold markdown lead
+    // inside the coloured box (math in titles renders; no header chrome).
     case "definition":
-      mdx = `<Definition term="${opt ? attr(opt) : "Definition"}"${thmNum ? ` num="${thmNum}"` : ""}${id}>\n\n${walk(n.content).trim()}\n\n</Definition>`;
+      mdx = `<Definition${id}>\n\n**Definition${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Definition>`;
       break;
-    case "theorem": case "lemma": case "proposition": case "corollary":
-      mdx = `<Theorem kind="${env}"${opt ? ` name="${attr(opt)}"` : ""}${thmNum ? ` num="${thmNum}"` : ""}${id}>\n\n${walk(n.content).trim()}\n\n</Theorem>`;
+    case "theorem": case "lemma": case "proposition": case "corollary": {
+      const kindName = env.charAt(0).toUpperCase() + env.slice(1);
+      mdx = `<Theorem${id}>\n\n**${kindName}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Theorem>`;
       break;
+    }
     case "fact":
       mdx = `<Callout type="note">\n\n**Fact${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${attr(opt)})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
       break;
