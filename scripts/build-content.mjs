@@ -30,9 +30,9 @@ const UPLOADS = path.join(ROOT, "public", "uploads");
 const DOWNLOADS = path.join(ROOT, "public", "downloads");
 const CONVERTER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx.mjs");
 const CHECKER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx-check.mjs");
-// Figures/downloads are referenced with absolute URLs; under a sub-path host
-// (GitHub Pages project site) they need the same prefix the site is built with.
-const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+// Generated MDX is host-agnostic: figure URLs are plain /uploads/… paths.
+// The site's Figure component applies NEXT_PUBLIC_BASE_PATH at render time —
+// prefixing here too would double it (…/iliad-intensive/iliad-intensive/…).
 
 const args = process.argv.slice(2);
 const CHECK_ONLY = args.includes("--check");
@@ -60,7 +60,7 @@ for (const slug of slugs) {
     const out = execFileSync("node", [CONVERTER, path.join(dir, "main.tex"),
       "-o", mdxOut,
       "--tikz-dir", path.join(UPLOADS, slug),
-      "--tikz-src", `${BASE}/uploads/${slug}/`,
+      "--tikz-src", `/uploads/${slug}/`,
     ], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
     const note = out.match(/NOTE \(advisory[^]*?(?=\nWrote )/);
     if (note) console.log("\n" + note[0].trim());
