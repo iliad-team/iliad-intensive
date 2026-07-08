@@ -13,11 +13,13 @@
 \usepackage[utf8]{inputenc}
 \usepackage[margin=1in]{geometry}
 \usepackage{microtype}
-\usepackage{amsmath,amssymb,amsthm,mathtools}
-\usepackage{enumitem}
-\usepackage{tcolorbox}
-\usepackage{hyperref}
+\usepackage{mathtools}
 \usepackage[round,authoryear]{natbib}
+
+% iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty.
+% Provides exercise/solution/definition/theorem/proposition/remark/callout,
+% amsmath+amsthm+enumitem+tcolorbox+hyperref+cleveref.
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
 
 \hypersetup{
   colorlinks=true,
@@ -26,20 +28,9 @@
   urlcolor=blue
 }
 
-
-% Contract aside environment (renders as a note callout on the web)
-\newenvironment{callout}[1][note]{%
-  \begin{tcolorbox}[colback=gray!10, colframe=black!60, before upper={\parindent12pt}]%
-}{%
-  \end{tcolorbox}%
-}
-
-\newtheorem{definition}{Definition}[section]
+% Axioms are this note's own environment (flat numbering, as in the
+% original); everything else comes from iliad.sty.
 \newtheorem{axiom}{Axiom}
-\newtheorem{theorem}[definition]{Theorem}
-\newtheorem{proposition}[definition]{Proposition}
-\newtheorem{remark}[definition]{Remark}
-\newtheorem{exercise}{Exercise}
 
 \newcommand{\Hcal}{\mathcal{H}}
 \newcommand{\Ofin}{\mathcal{O}}
@@ -1079,6 +1070,7 @@ of the note for themselves. The last two are guided proof exercises for the two
 central representation theorems.
 
 \begin{exercise}[Ordinal versus vNM utility]
+\label{ex:ordinal-vs-vnm}
 Let $x,y,z\in\Hcal^*$ satisfy $x\strictpref y\strictpref z$.
 \begin{enumerate}[label=(\alph*)]
 \item Give two different ordinal utility functions $u_1,u_2\colon\Hcal^*\to\R$
@@ -1093,8 +1085,29 @@ Show that not every strictly increasing transformation of a vNM utility can
 preserve this indifference.
 \end{enumerate}
 \end{exercise}
+\begin{solution}[ex:ordinal-vs-vnm]
+\begin{enumerate}[label=(\alph*)]
+\item For instance $u_1(x,y,z)=(2,1,0)$ and $u_2(x,y,z)=(100,5,-3)$.
+\item An ordinal representation encodes only the ranking: $u$ represents
+$\pref$ iff $u(h)\geq u(h')\iff h\pref h'$, and both functions induce
+$x\strictpref y\strictpref z$. Composing with any strictly increasing map
+preserves exactly this information, so no ordinal criterion can distinguish
+$u_1$ from $u_2$.
+\item Under expected utility the indifference forces
+$u(y)=\tfrac12 u(x)+\tfrac12 u(z)$. Take the vNM utility
+$u(x,y,z)=(1,\tfrac12,0)$ and the strictly increasing map $f(s)=s^3$. Then
+$(f\circ u)(x,y,z)=(1,\tfrac18,0)$, while the lottery
+$\tfrac12 x+\tfrac12 z$ has expected value $\tfrac12$. Since
+$\tfrac18\neq\tfrac12$, the relation represented by $f\circ u$ strictly
+prefers the lottery to $y$: the indifference is destroyed. Only positive
+affine transformations preserve all such midpoint identities, which is the
+uniqueness part of the vNM theorem.
+\end{enumerate}
+\end{solution}
+
 
 \begin{exercise}[Failures of the vNM axioms]
+\label{ex:vnm-failures}
 Here we will study the consequences of different axioms.
 \begin{enumerate}[label=(\alph*)]
 \item Construct a simple incomplete preference relation on three trajectories.
@@ -1106,8 +1119,38 @@ that it violates continuity.
 violates.
 \end{enumerate}
 \end{exercise}
+\begin{solution}[ex:vnm-failures]
+\begin{enumerate}[label=(\alph*)]
+\item Let $x\strictpref y$, $x\strictpref z$, with $y$ and $z$ incomparable
+(neither $y\pref z$ nor $z\pref y$). Any $u\colon\{x,y,z\}\to\R$ satisfies
+$u(y)\geq u(z)$ or $u(z)\geq u(y)$ because the reals are totally ordered, so
+the relation it represents is complete; incomparability cannot be encoded by
+a single real-valued function.
+\item Take $x\strictpref y\strictpref z\strictpref x$. Suppose you hold $x$
+and are willing to pay some small $\varepsilon>0$ to exchange an item for one
+you strictly prefer. Since $z\strictpref x$ you pay to swap $x\to z$; since
+$y\strictpref z$ you pay to swap $z\to y$; since $x\strictpref y$ you pay to
+swap $y\to x$. You are back where you started, $3\varepsilon$ poorer, and the
+cycle can be run forever.
+\item Give outcomes two attributes and compare lexicographically (the first
+attribute decides unless tied): $A=(1,0)$, $B=(0,1)$, $C=(0,0)$, so
+$A\strictpref B\strictpref C$. Extend to lotteries by comparing expected
+attribute vectors lexicographically. Continuity would require some
+$p\in[0,1]$ with $B\indiff pA+(1-p)C$. But that mixture has attribute vector
+$(p,0)$: for every $p>0$ it beats $B$ on the first attribute, and for $p=0$
+it is $C\strictpref$-below $B$. No mixing weight produces indifference.
+\item In the Allais pattern one prefers the sure prize in the first
+comparison but the long-shot in the second, even though the two comparisons
+differ only in a \emph{common consequence} added to both lotteries.
+Independence says a ranking is unchanged when the same consequence is mixed
+into both sides with the same weight, so the pattern violates independence
+(completeness, transitivity, and continuity are all consistent with it).
+\end{enumerate}
+\end{solution}
+
 
 \begin{exercise}[Reward shaping]
+\label{ex:reward-shaping}
 Assume additive reward with $\gamma\equiv 1$ and define
 \[
 r_\Phi(s,a,s')=r(s,a,s')+\Phi(s')-\Phi(s).
@@ -1122,9 +1165,31 @@ leave utility exactly unchanged?
 ordering unchanged?
 \end{enumerate}
 \end{exercise}
+\begin{solution}[ex:reward-shaping]
+\begin{enumerate}[label=(\alph*)]
+\item Writing $t_i=(s_{i-1},a_i,s_i)$, the shaped total is
+\[
+\sum_{i=1}^{n} r_\Phi(t_i)
+=\sum_{i=1}^{n} r(t_i)+\sum_{i=1}^{n}\bigl(\Phi(s_i)-\Phi(s_{i-1})\bigr)
+=\sum_{i=1}^{n} r(t_i)+\Phi(s_n)-\Phi(s_0),
+\]
+since the middle sum telescopes.
+\item Utility is exactly unchanged iff the boundary term vanishes on every
+admissible trajectory, i.e.\ $\Phi(s_n)=\Phi(s_0)$ throughout — for example
+when all trajectories start in a fixed $s_0$ and $\Phi$ takes the value
+$\Phi(s_0)$ on every reachable terminal state.
+\item Only the ordering is at stake if the boundary term is the \emph{same
+constant} $c$ for all compared trajectories: then every utility shifts by
+$c$ and the induced ranking is untouched. A fixed start state together with
+$\Phi$ constant on the reachable terminal states suffices, whatever that
+constant is.
+\end{enumerate}
+\end{solution}
+
 
 
 \begin{exercise}[Guided proof of the von Neumann--Morgenstern theorem]
+\label{ex:vnm-theorem}
 Assume $X\subseteq \Hcal^*$ is finite and that $\pref$ on $\Lot(X)$ satisfies
 completeness, transitivity, continuity, and independence.
 \begin{enumerate}[label=(\alph*)]
@@ -1173,9 +1238,60 @@ representation, then they satisfy completeness, transitivity, continuity, and
 independence.
 \end{enumerate}
 \end{exercise}
+\begin{solution}[ex:vnm-theorem]
+\begin{enumerate}[label=(\alph*)]
+\item Induction on $|X|$. A single trajectory is its own best and worst
+element. Given a maximal $b'$ and minimal $w'$ for $X\setminus\{h\}$,
+completeness compares $h$ with each of them and transitivity makes the
+better of $\{h,b'\}$ maximal and the worse of $\{h,w'\}$ minimal for $X$.
+\item If $b\indiff w$ then every $h$ is indifferent to both and any constant
+$u$ works. Otherwise $b\strictpref w$. Independence implies mixtures
+$\alpha b+(1-\alpha)w$ are strictly increasing in $\alpha$. By continuity
+the sets $\{\alpha: \alpha b+(1-\alpha)w \pref h\}$ and
+$\{\alpha: h \pref \alpha b+(1-\alpha)w\}$ are closed; they are nonempty
+($\alpha=1$, resp.\ $\alpha=0$, using (a)) and their union is $[0,1]$ by
+completeness, so they intersect: some $u(h)$ lies in both, giving
+$h\indiff u(h)b+(1-u(h))w$. Monotonicity makes $u(h)$ unique.
+\item Suppose $u(h)\geq u(h')$. Mixture monotonicity gives
+$u(h)b+(1-u(h))w \pref u(h')b+(1-u(h'))w$, and chaining the two calibrating
+indifferences through transitivity yields $h\pref h'$. If $u(h)<u(h')$ the
+same argument gives $h'\strictpref h$. Together:
+$h\pref h'\iff u(h)\geq u(h')$.
+\item Independence states that $\mu\indiff\nu$ implies
+$p\mu+(1-p)\lambda \indiff p\nu+(1-p)\lambda$. View $\mu$ as a mixture in
+which $h_1$ appears with weight $p_1$ against the rest; replacing $h_1$ by
+its calibrated equivalent $u(h_1)b+(1-u(h_1))w$ therefore leaves the whole
+lottery indifferent. Doing this for each $h_i$ in turn — finitely many
+steps — and chaining with transitivity gives
+$\mu\indiff\sum_i p_i\bigl(u(h_i)b+(1-u(h_i))w\bigr)$.
+\item The right-hand side is a compound lottery whose only outcomes are $b$
+and $w$; it awards $b$ with total probability $\sum_i p_i u(h_i)=U(\mu)$.
+Identifying a compound lottery with the simple lottery it induces gives
+$\mu\indiff U(\mu)b+(1-U(\mu))w$.
+\item By (e), $\mu$ and $\nu$ are indifferent to calibrated $b$--$w$
+mixtures with weights $U(\mu)$ and $U(\nu)$; by mixture monotonicity and
+transitivity, $\mu\pref\nu\iff U(\mu)\geq U(\nu)$.
+\item Apply the $u'$-representation to the calibration of $h$:
+\[
+u'(h)=U'\bigl(u(h)b+(1-u(h))w\bigr)=u(h)\,u'(b)+(1-u(h))\,u'(w)
+=a+b\,u(h),
+\]
+with $a=u'(w)$ and $b=u'(b)-u'(w)>0$ (positive because $b\strictpref w$ and
+$u'$ represents $\pref$).
+\item Let $\mu\pref\nu\iff \mathbb{E}_\mu[u]\geq\mathbb{E}_\nu[u]$.
+Completeness and transitivity are inherited from the total order on $\R$.
+Continuity: $p\mapsto \mathbb{E}_{p\mu+(1-p)\lambda}[u]
+=p\,\mathbb{E}_\mu[u]+(1-p)\,\mathbb{E}_\lambda[u]$ is continuous, so upper
+and lower contour sets in $p$ are closed. Independence: mixing both sides
+with $\lambda$ adds the same $(1-p)\mathbb{E}_\lambda[u]$ and scales the
+difference by $p>0$, leaving the comparison unchanged.
+\end{enumerate}
+\end{solution}
+
 
 
 \begin{exercise}[Guided proof of the Markov reward representation theorem]
+\label{ex:markov-reward}
 Assume the hypotheses of the previous exercise together with temporal
 $\gamma$-indifference, and let $u$ be a vNM utility representation over
 trajectories.
@@ -1224,22 +1340,121 @@ r'(t)=br(t)+(1-\gamma(t))a.
 Interpret this as a source of reward non-uniqueness.
 \end{enumerate}
 \end{exercise}
+\begin{solution}[ex:markov-reward]
+\begin{enumerate}[label=(\alph*)]
+\item Apply $u$ (in expected-utility form) to both sides of the axiom's
+indifference and multiply by $1+\gamma(t)$:
+\[
+u(t\cdot\mu)+\gamma(t)u(\nu)=u(t\cdot\nu)+\gamma(t)u(\mu).
+\]
+\item Rearranging, $u(t\cdot\mu)-\gamma(t)u(\mu)=u(t\cdot\nu)-\gamma(t)u(\nu)$
+for \emph{all} $\mu,\nu$: the quantity does not depend on which lottery is
+used to compute it.
+\item By (b) the definition of $r(t)$ is unambiguous. Taking $\mu$ to be the
+point mass on a deterministic continuation $h$ gives
+$u(t\cdot h)=r(t)+\gamma(t)u(h)$.
+\item $t\cdot\mu$ is the pushforward of $\mu$ under prepending $t$, and $u$
+is linear on lotteries, so
+$u(t\cdot\mu)=\mathbb{E}_{h\sim\mu}\bigl[u(t\cdot h)\bigr]
+=\mathbb{E}_{h\sim\mu}\bigl[r(t)+\gamma(t)u(h)\bigr]=r(t)+\gamma(t)u(\mu)$.
+\item With the recursion and linearity,
+$u(t\cdot\mu)+\gamma(t)u(\nu)=r(t)+\gamma(t)\bigl(u(\mu)+u(\nu)\bigr)$,
+which is symmetric under $\mu\leftrightarrow\nu$; hence
+$u(t\cdot\mu)+\gamma(t)u(\nu)=u(t\cdot\nu)+\gamma(t)u(\mu)$. Dividing by
+$1+\gamma(t)$ shows both mixtures in the axiom have equal expected utility,
+and since $u$ represents $\pref$, they are indifferent.
+\item Normalise $u(\emptytraj)=0$ (allowed by affine freedom). Induction on
+$n$: $u(h)=r(t_1)+\gamma(t_1)\,u\bigl((t_2,\dots,t_n)\bigr)$, and expanding
+the inner term yields
+\[
+u(h)=r(t_1)+\gamma(t_1)r(t_2)+\gamma(t_1)\gamma(t_2)r(t_3)+\cdots+
+\Bigl(\prod_{i=1}^{n-1}\gamma(t_i)\Bigr)r(t_n).
+\]
+\item If $\gamma(t)\equiv\gamma$, the product $\prod_{i<k}\gamma(t_i)$ is
+$\gamma^{k-1}$ and $u(h)=\sum_k \gamma^{k-1}r(t_k)$: discounted return. If
+$\gamma\equiv 1$ every product is $1$ and $u(h)=\sum_k r(t_k)$: additive
+cumulative reward.
+\item $r'(t)=u'(t\cdot\mu)-\gamma(t)u'(\mu)
+=\bigl(a+b\,u(t\cdot\mu)\bigr)-\gamma(t)\bigl(a+b\,u(\mu)\bigr)
+=b\,r(t)+(1-\gamma(t))a$. The same preferences thus admit a family of reward
+functions: even with $\gamma$ fixed, $r$ is only determined up to a positive
+scaling and an additive shift modulated by $1-\gamma(t)$. Reward is a
+coordinate system for utility, not a primitive of the preference.
+\end{enumerate}
+\end{solution}
+
 
 
 \section*{Open-ended questions}
 
 \begin{exercise}
+\label{ex:open-implications}
 Do the results have any prescriptive or descriptive implications? What kinds of agents, with what kinds of preferences should we design? By default, what kind of agents should we expect to obtain via typical training processes?
 \end{exercise}
+\begin{solution}[ex:open-implications]
+Discussion notes, not a unique answer. Prescriptively, the money-pump and
+dominance arguments say that an agent which cares about a fungible resource
+is under pressure toward completeness and transitivity — coherence is an
+attractor for agents that can be exploited otherwise. Descriptively, nothing
+guarantees that trained systems satisfy any axiom: gradient descent on
+episodic objectives can produce context-dependent, intransitive, or
+incomparable preferences, especially off-distribution. A reasonable
+expectation is approximate coherence where incoherence was penalised during
+training, and no guarantee elsewhere. For design, the trade-off runs both
+ways: highly coherent agents are more predictable and analysable but are
+exactly the ones for which instrumental-convergence arguments bite; agents
+with incomplete or unstable preferences may be harder to exploit into
+goal-directed resource acquisition, at the cost of being harder to reason
+about.
+\end{solution}
+
 
 
 \begin{exercise}
+\label{ex:open-weaker-axioms}
 Let's assume a superintelligence has preferences over trajectories. Are there weaker versions of the axioms that make it more plausible that these preferences are "safe for us" compared to preferences that lead to utilities or even rewards?
 \end{exercise}
+\begin{solution}[ex:open-weaker-axioms]
+Discussion notes. The natural candidates weaken one axiom at a time.
+Dropping \emph{completeness} is the most studied: an agent with incomplete
+preferences can remain undecided between continuing and being shut down, so
+it is not pushed by coherence arguments toward shutdown-resistance; money
+pumps also lose force because the agent may simply refuse trades between
+incomparable options. Weakening \emph{continuity} permits lexicographic
+safety: ``never cross the constraint, then optimise'' cannot be represented
+by a single real-valued utility, which is arguably a feature. Weakening
+\emph{independence} allows certainty-favouring (Allais-like) preferences,
+which dampen gambling-for-resources behaviour. Weakening \emph{temporal
+$\gamma$-indifference} removes the local reward representation: goals about
+the shape of a trajectory as a whole (diversity, ``never do X'') stop being
+expressible as accumulated reward. The common pattern: each axiom kept buys
+a representation theorem and optimisation pressure; each axiom dropped
+blocks a coherence-based failure mode while making the agent's behaviour
+less analysable.
+\end{solution}
+
 
 
 \begin{exercise}
+\label{ex:open-examples}
 More generally, are there interesting examples of preferences over trajectories that the students could analyse, that do or do not satisfy some of the axioms?
 \end{exercise}
+\begin{solution}[ex:open-examples]
+Discussion notes; instructive examples include: (i) lexicographic
+safety-first preferences — violate continuity (see the earlier exercise);
+(ii) Pareto/multi-objective preferences, undominated but unaggregated —
+violate completeness; (iii) hyperbolic discounting — satisfies the vNM
+axioms at a single decision time yet violates temporal
+$\gamma$-indifference, hence admits utility but no stationary
+reward/discount pair, and is dynamically inconsistent; (iv) the certainty
+effect (Allais) — violates independence only; (v) satisficing (``anything
+above the threshold is equally fine'') — complete and transitive, so ordinal
+utility exists, but indifference plateaus interact oddly with lotteries near
+the threshold; (vi) trajectory-shape goals such as ``visit as many distinct
+states as possible'' — can satisfy all four vNM axioms (a utility exists)
+while violating the temporal axiom, illustrating exactly the gap between
+utility and reward.
+\end{solution}
+
 
 \end{document}
