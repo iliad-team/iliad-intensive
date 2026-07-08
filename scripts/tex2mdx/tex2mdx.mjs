@@ -323,18 +323,35 @@ function parseBib() {
   let entries;
   try { entries = bibtexEntries(readFileSync(bibFile, "utf8")); }
   catch (e) { warn(`could not parse ${path.basename(bibFile)}: ${String(e.message).slice(0, 80)}`); return {}; }
+  const clean = (s) => (s == null ? null
+    : String(s).replace(/[{}]/g, "").replace(/\\&/g, "&").replace(/~/g, " ")
+      .replace(/\s+/g, " ").trim() || null);
   for (const e of entries) {
     if (!e.key) continue;
     const author = e.AUTHOR ?? null, year = e.YEAR ?? null;
     const url = e.URL ?? e.HOWPUBLISHED ?? null;
-    let disp = e.key;
+    let disp = e.key, authorsFull = null;
     if (author) {
-      const names = String(author).replace(/[{}]/g, "").split(/\s+and\s+/)
-        .map((a) => (a.includes(",") ? a.split(",")[0].trim() : a.trim().split(/\s+/).pop()));
+      const people = String(author).replace(/[{}]/g, "").split(/\s+and\s+/)
+        .map((a) => a.trim()).filter(Boolean);
+      const names = people.map((a) => (a.includes(",") ? a.split(",")[0].trim() : a.split(/\s+/).pop()));
       disp = names.length === 1 ? names[0] : names.length === 2 ? `${names[0]} & ${names[1]}` : `${names[0]} et al.`;
       if (year) disp += ` ${year}`;
+      // "Last, First" -> "First Last"; full list for the References entry
+      const full = people.map((a) => (a.includes(",") ? a.split(",").map((x) => x.trim()).reverse().join(" ") : a));
+      authorsFull = full.length <= 2 ? full.join(" and ") : `${full.slice(0, -1).join(", ")}, and ${full.at(-1)}`;
     }
-    out[e.key] = { disp, url: url && /^https?:/.test(String(url)) ? String(url) : null };
+    out[e.key] = {
+      disp,
+      url: url && /^https?:/.test(String(url)) ? String(url)
+        : e.EPRINT ? `https://arxiv.org/abs/${clean(e.EPRINT)}` : null,
+      // the fields the page-bottom References list is typeset from
+      authorsFull: clean(authorsFull),
+      year: clean(year),
+      title: clean(e.TITLE),
+      venue: clean(e.JOURNAL ?? e.BOOKTITLE ?? e.SCHOOL ?? e.INSTITUTION ?? e.PUBLISHER
+        ?? (e.EPRINT ? `arXiv:${e.EPRINT}` : null)),
+    };
   }
   return out;
 }

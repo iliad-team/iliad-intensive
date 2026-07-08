@@ -37,7 +37,7 @@ const NOOP_MACROS = new Set([
   "LARGE", "Large", "large", "small", "footnotesize", "scriptsize", "normalsize",
   "bfseries", "itshape", "sffamily", "ttfamily", "rmfamily",
   "bgroup", "egroup", "begingroup", "endgroup", "ignorespaces",
-  "thesection", "thesubsection", "crefname", "Crefname", "let",
+  "thesection", "thesubsection", "let",
   "listoftheorems", "pagebreak", "linebreak", "nolinebreak", "nopagebreak",
 ]);
 // macros dropped WITH their arguments (count = number of mandatory args)
@@ -49,6 +49,7 @@ const DROP_WITH_ARGS = {
   title: 1, author: 1, date: 1, usetikzlibrary: 1, hline: 0,
   renewcommand: 2, newcommand: 2, providecommand: 2, def: 0,
   declareauthor: 3, authorcommand: 2, refstepcounter: 1,
+  crefname: 3, Crefname: 3,
 };
 // contract + structural environment signatures for the parser
 const ENV_SIGNATURES = {
@@ -74,6 +75,9 @@ const CONTRACT_MACROS = {
   mbox: { signature: "m" }, makebox: { signature: "o m" }, fbox: { signature: "m" },
   ifdef: { signature: "m m m" }, ifdefined: { signature: "m m m" }, ifcsdef: { signature: "m m m" },
   crefrange: { signature: "m m" }, Crefrange: { signature: "m m" },
+  // cleveref config — unknown to unified-latex, so the parser needs the
+  // signature or the three brace groups survive as literal text
+  crefname: { signature: "m m m" }, Crefname: { signature: "m m m" },
 };
 const THM_KINDS = new Set(["theorem", "lemma", "proposition", "corollary"]);
 const THM_COUNTED = new Set(["theorem", "lemma", "proposition", "corollary", "fact", "definition", "example"]);
@@ -85,7 +89,7 @@ let authorMacros = {};          // name -> {signature, body(nodes)}
 let expandDepth = 0;
 let counters = null;
 let inExercise = false;
-let lastExerciseLabel = null;
+let citedKeys = new Set();      // bib keys cited anywhere on the page
 
 const secNum = () => (counters.appendix ? String.fromCharCode(64 + counters.section) : String(counters.section));
 const bucket = (dd) => { const n = +dd; return n <= 5 ? 1 : n <= 10 ? 2 : n <= 17 ? 3 : n <= 25 ? 4 : 5; };
@@ -103,7 +107,7 @@ function mathClean(m) {
     }
     const cr = m.startsWith("\\Cref", i) ? 5 : m.startsWith("\\cref", i) ? 5 : (m.startsWith("\\ref", i) && m[i + 4] === "{") ? 4 : 0;
     if (cr) { const g = readArg(m, i + cr); if (g) { out += g.content.split(",").map((l) => resolveRef(l.trim()).text).join(" and "); i = g.end; continue; } }
-    if (m.startsWith("\\cite", i)) { let j = i + 5; const o = readOpt(m, j); if (o) j = o.end; const g = readArg(m, j); if (g) { const e = ctx.BIB[g.content.trim()]; out += e ? e.disp : g.content.trim(); i = g.end; continue; } }
+    if (m.startsWith("\\cite", i)) { let j = i + 5; const o = readOpt(m, j); if (o) j = o.end; const g = readArg(m, j); if (g) { const e = ctx.BIB[g.content.trim()]; if (e) citedKeys.add(g.content.trim()); out += e ? e.disp : g.content.trim(); i = g.end; continue; } }
     out += m[i]; i++;
   }
   return out;
@@ -172,6 +176,16 @@ function resolveRef(label) {
   const anchor = anchorMap[label] ?? slug(label);
   if (!r) { warn(`unresolved \\cref/\\ref: ${label}`, label); return { text: label, num: label, anchor }; }
   return { text: r.name ? `${r.name} ${r.num}` : r.num, num: r.num, anchor };
+}
+
+// In-text citation: author-year text linking to the entry in the
+// page-bottom References list (never straight to the external URL — the
+// URL is clickable from the entry itself).
+function citeLink(key) {
+  const e = ctx.BIB[key];
+  if (!e) { warn(`unknown \\cite key: ${key}`, `{${key}}`); return key; }
+  citedKeys.add(key);
+  return `[${e.disp}](#bib-${slug(key)})`;
 }
 
 function crefLinks(csv, keepFirstNameOnly) {
@@ -346,19 +360,31 @@ function emitEnv(n) {
         `${inner.trim()}\n</Exercise>`;
       break;
     }
-    case "learningoutcomes":
-      mdx = `<LearningOutcomes>\n\n${walk(n.content).trim()}\n\n</LearningOutcomes>`;
+    case "learningoutcomes": {
+      // iliad.sty's environment opens its own itemize, so the \items sit bare
+      // in the env body — emit them as a markdown list. A sheet that nests an
+      // explicit itemize instead has no bare \items; walk handles it.
+      const items = splitItems(n.content);
+      const body = items.length
+        ? items.map((it) => `- ${walk(it.nodes).trim()}`).join("\n")
+        : walk(n.content).trim();
+      mdx = `<LearningOutcomes>\n\n${body}\n\n</LearningOutcomes>`;
       break;
+    }
     case "solution": {
-      let lead = "";
+      // `for` is a relocation marker, not part of the output: after the full
+      // emit, relocateSolutions() moves every bound solution directly under
+      // its exercise (the PDF keeps the authored placement; the web always
+      // pairs them) and strips the attribute.
+      let forAttr = "";
       if (opt) {
         const key = opt.trim();
         if (!ctx.refs[key]) warn(`solution names [${key}] but no such label exists in the sheet`, `[${key}]`);
-        if (key !== lastExerciseLabel) { const r = resolveRef(key); lead = `*Solution to [${r.text}](#${r.anchor}).*\n\n`; }
+        forAttr = ` for="${anchorMap[key] ?? slug(key)}"`;
       } else {
         warn("solution without [ex:label] — every solution must name its exercise", snippetOf(printRaw(n.content)));
       }
-      mdx = `<Solution>\n\n${lead}${walk(n.content).trim()}\n\n</Solution>`;
+      mdx = `<Solution${forAttr}>\n\n${walk(n.content).trim()}\n\n</Solution>`;
       break;
     }
     // Definition/theorem family render axiom-style: a bold markdown lead
@@ -398,7 +424,6 @@ function emitEnv(n) {
     }
   }
   if (label && /^<Callout/.test(mdx)) mdx = `<div id="${slug(label)}">\n${mdx}\n</div>`;
-  lastExerciseLabel = env === "exercise" ? label : null;
   return `\n${mdx}\n`;
 }
 
@@ -491,23 +516,16 @@ function emitMacro(n) {
     case "cite": {
       // args = [optional note, key]: the note is arg 0 only when both exist
       const loc = n.args && n.args.length >= 2 ? argRaw(n, 0) : null;
-      const key = (lastArgRaw(n) ?? "").trim();
-      const e = ctx.BIB[key];
+      const keys = (lastArgRaw(n) ?? "").split(",").map((x) => x.trim()).filter(Boolean);
       const locTxt = loc ? `, ${walkStr(loc)}` : "";
-      if (e) return e.url ? `([${e.disp}${locTxt}](${e.url}))` : `(${e.disp}${locTxt})`;
-      warn(`unknown \\cite key: ${key}`, `{${key}}`);
-      return `(${key}${locTxt})`;
+      return `(${keys.map(citeLink).join("; ")}${locTxt})`;
     }
     case "citep": case "citet": case "citealp": {
       const opts = (n.args ?? []).slice(0, -1).map((a) => printRaw(a.content)).filter(Boolean);
       const pre = opts.length === 2 ? opts[0] : null;
       const post = opts.length === 2 ? opts[1] : (opts.length === 1 ? opts[0] : null);
       const keys = (lastArgRaw(n) ?? "").split(",").map((x) => x.trim()).filter(Boolean);
-      const parts = keys.map((k) => {
-        const e = ctx.BIB[k]; if (!e) { warn(`unknown \\cite key: ${k}`, `{${k}}`); return k; }
-        return e.url ? `[${e.disp}](${e.url})` : e.disp;
-      });
-      const body = `${pre ? walkStr(pre) + " " : ""}${parts.join("; ")}${post ? `, ${walkStr(post)}` : ""}`;
+      const body = `${pre ? walkStr(pre) + " " : ""}${keys.map(citeLink).join("; ")}${post ? `, ${walkStr(post)}` : ""}`;
       return name === "citep" ? `(${body})` : body;
     }
     case "citetext": return `(${walkArg(n, 0)})`;
@@ -561,7 +579,6 @@ function emitHeading(n) {
     headText = `${starred ? "" : secNum() + ". "}${walk(titleNodes).trim()}`;
   }
   pendingHeading = { text: headText, level: name === "section" ? "##" : name === "subsection" ? "###" : "####" };
-  lastExerciseLabel = null;
   return `\n\n${pendingHeading.level} ${headText}\n\n`;
 }
 let pendingHeading = null;
@@ -636,11 +653,131 @@ function walkFragment(p, texStr) {
 let _parser = null;
 const parser = () => _parser;
 
+// ------------------------------------------------- solution relocation ---
+// The PDF keeps solutions where the author put them (often a back-of-sheet
+// appendix); the web always shows each solution directly beneath its
+// exercise. The mandatory [ex:label] binding names the target.
+
+// `open` points at an opening `<Tag`; returns the index just past the
+// matching `</Tag>`, depth-aware (a solution may contain a proof, which
+// also emits as <Solution>). -1 if unbalanced.
+function findBlockEnd(s, open, tag) {
+  const openTok = `<${tag}`, closeTok = `</${tag}>`;
+  let depth = 0, i = open;
+  for (;;) {
+    const o = s.indexOf(openTok, i), c = s.indexOf(closeTok, i);
+    if (c === -1) return -1;
+    if (o !== -1 && o < c) { depth++; i = o + openTok.length; }
+    else { depth--; i = c + closeTok.length; if (depth === 0) return i; }
+  }
+}
+
+function relocateSolutions(md) {
+  const mark = (k) => `<!--iliad:moved:${k}-->`;
+  // 1. lift every bound solution out, leaving a numbered marker behind
+  const sols = [];
+  let out = "", last = 0;
+  const openRe = /<Solution for="([^"]*)">/g;
+  for (let m; (m = openRe.exec(md)); ) {
+    const end = findBlockEnd(md, m.index, "Solution");
+    if (end === -1) break;
+    sols.push({ anchor: m[1], body: "<Solution>" + md.slice(m.index + m[0].length, end) });
+    out += md.slice(last, m.index) + mark(sols.length - 1);
+    last = end;
+    openRe.lastIndex = end;
+  }
+  out += md.slice(last);
+
+  // 2. reinsert each directly after its exercise, after any solution already
+  //    placed there (multiple solutions for one exercise keep their order)
+  sols.forEach((s, k) => {
+    let at = -1;
+    const ex = out.indexOf(`<Exercise id="${s.anchor}">`);
+    if (ex !== -1) at = findBlockEnd(out, ex, "Exercise");
+    if (at === -1) {
+      // no matching exercise (contract violation, warned at emission) —
+      // put the solution back where the author had it
+      out = out.replace(mark(k), s.body);
+      return;
+    }
+    for (;;) {
+      // skip solutions already reinserted here and any adjacent <Hint>
+      // block: the hint reads before the answer
+      const ws = /^\s*/.exec(out.slice(at))[0].length;
+      const tag = out.startsWith("<Solution", at + ws) ? "Solution"
+        : out.startsWith("<Hint>", at + ws) ? "Hint" : null;
+      if (!tag) break;
+      const e = findBlockEnd(out, at + ws, tag);
+      if (e === -1) break;
+      at = e;
+    }
+    out = out.slice(0, at) + `\n\n${s.body}` + out.slice(at);
+  });
+
+  // 3. prune headings whose whole section emptied out (a "Solutions"
+  //    appendix, say). The markers are the evidence: only sections a
+  //    solution actually left are candidates; pruned headings leave a
+  //    marker too, so an emptied parent section cascades.
+  const isMark = (l) => /^<!--iliad:moved:[^>]*-->$/.test(l.trim());
+  const lines = out.split("\n");
+  const pruned = [];
+  for (let changed = true; changed; ) {
+    changed = false;
+    for (let i = 0; i < lines.length; i++) {
+      const h = /^(#{2,6}) /.exec(lines[i]);
+      if (!h) continue;
+      let j = i + 1, marks = 0, content = false;
+      while (j < lines.length) {
+        const hh = /^(#{2,6}) /.exec(lines[j]);
+        if (hh && hh[1].length <= h[1].length) break;
+        if (isMark(lines[j])) marks++;
+        else if (hh || lines[j].trim() !== "") { content = true; break; }
+        j++;
+      }
+      if (!content && marks > 0) {
+        pruned.push(lines[i].slice(h[0].length).trim());
+        lines.splice(i, j - i, "<!--iliad:moved:h-->");
+        changed = true;
+      }
+    }
+  }
+  out = lines.join("\n").replace(/\n*<!--iliad:moved:[^>]*-->\n*/g, "\n\n");
+
+  // a \cref may still point at a pruned heading — tell the author
+  for (const text of pruned) {
+    const plain = text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\*\*|\*/g, "").trim();
+    if (out.includes(`](#${ghSlug(plain)})`)) {
+      advise(`section "${plain}" emptied by solution relocation was dropped, but prose still links to it — reword the sentence that points at the solutions section`, plain);
+    }
+  }
+  return out;
+}
+
+// -------------------------------------------------------------- references ---
+// LaTeX typesets its own bibliography; on the web every cited entry gets an
+// anchored item at the bottom of the page. In-text citations link down here;
+// an entry whose bib record has a URL makes its title the outbound link.
+function emitBibliography() {
+  const keys = [...citedKeys].filter((k) => ctx.BIB[k]);
+  if (keys.length === 0) return "";
+  keys.sort((a, b) => ctx.BIB[a].disp.localeCompare(ctx.BIB[b].disp));
+  const items = keys.map((k) => {
+    const e = ctx.BIB[k];
+    const title = e.title ? e.title.replace(/\.$/, "") : null;
+    const titleMd = title ? (e.url ? `[*${title}*](${e.url}).` : `*${title}*.`)
+      : (e.url ? `[${e.url}](${e.url}).` : "");
+    const head = e.authorsFull ? `${e.authorsFull}${e.year ? ` (${e.year})` : ""}.` : `${e.disp}.`;
+    const body = [head, titleMd, e.venue ? `${e.venue.replace(/\.$/, "")}.` : ""].filter(Boolean).join(" ");
+    return `<div id="bib-${slug(k)}">\n\n${body}\n\n</div>`;
+  });
+  return `\n\n## References\n\n${items.join("\n\n")}\n`;
+}
+
 export function emitDocument(bodyTex, context) {
   ctx = context;
   anchorMap = {};
   authorMacros = {};
-  lastExerciseLabel = null;
+  citedKeys = new Set();
   inExercise = false;
 
   // phase A: default parse of preamble+body to harvest author macro definitions
@@ -677,8 +814,9 @@ export function emitDocument(bodyTex, context) {
   walk(ast.content);
   context.warnRestore(wSnap);
 
-  // pass 2: emit
+  // pass 2: emit, move every solution up under its exercise, then append
+  // the References list for everything the page cited
   counters = { section: 0, subsec: 0, subsubsec: 0, appendix: false, ex: {}, thm: {} };
-  lastExerciseLabel = null;
-  return walk(ast.content);
+  citedKeys = new Set();
+  return relocateSolutions(walk(ast.content)) + emitBibliography();
 }

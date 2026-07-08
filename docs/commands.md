@@ -125,8 +125,11 @@ An aside in the mathematical register.
 ## Citations
 
 Entries go in your folder's `biblo.bib`; `\cite{Shannon:48}` etc. as normal
-(`\bibliography{biblo}` + a style at the end of the sheet). Citations render
-as author-year text on the web, linked when the entry has a URL.
+(`\bibliography{biblo}` + a style at the end of the sheet). On the web,
+citations render as author-year text linking to an anchored entry in a
+References list at the bottom of the page; there, an entry with a `url`
+(or arXiv `eprint`) field makes its title the outbound link. Citations
+never link straight out of the page.
 
 ## Inline marks
 
