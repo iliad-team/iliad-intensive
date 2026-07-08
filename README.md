@@ -2,8 +2,6 @@
 
 **Live site: [iliad-team.github.io/iliad-intensive](https://iliad-team.github.io/iliad-intensive/)**
 
-This repo holds the source; the site above is the published version.
-
 ## Setup (one-time)
 
 ```
