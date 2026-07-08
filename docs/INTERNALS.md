@@ -88,14 +88,14 @@ Components (`src/components/`): `ModulePageShell` (sidebar + content grid),
 | `tex2mdx/shims.mjs` | all dialect knowledge: contract env tables, KaTeX synonyms, macro overrides — `iliad.sty`'s web-side twin |
 | `tex2mdx/tikz.mjs` | TikZ → standalone compile → content-addressed `tikz-<sha>.svg` (unchanged diagrams never recompile; CI caches `public/uploads` on `hashFiles('tex/**')`) |
 | `tex2mdx/tex2mdx-check.mjs` | the render gate: compiles the MDX with the site's exact plugin pipeline and KaTeX-renders every math span |
-| `watch.mjs` | `./run watch`: dev server + rebuild-on-save loop |
+| `watch.mjs` | `./run.sh watch`: dev server + rebuild-on-save loop |
 
 Two `package.json`s: the site's (root) and `scripts/tex2mdx/`'s (unified-latex,
 bibtex-parse, its own KaTeX) — both need `npm ci`, and CI installs both.
 
 External binaries: `pdflatex` (TeX Live; shell-escape stays OFF — contributor
 LaTeX is untrusted), `bibtex`, `pdftocairo` (poppler-utils), `pandoc`
-(MDX-authored sheets only). Node ≥ 20.9 for Next 16 (`./run` selects nvm's
+(MDX-authored sheets only). Node ≥ 20.9 for Next 16 (`./run.sh` selects nvm's
 Node 22; system Node 18 won't build the site).
 
 npm runtime deps (root): `next`, `react`/`react-dom`, `next-mdx-remote`,
@@ -105,7 +105,7 @@ npm runtime deps (root): `next`, `react`/`react-dom`, `next-mdx-remote`,
 ## CI, hooks, deploy
 
 One definition, three entry points (details in DEVELOPMENT.md): `npm run ci`
-= content build + `next build`, run identically by `./run ci`, the
+= content build + `next build`, run identically by `./run.sh ci`, the
 `.githooks/pre-push` hook (tracked worksheets only), and
 `.github/workflows/site.yml` (every PR; pushes to `main` also deploy `out/`
 to GitHub Pages).
@@ -139,7 +139,7 @@ converter):
   bylines, `\title` anywhere, `unlisted:`, contract-name strictness) and
   this copy is now the actively developed one.
 - New here: `DownloadsRow`, `build-content.mjs`, `watch.mjs`, `iliad.sty`,
-  `./run`/`./setup`, the pre-push hook, the GitHub Actions workflow.
+  `./run.sh`/`./setup.sh`, the pre-push hook, the GitHub Actions workflow.
 
 **What was dropped from the public repo** (~⅔ of it): the live-preview
 system (`preview/` routes + `lib/preview.ts`, which polled admin-pushed

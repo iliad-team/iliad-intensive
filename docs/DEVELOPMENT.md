@@ -31,16 +31,16 @@ together define the authoring contract.
 
 ## Content build
 
-- `node scripts/build-content.mjs [slug ...]` (or `./run content [slug]`) —
+- `node scripts/build-content.mjs [slug ...]` (or `./run.sh content [slug]`) —
   full build; no slugs = every worksheet. `--check` = converter + KaTeX
   render gate only (fast). `--jobs N` sets parallel worksheet builds
   (default 4; worksheets are independent, logs are buffered per sheet).
   Non-zero exit on any failure, with the converter's `file:line` messages.
   Converter WARNs fail the build; advisories don't.
-- `./run watch [slug]` — live loop: dev server + fast rebuild on every save
+- `./run.sh watch [slug]` — live loop: dev server + fast rebuild on every save
   (scripts/watch.mjs; ignores LaTeX build artifacts to avoid loops).
-- `./run ci` — the full CI ladder (content build + static site build).
-- `./setup` — idempotent local install (apt TeX/poppler/pandoc, nvm Node 22,
+- `./run.sh ci` — the full CI ladder (content build + static site build).
+- `./setup.sh` — idempotent local install (apt TeX/poppler/pandoc, nvm Node 22,
   npm deps).
 - **Order matters**: the PDF compiles BEFORE conversion because the converter
   resolves `\cref`/`\ref` through LaTeX's `.aux` — a fresh checkout has none,
@@ -67,18 +67,18 @@ together define the authoring contract.
 
 ## Local site dev
 
-Requires Node ≥ 20.9 (system Node 18 won't do) — the `./run` wrapper selects
+Requires Node ≥ 20.9 (system Node 18 won't do) — the `./run.sh` wrapper selects
 Node 22 via nvm from any shell, fish included:
 
 ```bash
 npm install                          # once
 node scripts/build-content.mjs      # tex -> mdx/index/uploads/downloads
-./run                                # dev server -> http://localhost:3000
-./run build                          # static export -> out/
+./run.sh                                # dev server -> http://localhost:3000
+./run.sh build                          # static export -> out/
 ```
 
 For hosting under a sub-path (e.g. a GitHub Pages project site), build with
-`NEXT_PUBLIC_BASE_PATH=/iliad-intensive ./run build`.
+`NEXT_PUBLIC_BASE_PATH=/iliad-intensive ./run.sh build`.
 
 ## What renders a module
 

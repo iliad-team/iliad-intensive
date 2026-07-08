@@ -3,12 +3,12 @@
  * watch.mjs — live authoring loop: run the dev site and rebuild worksheets
  * on every save.
  *
- *   node scripts/watch.mjs [slug]     (usually via: ./run watch [slug])
+ *   node scripts/watch.mjs [slug]     (usually via: ./run.sh watch [slug])
  *
  * With a slug, only that worksheet rebuilds on change; without, any saved
  * worksheet rebuilds. Rebuilds run in fast --check mode (conversion + render
  * gate — no PDFs), which is what the browser preview needs; run
- * `./run content` for the full artifact build when you want PDFs/downloads.
+ * `./run.sh content` for the full artifact build when you want PDFs/downloads.
  * A change to a shared file (iliad.sty at the tex/ root) rebuilds everything
  * being watched.
  */

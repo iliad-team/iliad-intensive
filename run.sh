@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# ./run — run the site's npm scripts with the right Node version.
+# ./run.sh — run the site's npm scripts with the right Node version.
 #
 # Works from any shell (fish included): the bash shebang means nvm — which is a
 # bash-only sourced function and cannot run under fish — is loaded here in bash.
@@ -10,24 +10,24 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-./run — Iliad Intensive site, with the right Node version selected via nvm
+./run.sh — Iliad Intensive site, with the right Node version selected via nvm
 
 Usage:
-  ./run                 start the dev server -> http://localhost:3000
-  ./run watch [slug]    LIVE authoring: dev server + rebuild on every save
+  ./run.sh                 start the dev server -> http://localhost:3000
+  ./run.sh watch [slug]    LIVE authoring: dev server + rebuild on every save
                         (slug = only that worksheet; without = any worksheet)
-  ./run content [slug]  build worksheets: tex/mdx -> pages, PDFs, downloads
+  ./run.sh content [slug]  build worksheets: tex/mdx -> pages, PDFs, downloads
                         (no slug = all; add --check for the fast gate only)
-  ./run ci              exactly what the GitHub CI action runs: full content
+  ./run.sh ci              exactly what the GitHub CI action runs: full content
                         build + static site build; exit 0 = CI will be green
-  ./run build           static-export the site -> out/
-  ./run <script>        any other script from package.json
+  ./run.sh build           static-export the site -> out/
+  ./run.sh <script>        any other script from package.json
 
-First time here? ./setup installs everything (TeX Live, poppler, pandoc,
+First time here? ./setup.sh installs everything (TeX Live, poppler, pandoc,
 Node via nvm, npm deps).
 
 The edit loop for a worksheet:
-  ./run watch your-slug                 # edit main.tex, save, refresh browser
+  ./run.sh watch your-slug                 # edit main.tex, save, refresh browser
 
 More: README.md (writing worksheets) · docs/DEVELOPMENT.md (pipeline internals)
 EOF

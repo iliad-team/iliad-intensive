@@ -6,19 +6,19 @@
 git clone git@github.com:iliad-team/iliad-intensive.git
 cd iliad-intensive
 chmod +x setup
-./setup
+./setup.sh
 ```
 
 ## Render the website
 
 ```
-./run watch name-of-your-material
+./run.sh watch name-of-your-material
 ```
 
 Edit `main.tex`/`main.mdx`, save, refresh, see http://localhost:3000
 
-See `./run --help` for details.
-`./run ci` runs the CI action as if you had pushed to the repo.
+See `./run.sh --help` for details.
+`./run.sh ci` runs the CI action as if you had pushed to the repo.
 
 ## Folder structure
 

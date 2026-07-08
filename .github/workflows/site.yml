@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: TeX Live + poppler + pandoc
-        # Keep this list in sync with ./setup — it is the reference package
+        # Keep this list in sync with ./setup.sh — it is the reference package
         # set. cm-super: scalable CM fonts, needed by microtype's font
         # expansion under [T1]{fontenc}.
         run: |
@@ -53,8 +53,8 @@ jobs:
           restore-keys: tikz-
 
       # The SAME command developers and the pre-push hook run locally
-      # (./run ci) — one definition in package.json, no drift.
-      - name: Build (identical to ./run ci)
+      # (./run.sh ci) — one definition in package.json, no drift.
+      - name: Build (identical to ./run.sh ci)
         run: npm run ci
 
       - uses: actions/upload-pages-artifact@v3

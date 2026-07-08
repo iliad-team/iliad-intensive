@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# ./setup — install everything needed to develop this repo locally:
+# ./setup.sh — install everything needed to develop this repo locally:
 # TeX Live (+poppler, pandoc) via apt, Node 22 via nvm, npm dependencies.
 # Idempotent: re-running only installs what's missing.
 
@@ -43,9 +43,9 @@ npm install --no-audit --no-fund --prefix scripts/tex2mdx
 echo
 echo "== git hooks =="
 git config core.hooksPath .githooks
-echo "pre-push hook enabled (runs ./run ci; bypass once with --no-verify)"
+echo "pre-push hook enabled (runs ./run.sh ci; bypass once with --no-verify)"
 
 echo
 echo "Done. Next steps:"
-echo "  ./run --help          the commands"
-echo "  ./run watch <slug>    live-edit a worksheet with the site running"
+echo "  ./run.sh --help          the commands"
+echo "  ./run.sh watch <slug>    live-edit a worksheet with the site running"

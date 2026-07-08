@@ -3,9 +3,9 @@
 # actually TRACKS (what CI will see — in-development untracked folders are
 # skipped), then the static site, with the same commands the GitHub action
 # runs. Environment parity is kept by installing the same TeX packages in
-# ./setup as in the workflow's apt list.
+# ./setup.sh as in the workflow's apt list.
 #
-# Enable once per clone:   git config core.hooksPath .githooks   (./setup does this)
+# Enable once per clone:   git config core.hooksPath .githooks   (./setup.sh does this)
 # Bypass once:             git push --no-verify
 # Reject the push with a consistent explanation: WHY it failed, WHERE the
 # details are, and the escape hatch. The GitHub CI runs the same ladder, so
@@ -22,10 +22,10 @@ reject() {
 
 slugs=$(git ls-files 'tex/*/main.tex' 'tex/*/main.mdx' | cut -d/ -f2 | sort -u | tr '\n' ' ')
 echo "pre-push: CI ladder on tracked worksheets: $slugs"
-if ! ./run content $slugs; then
+if ! ./run.sh content $slugs; then
   reject "worksheet content build failed (see the file:line messages above)."
 fi
-if ! NEXT_PUBLIC_BASE_PATH=/iliad-intensive ./run build; then
+if ! NEXT_PUBLIC_BASE_PATH=/iliad-intensive ./run.sh build; then
   reject "static site build failed (see the messages above)."
 fi
 echo "✓ CI ladder green — pushing"
