@@ -1,11 +1,15 @@
 # Iliad Intensive worksheets
 
+**Live site: [iliad-team.github.io/iliad-intensive](https://iliad-team.github.io/iliad-intensive/)**
+
+This repo holds the source; the site above is the published version.
+
 ## Setup (one-time)
 
 ```
 git clone git@github.com:iliad-team/iliad-intensive.git
 cd iliad-intensive
-chmod +x setup
+chmod +x setup.sh
 ./setup.sh
 ```
 
