@@ -10,6 +10,9 @@ export type Frontmatter = {
   timeMinutes?: number;
   contributors?: string[];
   summary?: string;
+  /** External slide-deck URL (e.g. a Drive PDF); rendered as an outbound
+   *  link. A compiled slides.pdf (from slides.tex) takes precedence. */
+  slides?: string;
 };
 
 export type HeadingEntry = {

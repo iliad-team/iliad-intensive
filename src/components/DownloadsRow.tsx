@@ -1,51 +1,110 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 const LABELS: Record<string, string> = { pdf: "PDF", tex: "LaTeX", mdx: "Markdown" };
 
+// Only PDFs get a View box: GitHub Pages serves .tex/.mdx with a download-y
+// MIME type, so a "view" link on those would just re-download — download is
+// the honest (and sufficient) action there.
+const VIEWABLE = new Set(["pdf"]);
+
+/** A small bordered action box. `download` → save the file (browser keeps its
+ *  real name); otherwise → open in a new tab (PDFs render in the viewer). */
+function Box({ href, download, children }: { href: string; download?: boolean; children: ReactNode }) {
+  const attrs = download
+    ? { download: true }
+    : { target: "_blank", rel: "noopener noreferrer" };
+  return (
+    <a
+      href={href}
+      {...attrs}
+      className="rounded border border-zinc-300 px-2 py-0.5 lowercase tracking-normal text-zinc-600 transition-colors hover:border-zinc-500 hover:text-zinc-900"
+    >
+      {children}
+    </a>
+  );
+}
+
 /**
- * Download links with a with/without-solutions toggle. `files` is the
- * build-time listing of public/downloads/<slug>/; the checkbox swaps every
- * link between <slug>.<ext> and <slug>-nosol.<ext> (all pre-generated build
- * artifacts — nothing is computed on the fly).
+ * One row per available format (PDF · LaTeX · Markdown), each with view/
+ * download boxes, plus a Slides row when a deck exists. `files` is the
+ * build-time listing of public/downloads/<slug>/; the checkbox swaps the
+ * worksheet rows between <slug>.<ext> and <slug>-nosol.<ext> (all
+ * pre-generated build artifacts). Slides carry no solutions variant and are
+ * unaffected by the toggle. `slidesUrl` is an externally hosted deck (from
+ * the `slides:` frontmatter key) — linked, never hosted here; a compiled
+ * <slug>-slides.pdf takes precedence over it.
  */
 export function DownloadsRow({
   slug,
   files,
   basePath,
+  slidesUrl,
 }: {
   slug: string;
   files: string[];
   basePath: string;
+  slidesUrl?: string;
 }) {
   const [solutions, setSolutions] = useState(true);
-  if (files.length === 0) return null;
+
+  const href = (file: string) => `${basePath}/downloads/${slug}/${file}`;
   const name = (ext: string) => `${slug}${solutions ? "" : "-nosol"}.${ext}`;
-  const exts = (["pdf", "tex", "mdx"] as const).filter((ext) => files.includes(name(ext)));
+  const exts = (["pdf", "tex", "mdx"] as const).filter((ext) => files.includes(`${slug}.${ext}`));
+
+  const hasSlidesPdf = files.includes(`${slug}-slides.pdf`);
+  const hasSlidesTex = files.includes(`${slug}-slides.tex`);
+
+  if (exts.length === 0 && !hasSlidesPdf && !slidesUrl) return null;
+
+  const rowLabel = "w-20 shrink-0 uppercase tracking-wide text-zinc-500";
+
   return (
-    <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 font-sans text-xs uppercase tracking-wide">
-      {exts.map((ext) => (
-        <a
-          key={ext}
-          href={`${basePath}/downloads/${slug}/${name(ext)}`}
-          className="text-zinc-500 underline decoration-zinc-300 underline-offset-4 hover:text-zinc-800"
-          title={name(ext)}
-          download
-        >
-          {LABELS[ext]}
-          {solutions ? "" : " (no solutions)"}
-        </a>
-      ))}
-      <label className="flex cursor-pointer select-none items-center gap-1.5 normal-case tracking-normal text-zinc-500">
-        <input
-          type="checkbox"
-          checked={solutions}
-          onChange={(e) => setSolutions(e.target.checked)}
-          className="accent-zinc-600"
-        />
-        with solutions
-      </label>
-    </p>
+    <div className="mt-4 font-sans text-xs">
+      {exts.length > 0 && (
+        <label className="mb-2.5 flex w-fit cursor-pointer select-none items-center gap-1.5 text-zinc-500">
+          <input
+            type="checkbox"
+            checked={solutions}
+            onChange={(e) => setSolutions(e.target.checked)}
+            className="accent-zinc-600"
+          />
+          with solutions
+        </label>
+      )}
+      <ul className="flex flex-col gap-1.5">
+        {exts.map((ext) => (
+          <li key={ext} className="flex items-center gap-2">
+            <span className={rowLabel}>{LABELS[ext]}</span>
+            {VIEWABLE.has(ext) && <Box href={href(name(ext))}>view</Box>}
+            <Box href={href(name(ext))} download>download</Box>
+          </li>
+        ))}
+
+        {hasSlidesPdf ? (
+          <li className="flex items-center gap-2">
+            <span className={rowLabel}>Slides</span>
+            <Box href={href(`${slug}-slides.pdf`)}>view</Box>
+            <Box href={href(`${slug}-slides.pdf`)} download>download</Box>
+            {hasSlidesTex && (
+              <Box href={href(`${slug}-slides.tex`)} download>LaTeX</Box>
+            )}
+          </li>
+        ) : slidesUrl ? (
+          <li className="flex items-center gap-2">
+            <span className={rowLabel}>Slides</span>
+            <a
+              href={slidesUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded border border-zinc-300 px-2 py-0.5 lowercase tracking-normal text-zinc-600 transition-colors hover:border-zinc-500 hover:text-zinc-900"
+            >
+              open&nbsp;↗
+            </a>
+          </li>
+        ) : null}
+      </ul>
+    </div>
   );
 }
