@@ -11,7 +11,7 @@ echo "== system packages (TeX Live, poppler, pandoc) =="
 # Keep this list in sync with .github/workflows/site.yml — installing the
 # same packages keeps "passes locally, fails on CI" surprises to a minimum.
 need=()
-command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-science texlive-fonts-recommended cm-super)
+command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-science texlive-fonts-recommended cm-super lmodern)
 command -v pdftocairo >/dev/null || need+=(poppler-utils)
 command -v pandoc     >/dev/null || need+=(pandoc)
 command -v git-lfs    >/dev/null || need+=(git-lfs)

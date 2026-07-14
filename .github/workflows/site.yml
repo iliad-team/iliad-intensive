@@ -27,7 +27,10 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends \
             texlive-latex-extra texlive-pictures texlive-science \
-            texlive-fonts-recommended cm-super poppler-utils pandoc
+            texlive-fonts-recommended cm-super lmodern poppler-utils pandoc
+          # lmodern: pandoc's default PDF template loads lmodern.sty. It is only
+          # a Recommends of texlive, so --no-install-recommends drops it unless
+          # named explicitly — without it, MDX-authored sheets fail to build.
           # contributor LaTeX is untrusted: never enable shell-escape
 
       - uses: actions/setup-node@v4
