@@ -66,8 +66,27 @@ One paragraph on what this sheet is about.
 \end{summary}
 
 \begin{learningoutcomes}
-  \item First outcome.
-  \item Second outcome.
+  \begin{itemize}
+    \item First outcome.
+    \item Second outcome.
+  \end{itemize}
+\end{learningoutcomes}
+```
+
+The body is ordinary LaTeX. For a longer sheet, group the outcomes under
+`\subsection*{...}` headings, each with its own `itemize`:
+
+```latex
+\begin{learningoutcomes}
+  \subsection*{Motivation}
+  \begin{itemize}
+    \item ...
+  \end{itemize}
+
+  \subsection*{Core results}
+  \begin{itemize}
+    \item ...
+  \end{itemize}
 \end{learningoutcomes}
 ```
 
@@ -75,7 +94,8 @@ One paragraph on what this sheet is about.
   the PDF); `learningoutcomes` renders as the "What you'll learn" box where
   you put it — both usually sit right after `\maketitle`.
 - MDX: put `summary:` in the YAML frontmatter; `<LearningOutcomes>` with a
-  markdown list inside.
+  markdown list inside. Group headings become bold subheadings in the box
+  (not real headings — no anchor, not in the table of contents).
 
 ## Theorem family
 
@@ -139,6 +159,35 @@ An aside in the mathematical register.
 - Inline `tikzpicture`/`tikzcd` also works: each diagram is compiled and
   rendered for the web automatically.
 - MDX: `<Figure src="/uploads/your-slug/value-curve.svg" caption="…" />`
+
+## Slides
+
+A worksheet folder may carry an optional slide deck:
+
+```
+tex/<slug>/slides.tex        # any self-contained LaTeX (usually beamer)
+```
+
+- If `slides.tex` is present, the build compiles it to `slides.pdf` and hosts
+  it beside the other downloads — the page gains a **Slides** row (view PDF,
+  download PDF, download the `.tex`). Same 3× `pdflatex` + `bibtex` ladder as
+  the worksheet; a compile error fails the build with `file.tex:line`.
+- `iliad.sty` is a *worksheet* contract and is **not** loaded for slides —
+  style the deck however you like.
+- Slides are **never** converted to MDX and have **no** `-nosol` variant (a
+  deck is a download, not a web page).
+- No source, only a PDF deck? Don't commit the binary. Host it (e.g. Drive)
+  and point at it from the `%--- iliad ---` block:
+  ```
+  %--- iliad ---
+  % slides: https://drive.google.com/…
+  %--- end ---
+  ```
+  It renders as an outbound **Slides ↗** link. A compiled `slides.tex` takes
+  precedence over the URL.
+- The build emits a non-fatal **advisory** for any worksheet with no
+  `slides.tex` (whether or not a `slides:` URL is set), in the full build and
+  `./run.sh ci` — not in the `--check` watch/pre-push loop.
 
 ## Citations
 
