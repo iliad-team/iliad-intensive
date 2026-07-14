@@ -106,11 +106,14 @@ that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
 
 ## How to contribute
 
-Make a branch, work in your branch, commit your changes, open a PR to `main`,
-and David will merge it into the main branch.
-
-If you prefer to work in Overleaf, you can fork the repo, and then 
-[sync your fork](https://docs.overleaf.com/integrations-and-add-ons/git-integration-and-github-synchronization) to Overleaf. PR to upstream when ready. 
+* I just want to give content for David to port
+   - Open an issue, label it with your day of content e.g "[D.3] port over AIXI material" and point to whereever the content lives and I'll handle it
+* I want to port it myself
+   - Make a branch e.g. `d.3-aixi-port`, work in your branch, commit your changes, open a PR to `main`, and David will merge it into the main branch.
+* I don't like github/I have my own workflow.
+   - If you prefer to work in Overleaf, you can fork the repo, and then 
+[sync your fork](https://docs.overleaf.com/integrations-and-add-ons/git-integration-and-github-synchronization) to Overleaf. PR to upstream when ready.
+   - If you've got your own setup, work as your normally do, and then open an issue, or just email me `davidq@iliad.ac` with the subject `ILIAD intensive [X.Y]` that contains a `.zip` of the tex/markdown/whatever source and I'll handle it.
 
 ---
 *Maintainer & pipeline docs: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)*
