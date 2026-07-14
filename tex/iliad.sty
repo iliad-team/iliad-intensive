@@ -81,7 +81,17 @@
 \newif\ifiliad@boxes
 \iliad@boxesfalse
 \DeclareOption{boxes}{\iliad@boxestrue}
+% Screen-first page geometry (compact page, tight margins) is the default so
+% every worksheet fills the page uniformly. Pass [nogeometry] to opt out and
+% supply your own paper/margins; or call \geometry{...} afterwards to tweak.
+\newif\ifiliad@geometry
+\iliad@geometrytrue
+\DeclareOption{nogeometry}{\iliad@geometryfalse}
 \ProcessOptions\relax
+
+\ifiliad@geometry
+  \RequirePackage[paperwidth=6.5in, paperheight=9.5in, margin=1cm]{geometry}
+\fi
 
 \RequirePackage{amsmath}
 \RequirePackage{amssymb}
