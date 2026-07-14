@@ -210,11 +210,30 @@ async function buildSlug(slug) {
         "-V", "geometry:margin=1in",
         ...authors.flatMap((a) => ["--metadata", `author=${a}`]),
         "-o", out];
+      // Preflight the one non-obvious dependency of pandoc's default PDF
+      // template: lmodern.sty. The `lmodern` apt package is only a Recommends,
+      // so `apt-get install --no-install-recommends` (both CI and setup.sh)
+      // skips it — yet a full local TeX Live ships it, so a broken build sails
+      // through locally and fails only on CI with an opaque "Error producing
+      // PDF". Fail here instead, everywhere, with the actual fix. (This exact
+      // gap broke the first MDX-authored sheet's CI run.)
+      try {
+        await exec("kpsewhich", ["lmodern.sty"]);
+      } catch {
+        return done(false,
+          "pandoc PDF needs lmodern.sty, which is not installed. Install the " +
+          "`lmodern` apt package (a Recommends, so --no-install-recommends skips " +
+          "it) and keep setup.sh and .github/workflows/site.yml in sync.");
+      }
       try {
         await tex("pandoc", ...pandocArgs("main.mdx", "main.pdf"));
         await tex("pandoc", ...pandocArgs("main-nosol.mdx", "main-nosol.pdf"));
       } catch (e) {
-        return done(false, `pandoc PDF build failed: ${String(e.stderr ?? e.message).trim().split("\n")[0]}`);
+        // Surface the REAL error: pandoc's first stderr line is a useless
+        // "Error producing PDF."; the cause (missing .sty, bad glyph, …) is in
+        // the lines that follow. Keep the tail so CI logs actually say why.
+        const detail = String(e.stderr || e.stdout || e.message).trim();
+        return done(false, `pandoc PDF build failed:\n${detail.split("\n").slice(-40).join("\n")}`);
       }
     }
   }
