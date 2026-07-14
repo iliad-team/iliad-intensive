@@ -17,7 +17,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # lfs: true — figures under tex/**/fig/*.png are stored in Git LFS
+      # (.gitattributes). Without this the working tree gets pointer files, and
+      # any \includegraphics of one fails the PDF build with a libpng error.
       - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: TeX Live + poppler + pandoc
         # Keep this list in sync with ./setup.sh — it is the reference package

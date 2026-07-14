@@ -1,9 +1,17 @@
 \documentclass[aspectratio=169,11pt]{beamer}
 \usetheme[
   progressbar=frametitle,
-  sectionpage=none,
-  block=fill
+  sectionpage=none
 ]{moloch}
+% Filled blocks — equivalent to moloch's `block=fill` theme option, but set as
+% plain colors instead. The `block=fill` option is resolved through moloch's
+% pgfkeys `.search also` forwarding, which only works in the newer moloch
+% (TeX Live 2024); CI's older moloch (TeX Live 2023) rejects it with
+% "I do not know the key '/block'". These four lines are what the option does.
+\setbeamercolor{block title}{bg=normal text.bg!80!fg}
+\setbeamercolor{block body}{bg=block title.bg!50!normal text.bg}
+\setbeamercolor{block title alerted}{bg=block title.bg}
+\setbeamercolor{block title example}{bg=block title.bg}
 \setbeamertemplate{page number in head/foot}[totalframenumber]
 \usepackage{amsmath, amssymb}
 \usepackage{graphicx}
