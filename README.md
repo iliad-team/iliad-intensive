@@ -4,6 +4,8 @@
 
 Feedback welcome! I want friction for you as the writer to be as low as possible. If something is frustrating, [open an issue](https://github.com/iliad-team/iliad-intensive/issues) and let me know!
 
+[Project Board](https://github.com/orgs/iliad-team/projects/7/views/1)
+
 ## Setup (one-time)
 
 ```
