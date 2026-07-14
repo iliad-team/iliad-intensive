@@ -112,6 +112,11 @@ export const KNOWN_FRONT_KEYS = new Set([
   // unlisted: true — page is built and reachable by URL but excluded from
   // content/index.json (homepage/sidebar). Used by the template worksheet.
   "unlisted",
+  // slides: <url> — a link to an externally hosted slide deck (e.g. a Drive
+  // PDF). Rendered as an outbound "Slides ↗" link; nothing is served or
+  // compiled our end. For a deck with LaTeX source, drop a slides.tex in the
+  // worksheet folder instead and the build compiles + hosts the PDF.
+  "slides",
 ]);
 
 // ------------------------------------------------------------------ tikz ---

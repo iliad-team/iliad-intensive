@@ -119,6 +119,10 @@ async function buildSlug(slug) {
   const tex = (...argv) =>
     exec(argv[0], argv.slice(1), { cwd: dir });
   const isTex = existsSync(path.join(dir, "main.tex"));
+  // A worksheet MAY ship a slide deck as slides.tex (any dialect — usually
+  // beamer). It is compiled to slides.pdf and hosted alongside the downloads;
+  // it is never converted to MDX (slides aren't a web page, only a download).
+  const hasSlidesTex = existsSync(path.join(dir, "slides.tex"));
 
   // Guardrail: main.tex loads iliad.sty local-first (for standalone use of a
   // copied folder), so a stray per-folder copy in the repo tree would shadow
@@ -215,6 +219,40 @@ async function buildSlug(slug) {
     }
   }
 
+  // 2.5 slides: compile slides.tex → slides.pdf (same 3× pdflatex + bibtex
+  //     ladder as the worksheet). No -nosol variant, no MDX conversion.
+  //     --check skips it (it produces no page, only a download).
+  if (!CHECK_ONLY && hasSlidesTex) {
+    const SLIDES_PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
+    try {
+      await tex(...SLIDES_PDFLATEX, "slides.tex");
+      try { await tex("bibtex", "slides"); } catch { /* no citations — fine */ }
+      await tex(...SLIDES_PDFLATEX, "slides.tex");
+      await tex(...SLIDES_PDFLATEX, "slides.tex");
+    } catch {
+      const log = path.join(dir, "slides.log");
+      const errLine = existsSync(log)
+        ? (readFileSync(log, "utf8").split("\n").find((l) => l.startsWith("!")) ?? "pdflatex failed")
+        : "pdflatex failed";
+      return done(false, `slides build failed: ${errLine.trim()} (see ${path.relative(ROOT, log)})`);
+    }
+  }
+
+  // 2.6 slides advisory (full build only — not the --check watch/pre-push
+  //     loop): every worksheet ought to have a compilable deck. Never fatal.
+  //     slides.tex → hosted PDF (ideal, no note); a `slides:` frontmatter URL
+  //     → external PDF only; nothing → no deck at all.
+  if (!CHECK_ONLY && !hasSlidesTex) {
+    let slidesUrl = null;
+    try {
+      const fm = readFileSync(mdxOut, "utf8").match(/^---\n([\s\S]*?)\n---/);
+      if (fm) slidesUrl = (YAML.parse(fm[1]) ?? {}).slides ?? null;
+    } catch { /* frontmatter validity is the render gate's problem */ }
+    notes.push(slidesUrl
+      ? "⚠ advisory: slides only in PDF form (external `slides:` link, no LaTeX source to build)"
+      : "⚠ advisory: no slides for this worksheet (add slides.tex to build a deck, or a `slides:` frontmatter URL to link one)");
+  }
+
   // 3. author figures: fig/*.pdf → public/uploads/<slug>/*.svg; web-native
   //    assets (svg/png/jpg) copy through as-is. The MDX references them by
   //    basename under /uploads/<slug>/; TikZ snippets are handled separately.
@@ -255,6 +293,12 @@ async function buildSlug(slug) {
     if (isTex) {
       copyFileSync(path.join(dir, "main.tex"), path.join(dl, `${slug}.tex`));
       copyFileSync(path.join(dir, "main-nosol.tex"), path.join(dl, `${slug}-nosol.tex`));
+    }
+    // slides deck (no solutions variant): ship the PDF to view/download and
+    // the .tex to download. Named <slug>-slides.* so listDownloads finds them.
+    if (hasSlidesTex) {
+      copyFileSync(path.join(dir, "slides.pdf"), path.join(dl, `${slug}-slides.pdf`));
+      copyFileSync(path.join(dir, "slides.tex"), path.join(dl, `${slug}-slides.tex`));
     }
   }
   return done(true);
