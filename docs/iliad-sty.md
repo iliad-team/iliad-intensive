@@ -72,7 +72,9 @@ The `%--- iliad ---` comment block at the top of `main.tex` is for **simple
 one-line YAML values only** — usually just `cluster:`. `title:`, `summary:`,
 `contributors:` keys are accepted and **override** the extracted values
 (a duplicate draws a build advisory). `unlisted: true` is a maintainer flag:
-the page is built and reachable by URL but linked from nowhere.
+the page is built and reachable by URL but linked from nowhere. `slides:` holds
+the URL of an externally hosted deck (rendered as an outbound link; a compiled
+`slides.tex` in the folder supersedes it — see [commands.md](commands.md)).
 
 Missing title/cluster/contributors draw build **advisories** (never
 failures) with `file.tex:line` locations.

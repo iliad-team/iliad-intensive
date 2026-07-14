@@ -35,7 +35,7 @@ name-of-my-material/
 ├── fig
 │   └── ... # figures
 ├── biblo.bib
-├── slides.[tex|mdx|pdf]
+├── slides.tex   # optional slide deck — compiled to a hosted PDF
 └── main.[tex|mdx]
 ```
 
@@ -43,9 +43,15 @@ You can write either in LaTeX or Markdown, as you prefer.
 The main file for the material is `main.[tex|mdx]` (`.tex` files are converted
 to `mdx` by the repo's own converter, `scripts/tex2mdx/`; pandoc is only used
 to build the PDF of Markdown-authored sheets).
-The slides for the material are `slides.[tex|mdx|pdf]`. Avoid using PDF slides,
-ideally write LaTeX slides using beamer (Google Slides are annoying with math
-and not machine-readable). *(Slides are not built by the pipeline yet.)*
+Slides are optional. Drop a `slides.tex` (any self-contained LaTeX — beamer is
+the usual choice; `iliad.sty` is *not* loaded for slides) in the folder and the
+build compiles it to a PDF hosted next to the worksheet — the page grows a
+**Slides** row (view / download the PDF, download the `.tex`). Slides are never
+converted to Markdown (a deck is a download, not a web page). If your deck only
+exists as a PDF with no source, don't commit the binary — host it (Drive, etc.)
+and add a `slides:` line to the `%--- iliad ---` block (see below); it renders
+as an outbound link instead. The build prints a (non-fatal) advisory for any
+worksheet with no `slides.tex`.
 
 ## Start a worksheet
 
@@ -94,7 +100,9 @@ that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
       %--- end ---
       ```
       `title:`, `summary:`, and `contributors:` keys are also accepted there
-      and override whatever is extracted from the LaTeX.
+      and override whatever is extracted from the LaTeX. A `slides:` key holds
+      the URL of an externally hosted deck (for a PDF-only deck with no source);
+      it renders as an outbound link and is superseded by a compiled `slides.tex`.
 
 3. **Commands**: See `docs/commands.md` for details.
 * Exercises: `\begin{exercise}[Optional Title]\label{ex:your-label} ... \end{exercise}`

@@ -11,13 +11,15 @@ the **site code** and the **LaTeX worksheet sources**; everything derived
 from them is a build artifact that never gets committed:
 
 ```
-tex/<slug>/main.tex            <- the ONLY content in git (+ biblo.bib, fig/)
+tex/<slug>/main.tex            <- the ONLY content in git (+ biblo.bib, fig/,
+                                   optional slides.tex)
    |  scripts/build-content.mjs  (runs scripts/tex2mdx/, the AST converter)
    v
 content/modules/<slug>.mdx     page body            (gitignored)
 content/index.json             listing              (gitignored)
 public/uploads/<slug>/*.svg    figures + content-addressed TikZ (gitignored)
-public/downloads/<slug>/       <slug>.pdf/.tex/.mdx per-page downloads (gitignored)
+public/downloads/<slug>/       <slug>.pdf/.tex/.mdx + <slug>-slides.pdf/.tex
+                               per-page downloads (gitignored)
    |  next build (output: "export")
    v
 out/                           static site -> GitHub Pages
@@ -50,6 +52,12 @@ together define the authoring contract.
 - An `unlisted: true` frontmatter key builds the page but keeps it out of
   `content/index.json` — reachable by URL, linked from nowhere (the example
   sheet uses this).
+- An optional `tex/<slug>/slides.tex` is compiled (same pdflatex+bibtex ladder)
+  to `slides.pdf` and staged as `<slug>-slides.pdf`/`.tex`; never converted to
+  MDX, no `-nosol` variant. A `slides:` frontmatter URL links an externally
+  hosted deck instead (a compiled `slides.tex` wins). Every worksheet with no
+  `slides.tex` draws a non-fatal advisory (full build / `./run.sh ci` only, not
+  `--check`).
 - Generated MDX is host-agnostic (`/uploads/…` URLs); the site's `Figure`
   component and download links apply `NEXT_PUBLIC_BASE_PATH` at render time.
   Never bake the base path into generated content — it double-prefixes.

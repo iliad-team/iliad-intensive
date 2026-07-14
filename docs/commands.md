@@ -140,6 +140,35 @@ An aside in the mathematical register.
   rendered for the web automatically.
 - MDX: `<Figure src="/uploads/your-slug/value-curve.svg" caption="…" />`
 
+## Slides
+
+A worksheet folder may carry an optional slide deck:
+
+```
+tex/<slug>/slides.tex        # any self-contained LaTeX (usually beamer)
+```
+
+- If `slides.tex` is present, the build compiles it to `slides.pdf` and hosts
+  it beside the other downloads — the page gains a **Slides** row (view PDF,
+  download PDF, download the `.tex`). Same 3× `pdflatex` + `bibtex` ladder as
+  the worksheet; a compile error fails the build with `file.tex:line`.
+- `iliad.sty` is a *worksheet* contract and is **not** loaded for slides —
+  style the deck however you like.
+- Slides are **never** converted to MDX and have **no** `-nosol` variant (a
+  deck is a download, not a web page).
+- No source, only a PDF deck? Don't commit the binary. Host it (e.g. Drive)
+  and point at it from the `%--- iliad ---` block:
+  ```
+  %--- iliad ---
+  % slides: https://drive.google.com/…
+  %--- end ---
+  ```
+  It renders as an outbound **Slides ↗** link. A compiled `slides.tex` takes
+  precedence over the URL.
+- The build emits a non-fatal **advisory** for any worksheet with no
+  `slides.tex` (whether or not a `slides:` URL is set), in the full build and
+  `./run.sh ci` — not in the `--check` watch/pre-push loop.
+
 ## Citations
 
 Entries go in your folder's `biblo.bib`; `\cite{Shannon:48}` etc. as normal
