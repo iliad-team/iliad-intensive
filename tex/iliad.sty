@@ -29,9 +29,12 @@
 %         \important        "(★) among the most important exercises" marker
 %       Label the exercise if anything (a solution, a \cref) needs to point
 %       at it; unlabeled exercises are allowed but draw a CI advisory.
-%   \begin{learningoutcomes} \item ... \end{learningoutcomes}
-%       Bulleted "What you'll learn" box, usually right after \maketitle.
-%       Renders as the matching box on the web.
+%   \begin{learningoutcomes} \begin{itemize} \item ... \end{itemize} \end{...}
+%       "What you'll learn" box, usually right after \maketitle. The body is
+%       ordinary LaTeX: one \begin{itemize} of outcomes, or several groups each
+%       introduced by \subsection*{Heading} and its own itemize (the group
+%       headings render as bold subheadings on the web). Renders as the
+%       matching box on the web.
 %   \begin{summary} ... \end{summary}
 %       One-paragraph lede. Becomes the page's summary on the web and in
 %       the module index; prints as an italic block in the PDF.
@@ -273,13 +276,13 @@
 }
 
 % ---------------------------------------------------- learning outcomes ---
-% \begin{learningoutcomes} \item ... \end{learningoutcomes}
-% A bulleted "What you'll learn" box, typically right after \maketitle.
+% A "What you'll learn" box. The body is ordinary LaTeX: write a single
+% \begin{itemize} of outcomes, or -- for a longer sheet -- group them under
+% \subsection*{...} headings, each followed by its own itemize. Both forms use
+% only standard commands (no special markup); see the example worksheet.
 \newenvironment{learningoutcomes}{%
   \iliad@calloutbegin{What you'll learn}{blue}%
-  \begin{itemize}[leftmargin=1.4em]%
 }{%
-  \end{itemize}%
   \iliad@calloutend
 }
 

@@ -44,7 +44,7 @@ around it (CI also rejects redefinitions of contract names).
 |---|---|---|
 | `exercise` | env | numbered problem box ("Exercise 2.1"), own per-section counter |
 | `solution` | env | worked answer bound to an exercise; hidden by `\solutionsfalse` |
-| `learningoutcomes` | env | bulleted "What you'll learn" box |
+| `learningoutcomes` | env | "What you'll learn" box; body is an `itemize`, or `\subsection*{}` groups each with their own `itemize` |
 | `summary` | env | one-paragraph lede; italic block in the PDF, page summary on the web |
 | `definition` `theorem` `lemma` `proposition` `corollary` `fact` `example` | envs | amsthm family sharing one per-section counter |
 | `proof` | env | amsthm; collapsible on the web |

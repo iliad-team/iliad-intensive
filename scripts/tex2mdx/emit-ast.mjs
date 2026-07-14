@@ -361,13 +361,14 @@ function emitEnv(n) {
       break;
     }
     case "learningoutcomes": {
-      // iliad.sty's environment opens its own itemize, so the \items sit bare
-      // in the env body — emit them as a markdown list. A sheet that nests an
-      // explicit itemize instead has no bare \items; walk handles it.
-      const items = splitItems(n.content);
-      const body = items.length
-        ? items.map((it) => `- ${walk(it.nodes).trim()}`).join("\n")
-        : walk(n.content).trim();
+      // A plain box. The body is ordinary LaTeX: a single itemize of outcomes,
+      // or several \subsection*{...} groups each with its own itemize. We just
+      // walk it — but while inside, group headings (\subsection* etc.) render
+      // as bold lines rather than real markdown headings, so they don't emit
+      // page anchors or land in the table of contents (see emitHeading).
+      const wasLO = inLearningOutcomes; inLearningOutcomes = true;
+      const body = walk(n.content).trim();
+      inLearningOutcomes = wasLO;
       mdx = `<LearningOutcomes>\n\n${body}\n\n</LearningOutcomes>`;
       break;
     }
@@ -571,6 +572,9 @@ function emitHeading(n) {
   const name = n.content;
   const starred = !!argRaw(n, 0);
   const titleNodes = n.args[n.args.length - 1].content;
+  // Inside a learningoutcomes box, group headings are just bold lines — no
+  // numbering, no TOC entry, no anchor.
+  if (inLearningOutcomes) return `\n\n**${walk(titleNodes).trim()}**\n\n`;
   // label immediately after the heading is absorbed by walk() lookahead;
   // here we only compute numbering + text
   let headText;
@@ -588,6 +592,7 @@ function emitHeading(n) {
   return `\n\n${pendingHeading.level} ${headText}\n\n`;
 }
 let pendingHeading = null;
+let inLearningOutcomes = false;
 
 // ------------------------------------------------------------------ walk ---
 function walk(nodes) {
