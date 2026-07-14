@@ -1,8 +1,10 @@
 \documentclass[aspectratio=169,11pt]{beamer}
+% NB: no `block=fill` — the moloch in Ubuntu/CI texlive-latex-extra doesn't
+% define that key and errors on it (works in newer TeX Live). Blocks just use
+% the default (unfilled) style.
 \usetheme[
   progressbar=frametitle,
-  sectionpage=none,
-  block=fill
+  sectionpage=none
 ]{moloch}
 \setbeamertemplate{page number in head/foot}[totalframenumber]
 \usepackage{amsmath, amssymb}
