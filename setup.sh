@@ -14,6 +14,7 @@ need=()
 command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-science texlive-fonts-recommended cm-super)
 command -v pdftocairo >/dev/null || need+=(poppler-utils)
 command -v pandoc     >/dev/null || need+=(pandoc)
+command -v git-lfs    >/dev/null || need+=(git-lfs)
 if [ ${#need[@]} -gt 0 ]; then
   echo "installing: ${need[*]}"
   sudo apt-get update -q
@@ -41,9 +42,14 @@ npm install --no-audit --no-fund
 npm install --no-audit --no-fund --prefix scripts/tex2mdx
 
 echo
+echo "== git LFS (figures under tex/**/fig/*.png) =="
+git lfs install --local
+git lfs pull || echo "  (git lfs pull skipped — no remote objects yet)"
+
+echo
 echo "== git hooks =="
 git config core.hooksPath .githooks
-echo "pre-push hook enabled (runs ./run.sh ci; bypass once with --no-verify)"
+echo "pre-push hook enabled (runs ./run.sh ci + git lfs pre-push; bypass once with --no-verify)"
 
 echo
 echo "Done. Next steps:"

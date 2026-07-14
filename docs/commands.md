@@ -66,8 +66,27 @@ One paragraph on what this sheet is about.
 \end{summary}
 
 \begin{learningoutcomes}
-  \item First outcome.
-  \item Second outcome.
+  \begin{itemize}
+    \item First outcome.
+    \item Second outcome.
+  \end{itemize}
+\end{learningoutcomes}
+```
+
+The body is ordinary LaTeX. For a longer sheet, group the outcomes under
+`\subsection*{...}` headings, each with its own `itemize`:
+
+```latex
+\begin{learningoutcomes}
+  \subsection*{Motivation}
+  \begin{itemize}
+    \item ...
+  \end{itemize}
+
+  \subsection*{Core results}
+  \begin{itemize}
+    \item ...
+  \end{itemize}
 \end{learningoutcomes}
 ```
 
@@ -75,7 +94,8 @@ One paragraph on what this sheet is about.
   the PDF); `learningoutcomes` renders as the "What you'll learn" box where
   you put it — both usually sit right after `\maketitle`.
 - MDX: put `summary:` in the YAML frontmatter; `<LearningOutcomes>` with a
-  markdown list inside.
+  markdown list inside. Group headings become bold subheadings in the box
+  (not real headings — no anchor, not in the table of contents).
 
 ## Theorem family
 

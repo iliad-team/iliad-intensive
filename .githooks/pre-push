@@ -20,6 +20,12 @@ reject() {
   exit 1
 }
 
+# This repo pins core.hooksPath=.githooks, so git-lfs's own pre-push hook is
+# never run. Capture the ref list git sends on stdin now (the CI ladder below
+# doesn't need it) and hand it to `git lfs pre-push` once the ladder passes, so
+# LFS objects (tex/**/fig/*.png) are uploaded with the push.
+lfs_refs=$(cat)
+
 slugs=$(git ls-files 'tex/*/main.tex' 'tex/*/main.mdx' | cut -d/ -f2 | sort -u | tr '\n' ' ')
 echo "pre-push: CI ladder on tracked worksheets: $slugs"
 if ! ./run.sh content $slugs; then
@@ -28,4 +34,12 @@ fi
 if ! NEXT_PUBLIC_BASE_PATH=/iliad-intensive ./run.sh build; then
   reject "static site build failed (see the messages above)."
 fi
+
+# Upload Git LFS objects for the refs being pushed (see stdin capture above).
+if command -v git-lfs >/dev/null 2>&1; then
+  printf '%s\n' "$lfs_refs" | git lfs pre-push "$@" || reject "git lfs pre-push failed — LFS objects were not uploaded."
+else
+  reject "git-lfs is not installed but LFS-tracked files exist; run ./setup.sh (or install git-lfs) first."
+fi
+
 echo "✓ CI ladder green — pushing"
