@@ -1,0 +1,23 @@
+# Links to each day 
+
+[  0](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.blsy6emykmhx)
+[A.1](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.ozdc2do4wrbw)
+[A.2](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.i1ocmcfi54i2)
+[A.3](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.g73qz582zioy)
+[B.2](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.do5apxz819k1)
+[B.3](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.8q8aoxfgo9bw)
+[B.4](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.wo7jypvrb6ii)
+[B.5](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.agn5xl6zra7l)
+[C.1](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.u7odobssyqur)
+[C.2](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.alpz10jgotvn)
+[C.3](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.649vumndszu5)
+[C.4](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.lzn2w9mlavru)
+[D.1](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.uqpqtto4ldg0)
+[D.2](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.hu1actdm586n)
+[D.3](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.fs4zbfhzzqjf)
+[D.4](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.8r11zv4s7dki)
+[D.5](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.xelg5yi9w039)
+[D.6](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.pefcteqoku51)
+[E.1](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.2q3bv3luklh0)
+[E.2](https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.n0qqrafijfpi)
+
