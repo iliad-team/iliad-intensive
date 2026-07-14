@@ -75,6 +75,7 @@ const CONTRACT_MACROS = {
   mbox: { signature: "m" }, makebox: { signature: "o m" }, fbox: { signature: "m" },
   ifdef: { signature: "m m m" }, ifdefined: { signature: "m m m" }, ifcsdef: { signature: "m m m" },
   crefrange: { signature: "m m" }, Crefrange: { signature: "m m" },
+  href: { signature: "o m m" },   // \href[opts]{url}{text}
   // cleveref config — unknown to unified-latex, so the parser needs the
   // signature or the three brace groups survive as literal text
   crefname: { signature: "m m m" }, Crefname: { signature: "m m m" },
@@ -503,7 +504,15 @@ function emitMacro(n) {
     case "mbox": case "fbox": return walkArg(n, 0);
     case "makebox": return walkArg(n, 1);
     case "texorpdfstring": return walkArg(n, 0);
-    case "href": return `[${walkArg(n, 1)}](${argRaw(n, 0) ?? ""})`;
+    case "href": {
+      // \href[opts]{url}{text}: unified-latex's signature is "o m m", so the
+      // url is the second-to-last arg and the text the last. Compute from the
+      // arg count so this is robust whether or not the optional slot is present.
+      const k = n.args ? n.args.length : 0;
+      const url = (k >= 2 ? argRaw(n, k - 2) : null) ?? "";
+      const txt = (k >= 1 ? walkArg(n, k - 1).trim() : "") || url;
+      return `[${txt}](${url})`;
+    }
     case "url": return `<${lastArgRaw(n) ?? ""}>`;
     case "cref": case "Cref": return crefLinks(lastArgRaw(n) ?? "");
     case "ref": { const r = resolveRef((lastArgRaw(n) ?? "").trim()); return `[${r.text.replace(/^\w+\s/, "")}](#${r.anchor})`; }
