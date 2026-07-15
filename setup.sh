@@ -49,6 +49,7 @@ git lfs pull || echo "  (git lfs pull skipped — no remote objects yet)"
 echo
 echo "== git hooks =="
 git config core.hooksPath .githooks
+echo "pre-commit hook enabled (rejects binary assets committed outside Git LFS)"
 echo "pre-push hook enabled (runs ./run.sh ci + git lfs pre-push; bypass once with --no-verify)"
 
 echo

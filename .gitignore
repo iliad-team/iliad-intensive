@@ -6,6 +6,8 @@ out/
 next-env.d.ts
 .env*
 _src/
+# original source repo copied into a port worktree root (see skills/PORT.md)
+_src_repo/
 scratch/
 # generated content — build artifacts, never committed.
 # Modules (.mdx) and the index are produced upstream (tex -> mdx converter /
