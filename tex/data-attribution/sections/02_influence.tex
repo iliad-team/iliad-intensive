@@ -1,0 +1,164 @@
+% ---------------------------------------------------------
+\section{Influence Functions}\label{sec:influence}
+
+In this section we develop \emph{influence functions}: a closed-form, first-order approximation to the leave-one-out (LOO) counterfactual. The classical theory \citep{hampel1974,cook1977} predates machine learning by decades. It was developed in robust statistics, where the question was which observations a parameter estimate is most sensitive to. For simple statistical models the answer is short: a single application of the implicit function theorem yields an inverse-Hessian-times-gradient formula whose factors have a clean operational interpretation.
+
+The formula we arrive at then \emph{can} be translated to the setup of neural networks, but its interpretation becomes unclear: The classical derivation assumes a unique global minimum and an invertible Hessian, neither of which holds for an neural network which is typically \textbf{not} trained to full convergence. We will see a partial fix for this issue in \Cref{subsec:if-nn}.
+
+\subsection{The influence function formula}\label{subsec:if-formula}
+
+Influence functions originate in robust statistics \citep{hampel1974}: given a statistical estimator, how much does it change when a single observation is added or perturbed?
+
+\begin{example}[Influence on the mean]\label{ex:mean-if}
+Let $T(F) = \mathbb{E}_F[z]$ be the mean of a distribution $F$. If we contaminate $F$ by placing a fraction $\epsilon$ of its mass at a point $z$, the new mean is
+\[
+  T\bigl((1-\epsilon)F + \epsilon\,\delta_z\bigr) \;=\; (1-\epsilon)\,\mathbb{E}_F[z] \;+\; \epsilon\,z \;=\; T(F) \;+\; \epsilon\,(z - T(F)).
+\]
+The rate of change at $\epsilon = 0$ is $z - T(F)$: the influence of $z$ on the mean is simply how far $z$ is from the current mean. Observations far from the centre of the data move the mean the most.
+\end{example}
+
+We now translate this idea into the setting of \Cref{subsec:convention}, whose notation we use throughout. Recall that the weighted training loss $L(w;\beta) = \sum_i \beta_i L(w,z_i)$ defines a family of optimization problems parameterized by the weight vector $\beta$. In the case of influence functions, we measure the influence of a data point on the \emph{optimal} parameters  
+\[
+  w^*(\beta) \;:=\; \argmin_{w\in W}\, L(w;\beta),
+\]
+and we write $w^* := w^*(\mathbf{1})$ for the trained parameters. We assume throughout this subsection that $w^*$ is the unique global minimum of $L$ and that the Hessian $H := \nabla_w^2 L(w^*)$ is positive definite, so that the implicit function theorem makes $w^*(\beta)$ well-defined and smooth in a neighborhood of $\beta=\mathbf{1}$. In the notation of \Cref{eq:holy-maps} we set $\pi(\beta)= w^*(\beta)$ and \Cref{eq:holy-grail} yields then the following formula:
+
+\begin{definition}[Influence function]\label{def:if}
+The \emph{parameter influence} of training example $z_i$ at the trained parameters $w^*$ is
+\[
+  \mathcal{I}_{\mathrm{param}}(z_i) \;:=\; \frac{\partial w^*(\beta)}{\partial \beta_i}\bigg\rvert_{\beta=\mathbf{1}}.
+\]
+Under the assumptions above, the implicit function theorem gives (\Cref{ex:if-derive})
+\[
+  \boxed{\;\mathcal{I}_{\mathrm{param}}(z_i) \;=\; -\,H^{-1}\,\nabla_w L(w^*,z_i).\;}
+\]
+where $H$ is the Hessian of $L$ at $w^*$.
+For any differentiable observable $\phi:W\to\mathbb{R}$, the chain rule then yields the \emph{influence on $\phi$}:
+\[
+  \mathcal{I}(z_i,\phi) \;:=\; \frac{\partial\,\phi(w^*(\beta))}{\partial \beta_i}\bigg\rvert_{\beta=\mathbf{1}} \;=\; \nabla_w \phi(w^*)^\top\,\mathcal{I}_{\mathrm{param}}(z_i) \;=\; -\,\nabla_w \phi(w^*)^\top\,H^{-1}\,\nabla_w L(w^*,z_i).
+\]
+\end{definition}
+
+Thus we get three components
+\begin{itemize}
+  \item $\nabla_w L(w^*,z_i)$ is the direction in parameter space along which $z_i$ pulls the optimizer.
+  \item $H^{-1}$ rescales this direction by local curvature: directions in which the loss is flat (small eigenvalue of $H$) get amplified, since a small force in a flat direction moves the minimum a lot.
+  \item $\nabla_w \phi(w^*)$ projects the parameter change onto the direction that matters for the observable $\phi$.
+\end{itemize}
+In this section, we will focus on $\mathcal{I}_{\mathrm{param}}(z_i)$. The influence on any observable $\phi$ is obtained by computing the dot product $\mathcal{I}_{\mathrm{param}}(z_i) \cdot \nabla_w\phi(w^*)$.
+
+\paragraph{Connection to leave-one-out.} Setting $\beta = \mathbf{1} - e_i$ (i.e., removing $z_i$) and applying the first-order Taylor expansion gives
+\begin{equation}
+  w^*(\mathbf{1} - e_i) \;-\; w^* \;\approx\; -\,\mathcal{I}_{\mathrm{param}}(z_i) \;=\; H^{-1}\,\nabla_w L(w^*,z_i),
+  \label{eq:loo-approx}
+\end{equation}
+i.e.\ the parameter influence is, to first order, the change in $w^*$ that would result from removing $z_i$ from the training set entirely. 
+
+\begin{exercise}[Derivation of the influence function]\label{ex:if-derive}
+Let $w^*(\beta) = \argmin_{w\in W}\,L(w;\beta)$ as above and assume the Hessian $H = \nabla_w^2 L(w^*)$ is invertible. Recall that the \emph{implicit function theorem} states: if $F:W\times B\to\mathbb{R}^{\dim W}$ is $C^1$, $F(w^*,\mathbf{1})=0$, and the Jacobian $\partial F/\partial w$ at $(w^*,\mathbf{1})$ is invertible, then there is a unique $C^1$ map $\beta\mapsto w^*(\beta)$ on a neighborhood of $\mathbf{1}$ with $F(w^*(\beta),\beta)\equiv 0$, whose derivative is obtained by implicit differentiation of $F$.
+\begin{enumerate}
+  \item[(a)] Apply the implicit function theorem to $F(w,\beta) := \nabla_w L(w;\beta)$ to conclude that $\beta\mapsto w^*(\beta)$ is well-defined and $C^1$ near $\mathbf{1}$. Which hypothesis of the theorem uses the invertibility of $H$? Where do we use that $w^*$ is the unique global minimum (rather than merely a critical point)?
+  \item[(b)] By differentiating the first-order optimality condition $\nabla_w L(w^*(\beta);\beta)=0$ with respect to $\beta_i$, show that
+  \[
+    \frac{\partial w^*(\beta)}{\partial \beta_i}\bigg\rvert_{\beta=\mathbf{1}} \;=\; -\,H^{-1}\,\nabla_w L(w^*,z_i).
+  \]
+  \item[(c)] Use the chain rule to obtain the formula for $\mathcal{I}(z_i,\phi)$ in \Cref{def:if}. Make sure to keep track of the evaluation at $\beta = \mathbf{1}$.
+\end{enumerate}
+\end{exercise}
+% TODO: Fix 1/n mistake form renormalization
+
+\begin{exercise}[Linear regression]\label{ex:ols-if}
+Consider linear regression with training data $\{(x_i,y_i)\}_{i=1}^n$, $x_i\in\mathbb{R}^p$, and squared loss $L(w,(x_i,y_i)) = \tfrac12(y_i - w^\top x_i)^2$. Write $A := \sum_i x_i x_i^\top$. In this case the minimizer, the influence function, and the exact LOO update all have closed-form solutions. We will see that in general the influence functions can diverge in extreme cases.
+\begin{enumerate}
+  \item[(a)] Derive the minimizer $w^*$ by setting $\nabla_w L(w) = 0$. Show that $w^* = A^{-1}\sum_i x_i y_i$.
+  \item[(b)] Compute the parameter influence $\mathcal{I}_{\mathrm{param}}(z_j)$ from \Cref{def:if}.
+  \item[(c)] Define $w^*(\beta_j) := \argmin_w \sum_{i\ne j} L(w,z_i) + \beta_j L(w,z_j)$, so that $\beta_j = 1$ is the unperturbed model and $\beta_j = 0$ corresponds to fully removing $z_j$. Using the Sherman--Morrison formula\footnote{For an invertible matrix $M$ and vectors $u,v$: $(M + uv^\top)^{-1} = M^{-1} - \frac{M^{-1}u\,v^\top M^{-1}}{1 + v^\top M^{-1}u}$.}, show that
+  \[
+    w^*(\beta_j) \;-\; w^* \;=\; -\,\frac{(1-\beta_j)\,A^{-1} x_j\,r_j}{1 - (1-\beta_j)\,h_j},
+  \]
+  where $r_j := y_j - x_j^\top w^*$ is the residual at $z_j$ and $h_j := x_j^\top A^{-1} x_j$ is the \emph{leverage} of $x_j$. Note that this is a rational function of $\beta_j$. This is the ground truth effect of perturbing $z_j$.
+  \item[(d)] Expand the closed form from (c) as a Taylor series in $(1-\beta_j)$ around the unperturbed point $\beta_j = 1$ by recognizing $1/(1 - (1-\beta_j)h_j)$ as a geometric series, and obtain
+  \[
+    w^*(\beta_j) - w^* \;=\; -\,A^{-1} x_j\,r_j\,\sum_{k=1}^{\infty}\,(1-\beta_j)^k\,h_j^{\,k-1}.
+  \]
+  Identify the $k=1$ term with the parameter influence from part (b), and observe that the higher-order terms ($k \ge 2$) are suppressed by powers of the leverage $h_j$.
+  \item[(e)] Specialize to the LOO endpoint $\beta_j = 0$. Sum the geometric series in $h_j$ to obtain the closed-form deletion update
+  \[
+    w^*_{(-j)} - w^* \;=\; -\,A^{-1} x_j\,r_j\,\bigl(1 + h_j + h_j^{2} + h_j^{3} + \cdots\bigr) \;=\; -\,\frac{A^{-1} x_j\,r_j}{1 - h_j}.
+  \]
+  The IF prediction is the $h_j^0$ leading term. Discuss the two regimes $h_j \to 0$ and $h_j \to 1$: when does keeping only the linear term suffice, and when do all the higher-order corrections matter?
+\end{enumerate}
+\end{exercise}
+
+\begin{remark}[What is leverage?]\label{rem:leverage}
+The quantity $h_j = x_j^\top A^{-1} x_j$ that appeared in \Cref{ex:ols-if} measures how \emph{unusual} the input $x_j$ is relative to the bulk of the design. To see this, observe that $\widehat\Sigma_{xx} := A/n = \tfrac{1}{n}\sum_i x_i x_i^\top$ is the empirical second-moment matrix of the inputs, so
+\[
+  h_j \;=\; \tfrac{1}{n}\;x_j^\top\,\widehat\Sigma_{xx}^{-1}\,x_j
+\]
+is $1/n$ times a \emph{Mahalanobis-style} squared norm of $x_j$, taken in the metric defined by the data itself. Geometrically: directions that the data samples a lot correspond to large eigenvalues of $\widehat\Sigma_{xx}$ and contribute little to $h_j$, while directions that are barely sampled correspond to small eigenvalues of $\widehat\Sigma_{xx}$ and so blow up under $\widehat\Sigma_{xx}^{-1}$. \emph{Inputs that point in under-sampled directions get large leverage.} High-leverage points are unusual in feature space.
+
+\Cref{fig:if-vs-loo} illustrates the effect on a simple linear regression: removing a low-leverage point (A, near the bulk of the data) barely changes the fit, and the IF approximation is accurate. Removing a high-leverage point (B, an outlier on the $x$-axis) changes the fit dramatically, and the IF underestimates the true LOO effect.
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{\imagepath/if_vs_loo.png}
+  \caption{Influence approximation vs.\ LOO ground truth for a linear regression. \emph{Left:} the full dataset. \emph{Centre:} removing the low-leverage point A ($h_A \approx 0.03$) barely perturbs the fit; the IF prediction closely matches LOO. \emph{Right:} removing the high-leverage point B ($h_B \approx 0.83$) moves the regression line substantially; the IF underestimates the true change. Note that both points have the same parameter influence.}
+  \label{fig:if-vs-loo}
+\end{figure}
+\end{remark}
+
+\subsection{Translation to modern neural networks}\label{subsec:if-nn}
+
+The derivation in \Cref{subsec:if-formula} relied on two assumptions:
+\begin{enumerate}
+  \item[(i)] $w^*$ is the unique global minimum of the training loss;
+  \item[(ii)] the Hessian $H = \nabla_w^2 L(w^*)$ is positive definite.
+\end{enumerate}
+While neither holds for a modern neural network, the quantities in \Cref{def:if} are, in principle, computable. \citet{koh2017understanding} popularized the influence function formula as a tool for deep learning, and a substantial body of work has tried to make it useful at scale. 
+
+\paragraph{(1) Non-uniqueness and a singular Hessian.} For a neural network the global minimum is usually not unique. The set of minimizers is generically a positive-dimensional zero locus, and the Hessian at any point on it is singular: it has a nontrivial null space corresponding to directions of parameter movement that leave the loss unchanged. This is the degeneracy phenomenon observed in the SLT day, and it means we cannot invert $H$ as in \Cref{def:if}.
+
+The standard remedy is to \emph{dampen} the Hessian: replace $H^{-1}$ with $(H + \lambda I)^{-1}$ for some $\lambda > 0$. This is the same as adding an $L_2$-regularizer $\frac{\lambda}{2}\|w-w^*\|^2$ to the training objective $L(\beta,w)$; this yields a a new loss function $L_{reg}(w,\beta)= L(w,\beta)+\frac{\lambda}{2}\cdot ||w-w^*||^2$.
+
+
+%TODO: Add figure illustrating the proximity gap (from Bae et al.).
+
+\paragraph{(2) Negative curvature.} Even after damping away the zero eigenvalues, $H$ at a non-converged checkpoint can have negative eigenvalues, in which case $(H + \lambda I)^{-1}$ may still be ill-conditioned or even point in the wrong direction. The standard fix is to replace $H$ with the \emph{Gauss--Newton Hessian} (GNH)
+\[
+  G \;=\; \mathbb{E}_{(x,y)\sim\mathcal{D}}\bigl[J^\top H_y J\bigr],
+\]
+where $J = \partial f_w/\partial w$ is the parameter-output Jacobian and $H_y$ is the Hessian of the per-example loss with respect to the network outputs (not the parameters). For the cross-entropy and squared losses $H_y$ is positive semidefinite, hence so is $G$. The GNH is a local approximation to the true Hessian that ignores second derivatives of the network outputs with respect to the parameters. It is not hard to show that $G$ and $H$ differ by a term that vanishes at a critical point of $L$, so the GNH is a reasonable proxy for $H$ when $w^*$ is close to optimal.
+
+\paragraph{(3) Non-converged checkpoints.} In practice $w^*$ is not a critical point of $L$. The classical formula in \Cref{def:if} is then evaluated at a point where $\nabla L \neq 0$.
+
+The fix proposed by \citet{bae2022if} is to replace the original training loss by a surrogate for which $w^*$ \emph{is} optimal by construction. Concretely, define the \emph{proximal Bregman objective} (PBO) as
+\begin{equation}
+  L_{\mathrm{PBO}}(w;\beta) \;=\; \sum_{i=1}^{n} D_{L_y}\!\bigl(f_w(x_i),\,f_{w^*}(x_i)\bigr) \;+\; \sum_{i=1}^{n}(\beta_i - 1)\,L(w,z_i) \;+\; \frac{\lambda}{2}\,\|w - w^*\|^2,
+  \label{eq:pbo}
+\end{equation}
+where $D_{L_y}(\hat y,\hat y^*)$ is the Bregman divergence of the output-space loss $L_y$ around $\hat y^*$. The first term penalizes any change in the network's predictions on the training set, with the current model $w^*$ as the reference; the second is the perturbation of interest; the third is the damping. By construction, $w^*$ is the minimizer of $L_{\mathrm{PBO}}(\,\cdot\,;\mathbf{1})$ regardless of whether it is a critical point of the original loss. The minimizer of $L_{\mathrm{PBO}}(\,\cdot\,;\beta)$ for nearby $\beta$ defines the \emph{proximal Bregman response function} (PBRF).
+
+When one re-derives the influence function formula starting from $L_{\mathrm{PBO}}$ instead of $L$, the result is
+\begin{equation}
+  \mathcal{I}_{\mathrm{PBRF}}(z_i,\phi) \;=\; -\,\nabla_w\phi(w^*)^\top\,(G + \lambda I)^{-1}\,\nabla_w L(w^*,z_i),
+  \label{eq:if-pbrf}
+\end{equation}
+the same expression that the modern literature uses.
+This is effectively the counterfactual it approximates. As \citet{bae2022if} put it: \emph{if influence functions are the answer, the question is the PBRF, not LOO retraining}. We refer to their paper for a detailed decomposition of the remaining gap between the PBRF and the original LOO counterfactual.
+
+\begin{remark}[Connection to the SLT day]\label{rem:slt-connection}
+A central obstacle to the application of influence functions to modern neural networks is \emph{degeneracy}: the set of minimizers of an overparameterized model is singular and the Hessian has a large null space. In \Cref{sec:bayesian-if} we will see a degeneracy-aware alternative: Bayesian influence functions, which replace inverse-Hessian computations with covariances over a localized posterior.
+\end{remark}
+
+\begin{remark}[Scaling and EK-FAC]\label{rem:scaling}
+Even with the PBRF reframing, computing $(G + \lambda I)^{-1}$ for a billion-parameter model is not directly feasible. \citet{grosse2023studying} scale influence functions to large language models by approximating $G$ with EK-FAC (a Kronecker-factored approximation to layerwise curvature).
+\end{remark}
+
+\begin{exercise}[Failure of the first-order approximation in a degenerate model]\label{ex:if-degenerate}
+Consider the toy two-parameter model from the SLT lecture day in which $w = (a,b)$ enters the loss only through the product $u = ab$, with squared loss $L(w,z) = \tfrac12(z - ab)^2$ on training data $\{z_1,\dots,z_n\}\subset\mathbb{R}$.
+\begin{enumerate}
+  \item[(a)] Write down the Hessian of the training loss at any minimizer $(a^*,b^*)$ with $a^* b^* = \bar z := \tfrac1n\sum_i z_i$. Show that it has rank one, and identify the one-dimensional null space geometrically.
+  \item[(b)] Compute the influence function $\mathcal{I}(z_i,\phi)$ for the observable $\phi(w) = ab$, treating $H^{-1}$ as a Moore--Penrose pseudoinverse\footnote{Concretely you can take the eigedecomposition of $H$ and only invert the non-zero eigenvalues}. How does it compare with the exact LOO change in $\phi$?
+  \item[(c)] Repeat (b) using the damped inverse $(H + \lambda I)^{-1}$ for a small $\lambda > 0$. Discuss how the answer depends on $\lambda$, on the choice of minimizer $(a^*,b^*)$ along the singular set, and on $n$. What does this say about the proximity gap?
+\end{enumerate}
+\end{exercise}

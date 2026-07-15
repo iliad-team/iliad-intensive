@@ -1,0 +1,135 @@
+\pdfoutput=1
+\documentclass[a4paper,11pt]{article}
+
+% Page geometry
+\usepackage[margin=2.5cm]{geometry}
+
+% Fonts and encoding
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+% Math
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+
+% Hyperlinks and TOC
+\usepackage{xcolor}
+\usepackage{tcolorbox}
+\tcbuselibrary{breakable}
+\usepackage[colorlinks=true,linkcolor=blue!60!black,citecolor=blue!60!black,urlcolor=blue!60!black]{hyperref}
+\usepackage[nottoc]{tocbibind}
+\usepackage[capitalize,noabbrev]{cleveref}
+
+% Bibliography
+\usepackage[round]{natbib}
+
+% Figures
+\usepackage{graphicx}
+\usepackage{tikz}
+% Misc
+\usepackage{enumitem}
+\usepackage{booktabs}
+
+% ---------------------------------------------------------
+% Theorem-like environments (matching the SLT tutorial)
+% ---------------------------------------------------------
+
+% Shared counter, numbered within section
+\newcounter{everything}[section]
+\renewcommand{\theeverything}{\thesection.\arabic{everything}}
+
+% Definitions (bold title, italic body)
+\theoremstyle{definition}
+\newtheorem{definition}[everything]{Definition}
+
+% Examples (bold title, normal body)
+\theoremstyle{definition}
+\newtheorem{example}[everything]{Example}
+
+% Exercises (bold title, normal body)
+\theoremstyle{definition}
+\newtheorem{exerciseinner}[everything]{Exercise}
+\tcolorboxenvironment{exerciseinner}{
+  colback=gray!10,
+  colframe=gray!10,
+  boxrule=0pt,
+  arc=2pt,
+  left=6pt, right=6pt, top=6pt, bottom=6pt,
+  breakable
+}
+\newenvironment{exercise}[1][]{\begin{exerciseinner}[#1]}{\end{exerciseinner}}
+
+% Remarks (italic title, normal body)
+\theoremstyle{remark}
+\newtheorem{remark}[everything]{Remark}
+
+% Theorems, propositions, corollaries (bold title, italic body)
+\theoremstyle{plain}
+\newtheorem{theorem}[everything]{Theorem}
+\newtheorem{proposition}[everything]{Proposition}
+\newtheorem{corollary}[everything]{Corollary}
+\newtheorem{lemma}[everything]{Lemma}
+
+% Epigraph helper
+\newcommand{\epigraph}[2]{%
+  \begin{center}
+  \begin{minipage}{0.6\textwidth}
+  \itshape #1
+  \begin{flushright}---#2\end{flushright}
+  \end{minipage}
+  \end{center}
+  \vspace{1em}
+}
+
+% Convenience macros
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator{\tr}{tr}
+
+\begin{document}
+
+% Title page
+\begin{center}
+{\LARGE\bfseries Data (Attribution) for Alignment}\\[0.4em]
+{\Large Growing neural networks}\\[1.5em]
+{\large
+Louis Jaburi\\
+\textit{EleutherAI}
+}\\[1.5em]
+Iliad Intensive, April 2026\\
+{[Draft 2026.04.13]}
+\end{center}
+
+\vspace{1em}
+\tableofcontents
+\newpage
+
+% Epigraph
+\epigraph{}{}
+
+\input{sections/00_introduction}
+
+\input{sections/01_causality}
+
+\input{sections/02_influence}
+
+\input{sections/03_bayesian}
+
+\input{sections/04_unrolling}
+
+\input{sections/05_practical}
+
+\input{sections/06_further}
+
+% ---------------------------------------------------------
+% References
+% ---------------------------------------------------------
+\bibliographystyle{plainnat}
+\bibliography{biblo}
+
+% ---------------------------------------------------------
+\appendix
+\input{sections/07_solutions}
+
+\end{document}

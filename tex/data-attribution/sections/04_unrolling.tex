@@ -1,0 +1,290 @@
+% ---------------------------------------------------------
+\section{Unrolling}\label{sec:unrolling}
+
+The influence functions of \Cref{sec:influence} and the Bayesian influence functions of \Cref{sec:bayesian-if} both have something in common: they analyze the \emph{endpoint} of training, not the \emph{dynamic} that lead to it. Under the assumptions of the unique global minimum, this is not a problem: the training trajectory is irrelevant, since all roads lead to the same outcome. But in practice the training path will matter a lot. Ultimately, we are studying generalization and this is ultimately a question about the training dynamics. Similarly, the BIF looks at the posterior expectation shifts. To give a concrete failure mode: a training point that appears in the first mini-batch of the first epoch will have a very different effect compared to the same point appearing towards the end of training.
+
+If we write down the training trajectory as a composition of $\beta$-dependent maps:
+\[
+\begin{array}{ccccccccc}
+  \R^p & \xrightarrow{\;h_0(\cdot\,;\beta)\;} & \R^p & \xrightarrow{\;h_1(\cdot\,;\beta)\;} & \cdots & \xrightarrow{\;h_{T-1}(\cdot\,;\beta)\;} & \R^p & \xrightarrow{\;\phi\;} & \R \\[4pt]
+  w_0 & \longmapsto & w_1 & \longmapsto & \cdots & \longmapsto & w_T & \longmapsto & \phi(w_T)
+\end{array}
+\]
+where each $h_t$ is one optimizer step (a gradient step, an Adam update, etc.): $w_{t+1} = h_t(w_t;\beta)$, we can observe an analogy to a forward pass through a neural network:
+\[
+\begin{array}{ccccccccc}
+  \R^{d_0} & \xrightarrow{\;f_1(\cdot\,;w)\;} & \R^{d_1} & \xrightarrow{\;f_2(\cdot\,;w)\;} & \cdots & \xrightarrow{\;f_L(\cdot\,;w)\;} & \R^{d_L} & \xrightarrow{\;\ell\;} & \R \\[4pt]
+  a_0 & \longmapsto & a_1 & \longmapsto & \cdots & \longmapsto & a_L & \longmapsto & \ell(a_L)
+\end{array}
+\]
+where each $f_\ell$ is one layer: $a_{\ell} = f_\ell(a_{\ell-1}; w)$.
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+& \textbf{Forward pass } & \textbf{Training trajectory} \\
+\midrule
+Inputs & Model weights $w$ & Data weights $\beta$ \\
+Intermediate states & Activations $a_1,\dots,a_L$ & Parameters $w_0,\dots,w_T$ \\
+Output & Loss $\ell(\text{logits})$ & Observable $\phi(w_T)$ \\
+Differentiation method & Backpropagation & Unrolling \\
+\bottomrule
+\end{tabular}
+\caption{Data attribution via unrolling is to a training run what backprop is to a forward pass: differentiating a composition of maps to identify which inputs matter most.}
+\end{table}
+
+% TODO: add reference to curse of unrolling paper later
+
+This invites the following question: Can we backprop through the \emph{training trajectory}? The gradients with respect to the $\beta_i$ then indicate which data points would need to be up- or downweighted to change the final observable $\phi(w_T)$. And in principle, we can! We can differentiate through the training computation, step by step, treating the final parameters as an explicit function of every gradient update along the way. The result is a chain-rule expression that decomposes data attribution into per-step contributions and naturally incorporates the optimizer, learning rate schedule, mini-batch ordering, and training duration. We will derive the unrolling formula similar to the backprop formula for a forward pass, and then discuss two approaches to making it practical: one that materializes Jacobians and one that computes Jacobian-vector products implicitly. In the setup of \Cref{eq:holy-maps} we take $\pi(\beta)=w_T(\beta)$, the final checkpoint of the training run.
+
+
+\subsection{The training-dynamics approach to attribution}\label{subsec:unroll-motivation}
+
+We fix notation for the training process. Given a dataset $\mathcal{D} = \{z_1,\dots,z_n\}$ with sample weights $\beta = (\beta_1,\dots,\beta_n)$, the optimizer runs for $T$ steps. At step $t$, a mini-batch $B_t \subseteq \{1,\dots,n\}$ of size $b$ is drawn, and the parameters are updated by
+\begin{equation}\label{eq:sgd-update}
+  w_{t+1}(\beta) \;=\; w_t(\beta) \;-\; \frac{\eta_t}{b}\sum_{i\in B_t}\beta_i\,\nabla_w L\bigl(w_t(\beta),\,z_i\bigr),
+\end{equation}
+where $\eta_t$ is the learning rate at step $t$. At $\beta = \mathbf{1}$ this is ordinary SGD on the unweighted loss. The initial parameters $w_0$ are independent of $\beta$.
+For simplicity we can assume that we are training for one epoch only, so that each example appears in exactly one mini-batch, but the formulas hold more generally.
+
+\paragraph{The counterfactual.} We want
+\[
+  \frac{\partial\,\phi(w_T(\beta))}{\partial \beta_i}\bigg\rvert_{\beta=\mathbf{1}},
+\]
+the sensitivity of a final-model observable $\phi$ to an infinitesimal change in the weight of training example $z_i$. 
+\subsection{The unrolling formula}\label{subsec:unroll-formula}
+
+Central to computing the data weight gradient is the Jacobian of one SGD step with respect to the current parameters. Define
+\begin{equation}\label{eq:step-jacobian}
+  J_t \;:=\; \frac{\partial w_{t+1}}{\partial w_t}\bigg\rvert_{\beta=\mathbf{1}} \;=\; I \;-\; \frac{\eta_t}{b}\sum_{i\in B_t}\nabla_w^2 L(w_t,z_i) \;=\; I - \eta_t\,\widehat{H}_t,
+\end{equation}
+where $\widehat{H}_t := \tfrac{1}{b}\sum_{i\in B_t}\nabla_w^2 L(w_t,z_i)$ is the mini-batch Hessian at step $t$. The Jacobian of the map from step $t$ to step $t'$ is the ordered product
+\begin{equation}\label{eq:chained-jacobian}
+  J_{t:t'} \;:=\; J_{t'-1}\,J_{t'-2}\cdots J_{t} \;=\; \prod_{s=t}^{t'-1} J_s \qquad (t < t').
+\end{equation}
+Similarly, the direct effect of $\beta_i$ at step $t$ (when $i\in B_t$) is the per-example gradient:
+\begin{equation}\label{eq:direct-effect}
+  \frac{\partial w_{t+1}}{\partial \beta_i}\bigg\rvert_{\substack{\beta=\mathbf{1}\\w_t\text{ fixed}}} \;=\; -\,\frac{\eta_t}{b}\,\nabla_w L(w_t,z_i) \cdot \mathbf{1}[i\in B_t].
+\end{equation}
+The full derivative is obtained by chaining direct effects through remaining steps:
+
+\begin{equation}\label{eq:unroll-formula}
+  \boxed{\;\frac{\partial w_T(\beta)}{\partial \beta_i}\bigg\rvert_{\beta=\mathbf{1}} \;=\; -\sum_{t=0}^{T-1}\frac{\eta_t}{b}\;\mathbf{1}[i\in B_t]\;J_{(t+1):T}\;\nabla_w L(w_t,z_i).\;}
+\end{equation}
+Each term in the sum corresponds to one training step in which $z_i$ appeared in the mini-batch: it is the gradient of $z_i$ at the parameters of that step, propagated forward through the Jacobians of all subsequent steps.
+
+The influence on an observable $\phi$ follows by the chain rule:
+\begin{equation}\label{eq:unroll-influence}
+  \frac{\partial\,\phi(w_T(\beta))}{\partial \beta_i}\bigg\rvert_{\beta=\mathbf{1}} \;=\; -\,\nabla_w\phi(w_T)^\top\sum_{t=0}^{T-1}\frac{\eta_t}{b}\;\mathbf{1}[i\in B_t]\;J_{(t+1):T}\;\nabla_w L(w_t,z_i).
+\end{equation}
+
+\begin{remark}[Which questions does unrolling answer?]\label{rem:unroll-vs-if}
+Equation~\eqref{eq:unroll-formula} looks like a sum over training steps and, for a fixed realization of the mini-batch sequence, it \emph{is} a deterministic chain-rule computation. But the training run has randomness (initialization, mini-batch ordering, data augmentation), and so does the counterfactual: if we change $\beta_i$, the mini-batch sequence might be the same or it might differ. Unrolling as written differentiates through a \emph{specific} training run: it answers the \emph{single-model} attribution question, ``how would this particular training trajectory have ended differently?''\! The \emph{distributional} question, which looks at the expected change over random training, would require averaging \eqref{eq:unroll-formula}. This distinction, which we will revisit in \Cref{sec:practical}, is the training-dynamics analogue of the single-posterior-mode vs.\ full-posterior distinction in \Cref{sec:bayesian-if}.
+\end{remark}
+
+\begin{exercise}[Derivation of the unrolling formula]\label{ex:unroll-derive}
+\begin{enumerate}
+  \item[(a)] Starting from the SGD update \eqref{eq:sgd-update}, apply the chain rule to write $\tfrac{\partial w_{t+1}}{\partial \beta_i}\big|_{\beta=\mathbf{1}}$ as a sum of two terms: one from the explicit dependence on $\beta_i$ (the direct effect) and one from the dependence of $w_t$ on $\beta_i$ (the indirect effect). Show that the result is the recursion
+  \[
+    \frac{\partial w_{t+1}}{\partial \beta_i} \;=\; J_t\,\frac{\partial w_t}{\partial \beta_i} \;-\; \frac{\eta_t}{b}\;\mathbf{1}[i\in B_t]\;\nabla_w L(w_t,z_i),
+  \]
+  with initial condition $\tfrac{\partial w_0}{\partial \beta_i} = 0$. Compute the Jacobian $J_t$ explicitly in terms of the mini-batch Hessian $\widehat{H}_t$ which leads to \eqref{eq:step-jacobian}.
+  \item[(b)] Solve the recursion by ``unrolling'' it (i.e.\ by substituting repeatedly and using \eqref{eq:chained-jacobian}) to obtain \eqref{eq:unroll-formula}.
+  \item[(c)] \textbf{(Preconditioned SGD.)} Suppose instead that the optimizer uses a preconditioner $P_t \succ 0$:
+  \begin{equation}\label{eq:precond-update}
+    w_{t+1}(\beta) \;=\; w_t(\beta) \;-\; \frac{\eta_t}{b}\,P_t\sum_{i\in B_t}\beta_i\,\nabla_w L(w_t(\beta),z_i).
+  \end{equation}
+  This includes momentum-free Adam and natural gradient methods as special cases (with appropriate $P_t$). Show that the step Jacobian becomes $J_t^{(P)} = I - \eta_t\,P_t\widehat{H}_t$ and that the unrolling formula generalizes to
+  \begin{equation}\label{eq:unroll-precond}
+    \frac{\partial w_T(\beta)}{\partial \beta_i}\bigg\rvert_{\beta=\mathbf{1}} \;=\; -\sum_{t=0}^{T-1}\frac{\eta_t}{b}\;\mathbf{1}[i\in B_t]\;J_{(t+1):T}^{(P)}\;P_t\,\nabla_w L(w_t,z_i),
+  \end{equation}
+  where $J_{(t+1):T}^{(P)} = \prod_{s=t+1}^{T-1}(I - \eta_s P_s\widehat{H}_s)$. The only change is that each gradient is premultiplied by the preconditioner at the step where it appears. What does this say about the effect of using Adam vs.\ SGD on the attribution of a data point that appears early in training?
+\end{enumerate}
+\end{exercise}
+
+\begin{remark}[TracIn]\label{rem:tracin}
+\citet{pruthi2020estimating} observed that the Jacobian products $J_{(t+1):T}$ in \eqref{eq:unroll-formula} are both the most expensive and the most unstable part of the computation. Their method, TracIn, simply drops them, setting $J_{(t+1):T} \approx I$:
+\begin{equation}\label{eq:tracin}
+  \mathrm{TracIn}(z_i,\phi) \;:=\; \sum_{t\in\mathcal{C}}\eta_t\;\nabla_w\phi(w_t)^\top\nabla_w L(w_t,z_i),
+\end{equation}
+where $\mathcal{C}$ is a set of checkpoints (typically one per epoch).
+\end{remark}
+
+There are two ways to make \eqref{eq:unroll-formula} practical. The first is to compute the Jacobian products $J_{(t+1):T}$ explicitly, or rather an approximation thereof. The second is to avoid materializing Jacobians altogether and instead compute Jacobian-vector products implicitly by reverse-mode automatic differentiation through the training loop. We will discuss both approaches in turn.
+
+\subsubsection{Materializing the Jacobian}\label{subsec:explicit-unroll}
+
+ In this subsection we will derive the SOURCE method \citep{bae2024source}, which introduces a small number of approximations of Jacobians that reduce the full unrolling computation to something resembling an influence-function calculation at each of several checkpoints.
+
+\paragraph{Stationary segments.} Divide the $T$ training steps into $L$ segments at checkpoints $0 = T_0 < T_1 < \cdots < T_L = T$, and let $K_\ell = T_\ell - T_{\ell-1}$ be the number of steps in segment $\ell$. Within each segment, make the \emph{stationarity approximation}: the expected mini-batch Hessian and per-example gradient are approximately constant,
+\begin{equation}\label{eq:stationary-approx}
+  \bar{H}_\ell \;\approx\; \frac{1}{K_\ell}\sum_{t=T_{\ell-1}}^{T_\ell - 1}\widehat{H}_t, \qquad \bar{g}_{i,\ell} \;\approx\; \frac{1}{K_\ell}\sum_{t=T_{\ell-1}}^{T_\ell - 1}\nabla_w L(w_t,z_i).
+\end{equation}
+Similarly, write $\bar\eta_\ell$ for the average learning rate in segment $\ell$.
+
+\paragraph{Segment Jacobian.} Under the stationarity approximation, the product of $K_\ell$ step Jacobians within segment $\ell$ simplifies to a matrix power:
+\begin{equation}\label{eq:segment-jacobian}
+  J_{T_{\ell-1}:T_\ell} \;\approx\; (I - \bar\eta_\ell\,\bar{H}_\ell)^{K_\ell} \;\approx\; \exp\bigl(-\bar\eta_\ell\,K_\ell\,\bar{H}_\ell\bigr) \;=:\; \bar{S}_\ell.
+\end{equation}
+The matrix exponential is well approximated by the matrix power when $\bar\eta_\ell\,\bar{H}_\ell$ has small spectral norm. In an eigenbasis of $\bar{H}_\ell$ with eigenvalue $\sigma$, the segment Jacobian acts as the scalar filter $F_S(\sigma) = e^{-\bar\eta_\ell K_\ell \sigma}$: high-curvature directions ($\sigma$ large) are exponentially damped, while low-curvature directions ($\sigma$ small) are preserved.
+
+\paragraph{Segment response.} Return to the unrolling formula \eqref{eq:unroll-formula} and restrict the sum to the steps inside segment $\ell$. The contribution of datum $z_i$ during this segment is
+\begin{equation}\label{eq:segment-response-exact}
+  R_{i,\ell} \;:=\; \sum_{t=T_{\ell-1}}^{T_\ell - 1}\frac{\eta_t}{b}\;\mathbf{1}[i\in B_t]\;J_{(t+1):T_\ell}\;\nabla_w L(w_t,z_i),
+\end{equation}
+where the Jacobian $J_{(t+1):T_\ell}$ propagates each gradient contribution forward to the segment boundary $T_\ell$ (propagation from $T_\ell$ to the end of training is handled by the inter-segment Jacobians $\bar{S}_{\ell'}$ in the full formula below). Now apply the stationarity approximation: replace each $\nabla_w L(w_t,z_i)$ by $\bar{g}_{i,\ell}$, each learning rate by $\bar\eta_\ell$, replace the indicator $\mathbf{1}[i\in B_t]$ by its expectation $b/n$ (datum $z_i$ appears in a random batch with probability $b/n$), and use the segment Jacobian approximation $J_{(t+1):T_\ell} \approx (I - \bar\eta_\ell\bar{H}_\ell)^{T_\ell - 1 - t}$. This gives
+\[
+  R_{i,\ell} \;\approx\; \frac{\bar\eta_\ell}{n}\sum_{k=0}^{K_\ell - 1}(I - \bar\eta_\ell\,\bar{H}_\ell)^{k}\;\bar{g}_{i,\ell}.
+\]
+The sum is a matrix geometric series. Using $\sum_{k=0}^{K-1}M^k = (I - M^K)(I-M)^{-1}$ with $M = I - \bar\eta_\ell\bar{H}_\ell$ and passing to the matrix exponential:
+\begin{equation}\label{eq:segment-response}
+  \bar{r}_{i,\ell} \;:=\; \frac{1}{n}\bigl(I - e^{-\bar\eta_\ell K_\ell \bar{H}_\ell}\bigr)\bar{H}_\ell^{-1}\,\bar{g}_{i,\ell}.
+\end{equation}
+To understand this, work in an eigenbasis of $\bar{H}_\ell$. On an eigenvalue $\sigma$, the matrix $(I - e^{-\bar\eta_\ell K_\ell \bar{H}_\ell})\bar{H}_\ell^{-1}$ acts as the scalar
+\begin{equation}\label{eq:filter-fr}
+  F_r(\sigma) \;=\; \frac{1 - e^{-\bar\eta_\ell K_\ell\,\sigma}}{\sigma}.
+\end{equation}
+Note the similarity to the classical influence function formula, which applies $1/\sigma$ (the inverse Hessian eigenvalue), and with the damped IF \eqref{eq:if-pbrf}, which applies $1/(\sigma + \lambda)$. Thus $F_r$ can be seen as a principled damping constant:
+\begin{itemize}
+  \item \emph{Large $\sigma$} (directions the optimizer has fully converged along): $e^{-\bar\eta_\ell K_\ell\,\sigma} \approx 0$, so $F_r(\sigma) \approx 1/\sigma$. Agrees with the classical IF\@.
+  \item \emph{Small $\sigma$} (directions the optimizer has barely moved along): $e^{-\bar\eta_\ell K_\ell\,\sigma} \approx 1 - \bar\eta_\ell K_\ell\,\sigma$, so $F_r(\sigma) \approx \bar\eta_\ell K_\ell$. A finite constant, not $1/\sigma \to \infty$.
+  \item \emph{Crossover} at $\sigma_* \approx 1/(\bar\eta_\ell K_\ell)$: directions with curvature below this threshold are automatically suppressed.
+\end{itemize}
+
+\paragraph{Full formula.} Chaining the segment Jacobians and responses across all $L$ segments:
+\begin{equation}\label{eq:source-formula}
+  \tau_{\mathrm{SOURCE}}(\phi,z_i) \;=\; \nabla_w\phi(w_T)^\top\,\sum_{\ell=1}^{L}\Bigl(\prod_{\ell'=\ell+1}^{L}\bar{S}_{\ell'}\Bigr)\,\bar{r}_{i,\ell},
+\end{equation}
+where the product is ordered with $\ell' = L$ on the left. With a single segment ($L=1$), the formula reduces to $\nabla_w\phi^\top\,\bar{r}_{i,1}$, which is the classical IF with $H^{-1}$ replaced by the filter $F_r$.
+
+\begin{remark}[Unrolling provides a principled damping]\label{rem:unroll-damping}
+The crossover $\sigma_* = 1/(\bar\eta K)$ in the filter $F_r$ plays exactly the role of the damping parameter $\lambda$ in the PBRF formula $(H + \lambda I)^{-1}$ from \Cref{subsec:if-nn}, but it is not a free parameter. It is the reciprocal of $\bar\eta K$, the total \emph{training effort} (learning rate $\times$ number of steps) in the segment. Directions that the optimizer has not had time to converge along are automatically down-weighted, because the Jacobian products have not had enough steps to amplify them. The practical consequence: the damping $\lambda$ that influence-function methods require careful tuning of has a natural value determined by the training process, and unrolling recovers it without any tuning.
+\end{remark}
+
+\subsubsection{Implicit JVPs and the REPLAY algorithm}\label{subsec:implicit-jvp}
+
+The second approach to evaluating \eqref{eq:unroll-formula} avoids materializing Jacobians altogether. Instead, it uses \emph{reverse-mode automatic differentiation} through the training loop, computing Jacobian-vector products (JVPs) implicitly. This is the strategy of the MAGIC method \citep{ilyas2025magic}, building on the metagradient framework of \citet{engstrom2025optimizing}. 
+
+\paragraph{Setup.} Model the entire training process as a composition of $T$ differentiable update functions:
+\begin{equation}\label{eq:iterative-training}
+  s_{t+1} = h_t\bigl(s_t,\, g_t(s_t,\beta)\bigr), \qquad s_0 = s_{\mathrm{init}},
+\end{equation}
+where $s_t$ is the full optimizer state at step $t$ (parameters, momentum buffers, etc.), $g_t(s_t,\beta) = \sum_{i\in B_t}\beta_i\,\nabla L(s_t,z_i)$ is the weighted mini-batch gradient, and $h_t$ is the optimizer's update rule (SGD, Adam, etc.). The attribution target is $\phi(s_T)$, which depends on $\beta$ through the entire chain of updates.
+
+\paragraph{The metagradient decomposition.} Applying the chain rule through this composition:
+\begin{equation}\label{eq:metagrad-decomp}
+  \frac{\partial\,\phi(s_T)}{\partial \beta} \;=\; \sum_{t=0}^{T-1}\underbrace{\frac{\partial\,\phi(s_T)}{\partial s_{t+1}}}_{A_{t+1}}\;\cdot\;\underbrace{\frac{\partial\,h_t(s_t,g_t(s_t,\beta))}{\partial \beta}}_{B_t}.
+\end{equation}
+The vector $A_{t+1} := \partial\phi(s_T)/\partial s_{t+1}$ is the sensitivity of the final observable to the state at step $t+1$; it satisfies the backward recursion
+\begin{equation}\label{eq:backward-recursion}
+  A_t \;=\; A_{t+1}\;\frac{\partial\,h_t(s_t,g_t)}{\partial s_t}, \qquad A_T = \nabla_{s_T}\phi(s_T).
+\end{equation}
+This is just backpropagation through the training loop. The vector $B_t$ is the direct effect of $\beta$ at step $t$: it captures how the gradient at step $t$ depends on the data weights. For vanilla SGD, $B_t$ reduces to $-(\eta_t/b)\,[\nabla_w L(w_t,z_i)\cdot\mathbf{1}[i\in B_t]]_{i=1}^n$.
+
+\paragraph{REPLAY: efficient reverse-mode through training.} The backward recursion \eqref{eq:backward-recursion} requires the optimizer state $s_t$ at every step. Naively this means storing all $T$ states, which is prohibitive for long training runs. The REPLAY algorithm \citep{engstrom2025optimizing} solves this with a \emph{hierarchical checkpointing} scheme:
+\begin{enumerate}
+  \item Save $k$ evenly-spaced checkpoints along the training trajectory.
+  \item When the backward pass needs a state between two checkpoints, \emph{replay} the training forward from the nearest saved checkpoint to regenerate it.
+  \item Apply this strategy recursively (a $k$-ary tree of depth $\log_k T$).
+\end{enumerate}
+The result is exact (to floating-point precision) differentiation through all $T$ training steps, using $O(k\log_k T)$ stored states and $O(T\log_k T)$ total forward-pass work, a logarithmic overhead over the cost of training itself.
+
+\paragraph{Comparison with explicit unrolling.} The implicit approach has two main advantages:
+\begin{itemize}
+  \item \emph{Exactness.} No stationarity or matrix-exponential approximations are needed; the Jacobian-vector products are computed exactly by autodiff.
+  \item \emph{Generality.} Any differentiable optimizer (Adam, LAMB, etc.) and any training pipeline (multi-stage, curriculum learning) are handled transparently, since $h_t$ is just a function.
+\end{itemize}
+The price is computational: REPLAY requires $O(T\log T)$ training-equivalent steps and careful engineering of the checkpointing schedule, whereas the explicit approach requires only a handful of checkpoints and an EK-FAC-style Hessian approximation at each. The choice depends on the scale: for moderate-size models where replaying training is feasible, MAGIC gives exact answers; for large-scale models where even one extra training pass is expensive, the SOURCE approximation with $L = 3$--$6$ segments may be the only practical option.
+
+\subsection{Long Exercise: From unrolling to influence functions}\label{subsec:unroll-to-if}
+
+The unrolling formula \eqref{eq:unroll-formula} and the influence function \eqref{eq:if-pbrf} appear to be very different objects: one is a sum over training steps of Jacobian-propagated gradients, the other is a single inverse-Hessian-times-gradient computation at the endpoint. The following exercise shows that, in the right limit, unrolling converges to the classical influence function. The key observation, due to \citet{mlodozeniec2025distributional}, is that the joint process $(w_t, r_t)$, where $r_t := \partial w_t/\partial\varepsilon\big|_{\varepsilon=0}$ is the unrolling response , forms a \emph{Markov chain}, and its limiting behavior can be analyzed with standard stochastic-approximation tools. This yields a convergence result that requires only that SGD reaches a local minimum, \emph{not} that the loss is convex.
+
+\begin{exercise}[Convergence of unrolling to influence functions]\label{ex:unroll-to-if}
+Consider the SGD update with an interpolated loss that downweights example $z_k$ by $\varepsilon$:
+\begin{equation}\label{eq:interpolated-sgd}
+  w_{t+1}(\varepsilon) \;=\; w_t(\varepsilon) \;-\; \frac{\eta_t}{b}\sum_{i\in B_t}\bigl(1 - \varepsilon\,\mathbf{1}[i=k]\bigr)\,\nabla_w L(w_t(\varepsilon),z_i),
+\end{equation}
+so $\varepsilon = 0$ is the original training run and $\varepsilon = 1/n$ corresponds to removing $z_k$. Define the \emph{response} $r_t := \partial w_t(\varepsilon)/\partial\varepsilon\big|_{\varepsilon=0}$.
+\begin{equation}\label{eq:response-markov}
+  \begin{pmatrix} w_{t+1} \\ r_{t+1} \end{pmatrix} \;=\; \underbrace{\begin{pmatrix} I & 0 \\ 0 & J_t \end{pmatrix}}_{\text{propagation}} \begin{pmatrix} w_t \\ r_t \end{pmatrix} \;+\; \underbrace{\begin{pmatrix} -\frac{\eta_t}{b}\sum_{i\in B_t}\nabla_w L(w_t,z_i) \\[4pt] \frac{\eta_t}{b}\,\mathbf{1}[k\in B_t]\,\nabla_w L(w_t,z_k) \end{pmatrix}}_{\text{driving terms}}
+\end{equation}
+\begin{enumerate}
+  \item[(a)] \textbf{(The response recursion.)} By differentiating \eqref{eq:interpolated-sgd} with respect to $\varepsilon$ at $\varepsilon = 0$, derive \eqref{eq:response-markov}, where $J_t = I - \frac{\eta_t}{b}\sum_{i\in B_t}\nabla_w^2 L(w_t,z_i)$ is the step Jacobian from \eqref{eq:step-jacobian}. The top row is ordinary SGD; verify that the bottom row is the same recursion as \Cref{ex:unroll-derive}(a), but now with stochastic batches. Since the driving terms depend only on $(w_t, r_t)$ and the i.i.d.\ batch selection $B_t$, the joint process is a Markov chain. Why is this observation useful?
+
+  \item[(b)] \textbf{(Deterministic warm-up: full-batch GD.)} As a warm-up, consider full-batch gradient descent with constant learning rate $\eta$ (i.e.\ $B_t = \{1,\dots,n\}$ for all $t$). Assume training has converged: $w_t \approx w^*$ and $\nabla_w^2 L(w_t) \approx H$ for all $t$ in a window of length $K$. Show that the response over this window satisfies
+  \[
+    r_T \;\approx\; -\bigl[I - (I-\eta H)^K\bigr]\,H^{-1}\,\nabla_w L(w^*,z_k).
+  \]
+  \emph{Hint:} Sum the geometric series $\sum_{t=0}^{K-1}(I-\eta H)^t$ using the identity $\sum_{t=0}^{K-1}M^t = (I-M^K)(I-M)^{-1}$.
+
+  Take $K\to\infty$ (assuming $\eta < 2/\lambda_{\max}(H)$) and recover the influence function $r_\infty = -H^{-1}\nabla_w L(w^*,z_k) = r_{\mathrm{IF}}$.
+
+  \item[(c)] \textbf{(Stochastic case: convergence to IF.)} Now return to SGD with i.i.d.\ batches and a decaying learning rate satisfying $\sum_t \eta_t = \infty$, $\sum_t \eta_t^2 < \infty$ (the Robbins--Monro conditions). Assume SGD converges to a local minimum $w^*$ with $H = \nabla_w^2 L(w^*)$ positive semidefinite. The continuous-time ODE that the response tracks is
+  \begin{equation}\label{eq:response-ode}
+    \dot{r}(t) \;=\; -H\,r(t) \;+\; \nabla_w L(w^*,z_k).
+  \end{equation}
+  (You do not need to prove that SGD tracks this ODE, this follows from standard stochastic approximation theory.)
+  \begin{enumerate}
+    \item[i.] Show that the equilibrium of \eqref{eq:response-ode} in the column space of $H$ is $r_{\mathrm{IF}} = H^+\nabla_w L(w^*,z_k)$, where $H^+$ is the pseudoinverse. This is the influence function, with $H^+$ in place of $H^{-1}$ because the Hessian may be singular at a local minimum of an overparameterized model.
+    \item[ii.] Show that the component of $r(t)$ in the \emph{null space} of $H$ grows linearly: if $P_0$ is the projector onto $\ker(H)$, then $P_0\,r(t) = P_0\,r(0) + t\,P_0\nabla_w L(w^*,z_k)$. Why does this component not converge? Under what condition on $\nabla_w L(w^*,z_k)$ does this runaway term vanish?
+  \end{enumerate}
+
+  The full result (\citet{mlodozeniec2025distributional}, Theorem~2) is: on the set of SGD trajectories that converge to a local minimum, $r_t \to r_{\mathrm{IF}} + r_{\mathrm{NS}}$ almost surely, where $r_{\mathrm{NS}} \in \ker(H)$. The influence function is the limiting response, up to a component in the flat directions of the loss.
+\end{enumerate}
+\end{exercise}
+
+
+\subsection{Exercise: Influence depends on training time}\label{subsec:dln-exercise}
+
+The previous sections analyzed unrolling's asymptotics in the converged limit. But the whole point of unrolling is that the training \emph{path} matters. The following exercise makes this concrete in a setting where the influence function admits a closed form at every point during training: a two-layer deep linear network (DLN), the same class of models from the SLT lecture day. The setup and analytic formula follow \citet{lee2025stagewise}.
+
+\begin{exercise}[Stagewise influence in a deep linear network]\label{ex:dln-influence}
+A two-layer linear network $f_W(x) = W_2 W_1 x$ with $W_1, W_2 \in \R^{d\times d}$ is trained on $\{(x_i,y_i)\}_{i=1}^n$ with squared loss. Assume whitened inputs ($\tfrac{1}{n}\sum_i x_i x_i^\top = I$) and, for simplicity, that the input--output cross-covariance $\Sigma_{xy} = \tfrac{1}{n}\sum_i x_i y_i^\top$ is already diagonal with entries $s_1 > s_2 > \cdots > s_d > 0$.\footnote{The general case replaces the standard basis with the left/right singular vectors $U, V$ of $\Sigma_{xy}$ throughout; see \Cref{rem:dln-general}.}
+
+\paragraph{Dynamics.} Under gradient flow with small balanced initialization, the network's modes evolve independently. The effective weight matrix at time $t$ is $W(t) = \mathrm{diag}(\mathcal{G}_1(t),\dots,\mathcal{G}_d(t))$, where each mode strength follows
+\begin{equation}\label{eq:dln-dynamics}
+  \mathcal{G}_k(t) \;=\; \frac{s_k\,e^{2s_k t/\tau}}{e^{2s_k t/\tau} - 1 + s_k/\mathcal{G}_k(0)},
+\end{equation}
+with $\mathcal{G}_k(0) \ll s_k$ and time constant $\tau$. Mode $k$ transitions from $\approx 0$ to $\approx s_k$ around time $t_k^* \approx \tfrac{\tau}{2s_k}\log(s_k/\mathcal{G}_k(0))$. Larger singular values saturate first: the network learns dominant structure before fine structure.
+
+\paragraph{Analytic influence.} Now perturb the weight of training example $z_p = (x_p,y_p)$ by $\varepsilon$, so the perturbed cross-covariance is $\Sigma_{xy}(\varepsilon) = \Sigma_{xy} + \varepsilon\,y_p x_p^\top$. Since $\Sigma_{xy}$ is diagonal, the perturbation shifts its eigenvalues and rotates its eigenvectors. The influence of $z_p$ on the weight matrix at time $t$ decomposes as
+\begin{equation}\label{eq:dln-influence-formula}
+  \mathcal{I}_p(t) \;:=\; \frac{\partial W(t,\varepsilon)}{\partial\varepsilon}\bigg\rvert_{\varepsilon=0} \;=\; A\,\mathcal{G}(t) \;+\; \mathcal{G}'_\varepsilon(t) \;+\; \mathcal{G}(t)\,B,
+\end{equation}
+with three terms:
+\begin{itemize}
+  \item $A$ and $B$ are skew-symmetric matrices describing how the perturbation \emph{rotates} the left/right singular bases. Their off-diagonal entries are $A_{jk} = B_{kj} = (y_p)_j(x_p)_k/(s_k - s_j)$ for $j \neq k$.
+  \item $\mathcal{G}'_\varepsilon(t) = \mathrm{diag}\bigl(g'_t(s_1)\,(y_p)_1(x_p)_1,\;\dots,\;g'_t(s_d)\,(y_p)_d(x_p)_d\bigr)$ encodes the change in mode strengths, where
+  \begin{equation}\label{eq:dln-mode-sensitivity}
+    g'_t(s_k) \;:=\; \frac{\partial\,\mathcal{G}_k(t)}{\partial s_k}
+  \end{equation}
+  is the sensitivity of the $k$-th mode strength to a change in the corresponding singular value at time $t$.
+\end{itemize}
+
+The influence on the loss of a test example $z_q = (x_q, y_q)$, with residual $r_q(t) = y_q - W(t)x_q$, is
+\begin{equation}\label{eq:dln-influence-loss}
+  \mathcal{I}(z_p,\,\ell_q)(t) \;=\; -\,r_q(t)^\top\bigl(A\,\mathcal{G}(t) + \mathcal{G}'_\varepsilon(t) + \mathcal{G}(t)\,B\bigr)\,x_q.
+\end{equation}
+
+\begin{enumerate}
+  \item[(a)] \textbf{(Three sources of influence.)} Interpret the three terms in \eqref{eq:dln-influence-formula}:
+  \begin{itemize}
+    \item $A\,\mathcal{G}(t)$ and $\mathcal{G}(t)\,B$: the perturbation \emph{rotates} the singular bases, mixing already-learned modes into each other. Why are these terms proportional to the current mode strengths $\mathcal{G}(t)$ rather than to their derivatives?
+    \item $\mathcal{G}'_\varepsilon(t)$: the perturbation \emph{shifts} the singular values, changing how fast each mode is learned. Why does this term involve $g'_t(s_k)$, sensitivity of the dynamics to the singular value, rather than $\mathcal{G}_k(t)$ itself?
+  \end{itemize}
+  \item[(b)] \textbf{(When does influence peak?)} Using the dynamics \eqref{eq:dln-dynamics}, argue that $g'_t(s_k)$ is peaked around $t \approx t_k^*$ (the transition time of mode $k$). Conclude that the $\mathcal{G}'_\varepsilon$ term, the part of influence that acts through the learning speed of each mode, is concentrated in time around the moment the mode is being learned. Before and after, this contribution is negligible.
+
+  \emph{Hint:} Consider the limits $t \ll t_k^*$ (mode not yet learning, $\mathcal{G}_k \approx \mathcal{G}_k(0)$) and $t \gg t_k^*$ (mode saturated, $\mathcal{G}_k \approx s_k$). In both cases, how sensitive is $\mathcal{G}_k$ to a small change in $s_k$?
+  \item[(c)] \textbf{(Sign flips.)} Consider $d = 2$ with $s_1 \gg s_2$: mode~1 captures a coarse distinction (``animal vs.\ plant'') and mode~2 a fine distinction (``dog vs.\ cat'' within animals). A dog example $z_{\mathrm{dog}}$ and a cat example $z_{\mathrm{cat}}$ share the same mode-1 coordinate but have opposite mode-2 coordinates: $(x_{\mathrm{dog}})_2 = +(x_{\mathrm{cat}})_2$. Using \eqref{eq:dln-influence-loss}, argue that the influence of $z_{\mathrm{dog}}$ on a cat test loss can change sign during training: positive while mode~1 is being learned (shared structure), negative after mode~2 is learned (competing structure). At what time is the sign flip sharpest?
+\end{enumerate}
+\end{exercise}
+
+\begin{remark}[General singular basis]\label{rem:dln-general}
+When $\Sigma_{xy} = USV^\top$ is not diagonal, the formulas above hold with all vectors expressed in the singular basis: replace $x_p$ by $V^\top x_p$, $y_p$ by $U^\top y_p$, $r_q$ by $U^\top r_q$, and $W(t)$ by $U^\top W(t) V$. The influence on $W$ itself becomes $\mathcal{I}_p(t) = U(A\mathcal{G}(t) + \mathcal{G}'_\varepsilon(t) + \mathcal{G}(t)B)V^\top$, with $A_{jk} = (U^\top y_p)_j(V^\top x_p)_k/(s_k - s_j)$. See \citet{lee2025stagewise} for the full derivation, including the degenerate case $s_j = s_k$.
+\end{remark}
+
+\begin{remark}[The developmental view of attribution]\label{rem:developmental}
+  \citet{lee2025stagewise} show that the same phenomenology (influence sign flips, non-monotonic trajectories) appears in language models, where e.g.\ the influence of delimiter tokens spikes when the model learns pairing structure and then decays. The practical consequence is that data attribution is not a one-shot computation but a time-varying signal, and methods like unrolling that track the training trajectory are better suited to capture this than methods that look only at the final checkpoint.
+\end{remark}

@@ -38,8 +38,13 @@ git worktree add -b "port-$XY-claude" "$WT" main
 ln -s "$(pwd)/node_modules" "$WT/node_modules"                                  # top-level deps
 ln -s "$(pwd)/scripts/tex2mdx/node_modules" "$WT/scripts/tex2mdx/node_modules"  # REQUIRED: the converter has its OWN nested deps (bibtex-parse, unified-latex); the content build fails without this
 mkdir -p "$WT/tex/$SLUG"
-cp -r "$SRC"/. "$WT/tex/$SLUG/_src/"             # copy source in (repos/ is gitignored, absent in worktree)
+cp -r "$SRC"/. "$WT/_src_repo/"                  # original source repo at the WORKTREE ROOT (gitignored; see below)
 ```
+
+**The original source repo lives at `$WT/_src_repo` (i.e. `worktrees/<name-of-worktree>/_src_repo`).**
+If a port worktree already has the source, it is at `./_src_repo` — reuse it, don't re-clone.
+`_src_repo/` is in `.gitignore`, so it never gets committed; the subagent reads its content
+from there.
 
 Gotchas that WILL bite in a fresh worktree:
 - **Two** `node_modules` are gitignored and must BOTH be symlinked (above): the top-level one
@@ -48,8 +53,8 @@ Gotchas that WILL bite in a fresh worktree:
   with a bibliography — do **not** misread this as a missing `package.json` dep, and do **NOT**
   `npm install` into the symlinked `node_modules` (that mutates the *main* checkout and can
   trip npm's optional-dep prune bug). Just add the nested symlink.
-- `repos/` is gitignored → the source clone does not exist in the worktree. Copy it in (above)
-  or read it from the main checkout's absolute path.
+- `repos/` is gitignored → the source clone does not exist in the worktree. Copy it into
+  `$WT/_src_repo` (above) or read it from the main checkout's absolute path.
 - `tex/iliad.sty`, `content/clusters.json`, `scripts/`, `src/` **are** committed, so they're
   present in the worktree.
 - The **pre-push hook** runs a full `next build`, which cannot resolve a *symlinked*
@@ -65,10 +70,13 @@ Spawn a `general-purpose` subagent whose working area is `$WT/tex/$SLUG/`. Give 
 - The **verbatim mandate** (copy content with shell slicing/`cp`, edit only scaffolding lines).
 - The **framework contract** (below), or point it to `docs/commands.md`, `docs/iliad-sty.md`,
   and the canonical template `tex/example/main.tex`.
+- The location of the original source repo: `$WT/_src_repo` (i.e. `./_src_repo` from the
+  worktree root — gitignored, present if the port was scaffolded above).
 - The source structure and the target: assemble one self-contained `tex/<slug>/main.tex`
   (+ `tex/<slug>/biblo.bib`, + `fig/` if needed). Inline any `\input`-ed section files.
 - The build-until-clean loop and the commit/push/PR steps (Steps 3–4).
-- Instruction to **delete its `_src/` scratch** before committing.
+- Note that `_src_repo/` is gitignored, so it must **never** be staged/committed (no manual
+  cleanup needed, but never `git add` it).
 
 ### Framework contract the subagent must obey
 - One authored `main.tex`. First lines = YAML comment block:
@@ -126,8 +134,8 @@ gh pr create --base main --title "Port $XY: <Title>" \
   --body "Ports the <Title> worksheet (source: <origin repo>). Verbatim content; wrapped in the iliad.sty contract. Builds clean via scripts/build-content.mjs $SLUG."
 ```
 Only `main.tex`, `biblo.bib`, and `fig/*` are committed; everything else
-(`main-nosol.*`, `.aux/.pdf`, `content/`, `public/`, the `_src/` scratch, the `node_modules`
-symlink) is gitignored or must not be staged.
+(`main-nosol.*`, `.aux/.pdf`, `content/`, `public/`, the `_src_repo/` source copy, the
+`node_modules` symlink) is gitignored or must not be staged.
 
 ## Running CI / live-preview locally
 

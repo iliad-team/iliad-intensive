@@ -1,0 +1,125 @@
+% ---------------------------------------------------------
+\section{Causality and Counterfactuals}\label{sec:causality}
+
+\subsection{Data attribution as causal analysis}\label{subsec:da-causal}
+
+At the heart of data attribution, we find a causal question: \textbf{Which training examples caused a model to behave the way it does?}
+If mechanistic interpretability aims for the causal analysis of a forward pass, data attribution aims for the causal analysis of a training run.\footnote{In \Cref{sec:unrolling} we make this analogy explicit.} Our north star is a decomposition of the training data into ``causes'' of the model's behaviour.
+
+Two asymmetries between the two settings are worth keeping in mind from the start. First, both problems inherit the same conceptual difficulties of causal reasoning in general (explained in the next section) and there is no reason to expect data attribution to escape them. Second, a forward pass is cheap, while a training run is not. Where mechanistic interpretability can validate a claim by running many ablations, data attribution cannot in general afford even one retraining. That being said, there are also advantages: Generally speaking, the training process is more robust and the ablations we run may be more human understandable than high-dimensional modification of activations or weights.
+
+Now, before developing such data attribution methods, we should be aware of the tension between causality and the ways we will validate a hyptohesis. Finding a "true" causal relationship in practice can be much more difficult than it may seem at first glance.
+In the following section we take the question seriously, and find that the naive counterfactual answer fails in ways that matter.
+
+
+\subsection{Counterfactual attribution and its failures}\label{subsec:counterfactual}
+
+The classical notion of causation is due to \citet{lewis1973causation}: $A$ caused $B$ iff, had $A$ not occurred, $B$ would not have occurred. Applied to data attribution, this says that a training example ``causes'' a behaviour when removing it would have altered the behaviour, also knows as the \emph{leave-one-out (LOO) counterfactual}. We relax this defintion from a binary to a gradual one.
+
+\begin{definition}[Counterfactual attribution]\label{def:counterfactual}
+  We attribute an action $A$ to a behaviour $B$ iff
+  \begin{enumerate}[label=(\roman*)]
+    \item had $A$ occurred, $B$ would have occurred to a higher degree;
+    \item had $A$ not occurred, $B$ would have occurred to a lesser degree (or not at all).
+  \end{enumerate}
+\end{definition}
+
+\Cref{def:counterfactual} is the simplest formalisation of cause. But as \citet{mueller} emphasises, it breaks in at least two cases.
+
+\paragraph{Overdetermination: redundant causes are missed.} When two training examples are each \emph{sufficient} to produce a behaviour, removing either one leaves the behaviour intact, and LOO attributes credit to neither.
+
+\begin{example}[Overdetermination in the bakery]\label{ex:croissant}
+  OpenCroissant, a bakery, sources four ingredients: flour, butter, yeast, and sugar. Each can come from a standard or premium supplier. The bakery has observed that using all premium ingredients produces exceptionally fluffy croissants and wishes to identify which upgrades are responsible.
+
+  Unbeknownst to the bakery, exceptional fluffiness depends on two independent leavening mechanisms.
+  \begin{itemize}
+    \item \emph{Steam leavening.} Premium butter has higher fat content and better water distribution, producing more steam and hence more lift.
+    \item \emph{Biological leavening.} A premium yeast strain ferments more vigorously, producing more gas and hence more lift.
+  \end{itemize}
+  Either mechanism alone causes exceptional fluffiness: puff pastry rises from steam alone, and bread rises from yeast alone. Downgrading premium butter to standard therefore has negligible effect on fluffiness (the threshold is still met), and likewise for yeast. Counterfactual attribution (\Cref{def:counterfactual}) concludes that neither butter nor yeast was a cause albeit both were.
+\end{example}
+
+The same pattern may arise in learning, where once a behavior is learned, i.e. has hit saturation, additional examples will not affect it and appear as causally irrelevant.
+
+
+\paragraph{Non-transitivity: counterfactuals do not chain.} Direct ablation will not capture \emph{how} an action causes a behavior.
+
+\begin{example}[Non-transitivity of counterfactuals]\label{ex:nontransitive}
+  The following scenario is due to Ned Hall, as reported in \citet{hitchcock2001intransitivity}.
+  \begin{description}
+    \item[(A)] A hiker is wandering through the mountains when a boulder rolls down the hill.
+    \item[(B)] The hiker sees the boulder and dodges.
+    \item[(C)] The hiker is unharmed.
+  \end{description}
+  Counterfactually, (A) caused (B): had the boulder not rolled, the hiker would not have dodged. And (B) caused (C): had the hiker not dodged, she would have been crushed. But (A) did not cause (C): whether or not the boulder rolled, she ends up unharmed.
+\end{example}
+
+In the data-attribution setting this corresponds to chains of mediation. A training example may induce an intermediate feature, and that feature may drive a downstream capability, without the datapoint itself passing the counterfactual test against the capability end-to-end. Methods that look only at marginal effects miss the mediation.
+
+\subsection{Beyond leave-one-out: Shapley values}\label{subsec:shapley}
+
+A natural response to overdetermination is to stop looking only at the LOO swap and instead ask how a training example contributes across \emph{all} subsets of the training set it could be part of. This is the idea behind \emph{Shapley values} \citep{shapley1953value}.
+
+\begin{definition}[Shapley value]\label{def:shapley}
+  Let $v: 2^{[n]} \to \mathbb{R}$ be a set function (a ``game''). The Shapley value of element $i$ is
+  \[
+    \varphi_i(v) \;:=\; \frac{1}{n}\sum_{S \subseteq [n] \setminus \{i\}} \binom{n-1}{|S|}^{-1} \bigl(v(S \cup \{i\}) - v(S)\bigr).
+  \]
+\end{definition}
+We can think of $[n]$ as a set of players and $v(S)$ as the value of the coalition. In our previous example, the players are the premium ingredients and the value is the resulting fluffiness. Then $v(S)$ will measure the fluffiness of the croissant when the ingredients in $S$ are premium and the rest are standard.
+
+Shapley values partially address overdetermination. Returning to the baker example: in coalitions $S\subset [n]$ where neither butter nor yeast is premium, upgrading one has a large marginal effect; in coalitions where the other leavener is already premium, the marginal effect is small. Averaging gives each ingredient roughly half the credit.
+
+% We illustrate this over the full $2^4$ lattice of ingredient subsets in \Cref{fig:hasse-overlay}: the Hasse diagram of subsets, with edges corresponding to butter and yeast upgrades coloured by their marginal contribution to fluffiness. Bold edges (large marginal) occur when the other leavener is still standard; faded edges (small marginal) occur when the other leavener has already been upgraded.
+
+% TODO: produce \imagepath/hasse_overlay.pdf. Boolean lattice over {flour, butter,
+% yeast, sugar}; highlight butter- and yeast-upgrade edges with opacity/weight
+% proportional to marginal contribution to fluffiness. Caption should explain
+% the Shapley average is over these highlighted edges.
+%
+% \begin{figure}[t]
+%   \centering
+%   \includegraphics[width=0.75\linewidth]{\imagepath/hasse_overlay.pdf}
+%   \caption{The $2^4$ lattice of OpenCroissant's supplier choices. Edges corresponding to a butter or yeast upgrade are highlighted; bold indicates a large marginal contribution to fluffiness (the other leavener is still standard), faded indicates a small one. The Shapley values for butter and yeast average these marginal contributions across all coalitions.}
+%   \label{fig:hasse-overlay}
+% \end{figure}
+
+\begin{remark}[Shapley still dilutes credit]\label{rem:shapley-limit}
+  Shapley values redistribute credit more fairly but do not fully solve overdetermination. Each of butter and yeast receives roughly half the credit for fluffiness, yet each \emph{alone} is sufficient, so one could argue each deserves the full credit. Furthermore, Shapley values over a training set of size $n$ require evaluating $v(S)$ on $2^n$ coalitions, each demanding a retraining. This is hopeless for realistic models. 
+\end{remark}
+
+\subsection{Notation and goals}\label{subsec:convention}
+
+We close the section by fixing notation that will be used throughout.
+\begin{itemize}
+\item A training set is $\mathcal{D} = \{z_i\}_{i=1}^n$ with $z_i = (x_i, y_i)$.
+\item A model is a function $f_w: X \to Y$ parameterised by $w \in W \subset \mathbb{R}^{d_p}$.
+\item The per-example loss is $L_j(w)=L(w, z_i) = \ell(f_w(x_i), y_i)$ for some pointwise loss $\ell$. 
+\item We introduce a vector of \emph{data weights} $\beta = (\beta_1, \ldots, \beta_n) \in \mathbb{R}^n$ and define the \emph{weighted training loss}
+\[
+  L(w; \beta) \;:=\; \frac{1}{n}\sum_{i=1}^n \beta_i\, L(w, z_i),
+\]
+and we write $L(w) := L(w, 1)$ for the unweighted loss.
+\item The behaviour we want to attribute is a differentiable scalar observable $\phi: W \to \mathbb{R}$. This could be the loss on a held-out point, an average loss on a task, the logit of a specific completion, or any other scalar function of the trained parameters.  
+\end{itemize}  
+
+In general we want to know "If I change $\beta_i$, how will this affect $\phi$?" This question is typicall split into two parts:
+\begin{itemize}
+  \item \emph{Parameter influence}: "If I change $\beta_i$, how will this affect the final parameters?"
+  \item \emph{Influence on $\phi$}: "If I change the final parameters, how will this affect $\phi$?"
+\end{itemize}
+In practice we may think of the influence then as a measure of the composition of these maps
+\begin{align}\label{eq:holy-maps}
+  B &\xrightarrow{\pi} "W"\to \mathbb{R} \\
+  \beta &\mapsto w(\beta) \mapsto \phi(w(\beta)).
+\end{align}
+where we are intentionally vague about the first map and where the different approaches, influence functions, Bayesian influence functions, and unrolling, differ in how they interpret it.
+
+That being said, all attribution methods in these lecture notes can be phrased as estimators of partial derivatives or finite differences of this map. The \emph{influence} of an example $i$ is then computed as first-order approximation:
+
+\begin{equation}\label{eq:holy-grail}
+  \boxed{\;\frac{\partial\,\phi(\pi(\beta))}{\partial \beta_i}\bigg|_{\beta = \mathbf{1}}\;}
+\end{equation}
+
+
+
