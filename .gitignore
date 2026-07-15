@@ -20,11 +20,6 @@ public/downloads/
 # shared tex/iliad.sty, so local copies must never be committed.
 tex/*/iliad.sty
 
-# Draft worksheet, not yet ported to the iliad.sty contract: standalone
-# LaTeX with its own preamble (natbib + far.bst), outside the site build.
-# Keep it out of the repo until it is ported.
-tex/singular-learning-theory/
-
 # LaTeX build artifacts (compiled PDFs are downstream artifacts too —
 # figure PDFs under tex/*/fig/ are the one committed exception)
 tex/*/main-nosol.*
