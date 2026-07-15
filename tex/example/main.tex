@@ -49,9 +49,27 @@ A dummy worksheet demonstrating every construct the pipeline supports.
 \end{summary}
 
 % The "What you'll learn" box. Usually sits right here, after \maketitle.
+% The body is ordinary LaTeX. Simplest form: a single itemize.
+%   \begin{learningoutcomes}
+%     \begin{itemize}
+%       \item ...
+%     \end{itemize}
+%   \end{learningoutcomes}
+% For a longer sheet, group the outcomes under \subsection*{...} headings,
+% each followed by its own itemize (the headings become bold subheadings in
+% the box, on both the PDF and the web) -- shown here:
 \begin{learningoutcomes}
-  \item Recognise every markup element the tex $\to$ MDX pipeline supports.
-  \item Copy this file as the starting point for a new worksheet.
+  \subsection*{Using this template}
+  \begin{itemize}
+    \item Recognise every markup element the tex $\to$ MDX pipeline supports.
+    \item Copy this file as the starting point for a new worksheet.
+  \end{itemize}
+
+  \subsection*{Structuring learning outcomes}
+  \begin{itemize}
+    \item Group outcomes with \verb|\subsection*{...}| plus an \verb|itemize| when a flat list gets long.
+    \item Drop the \verb|\subsection*| headings for a short sheet -- a single \verb|itemize| is fine.
+  \end{itemize}
 \end{learningoutcomes}
 
 This dummy worksheet demonstrates every construct that survives the round trip

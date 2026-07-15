@@ -88,6 +88,7 @@ export default async function ModulePage({
             slug={slug}
             files={downloads}
             basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ""}
+            slidesUrl={fm.slides}
           />
         </header>
         <div className="prose">

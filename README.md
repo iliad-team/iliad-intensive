@@ -2,6 +2,10 @@
 
 **Live site: [iliad-team.github.io/iliad-intensive](https://iliad-team.github.io/iliad-intensive/)**
 
+Feedback welcome! I want friction for you as the writer to be as low as possible. If something is frustrating, [open an issue](https://github.com/iliad-team/iliad-intensive/issues) and let me know!
+
+[Project Board](https://github.com/orgs/iliad-team/projects/7/views/1)
+
 ## Setup (one-time)
 
 ```
@@ -31,7 +35,7 @@ name-of-my-material/
 ├── fig
 │   └── ... # figures
 ├── biblo.bib
-├── slides.[tex|mdx|pdf]
+├── slides.tex   # optional slide deck — compiled to a hosted PDF
 └── main.[tex|mdx]
 ```
 
@@ -39,9 +43,15 @@ You can write either in LaTeX or Markdown, as you prefer.
 The main file for the material is `main.[tex|mdx]` (`.tex` files are converted
 to `mdx` by the repo's own converter, `scripts/tex2mdx/`; pandoc is only used
 to build the PDF of Markdown-authored sheets).
-The slides for the material are `slides.[tex|mdx|pdf]`. Avoid using PDF slides,
-ideally write LaTeX slides using beamer (Google Slides are annoying with math
-and not machine-readable). *(Slides are not built by the pipeline yet.)*
+Slides are optional. Drop a `slides.tex` (any self-contained LaTeX — beamer is
+the usual choice; `iliad.sty` is *not* loaded for slides) in the folder and the
+build compiles it to a PDF hosted next to the worksheet — the page grows a
+**Slides** row (view / download the PDF, download the `.tex`). Slides are never
+converted to Markdown (a deck is a download, not a web page). If your deck only
+exists as a PDF with no source, don't commit the binary — host it (Drive, etc.)
+and add a `slides:` line to the `%--- iliad ---` block (see below); it renders
+as an outbound link instead. The build prints a (non-fatal) advisory for any
+worksheet with no `slides.tex`.
 
 ## Start a worksheet
 
@@ -73,14 +83,17 @@ that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
     * `\begin{summary} ... \end{summary}` summarizes the material, and is extracted
     and displayed in the page index and under the page title.
     * ```
-       \begin{learningoutcomes} 
+       \begin{learningoutcomes}
+       \begin{itemize}
        \item ...
-       \item ... 
+       \item ...
+       \end{itemize}
        \end{learningoutcomes}
-      ``` 
+      ```
       lists the learning outcomes of the material; renders as a
       "What you'll learn" box wherever you put it (usually right after
-      `\maketitle`).
+      `\maketitle`). For a longer sheet, group the outcomes under
+      `\subsection*{...}` headings, each followed by its own `itemize`.
     * The `%--- iliad ---` comment block at the very top of `main.tex` holds
       simple one-line YAML values — usually just the cluster the page is
       grouped under:
@@ -90,7 +103,9 @@ that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
       %--- end ---
       ```
       `title:`, `summary:`, and `contributors:` keys are also accepted there
-      and override whatever is extracted from the LaTeX.
+      and override whatever is extracted from the LaTeX. A `slides:` key holds
+      the URL of an externally hosted deck (for a PDF-only deck with no source);
+      it renders as an outbound link and is superseded by a compiled `slides.tex`.
 
 3. **Commands**: See `docs/commands.md` for details.
 * Exercises: `\begin{exercise}[Optional Title]\label{ex:your-label} ... \end{exercise}`
@@ -106,11 +121,14 @@ that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
 
 ## How to contribute
 
-Make a branch, work in your branch, commit your changes, open a PR to `main`,
-and David will merge it into the main branch.
-
-If you prefer to work in Overleaf, you can fork the repo, and then 
-[sync your fork](https://docs.overleaf.com/integrations-and-add-ons/git-integration-and-github-synchronization) to Overleaf. PR to upstream when ready. 
+* I just want to give content for David to port
+   - Open an issue, label it with your day of content e.g "[D.3] port over AIXI material" and point to whereever the content lives and I'll handle it
+* I want to port it myself
+   - Make a branch e.g. `d.3-aixi-port`, work in your branch, commit your changes, open a PR to `main`, and David will merge it into the main branch.
+* I don't like github/I have my own workflow.
+   - If you prefer to work in Overleaf, you can fork the repo, and then 
+[sync your fork](https://docs.overleaf.com/integrations-and-add-ons/git-integration-and-github-synchronization) to Overleaf. PR to upstream when ready.
+   - If you've got your own setup, work as your normally do, and then open an issue, or just email me `davidq@iliad.ac` with the subject `ILIAD intensive [X.Y]` that contains a `.zip` of the tex/markdown/whatever source and I'll handle it.
 
 ---
 *Maintainer & pipeline docs: [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)*

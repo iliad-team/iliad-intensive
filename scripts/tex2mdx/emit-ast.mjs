@@ -75,6 +75,7 @@ const CONTRACT_MACROS = {
   mbox: { signature: "m" }, makebox: { signature: "o m" }, fbox: { signature: "m" },
   ifdef: { signature: "m m m" }, ifdefined: { signature: "m m m" }, ifcsdef: { signature: "m m m" },
   crefrange: { signature: "m m" }, Crefrange: { signature: "m m" },
+  href: { signature: "o m m" },   // \href[opts]{url}{text}
   // cleveref config — unknown to unified-latex, so the parser needs the
   // signature or the three brace groups survive as literal text
   crefname: { signature: "m m m" }, Crefname: { signature: "m m m" },
@@ -361,13 +362,14 @@ function emitEnv(n) {
       break;
     }
     case "learningoutcomes": {
-      // iliad.sty's environment opens its own itemize, so the \items sit bare
-      // in the env body — emit them as a markdown list. A sheet that nests an
-      // explicit itemize instead has no bare \items; walk handles it.
-      const items = splitItems(n.content);
-      const body = items.length
-        ? items.map((it) => `- ${walk(it.nodes).trim()}`).join("\n")
-        : walk(n.content).trim();
+      // A plain box. The body is ordinary LaTeX: a single itemize of outcomes,
+      // or several \subsection*{...} groups each with its own itemize. We just
+      // walk it — but while inside, group headings (\subsection* etc.) render
+      // as bold lines rather than real markdown headings, so they don't emit
+      // page anchors or land in the table of contents (see emitHeading).
+      const wasLO = inLearningOutcomes; inLearningOutcomes = true;
+      const body = walk(n.content).trim();
+      inLearningOutcomes = wasLO;
       mdx = `<LearningOutcomes>\n\n${body}\n\n</LearningOutcomes>`;
       break;
     }
@@ -502,7 +504,15 @@ function emitMacro(n) {
     case "mbox": case "fbox": return walkArg(n, 0);
     case "makebox": return walkArg(n, 1);
     case "texorpdfstring": return walkArg(n, 0);
-    case "href": return `[${walkArg(n, 1)}](${argRaw(n, 0) ?? ""})`;
+    case "href": {
+      // \href[opts]{url}{text}: unified-latex's signature is "o m m", so the
+      // url is the second-to-last arg and the text the last. Compute from the
+      // arg count so this is robust whether or not the optional slot is present.
+      const k = n.args ? n.args.length : 0;
+      const url = (k >= 2 ? argRaw(n, k - 2) : null) ?? "";
+      const txt = (k >= 1 ? walkArg(n, k - 1).trim() : "") || url;
+      return `[${txt}](${url})`;
+    }
     case "url": return `<${lastArgRaw(n) ?? ""}>`;
     case "cref": case "Cref": return crefLinks(lastArgRaw(n) ?? "");
     case "ref": { const r = resolveRef((lastArgRaw(n) ?? "").trim()); return `[${r.text.replace(/^\w+\s/, "")}](#${r.anchor})`; }
@@ -571,6 +581,9 @@ function emitHeading(n) {
   const name = n.content;
   const starred = !!argRaw(n, 0);
   const titleNodes = n.args[n.args.length - 1].content;
+  // Inside a learningoutcomes box, group headings are just bold lines — no
+  // numbering, no TOC entry, no anchor.
+  if (inLearningOutcomes) return `\n\n**${walk(titleNodes).trim()}**\n\n`;
   // label immediately after the heading is absorbed by walk() lookahead;
   // here we only compute numbering + text
   let headText;
@@ -588,6 +601,7 @@ function emitHeading(n) {
   return `\n\n${pendingHeading.level} ${headText}\n\n`;
 }
 let pendingHeading = null;
+let inLearningOutcomes = false;
 
 // ------------------------------------------------------------------ walk ---
 function walk(nodes) {

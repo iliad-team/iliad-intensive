@@ -17,7 +17,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      # lfs: true — figures under tex/**/fig/*.png are stored in Git LFS
+      # (.gitattributes). Without this the working tree gets pointer files, and
+      # any \includegraphics of one fails the PDF build with a libpng error.
       - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: TeX Live + poppler + pandoc
         # Keep this list in sync with ./setup.sh — it is the reference package
@@ -27,7 +32,10 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends \
             texlive-latex-extra texlive-pictures texlive-science \
-            texlive-fonts-recommended cm-super poppler-utils pandoc
+            texlive-fonts-recommended cm-super lmodern poppler-utils pandoc
+          # lmodern: pandoc's default PDF template loads lmodern.sty. It is only
+          # a Recommends of texlive, so --no-install-recommends drops it unless
+          # named explicitly — without it, MDX-authored sheets fail to build.
           # contributor LaTeX is untrusted: never enable shell-escape
 
       - uses: actions/setup-node@v4
