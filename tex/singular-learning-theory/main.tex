@@ -1,47 +1,38 @@
-\documentclass[12pt,a4paper]{article}
-% % % 
+%--- iliad ---
+% cluster: B
+% title: "Degeneracy in Deep Learning: An Invitation to Singular Learning Theory"
+%--- end ---
+\documentclass[11pt]{article}
+% % %
 % Packages
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[round,compress]{natbib}
-\usepackage[pdftex,colorlinks,allcolors=blue!60!black,backref=page]{hyperref}
-\usepackage{amsmath}
-\usepackage[capitalize,noabbrev]{cleveref}
-
-\usepackage{amssymb}
-\usepackage{amsthm}
 \usepackage{mathtools}
-\usepackage{thmtools}
-\usepackage{enumitem}
-\usepackage{tcolorbox}
 \usepackage{fancyhdr}
+\usepackage[round,compress]{natbib}
 
-\usepackage{geometry}
-\geometry{margin=2.5cm}
+% iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty.
+% Provides exercise/solution/definition/theorem/lemma/proposition/corollary/
+% example/remark/callout, the \ifsolutions toggle, and loads
+% amsmath+amssymb+amsthm+enumitem+graphicx+tcolorbox+hyperref+cleveref.
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
 
-% % % 
+% Restore the original link colour (iliad defaults to plain blue).
+\hypersetup{colorlinks, allcolors=blue!60!black}
+
+% % %
 % Configuration
 
 % Table of contents
 \setcounter{tocdepth}{2}
 
-% List of theorems
-\renewcommand\thmtformatoptarg[1]{ #1}
-
 % Indentation
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{1ex}
 
-% Bibstyle
+% Bibstyle (natbib-compatible; far.bst ships in this folder)
 \bibliographystyle{far}
-
-% Fancy backreferences in bibliography https://tex.stackexchange.com/a/383771
-% (note: must also pass option 'backref=page' to hyperref, and load natbib
-\renewcommand*{\backref}[1]{}
-\renewcommand*{\backrefalt}[4]{%
-    \ifcase #1\or Cited on page~#2.\else Cited on pages~#2.\fi%
-}
 
 % Custom copyright footer
 \fancypagestyle{copyright}{
@@ -49,80 +40,6 @@
     \renewcommand{\headrulewidth}{0pt}
     \cfoot{\copyright{} Kai Ogden, Matthew Farrugia-Roberts, Zach Furman, 2026. All rights reserved.}
 }
-
-% % % 
-% Environments
-
-% Theorems
-\declaretheorem[name=Theorem,numberwithin=section,style=plain]{theorem}
-\renewcommand{\theHtheorem}{\thesection.\arabic{theorem}}
-\declaretheorem[name=Proposition,numberlike=theorem,style=plain]{proposition}
-\renewcommand{\theHproposition}{\thesection.\arabic{proposition}}
-\declaretheorem[name=Lemma,numberlike=theorem,style=plain]{lemma}
-\renewcommand{\theHlemma}{\thesection.\arabic{lemma}}
-\declaretheorem[name=Corollary,numberlike=theorem,style=plain]{corollary}
-\renewcommand{\theHcorollary}{\thesection.\arabic{corollary}}
-
-\declaretheorem[name=Definition,numberlike=theorem,style=definition]{definition}
-\renewcommand{\theHdefinition}{\thesection.\arabic{definition}}
-\declaretheorem[name=Example,numberlike=theorem,style=definition]{example}
-\renewcommand{\theHexample}{\thesection.\arabic{example}}
-\declaretheorem[name=Remark,numberlike=theorem,style=definition]{remark}
-\renewcommand{\theHremark}{\thesection.\arabic{remark}}
-
-% Exercises
-\tcbuselibrary{breakable,skins}
-\declaretheorem[
-    name=Exercise,
-    refname={Exercise,Exercises},
-    Refname={Exercise,Exercises},
-    numberwithin=section,
-    style=definition,
-]{exthm}
-\renewcommand{\theHexthm}{\thesection.\arabic{exthm}}
-\newtcolorbox{exbox}{
-    oversize,
-    breakable,
-    size=minimal,boxsep=3mm,arc=3mm,
-    enhanced jigsaw,
-    frame hidden,
-}
-\newenvironment{exercise}[1][]{%
-    \begin{exbox}%
-    \begin{exthm}[#1]%
-    \crefalias{enumi}{exthm}%
-    \crefalias{enumii}{exthm}%
-    \setlist[enumerate,1]{label={(\alph*)},ref={\theexthm(\alph*)}}%
-    \setlist[enumerate,2]{label={(\roman*)},ref={\theenumi(\roman*)}}%
-    \leavevmode%
-}{%
-    \end{exthm}%
-    \end{exbox}%
-}
-
-% Solutions
-% Usage: \begin{solution}{ex:label-of-exercise} ... \end{solution}
-% The mandatory argument is the label of the corresponding exercise.
-% The solution heading will include a backlink to the exercise.
-% Unnumbered: the exercise reference in the heading identifies the solution.
-% The wrapper adds a label sol:<exercise-label> for \listoftheorems linking.
-\declaretheoremstyle[
-    notebraces={}{},
-    qed=\qedsymbol,
-]{solutionstyle}
-\declaretheorem[name=Solution,numbered=no,style=solutionstyle]{solthm}
-\newenvironment{solution}[1]{%
-    \begin{solthm}[to \cref{#1} (\nameref{#1})]%
-    \label{sol:#1}%
-    \leavevmode%
-    \setlist[enumerate,1]{label={(\alph*)}}%
-    \setlist[enumerate,2]{label={(\roman*)}}%
-}{%
-    \end{solthm}%
-}
-
-\newcommand\hint[1]{[\emph{Hint:} #1]}
-\newcommand\note[1]{[\emph{Note:} #1]}
 
 % % % 
 % Notation
@@ -151,8 +68,6 @@
 % % % 
 % Frontmatter
 
-\newcommand\authorname[1]{\makebox[0.285\textwidth]{\normalsize\textbf{#1}}}
-\newcommand\affiliation[1]{\makebox[0pt]{\normalsize#1}}
 
 \title{
     \textbf{Degeneracy in Deep Learning}\\
@@ -2386,7 +2301,7 @@ Finally, there has been some attempt to theoretically investigate the links betw
 % References
 
 \clearpage
-\bibliography{main}
+\bibliography{biblo}
 \addcontentsline{toc}{section}{References}
 
 
@@ -2400,31 +2315,11 @@ Finally, there has been some attempt to theoretically investigate the links betw
 % command for spacing between solution sections
 \newcommand\solutionlistskip{\protect\addvspace{2ex}}
 
-\begingroup
-% Spacing between list items
-% \setlength{\parskip}{.75ex}
-% Disable hyperlinks in \cref and \nameref so that list entries link to the
-% solutions rather than to the exercises named in the solution headings.
-\let\oldcref\cref
-\let\oldnameref\nameref
-\renewcommand{\cref}[1]{\oldcref*{#1}}
-\renewcommand{\nameref}[1]{\oldnameref*{#1}}
-% Disable \section*{title}, including star
-\renewcommand{\section}[2]{}
-% Print the (patched) list of solutions
-\listoftheorems[
-    ignoreall,
-    show={solthm},
-    % swapnumber,
-    numwidth=-1.5em,
-]
-\endgroup
-
 
 \clearpage
 \subsection[Solutions to exercises from Section~1]{Solutions to exercises from \cref{sec:prelims}}
 
-\begin{solution}{ex:biased-neurons}
+\begin{solution}[ex:biased-neurons]
 For each architecture, we add a bias vector to each layer's output before the next transformation (or activation function) is applied.
 
 \begin{enumerate}
@@ -2454,7 +2349,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:empirical-population-loss}
+\begin{solution}[ex:empirical-population-loss]
 \begin{enumerate}
     \item
         Since the data pairs $(x^{(i)}, y^{(i)})$ are sampled independently and
@@ -2485,7 +2380,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:nll-mse}
+\begin{solution}[ex:nll-mse]
 \begin{enumerate}
     \item
         Since labels are sampled independently, the likelihood factorises as a
@@ -2532,7 +2427,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:nll-cross-entropy}
+\begin{solution}[ex:nll-cross-entropy]
 \begin{enumerate}
     \item
         Since labels are sampled independently, the likelihood factorises as
@@ -2575,7 +2470,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:nll-energy}
+\begin{solution}[ex:nll-energy]
 \begin{enumerate}
     \item
         Since labels are sampled independently, the likelihood factorises as
@@ -2624,7 +2519,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:gibbs}
+\begin{solution}[ex:gibbs]
     By definition of the negative log-likelihood,
     \begin{equation*}
         n L_n(w)
@@ -2641,7 +2536,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
     gives the stated expressions.
 \end{solution}
 
-\begin{solution}{ex:posterior-free-energy}
+\begin{solution}[ex:posterior-free-energy]
 \begin{enumerate}
     \item
         Integrating the posterior \eqref{eq:posterior} over $\U$,
@@ -2664,7 +2559,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:partition-decomposition}
+\begin{solution}[ex:partition-decomposition]
 \begin{enumerate}
     \item
         Since $\U_1, \ldots, \U_k$ are disjoint and cover $\W$, the integral
@@ -2711,7 +2606,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \subsection[Solutions to exercises from Section~2]{Solutions to exercises from \cref{sec:degeneracy}}
 \addtocontents{loe}{\solutionlistskip}
 
-\begin{solution}{ex:univariate-degeneracy}
+\begin{solution}[ex:univariate-degeneracy]
 \begin{enumerate}
     \item Since $\W = \R$ is one-dimensional, the directional derivative in direction $v = 1$ reduces to the ordinary derivative:
     \begin{equation*}
@@ -2722,7 +2617,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:cubic-degeneracy}
+\begin{solution}[ex:cubic-degeneracy]
 \begin{enumerate}
     \item The hypothesis class of \cref{ex:univariate-degeneracy} is $\F = \{f_w = w : w \in \R\} = \R$. The hypothesis class here is $\F = \{f_w = w^3 : w \in \R\}$. Since $w \mapsto w^3$ is a bijection on $\R$, as $w$ ranges over $\R$, $w^3$ takes every real value exactly once. So $\F = \R$ in both cases.
 
@@ -2735,7 +2630,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:product-degeneracy}
+\begin{solution}[ex:product-degeneracy]
 \begin{enumerate}
     \item The hypothesis class is $\F = \{f_w = ab : (a, b) \in \R^2\} = \R$, since for any target $c \in \R$ we can choose, e.g., $a = c$ and $b = 1$. This is the same as in \cref{ex:univariate-degeneracy}.
 
@@ -2769,7 +2664,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:sum-degeneracy}
+\begin{solution}[ex:sum-degeneracy]
 \begin{enumerate}
     \item The hypothesis class is $\F = \{f_w = a + b : (a, b) \in \R^2\} = \R$, since for any target $c \in \R$ we can choose, e.g., $a = c$ and $b = 0$. This is the same as in \cref{ex:univariate-degeneracy}.
 
@@ -2782,7 +2677,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:sum-symmetry}
+\begin{solution}[ex:sum-symmetry]
 \begin{enumerate}
     \item The transformation $T_t$ translates the parameter $(a, b)$ by $t$ in the direction $(1, -1)$. The orbit of any parameter $(a, b)$ under this family is the line $\{(a + t, b - t) : t \in \R\}$, which has slope $-1$ in the $(a, b)$-plane.
 
@@ -2797,7 +2692,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:relu-scaling}
+\begin{solution}[ex:relu-scaling]
 \begin{enumerate}
     \item We consider three cases. If $z > 0$, then $\alpha z > 0$ (since $\alpha > 0$), so $\relu(\alpha z) = \alpha z = \alpha \relu(z)$. If $z = 0$, then $\relu(\alpha \cdot 0) = 0 = \alpha \cdot 0 = \alpha \relu(z)$. If $z < 0$, then $\alpha z < 0$, so $\relu(\alpha z) = 0 = \alpha \cdot 0 = \alpha \relu(z)$.
 
@@ -2843,7 +2738,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:rotation-symmetry}
+\begin{solution}[ex:rotation-symmetry]
 \begin{enumerate}
     \item For orthogonal $R$ (i.e.\ $R^\top R = I$),
     \begin{equation*}
@@ -2907,7 +2802,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:localised-symmetry}
+\begin{solution}[ex:localised-symmetry]
 \begin{enumerate}
     \item $T^{(a)}_t$ translates along the $a$-axis: it shifts the first coordinate by $t$ while leaving the second fixed. $T^{(b)}_t$ translates along the $b$-axis.
 
@@ -2919,7 +2814,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:dln-degeneracy}
+\begin{solution}[ex:dln-degeneracy]
 \begin{enumerate}
     \item
         Encoding $(A, B)$ and $(\delta\!A, \delta\!B)$ as vectors in the underlying parameter space $\R^{2m^2}$, the directional derivative is
@@ -3021,7 +2916,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:mlp-degeneracy}
+\begin{solution}[ex:mlp-degeneracy]
 \begin{enumerate}
     \item
         At $a_i = 0$, the parameter--function map reduces to
@@ -3061,7 +2956,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:score-properties}
+\begin{solution}[ex:score-properties]
 \begin{enumerate}
     \item
         Since $p(y \mid x, w) > 0$, the logarithm is well-defined and
@@ -3108,7 +3003,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:fim-degeneracy}
+\begin{solution}[ex:fim-degeneracy]
 \begin{enumerate}
     \item
         Since $v$ is a unit vector,
@@ -3169,7 +3064,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:loss-basic}
+\begin{solution}[ex:loss-basic]
 \begin{enumerate}
     \item
         Since $L_{x,y}(w)$ depends on $w$ only through $\Phi(w)$, we can write
@@ -3200,7 +3095,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:loss-landscape-degeneracy}
+\begin{solution}[ex:loss-landscape-degeneracy]
 \begin{enumerate}
     \item
         Since $a^{2k} \geq 0$ and $b^{2l} \geq 0$ for all $a, b \in \R$
@@ -3253,7 +3148,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:fim-hessian}
+\begin{solution}[ex:fim-hessian]
 \begin{enumerate}
     \item
         From \cref{ex:score-properties}, $\E_{y \sim p(y \mid x, w)}[s_j(x,y,w)]
@@ -3331,7 +3226,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:loss-degeneracy-examples}
+\begin{solution}[ex:loss-degeneracy-examples]
 \begin{enumerate}
     \item
         The identity parameter--function map $\Phi(a,b) = (a,b)$ has Jacobian
@@ -3469,7 +3364,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \subsection[Solutions to exercises from Section~3]{Solutions to exercises from \cref{sec:llc}}
 \addtocontents{loe}{\solutionlistskip}
 
-\begin{solution}{ex:llc-regular-case}
+\begin{solution}[ex:llc-regular-case]
     Because $w^*$ is a local minimum, the gradient $\nabla L(w^*)$ is zero. By Taylor's theorem, we can write the loss function near $w^*$ exactly as:
     $$L(w) - L(w^*) = \frac{1}{2} (w - w^*)^\top H (w - w^*) + o(\|w - w^*\|^2)$$
     where $H = \nabla^2 L(w^*)$ is the strictly positive definite Hessian matrix.
@@ -3489,7 +3384,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
     $$V(\epsilon) = c \epsilon^{d/2} + o(\epsilon^{d/2}) \quad \text{as } \epsilon \to 0.$$
 \end{solution}
 
-\begin{solution}{ex:quad-valley-scaling}
+\begin{solution}[ex:quad-valley-scaling]
 \begin{enumerate}
     \item The loss is $L(x_1, x_2) = x_1^2$, which is a parabolic trough: a parabola in the $x_1$ direction and constant along $x_2$. The zero set is the line $x_1 = 0$.
     \item $\W_0 = \{0\}^{d'} \times [-R,R]^{d-d'}$, which is a $(d - d')$-dimensional affine subspace of $\W$. Hence $\dim(\W_0) = d - d'$.
@@ -3512,7 +3407,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:solving-for-lambda}
+\begin{solution}[ex:solving-for-lambda]
 \begin{enumerate}
     \item
     From \cref{def:llc}, as $\epsilon \to 0$,
@@ -3566,7 +3461,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:calculating-llc}
+\begin{solution}[ex:calculating-llc]
 \begin{enumerate}
     \item
         $V(\epsilon) = \operatorname{Vol}(\{x : x^2 < \epsilon\}) = 2\sqrt{\epsilon}$, so $V(\epsilon) \propto \epsilon^{1/2}$ and $\lambda = 1/2$. The Hessian is $L''(0) = 2$, which has rank $1$ (full rank).
@@ -3588,7 +3483,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{solution}
 
 
-\begin{solution}{ex:lambda-upper-bound}
+\begin{solution}[ex:lambda-upper-bound]
 \begin{enumerate}
     \item 
         Since $w^*$ is a local minimum of $L$, we have $\nabla L(w^*) = 0$. By Taylor's theorem with Lagrange remainder, for any $w \in B(w^*)$ there exists $\tilde{w}$ on the line segment between $w^*$ and $w$ such that
@@ -3641,7 +3536,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:LLC-hessian-rank}
+\begin{solution}[ex:LLC-hessian-rank]
 
     Let $L_1(x,y) = x^2+y^4$ with $w_1 = (0,0)$. Then $\nabla^2L_1(0,0) = \operatorname{diag}(2, 0)$, so $\operatorname{rank}\nabla^2L_1(0,0) = 1$. By \cref{ex:calculating-llc}, $\lambda(w_1) = \frac{3}{4}$.
 
@@ -3650,7 +3545,7 @@ For each architecture, we add a bias vector to each layer's output before the ne
     Both Hessians have rank $1$, but $\lambda(w_1) = \frac{3}{4} \neq \frac{1}{2} = \lambda(w_2)$. The difference is that the flat direction in $L_2$ is \emph{exactly} flat (the minimisers form a line), while in $L_1$ it is only flat to second order but quartic beyond that. The LLC detects this distinction; the Hessian rank does not.
 \end{solution}
 
-\begin{solution}{ex:cubic-parameterisation}
+\begin{solution}[ex:cubic-parameterisation]
 
 \begin{enumerate}
     \item
@@ -3756,7 +3651,7 @@ The function is a smooth, symmetric bump centred at $\mu_0 = 0$ with no disconti
 \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:rlct-computation}
+\begin{solution}[ex:rlct-computation]
 The loss $L(w) = w_1^{2k_1}\cdots w_d^{2k_d}$ is already in monomial
 form, so the identity map $g = \mathrm{id}$ serves as a
 (trivial) resolution of singularities with $dw = 1 \cdot du$,
@@ -3769,7 +3664,7 @@ Substituting into \eqref{eq:rlct} gives
 \]
 \end{solution}
 
-\begin{solution}{ex:holder-llc}
+\begin{solution}[ex:holder-llc]
     Under the loss pseudo-metric $\rho(w,u) = |L(w) - L(u)|$, the
     $\epsilon$-ball centred at $w^*$ (within $B(w^*)$) is
     \begin{equation*}
@@ -3795,7 +3690,7 @@ Substituting into \eqref{eq:rlct} gives
     
 \end{solution}
 
-\begin{solution}{ex:dln-lc}
+\begin{solution}[ex:dln-lc]
 \begin{enumerate}
     % Part (a)
     \item
@@ -3856,7 +3751,7 @@ Substituting into \eqref{eq:rlct} gives
 \subsection[Solutions to exercises from Section~4]{Solutions to exercises from \cref{sec:fef}}
 \addtocontents{loe}{\solutionlistskip}
 
-\begin{solution}{ex:fef-numerical}
+\begin{solution}[ex:fef-numerical]
     This exercise is computational. We outline the procedure and key
     observations.
 
@@ -3912,7 +3807,7 @@ Substituting into \eqref{eq:rlct} gives
     \end{enumerate}
 \end{solution}
 
-\begin{solution}{ex:phase-transitions}
+\begin{solution}[ex:phase-transitions]
 \begin{enumerate}
     \item
         By definition, the partition function is
