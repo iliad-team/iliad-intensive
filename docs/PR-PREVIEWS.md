@@ -65,6 +65,10 @@ model uses the **branch** source instead. In the repo:
 Until that switch is made, the `gh-pages` branch is built but nothing is served
 from it. (The first workflow run creates the branch.)
 
+A branch source runs **Jekyll** by default, which would strip Next's `_next/`
+assets (Jekyll ignores `_`-prefixed dirs). The build writes a `.nojekyll` marker
+to the site root to disable that — no action needed, but don't remove it.
+
 ## Caveats / known limitations
 
 - **Fork PRs.** On a `pull_request` from a fork, `GITHUB_TOKEN` is read-only, so

@@ -99,12 +99,23 @@ jobs:
           NEXT_PUBLIC_PREVIEW_PR: ${{ steps.cfg.outputs.pr }}
         run: npm run ci
 
+      # A GitHub Pages branch source runs Jekyll by default, which drops
+      # directories that start with "_" (killing Next's _next/ assets) — so mark
+      # the output to skip Jekyll. Also refuse to proceed if the build produced
+      # no index.html, so an empty/broken build can never be published (and, with
+      # clean:true, wipe the live site).
+      - name: Disable Jekyll + guard against an empty build
+        run: |
+          test -f out/index.html || { echo "::error::build produced no out/index.html — refusing to publish"; exit 1; }
+          touch out/.nojekyll
+
       # Hand the built site to the deploy/preview jobs so it is built exactly
       # once per run (with the base path this event needs).
       - uses: actions/upload-artifact@v4
         with:
           name: site
           path: out
+          include-hidden-files: true   # keep .nojekyll in the artifact
           retention-days: 1
 
   # Production: publish the built site to the ROOT of gh-pages. clean-exclude
@@ -126,6 +137,10 @@ jobs:
         with:
           name: site
           path: out
+      # clean:true below would wipe the live root; never let it run against an
+      # empty/failed artifact download (e.g. during a GitHub incident).
+      - name: Guard against an empty artifact
+        run: test -f out/index.html || { echo "::error::empty artifact — refusing to deploy (would wipe the live site)"; exit 1; }
       - name: Deploy to gh-pages (root)
         uses: JamesIves/github-pages-deploy-action@v4
         with:
