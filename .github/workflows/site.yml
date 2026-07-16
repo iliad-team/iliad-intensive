@@ -1,11 +1,19 @@
-# tex -> mdx -> static site. Only tex/ sources live in git; MDX, SVGs, PDFs
-# and the site itself are build artifacts. PRs get the full check ladder
-# (conversion + render gate + PDF builds); pushes to main also deploy to
-# GitHub Pages.
+# tex -> mdx -> static site. Only tex/ sources live in git; MDX, SVGs, PDFs and
+# the site itself are build artifacts. Every PR gets the full check ladder
+# (conversion + render gate + PDF builds) AND a live preview deploy so a
+# reviewer can look before merge; pushes to main deploy the production site.
+#
+# Hosting model: a single `gh-pages` branch holds everything —
+#   /                      -> production site (from main)
+#   /pr-preview/pr-<N>/    -> per-PR preview (removed when the PR closes)
+# so a preview can coexist with production. REQUIRES a one-time repo setting:
+# Settings -> Pages -> Source = "Deploy from a branch" -> gh-pages / (root).
+# See docs/PR-PREVIEWS.md.
 name: site
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, closed]
   push:
     branches: [main]
 
@@ -13,8 +21,15 @@ concurrency:
   group: site-${{ github.ref }}
   cancel-in-progress: true
 
+# Default read-only; the deploy/preview jobs opt into write explicitly.
+permissions:
+  contents: read
+
 jobs:
   build:
+    # On a PR *close* there is nothing to build — the preview-cleanup job just
+    # removes the old preview. Every other event builds.
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
     runs-on: ubuntu-latest
     steps:
       # lfs: true — figures under tex/**/fig/*.png are stored in Git LFS
@@ -23,6 +38,20 @@ jobs:
       - uses: actions/checkout@v4
         with:
           lfs: true
+
+      # The site is served under a path prefix on GitHub Pages. Production sits
+      # at /iliad-intensive; a PR preview sits one level deeper so its assets and
+      # links resolve under the preview subpath.
+      - name: Compute base path
+        id: cfg
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "base=/iliad-intensive/pr-preview/pr-${{ github.event.number }}" >> "$GITHUB_OUTPUT"
+            echo "pr=${{ github.event.number }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "base=/iliad-intensive" >> "$GITHUB_OUTPUT"
+            echo "pr=" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: TeX Live + poppler + pandoc
         # Keep this list in sync with ./setup.sh — it is the reference package
@@ -61,24 +90,134 @@ jobs:
           restore-keys: tikz-
 
       # The SAME command developers and the pre-push hook run locally
-      # (./run.sh ci) — one definition in package.json, no drift.
+      # (./run.sh ci) — one definition in package.json, no drift. The base path
+      # is the only thing that varies between production and a preview.
       - name: Build (identical to ./run.sh ci)
+        env:
+          NEXT_PUBLIC_BASE_PATH: ${{ steps.cfg.outputs.base }}
+          # Non-empty only on PR builds → renders the "not the live site" banner.
+          NEXT_PUBLIC_PREVIEW_PR: ${{ steps.cfg.outputs.pr }}
         run: npm run ci
 
-      - uses: actions/upload-pages-artifact@v3
+      # Hand the built site to the deploy/preview jobs so it is built exactly
+      # once per run (with the base path this event needs).
+      - uses: actions/upload-artifact@v4
         with:
+          name: site
           path: out
+          retention-days: 1
 
+  # Production: publish the built site to the ROOT of gh-pages. clean-exclude
+  # keeps every active PR preview in place (they live under pr-preview/).
   deploy:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    # Serialize ALL writes to gh-pages (production + every preview) so
+    # simultaneous deploys queue instead of racing / clobbering each other.
+    concurrency:
+      group: gh-pages-write
+      cancel-in-progress: false
     steps:
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: out
+      - name: Deploy to gh-pages (root)
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: out
+          # Refresh the root but never delete the preview subtrees.
+          clean: true
+          clean-exclude: |
+            pr-preview/**
+
+  # Preview: publish the built site to gh-pages/pr-preview/pr-<N>/ and comment
+  # the URL on the PR. Only runs after `build` succeeds — i.e. the PR passed the
+  # check ladder. (Fork PRs get a read-only token, so this no-ops there.)
+  preview-deploy:
+    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: gh-pages-write
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: out
+      # Deploy INTO the PR's own subfolder. clean: false means the action only
+      # ever adds/updates files under target-folder — it cannot touch production
+      # or another PR's preview (the docs are ambiguous on whether `clean` is
+      # scoped to target-folder, so we don't rely on it).
+      - name: Deploy PR preview
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          branch: gh-pages
+          folder: out
+          target-folder: pr-preview/pr-${{ github.event.number }}
+          clean: false
+      # Best-effort comment with the URL. continue-on-error so a GitHub API
+      # blip can't fail an otherwise-successful deploy (the URL is deterministic
+      # anyway). Upserts a single marked comment rather than spamming.
+      - name: Comment preview URL
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.issue.number;
+            const url = `https://iliad-team.github.io/iliad-intensive/pr-preview/pr-${pr}/`;
+            const marker = '<!-- pr-preview-url -->';
+            const body = `${marker}\n🔎 **Live preview:** ${url}\n\nUpdated for \`${context.sha.slice(0, 7)}\`. Removed automatically when this PR closes.`;
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: pr });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: pr, body });
+            }
+
+  # When a PR closes, delete its preview subtree from gh-pages. No build needed.
+  preview-cleanup:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: gh-pages-write
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+      - name: Remove PR preview
+        run: |
+          set -e
+          DIR="pr-preview/pr-${{ github.event.number }}"
+          if [ ! -d "$DIR" ]; then echo "no preview at $DIR — nothing to remove"; exit 0; fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -r --quiet "$DIR"
+          git commit -m "Remove preview for PR #${{ github.event.number }}"
+          git push origin gh-pages
+      - name: Update comment (preview removed)
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.issue.number;
+            const marker = '<!-- pr-preview-url -->';
+            const body = `${marker}\n🧹 Preview removed (this PR is closed).`;
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: pr });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
