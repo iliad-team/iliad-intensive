@@ -6,18 +6,12 @@ import { MdxBody } from "@/lib/mdx";
 import { ModulePageShell } from "@/components/ModulePageShell";
 import { SidebarNav } from "@/components/SidebarNav";
 import { DownloadsRow } from "@/components/DownloadsRow";
+import { BUILT_AT, COMMIT_SHA, CommitLink } from "@/components/BuildStamp";
 
 // Static export: every .mdx in content/modules is prerendered at build time.
 // content/index.json only controls the homepage/sidebar listing, so a module
 // missing from the index is built but unlisted (reachable only by URL).
 export const dynamicParams = false;
-
-// Evaluated once during `next build` — pages are static, so this is the
-// moment the deployed page was actually built.
-const BUILT_AT = new Date().toLocaleString("en-GB", {
-  day: "numeric", month: "long", year: "numeric",
-  hour: "2-digit", minute: "2-digit", timeZone: "UTC", hour12: false,
-}) + " UTC";
 
 export async function generateStaticParams() {
   const [slugs, clusterList] = await Promise.all([listSlugs(), listClusters()]);
@@ -116,7 +110,7 @@ export default async function ModulePage({
               </>
             ) : null;
           })()}
-          .
+          {COMMIT_SHA ? <> · <CommitLink /></> : null}.
         </footer>
       </article>
     </ModulePageShell>

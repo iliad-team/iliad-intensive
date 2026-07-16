@@ -42,15 +42,18 @@ jobs:
       # The site is served under a path prefix on GitHub Pages. Production sits
       # at /iliad-intensive; a PR preview sits one level deeper so its assets and
       # links resolve under the preview subpath.
-      - name: Compute base path
+      - name: Compute base path + commit
         id: cfg
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "base=/iliad-intensive/pr-preview/pr-${{ github.event.number }}" >> "$GITHUB_OUTPUT"
             echo "pr=${{ github.event.number }}" >> "$GITHUB_OUTPUT"
+            # The PR's own head commit, not the synthetic merge commit.
+            echo "sha=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
           else
             echo "base=/iliad-intensive" >> "$GITHUB_OUTPUT"
             echo "pr=" >> "$GITHUB_OUTPUT"
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: TeX Live + poppler + pandoc
@@ -97,6 +100,8 @@ jobs:
           NEXT_PUBLIC_BASE_PATH: ${{ steps.cfg.outputs.base }}
           # Non-empty only on PR builds → renders the "not the live site" banner.
           NEXT_PUBLIC_PREVIEW_PR: ${{ steps.cfg.outputs.pr }}
+          # Shown in the footer, linked to the commit on GitHub.
+          NEXT_PUBLIC_COMMIT_SHA: ${{ steps.cfg.outputs.sha }}
         run: npm run ci
 
       # A GitHub Pages branch source runs Jekyll by default, which drops
