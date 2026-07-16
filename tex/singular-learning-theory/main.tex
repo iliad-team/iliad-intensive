@@ -1,6 +1,6 @@
 %--- iliad ---
 % cluster: B
-% title: "Degeneracy in Deep Learning: An Invitation to Singular Learning Theory"
+% title: "Singular Learning Theory"
 %--- end ---
 \documentclass[11pt]{article}
 % % %
@@ -126,6 +126,14 @@
 % Begin body
 \clearpage
 
+\begin{summary}
+Singular learning theory (SLT) places \emph{degeneracy} as a core part of
+understanding how neural networks learn.
+We cover the parameter-function map, the meaning of degeneracy
+through the local learning coefficient, to Watanabe's free energy formula and
+Bayesian phase transitions.
+\end{summary}
+
 \section*{Introduction}
 \label{sec:intro}
 \addcontentsline{toc}{section}{\nameref{sec:intro}}
@@ -192,9 +200,11 @@ technical sections, each with definitions and guided exercises.
         connecting the LLC to Bayesian learning and discusses its implications.
 \end{enumerate}
 We conclude with \cref{sec:readings}, providing pointers for further study and
-surveying the literature on SLT and deep learning. \Cref{apx:solutions}
+surveying the literature on SLT and deep learning. 
+\begin{solutionsonly}
+\Cref{apx:solutions}
 provides worked solutions for all exercises.
-
+\end{solutionsonly}
 \paragraph{Prerequisites.}
 
 The following is an indicative list of mathematical concepts that will be
@@ -298,7 +308,7 @@ network architectures (parameter--function maps). The rest of this section
 explores some generally useful examples and some terminological points. To
 begin with, we have the following remark.
 
-\begin{remark}[``Parameters'']
+\begin{remark}[Parameters]
     Note that the term ``parameter'' has two senses:
     \begin{enumerate}
         \item
@@ -809,13 +819,15 @@ energy is an inverted measure of how well the model fits the data.
         $(x^{(1)}, y^{(1)}),$ $\ldots,$ $(x^{(n)}, y^{(n)}) \in \X \times \Y$
     is a data set of $n$ examples.
     Show that
-    \begin{equation*}
+    $$
         \pi_n(w)
         = \frac{1}{Z_n} \varphi(w) \exp\!\big({-}n L_n(w)\big)
-        \qquad\text{and}\qquad
+    $$
+    and
+    $$
         Z_n
         = \int_{\W} \varphi(w) \exp\!\big({-}n L_n(w)\big)\, dw.
-    \end{equation*}
+    $$
 \end{exercise}
 
 The \textbf{Bayesian deep learning process} is the process of re-weighting each
@@ -942,7 +954,9 @@ Let $\X = \{\ast\}$ and $\Y = \R$, so that we have a hypothesis class of constan
 \begin{enumerate}
     \item What is the directional derivative of the parameter--function map in
         direction $v = 1$?
-    \hint{what kind of derivative does this reduce to?}
+    \begin{hint}
+What kind of derivative does this reduce to?
+    \end{hint}
     \item At which points in the parameter space is this parameter--function map degenerate, if any?
 \end{enumerate}
 \end{exercise}
@@ -954,7 +968,9 @@ Again, consider a hypothesis class of constants and the scalar parameter space $
     \item Show that this architecture indexes exactly the same hypothesis class as the architecture described in \cref{ex:univariate-degeneracy}.
     \item What is the directional derivative of the parameter--function map in
         direction $v = 1$?
-    \hint{what kind of derivative does this reduce to?}
+    \begin{hint}
+What kind of derivative does this reduce to?
+    \end{hint}
     \item At which points in the parameter space is the parameter--function map degenerate, if any?
 \end{enumerate}
 \end{exercise}
@@ -969,11 +985,15 @@ Again, consider a hypothesis class of constants. Consider this time the two-dime
     \item
         What is the directional derivative of the parameter--function map in
         direction $v = (1, 0)$?
-        \hint{what kind of derivative does this reduce to?}
+        \begin{hint}
+what kind of derivative does this reduce to?
+        \end{hint}
     \item
         What is the directional derivative of the parameter--function map in
         direction $v = (0, 1)$?
-        \hint{what kind of derivative does this reduce to?}
+        \begin{hint}
+what kind of derivative does this reduce to?
+        \end{hint}
     \item \label{ex:product-degeneracy:axes-directions}
         At which points in the parameter space is the parameter--function map
         degenerate \emph{in these directions,} if any?
@@ -1129,7 +1149,9 @@ Consider a two-layer MLP (\cref{eg:mlp}) with $\sigma = \relu$, scalar inputs an
     \item
         For general bottleneck dimension $h$, how many independent continuous
         symmetries does the orthogonal group $O(h)$ contribute?
-        \hint{what is the dimension of $O(h)$?}
+        \begin{hint}
+What is the dimension of $O(h)$?
+        \end{hint}
 \end{enumerate}
 \end{exercise}
 
@@ -1201,7 +1223,9 @@ non-trivial MLP.
         That is,
             $D_{(\delta\!A, \delta\!B)} \Phi(A, B) x
             = (B\,\delta\!A + \delta\!B\, A) x$.
-        \hint{use the limit definition, \eqref{eq:directional-derivative}.}
+        \begin{hint}
+Use the limit definition, \eqref{eq:directional-derivative}.
+        \end{hint}
     \item
         \label{ex:dln-degeneracy:null-rank}
         Show that at the zero parameter $(A, B) = (0, 0)$, every direction
@@ -1221,7 +1245,8 @@ non-trivial MLP.
         $$
             m^2 + (m-r_A)(m-r_B).
         $$
-        \hint{The following is a guide to one possible approach.}
+        \begin{hint}
+The following is a guide to one possible approach.
         \begin{enumerate}
             \item
                 Describe the image of the linear map $T_A$
@@ -1252,6 +1277,7 @@ non-trivial MLP.
             \item 
                 What is the nullity of $T_D$? Why is this the same as the dimensionality of the space of degenerate directions?
         \end{enumerate}
+    \end{hint}
 \end{enumerate}
 \end{exercise}
 
@@ -1415,8 +1441,10 @@ standard definitions.
         \begin{equation}
             \E_{y \sim p(y \mid x, w)}\bigl[s(x, y, w)\bigr] = 0.
         \end{equation}
-        \hint{differentiate the identity
-            $\int_\Y p(y \mid x, w) \, dy = 1$.}
+        \begin{hint}
+Differentiate the identity
+            $\int_\Y p(y \mid x, w) \, dy = 1$.
+        \end{hint}
     \item\label{ex:score-properties:b}
         Show that if $\Psi$ is degenerate at $w$ in direction $v$, then
         the directional score vanishes identically:
@@ -1471,12 +1499,16 @@ The following exercise shows that singularity of the Fisher information matrix i
     \item
         Using \cref{ex:score-properties:b}, show that if $D_v \Psi(w) = 0$
         for some non-zero $v$, then $I(w)$ is not positive definite.
-        \hint{check the definition of positive definite.}
+        \begin{hint}
+Check the definition of positive definite.
+        \end{hint}
     \item
         Using \cref{ex:score-properties:c}, show that if $I(w)$ is not
         positive definite, then there exists a non-zero $v$ for which
         $D_v \Psi(w) = 0$.
-        \hint{check the definition of positive definite.}
+        \begin{hint}
+Check the definition of positive definite.
+        \end{hint}
     \item
         Conclude that
         \begin{equation}
@@ -1542,8 +1574,10 @@ Let $L : \W \to \R$ be a population loss function satisfying the assumptions des
         $D_v L(w) = 0$.
     \item
         Suppose $\W = \R^d$. Show that if $d > 1$, then for \emph{any} any $w \in \W$, there exists a nonzero $v$
-        such that $D_v L(w) = 0$. \hint{consider separately the cases $\nabla
-        L(w) = 0$ and $\nabla L(w) \neq 0$.}
+        such that $D_v L(w) = 0$. \begin{hint}
+consider separately the cases $\nabla
+        L(w) = 0$ and $\nabla L(w) \neq 0$.
+        \end{hint}
 \end{enumerate}
 \end{exercise}
 
@@ -1596,7 +1630,9 @@ therefore classify local minima as follows:
         \label{ex:lld:1}
         Show that if $k = l = 1$, then the origin is a non-degenerate
         (regular) minimum.
-        \hint{compute the Hessian.}
+        \begin{hint}
+Compute the Hessian.
+        \end{hint}
     \item
         \label{ex:lld:2}
         Show that if $k > 1$ and $l \geq 1$, then the origin is a
@@ -1660,19 +1696,23 @@ degenerate global minimum of the loss landscape.
             \bigr],
         \end{equation}
         where $s$ is the score function from \cref{def:score}.
-        \hint{differentiate the identity
+        \begin{hint}
+differentiate the identity
             $\E_{y \sim p(y \mid x, w)}[s(x, y, w)] = 0$
-            (established in \cref{ex:score-properties}) with respect to $w$.}
+            (established in \cref{ex:score-properties}) with respect to $w$.
+        \end{hint}
     \item
         Show that the Hessian of $L$ at the true parameter $w_0$ equals the
         Fisher information matrix (\cref{def:fim}):
         \begin{equation}\label{eq:fim-hessian}
             H(w_0) = I(w_0).
         \end{equation}
-        \hint{compute $H(w)
+        \begin{hint}
+compute $H(w)
             = -\E_{x}\, \E_{y \sim p(y \mid x, w_0)}
                 [\nabla_w^2 \log p(y \mid x, w)]$,
-            evaluate at $w = w_0$, and apply part~(a).}
+            evaluate at $w = w_0$, and apply part~(a).
+        \end{hint}
     \item
         Using the result of \cref{ex:fim-degeneracy}, conclude: if $\Psi$ is
         degenerate at $w_0$ in direction $v$, then $H(w_0)\, v = 0$.
@@ -1774,7 +1814,9 @@ We will look at how this volume scales as $\epsilon \to 0$. It will be instructi
     \end{equation}
     for some constant $c>0$ where $d = \dim(\W)$. You may assume that, as $\epsilon \to 0$, the volume of $B(w^*,\epsilon)$ agrees to leading order with the volume of the quadratic approximation obtained by replacing $L$ with its second-order Taylor expansion at $w^*$. 
 
-    \hint{The volume of the ellipsoid $\{\boldsymbol{x} \in \R^d \mid \boldsymbol{x}^\top A \boldsymbol{x} < 1\}$ is proportional to $(\det A)^{-1/2}$.}
+    \begin{hint}
+The volume of the ellipsoid $\{\boldsymbol{x} \in \R^d \mid \boldsymbol{x}^\top A \boldsymbol{x} < 1\}$ is proportional to $(\det A)^{-1/2}$.
+    \end{hint}
 \end{exercise}
 
 The key takeaway from this exercise is that the dimension of the model controls the leading order asymptotics of the volume scaling. We can investigate this further by calculating the volume scaling in an example where the Hessian is not positive definite.
@@ -1788,7 +1830,9 @@ The key takeaway from this exercise is that the dimension of the model controls 
         \item Calculate the Hessian of $L$.
         \item Prove that $V(\epsilon) \propto \epsilon^{d'/2}$
         
-        \hint{Use the volume of the ellipsoid from Exercise \ref{ex:llc-regular-case}}
+        \begin{hint}
+Use the volume of the ellipsoid from Exercise \ref{ex:llc-regular-case}
+        \end{hint}
     \end{enumerate}
 \end{exercise}
 
@@ -1841,7 +1885,9 @@ When $\mu(w^*) = 1$, the formula simplifies to $V(\epsilon) = c\epsilon^{\lambda
             \begin{equation*}
                 L(w) - L(w^*) \leq \frac{1}{2} \Lambda \|w - w^*\|^2.
             \end{equation*}
-            \hint{for any real symmetric matrix $H\in\R^{n\times n}$ and vector $v\in \R^n$, $v^\top H v \leq \Lambda  \|v\|^2$ where $\Lambda$ is the largest eigenvalue of $H$.}
+            \begin{hint}
+for any real symmetric matrix $H\in\R^{n\times n}$ and vector $v\in \R^n$, $v^\top H v \leq \Lambda  \|v\|^2$ where $\Lambda$ is the largest eigenvalue of $H$.
+            \end{hint}
             
         \item 
             Consider the standard Euclidean ball of radius $r$ centred at $w^*$, denoted $B_r(w^*) = \{w \in \W \mid \|w - w^*\| < r\}$. Find a radius $r$ (as a function of $\epsilon$ and $\Lambda$) such that for sufficiently small $\epsilon$,
@@ -2307,17 +2353,19 @@ Finally, there has been some attempt to theoretically investigate the links betw
 
 % % %
 % List of solutions
+\begin{solutionsonly}
 \clearpage
 \appendix
 \section{Solutions}
 \label{apx:solutions}
 
+
 % command for spacing between solution sections
 \newcommand\solutionlistskip{\protect\addvspace{2ex}}
+\end{solutionsonly}
 
-
-\clearpage
-\subsection[Solutions to exercises from Section~1]{Solutions to exercises from \cref{sec:prelims}}
+% \clearpage
+% \subsection[Solutions to exercises from Section~1]{Solutions to exercises from \cref{sec:prelims}}
 
 \begin{solution}[ex:biased-neurons]
 For each architecture, we add a bias vector to each layer's output before the next transformation (or activation function) is applied.
@@ -2602,9 +2650,9 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \end{enumerate}
 \end{solution}
 
-\clearpage
-\subsection[Solutions to exercises from Section~2]{Solutions to exercises from \cref{sec:degeneracy}}
-\addtocontents{loe}{\solutionlistskip}
+% \clearpage
+% \subsection[Solutions to exercises from Section~2]{Solutions to exercises from \cref{sec:degeneracy}}
+% \addtocontents{loe}{\solutionlistskip}
 
 \begin{solution}[ex:univariate-degeneracy]
 \begin{enumerate}
@@ -3360,9 +3408,9 @@ For each architecture, we add a bias vector to each layer's output before the ne
 
 
 
-\clearpage
-\subsection[Solutions to exercises from Section~3]{Solutions to exercises from \cref{sec:llc}}
-\addtocontents{loe}{\solutionlistskip}
+% \clearpage
+% \subsection[Solutions to exercises from Section~3]{Solutions to exercises from \cref{sec:llc}}
+% \addtocontents{loe}{\solutionlistskip}
 
 \begin{solution}[ex:llc-regular-case]
     Because $w^*$ is a local minimum, the gradient $\nabla L(w^*)$ is zero. By Taylor's theorem, we can write the loss function near $w^*$ exactly as:
@@ -3747,9 +3795,9 @@ Substituting into \eqref{eq:rlct} gives
 \end{enumerate}
 \end{solution}
 
-\clearpage
-\subsection[Solutions to exercises from Section~4]{Solutions to exercises from \cref{sec:fef}}
-\addtocontents{loe}{\solutionlistskip}
+% \clearpage
+% \subsection[Solutions to exercises from Section~4]{Solutions to exercises from \cref{sec:fef}}
+% \addtocontents{loe}{\solutionlistskip}
 
 \begin{solution}[ex:fef-numerical]
     This exercise is computational. We outline the procedure and key
