@@ -59,7 +59,7 @@ const ENV_SIGNATURES = {
   proposition: { signature: "o" }, corollary: { signature: "o" },
   definition: { signature: "o" }, fact: { signature: "o" },
   example: { signature: "o" }, remark: { signature: "o" },
-  learningoutcomes: {}, summary: {}, hint: {},
+  learningoutcomes: {}, summary: {}, hint: {}, solutionsonly: {},
   abstract: {}, figure: { signature: "o" }, table: { signature: "o" },
   tabular: { signature: "m" }, quote: {}, quotation: {},
   itemize: { signature: "o" }, enumerate: { signature: "o" }, description: { signature: "o" },
@@ -389,6 +389,12 @@ function emitEnv(n) {
       mdx = `<Solution${forAttr}>\n\n${walk(n.content).trim()}\n\n</Solution>`;
       break;
     }
+    case "solutionsonly":
+      // Content shown only in the solutions build. Rendered as plain inline
+      // content, bracketed by invisible JSX-comment markers so the -nosol
+      // stripper (stripMdxSolutions) can remove the whole span.
+      mdx = `{/* iliad:solutionsonly:start */}\n\n${walk(n.content).trim()}\n\n{/* iliad:solutionsonly:end */}`;
+      break;
     // Definition/theorem family render axiom-style: a bold markdown lead
     // inside the coloured box (math in titles renders; no header chrome).
     case "definition":
@@ -627,6 +633,8 @@ function walk(nodes) {
           out = out.slice(0, -1) + '"';
         } else if (n.content === "-" && prevSame) {
           out = out.slice(0, -1) + (out.endsWith("–") ? "—" : "–");
+        } else if (n.content === "~") {
+          out += " ";                 // LaTeX tie -> non-breaking space
         } else out += n.content;
         break;
       }
