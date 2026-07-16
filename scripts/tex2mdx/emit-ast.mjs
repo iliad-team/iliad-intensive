@@ -400,13 +400,13 @@ function emitEnv(n) {
       break;
     }
     case "fact":
-      mdx = `<Callout type="note">\n\n**Fact${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${attr(opt)})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="note">\n\n**Fact${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
       break;
     case "remark":
-      mdx = `<Callout type="note">\n\n**Remark${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${attr(opt)})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="note">\n\n**Remark${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
       break;
     case "example":
-      mdx = `<Callout type="tip">\n\n**Example${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${attr(opt)})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="tip">\n\n**Example${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
       break;
     case "callout": {
       const type = ["note", "tip", "warning"].includes((opt ?? "").trim()) ? opt.trim() : "note";
@@ -424,7 +424,7 @@ function emitEnv(n) {
       break;
     default: {
       if (declared) {
-        mdx = `<Callout type="note">\n\n**${declared}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${attr(opt)})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+        mdx = `<Callout type="note">\n\n**${declared}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
       } else {
         warn(`unknown environment "${env}" — wrapper dropped, contents converted as plain prose`, `\\begin{${env}}`);
         mdx = `{/* TODO(tex2mdx): env ${env} */}\n${walk(n.content)}`;
@@ -553,7 +553,12 @@ function emitMacro(n) {
     case "difficulty": return `**[${lastArgRaw(n) ?? ""}]** `;
     case "important": return "**(★)** ";
     case "skippable": return "**(∗)** ";   // legacy "skip on a first pass" mark
-    case "paragraph": return `\n\n**${walkArg(n, 0).trim()}.** `;
+    case "paragraph": {
+      // Bold run-in heading. Add a trailing period only if the author's title
+      // doesn't already end in terminal punctuation (avoids "Prerequisites..").
+      const t = walkArg(n, 0).trim();
+      return `\n\n**${/[.!?:]$/.test(t) ? t : t + "."}** `;
+    }
     case "ifdef": case "ifdefined": case "ifcsdef": {
       const nm = (argRaw(n, 0) ?? "").trim().replace(/^\\/, "");
       return walkArg(n, nm in authorMacros ? 1 : 2);
@@ -609,7 +614,22 @@ function walk(nodes) {
   for (let i = 0; i < nodes.length; i++) {
     const n = nodes[i];
     switch (n.type) {
-      case "string": out += n.content; break;
+      case "string": {
+        // LaTeX text ligatures. The parser emits each `, ', and - as its own
+        // string node, so a run is N identical adjacent nodes:
+        //   ``...''  -> "..."   (lone apostrophes like it's are left alone)
+        //   --       -> – (en dash)      ---  -> — (em dash)
+        // Math and \verb bypass this handler, so derivatives ($L''$) and
+        // command flags (\verb|--flag|) are unaffected.
+        const prevSame = i > 0 && nodes[i - 1].type === "string" &&
+          nodes[i - 1].content === n.content;
+        if ((n.content === "`" || n.content === "'") && prevSame) {
+          out = out.slice(0, -1) + '"';
+        } else if (n.content === "-" && prevSame) {
+          out = out.slice(0, -1) + (out.endsWith("–") ? "—" : "–");
+        } else out += n.content;
+        break;
+      }
       case "whitespace": out += " "; break;
       case "parbreak": out += "\n\n"; break;
       case "comment": break;

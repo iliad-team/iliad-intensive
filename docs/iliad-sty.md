@@ -50,7 +50,7 @@ around it (CI also rejects redefinitions of contract names).
 | `proof` | env | amsthm; collapsible on the web |
 | `hint` | env | unnumbered block hint, rendered in place; collapsible on the web |
 | `callout` | env | `[note\|tip\|warning]` coloured aside |
-| `remark` | env | aside in the theorem register; note-style callout on the web |
+| `remark` | env | aside in the theorem register; note-style callout on the web. Optional title: `\begin{remark}[Title]` → "Remark (Title)" |
 | `\important` | mark | ★ after an exercise's label: one of the sheet's key exercises |
 | `\authorname{}` `\affiliation{}` | cmds | structured `\author{}` entries (byline extraction) |
 | `\hint{}` `\note{}` | cmds | inline `[Hint: …]` / `[Note: …]` (don't use inline `\hint{}` at the top level of a `hint` environment) |

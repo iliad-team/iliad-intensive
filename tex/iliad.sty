@@ -267,10 +267,12 @@
   \iliad@calloutend
 }
 
-% remark — an aside; renders as a note callout on the web.
-\newenvironment{remark}{%
+% remark — an aside; renders as a note callout on the web. An optional title
+% is appended in parentheses: \begin{remark}[Encodings] -> "Remark (Encodings)"
+% (matching the tex -> MDX converter, which renders "**Remark (Encodings).**").
+\newenvironment{remark}[1][]{%
   \refstepcounter{remark}%
-  \iliad@calloutbegin{Remark}{blue}%
+  \iliad@calloutbegin{Remark\ifblank{#1}{}{ (#1)}}{blue}%
 }{%
   \iliad@calloutend
 }

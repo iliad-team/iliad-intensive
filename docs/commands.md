@@ -122,13 +122,15 @@ MDX: `<Definition id="def-entropy">**Definition 2.1 (entropy).** …</Definition
 Don't confuse $\log$ bases here.
 \end{callout}
 
-\begin{remark}
+\begin{remark}[optional title]
 An aside in the mathematical register.
 \end{remark}
 ```
 
 - Types: `note` (default), `tip`, `warning` — coloured boxes on web + PDF
   (`[boxes]`).
+- `remark` takes an optional title, appended in parentheses:
+  `\begin{remark}[Encodings]` renders as "Remark (Encodings)".
 - Both may be labelled: no number shows in the box, but
   `\cref{co:pitfall}` prints "Callout 2.1" and links to it.
 - MDX: `<Callout type="warning" id="co-pitfall">…</Callout>`
