@@ -23,15 +23,21 @@ gh-pages/
     pr-14/  index.html, ...       ← preview for PR #14
 ```
 
-`.github/workflows/site.yml` builds the site once per event and then:
+`.github/workflows/site.yml` builds the site once per event and then, using
+`JamesIves/github-pages-deploy-action`:
 
 - **push to `main`** → publishes `out/` to the **root** of `gh-pages`
-  (`JamesIves/github-pages-deploy-action`, with `clean-exclude: pr-preview/**`
-  so it never wipes an active preview).
+  (`clean: true` + `clean-exclude: pr-preview/**`, so it refreshes production but
+  never wipes an active preview).
 - **pull request opened/updated** → after the check ladder passes, publishes
-  `out/` to `pr-preview/pr-<N>/` and comments the URL
-  (`rossjrw/pr-preview-action`).
-- **pull request closed** → removes `pr-preview/pr-<N>/`.
+  `out/` into `pr-preview/pr-<N>/` (`target-folder`, `clean: false` — it only
+  ever touches its own subfolder) and upserts a comment with the URL.
+- **pull request closed** → a git step deletes `pr-preview/pr-<N>/`.
+
+All three write to the same branch, so they share a `gh-pages-write` concurrency
+group (`cancel-in-progress: false`): simultaneous deploys **queue** instead of
+racing. The URL comment is `continue-on-error` — a GitHub API hiccup can't fail
+an otherwise-successful deploy (the URL is deterministic regardless).
 
 ### Base path
 
@@ -65,12 +71,12 @@ from it. (The first workflow run creates the branch.)
   the preview deploy silently no-ops. Previews work for branches pushed to this
   repo (the team's normal flow). Do **not** switch to `pull_request_target` to
   work around this — it would run untrusted PR code with a write token.
-- **Concurrent deploys.** A `main` push and a PR event can both push to
-  `gh-pages` at once and race; the actions retry, but a rare failure just needs a
-  re-run. A shared deploy concurrency group would serialise them if this becomes
-  a problem.
-- **Third-party actions.** `rossjrw/pr-preview-action` and
-  `JamesIves/github-pages-deploy-action` are pinned by major version; pin to a
-  commit SHA if you want stricter supply-chain guarantees.
+- **Concurrent deploys.** All `gh-pages` writes share the `gh-pages-write`
+  concurrency group, so a `main` push and a PR deploy queue rather than race.
+- **Third-party actions.** `JamesIves/github-pages-deploy-action` is pinned by
+  major version; pin to a commit SHA if you want stricter supply-chain
+  guarantees. (An earlier revision used `rossjrw/pr-preview-action`; it was
+  dropped because its post-deploy REST call for the commit SHA failed the check
+  on a GitHub API blip even though the deploy had succeeded.)
 - **Prototype.** This is a first cut (branch `pr-website-serve`). Validate on a
   throwaway PR before relying on it.

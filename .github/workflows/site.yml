@@ -115,6 +115,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    # Serialize ALL writes to gh-pages (production + every preview) so
+    # simultaneous deploys queue instead of racing / clobbering each other.
+    concurrency:
+      group: gh-pages-write
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -126,13 +131,14 @@ jobs:
         with:
           branch: gh-pages
           folder: out
+          # Refresh the root but never delete the preview subtrees.
           clean: true
           clean-exclude: |
             pr-preview/**
 
   # Preview: publish the built site to gh-pages/pr-preview/pr-<N>/ and comment
   # the URL on the PR. Only runs after `build` succeeds — i.e. the PR passed the
-  # check ladder. (Fork PRs get a read-only token, so this step no-ops there.)
+  # check ladder. (Fork PRs get a read-only token, so this no-ops there.)
   preview-deploy:
     if: github.event_name == 'pull_request' && github.event.action != 'closed'
     needs: build
@@ -140,33 +146,78 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    concurrency:
+      group: gh-pages-write
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: site
           path: out
+      # Deploy INTO the PR's own subfolder. clean: false means the action only
+      # ever adds/updates files under target-folder — it cannot touch production
+      # or another PR's preview (the docs are ambiguous on whether `clean` is
+      # scoped to target-folder, so we don't rely on it).
       - name: Deploy PR preview
-        uses: rossjrw/pr-preview-action@v1
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          source-dir: out
-          preview-branch: gh-pages
-          umbrella-dir: pr-preview
+          branch: gh-pages
+          folder: out
+          target-folder: pr-preview/pr-${{ github.event.number }}
+          clean: false
+      # Best-effort comment with the URL. continue-on-error so a GitHub API
+      # blip can't fail an otherwise-successful deploy (the URL is deterministic
+      # anyway). Upserts a single marked comment rather than spamming.
+      - name: Comment preview URL
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.issue.number;
+            const url = `https://iliad-team.github.io/iliad-intensive/pr-preview/pr-${pr}/`;
+            const marker = '<!-- pr-preview-url -->';
+            const body = `${marker}\n🔎 **Live preview:** ${url}\n\nUpdated for \`${context.sha.slice(0, 7)}\`. Removed automatically when this PR closes.`;
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: pr });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ ...context.repo, issue_number: pr, body });
+            }
 
-  # When a PR closes, tear down its preview directory (and update the comment).
-  # No build needed, so this is a separate lightweight job.
+  # When a PR closes, delete its preview subtree from gh-pages. No build needed.
   preview-cleanup:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
+    concurrency:
+      group: gh-pages-write
+      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
-      - name: Remove PR preview
-        uses: rossjrw/pr-preview-action@v1
         with:
-          source-dir: out
-          preview-branch: gh-pages
-          umbrella-dir: pr-preview
-          action: remove
+          ref: gh-pages
+      - name: Remove PR preview
+        run: |
+          set -e
+          DIR="pr-preview/pr-${{ github.event.number }}"
+          if [ ! -d "$DIR" ]; then echo "no preview at $DIR — nothing to remove"; exit 0; fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -r --quiet "$DIR"
+          git commit -m "Remove preview for PR #${{ github.event.number }}"
+          git push origin gh-pages
+      - name: Update comment (preview removed)
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.issue.number;
+            const marker = '<!-- pr-preview-url -->';
+            const body = `${marker}\n🧹 Preview removed (this PR is closed).`;
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: pr });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
