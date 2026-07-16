@@ -123,8 +123,15 @@ git add "tex/$SLUG/main.tex" "tex/$SLUG/biblo.bib"   # + tex/$SLUG/fig/ if prese
 git commit -m "Port $XY <Title> worksheet into tex/$SLUG/"
 git push -u origin "port-$XY-claude" --no-verify   # hook's next build can't resolve the symlinked node_modules; CI re-validates (see gotcha)
 gh pr create --base main --title "Port $XY: <Title>" \
-  --body "Ports the <Title> worksheet (source: <origin repo>). Verbatim content; wrapped in the iliad.sty contract. Builds clean via scripts/build-content.mjs $SLUG."
+  --body "Closes #<issue>. Ports the <Title> worksheet (source: <origin repo>). Verbatim content; wrapped in the iliad.sty contract. Builds clean via scripts/build-content.mjs $SLUG."
 ```
+Every PR must point at **both** (see `docs/PR-PREVIEWS.md`):
+- the **issue** it addresses — `Closes #<issue>` in the body (find it with
+  `gh issue list`; day issues are titled `[X.Y] <Title>`);
+- the **live preview** — CI builds and deploys the rendered site to
+  `https://iliad-team.github.io/iliad-intensive/pr-preview/pr-<PR#>/` once the
+  checks pass and a bot comments the URL. Send that link to a reviewer.
+
 Only `main.tex`, `biblo.bib`, and `fig/*` are committed; everything else
 (`main-nosol.*`, `.aux/.pdf`, `content/`, `public/`, the `_src/` scratch, the `node_modules`
 symlink) is gitignored or must not be staged.
