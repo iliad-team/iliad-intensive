@@ -64,3 +64,6 @@ _minted*/
 
 # cloned source repos for MATERIAL.md hunt (see MATERIAL.md handoff)
 repos/
+
+# git worktrees kept inside the repo
+/worktrees/
