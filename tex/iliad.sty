@@ -90,10 +90,20 @@
 \newif\ifiliad@geometry
 \iliad@geometrytrue
 \DeclareOption{nogeometry}{\iliad@geometryfalse}
+% Solutions are shown by default. Authors may write \solutionsfalse in the
+% document, or load the package with [nosolutions], to hide every solution and
+% solutionsonly block from their own PDF compile. (The site build produces its
+% spoiler-free -nosol downloads by stripping instead; see build-content.mjs.)
+\newif\ifsolutions
+\solutionstrue
+\DeclareOption{nosolutions}{\solutionsfalse}
 \ProcessOptions\relax
 
 \ifiliad@geometry
-  \RequirePackage[paperwidth=6.5in, paperheight=9.5in, margin=1cm]{geometry}
+  % includefoot keeps the 1cm margins but reserves the footer inside the margin
+  % box, so page numbers (and any \cfoot) print on the page instead of hanging
+  % off the bottom edge.
+  \RequirePackage[paperwidth=6.5in, paperheight=9.5in, margin=1cm, includefoot]{geometry}
 \fi
 
 \RequirePackage{amsmath}
@@ -110,10 +120,6 @@
 \RequirePackage{hyperref}
 \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
 \RequirePackage[capitalise,noabbrev]{cleveref}
-
-% ---------------------------------------------------------------- toggle ---
-\newif\ifsolutions
-\solutionstrue   % authors write \solutionsfalse in main.tex to hide solutions
 
 % -------------------------------------------------------- theorem family ---
 % One shared counter, numbered within section.
@@ -206,6 +212,20 @@
   \else
     \expandafter\endcomment
   \fi
+}
+
+% -------------------------------------------------------- solutions only ---
+% \begin{solutionsonly} ... \end{solutionsonly} — content that appears ONLY in
+% the solutions build: an answer key, an instructor aside, a spoiler. Plain
+% passthrough when solutions are shown; swallowed whole (like a solution) under
+% \solutionsfalse / [nosolutions]. Unlike solution it has no box, heading, or
+% exercise binding, and is never relocated. The site build removes it from the
+% -nosol downloads (stripTexSolutions / stripMdxSolutions), so it is
+% spoiler-free there too.
+\newenvironment{solutionsonly}{%
+  \ifsolutions\else\expandafter\comment\fi
+}{%
+  \ifsolutions\else\expandafter\endcomment\fi
 }
 
 % ------------------------------------------------------------------ hint ---

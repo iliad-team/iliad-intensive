@@ -43,6 +43,25 @@ For \cref{ex:warmup-a}: each term is non-negative. \hint{when is $-t\log t = 0$?
   `\solutionsfalse`; stripped entirely from the `-nosol` downloads.
 - MDX: `<Solution>…</Solution>`
 
+## Solutions-only content
+
+```latex
+\begin{solutionsonly}
+\textbf{Instructor note.} Discuss \cref{ex:gibbs-hard} on the board first.
+\end{solutionsonly}
+```
+
+- Content that appears **only** in the with-solutions build — an answer key, an
+  instructor aside, a spoiler. Unlike `solution` it has no box, heading, or
+  exercise binding, and it is never relocated: it renders as plain content
+  exactly where you write it.
+- Removed entirely from every `-nosol` download (PDF, `.tex`, `.mdx`), the same
+  way solutions are, so those stay spoiler-free. Also hidden from your own PDF
+  by `\solutionsfalse` / loading iliad with `[nosolutions]`.
+- Prefer this to a bare `\ifsolutions…\fi`: the conditional works in the PDF but
+  is **not** honoured on the web (the converter can't evaluate TeX conditionals),
+  whereas `solutionsonly` works in both.
+
 ## Hints
 
 ```latex
