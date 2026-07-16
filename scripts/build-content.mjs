@@ -44,13 +44,18 @@ const CHECKER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx-check.mjs");
 
 const args = process.argv.slice(2);
 const CHECK_ONLY = args.includes("--check");
+// --no-gate skips the KaTeX render gate. The preview loop passes this: `next
+// build` renders the same math right after (via rehype-katex), so the gate is
+// redundant there — a bad equation shows as a visible error in the browser
+// instead of failing the build. The full build / CI never pass it.
+const NO_GATE = args.includes("--no-gate");
 const JOBS = Math.max(1, parseInt(args.includes("--jobs") ? args[args.indexOf("--jobs") + 1] : "4", 10) || 4);
 // positional args are worksheet slugs; none = build everything
 const wanted = [];
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === "--check") continue;
+  if (args[i] === "--check" || args[i] === "--no-gate") continue;
   if (args[i] === "--jobs") { i++; continue; }
-  if (args[i].startsWith("-")) { console.error(`unknown flag ${args[i]} — usage: build-content.mjs [--check] [--jobs N] [slug ...]`); process.exit(1); }
+  if (args[i].startsWith("-")) { console.error(`unknown flag ${args[i]} — usage: build-content.mjs [--check] [--no-gate] [--jobs N] [slug ...]`); process.exit(1); }
   wanted.push(args[i]);
 }
 
@@ -79,13 +84,22 @@ const exec = (cmd, argv, opts = {}) =>
 // "No solutions" variants of every download format are derived by stripping
 // solution blocks from the source — so a handout (or an LLM prompt) can be
 // guaranteed spoiler-free. Solution environments never nest.
+// Strip both the `solution` answer blocks and the `solutionsonly` (answer-key /
+// instructor-aside) blocks — everything meant to vanish from the spoiler-free
+// -nosol downloads.
 const stripTexSolutions = (tex) =>
-  tex.replace(/[ \t]*\\begin\{solution\}[\s\S]*?\\end\{solution\}[ \t]*\n?/g, "");
+  tex
+    .replace(/[ \t]*\\begin\{solution\}[\s\S]*?\\end\{solution\}[ \t]*\n?/g, "")
+    .replace(/[ \t]*\\begin\{solutionsonly\}[\s\S]*?\\end\{solutionsonly\}[ \t]*\n?/g, "");
 // MDX: strip only bare <Solution> answer blocks — titled ones
 // (<Solution title="Hint">, ...title="Proof">) stay, matching what
 // stripTexSolutions keeps in the .tex. Depth-aware because an answer may
-// itself contain a titled proof block.
+// itself contain a titled proof block. Also strip solutionsonly spans, which
+// the converter brackets with invisible {/* iliad:solutionsonly:* */} markers.
 const stripMdxSolutions = (mdx) => {
+  mdx = mdx.replace(
+    /\n?\{\/\* iliad:solutionsonly:start \*\/\}[\s\S]*?\{\/\* iliad:solutionsonly:end \*\/\}[ \t]*\n?/g,
+    "");
   let out = "", i = 0;
   for (;;) {
     const s = mdx.indexOf("<Solution>", i);
@@ -175,16 +189,20 @@ async function buildSlug(slug) {
 
     // 2. convert (tex → mdx + content-addressed SVGs). The converter exits 2 on
     //    warnings and prints file:line messages — surface them verbatim.
+    const convLog = path.join(dir, "convert.log");
     try {
-      const { stdout } = await exec("node", [CONVERTER, path.join(dir, "main.tex"),
+      const { stdout, stderr } = await exec("node", [CONVERTER, path.join(dir, "main.tex"),
         "-o", mdxOut,
         "--tikz-dir", path.join(UPLOADS, slug),
         "--tikz-src", `/uploads/${slug}/`,
       ]);
+      writeFileSync(convLog, `${stdout}${stderr ?? ""}`);   // warnings kept for inspection
       const note = stdout.match(/NOTE \(advisory[^]*?(?=\nWrote )/);
       if (note) notes.push(note[0].trim());
     } catch (e) {
-      return done(false, `conversion failed:\n${e.stdout ?? ""}${e.stderr ?? ""}`);
+      const out = `${e.stdout ?? ""}${e.stderr ?? ""}`;
+      writeFileSync(convLog, out);
+      return done(false, `conversion failed (see ${path.relative(ROOT, convLog)}):\n${out}`);
     }
   } else {
     // MDX-authored worksheet: no conversion — main.mdx IS the page. It must
@@ -292,11 +310,18 @@ async function buildSlug(slug) {
     }
   }
 
-  // 4. render gate: the MDX must compile and every KaTeX span must render
-  try {
-    await exec("node", [CHECKER, mdxOut]);
-  } catch (e) {
-    return done(false, `render gate failed:\n${e.stdout ?? ""}${e.stderr ?? ""}`);
+  // 4. render gate: the MDX must compile and every KaTeX span must render.
+  //    Skipped under --no-gate (preview: `next build` renders the math anyway).
+  if (!NO_GATE) {
+    const gateLog = path.join(dir, "rendergate.log");
+    try {
+      const { stdout, stderr } = await exec("node", [CHECKER, mdxOut]);
+      writeFileSync(gateLog, `${stdout}${stderr ?? ""}`);
+    } catch (e) {
+      const out = `${e.stdout ?? ""}${e.stderr ?? ""}`;
+      writeFileSync(gateLog, out);
+      return done(false, `render gate failed (see ${path.relative(ROOT, gateLog)}):\n${out}`);
+    }
   }
 
   // 5. downloads (PDFs were already built in step 1). Every format ships a
