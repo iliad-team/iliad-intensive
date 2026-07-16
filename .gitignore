@@ -7,6 +7,7 @@ next-env.d.ts
 .env*
 _src/
 scratch/
+_src_repo/
 # generated content — build artifacts, never committed.
 # Modules (.mdx) and the index are produced upstream (tex -> mdx converter /
 # CI); figures land in public/uploads/. The repo holds sources, not outputs.
