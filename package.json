@@ -2,16 +2,16 @@
   "name": "iliad-intensive",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "prepare": "git config core.hooksPath .githooks || true",
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "content": "node scripts/build-content.mjs",
-    "watch": "node scripts/watch.mjs",
-    "preview": "node scripts/preview.mjs",
-    "ci": "node scripts/build-content.mjs && NEXT_PUBLIC_BASE_PATH=/iliad-intensive next build"
-  },
+   "scripts": {
+      "prepare": "git config core.hooksPath .githooks || true",
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start",
+      "content": "node scripts/build-content.mjs",
+      "watch": "node scripts/watch.mjs",
+      "preview": "node scripts/preview.mjs",
+      "ci": "node scripts/build-content.mjs && NEXT_PUBLIC_BASE_PATH=\"${NEXT_PUBLIC_BASE_PATH:-/iliad-intensive}\" NEXT_PUBLIC_COMMIT_SHA=\"${NEXT_PUBLIC_COMMIT_SHA:-$(git rev-parse HEAD 2>/dev/null || echo)}\" next build"
+    },
   "dependencies": {
     "katex": "^0.16.45",
     "next": "16.2.4",
