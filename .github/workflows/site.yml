@@ -197,7 +197,10 @@ jobs:
             const pr = context.issue.number;
             const url = `https://iliad-team.github.io/iliad-intensive/pr-preview/pr-${pr}/`;
             const marker = '<!-- pr-preview-url -->';
-            const body = `${marker}\n🔎 **Live preview:** ${url}\n\nUpdated for \`${context.sha.slice(0, 7)}\`. Removed automatically when this PR closes.`;
+            // The PR's head commit — NOT context.sha, which on pull_request is
+            // the ephemeral refs/pull/N/merge commit and never matches the PR.
+            const headSha = context.payload.pull_request.head.sha;
+            const body = `${marker}\n🔎 **Live preview:** ${url}\n\nUpdated for \`${headSha.slice(0, 7)}\`. Removed automatically when this PR closes.`;
             const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: pr });
             const existing = comments.find((c) => c.body && c.body.includes(marker));
             if (existing) {
