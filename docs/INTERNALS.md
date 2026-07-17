@@ -52,6 +52,8 @@ runtime inputs. If it's not in this table, the site doesn't depend on it.
 | `public/downloads/<slug>/` | `src/lib/content.ts` (`listDownloads`) | which download buttons a page offers (dir listing at build time) |
 | `public/uploads/<slug>/*.svg` | the browser, not the build | figure `<img>` targets referenced from the MDX |
 | `NEXT_PUBLIC_BASE_PATH` env | `next.config.ts`, `src/lib/mdx.tsx`, module page | sub-path hosting (GitHub Pages project site); applied at render time, never baked into generated MDX |
+| `NEXT_PUBLIC_COMMIT_SHA` env | `src/components/BuildStamp.tsx` | commit shown + linked in the page footer; set by CI, falls back to `git rev-parse HEAD` locally |
+| `NEXT_PUBLIC_PREVIEW_PR` env | `src/components/PreviewBanner.tsx` | PR number on preview builds only; renders the "not the live site" banner |
 
 ## src/ — the whole site, ~800 lines
 
@@ -108,8 +110,9 @@ npm runtime deps (root): `next`, `react`/`react-dom`, `next-mdx-remote`,
 One definition, three entry points (details in DEVELOPMENT.md): `npm run ci`
 = content build + `next build`, run identically by `./run.sh ci`, the
 `.githooks/pre-push` hook (tracked worksheets only), and
-`.github/workflows/site.yml` (every PR; pushes to `main` also deploy `out/`
-to GitHub Pages).
+`.github/workflows/site.yml`. That workflow serves everything from a single
+`gh-pages` branch: `main` → the root (production), each PR → a live preview at
+`pr-preview/pr-<N>/`. See DEVELOPMENT.md and PR-PREVIEWS.md.
 
 ## Provenance — relation to the original curriculum site
 

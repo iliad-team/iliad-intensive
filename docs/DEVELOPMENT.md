@@ -65,9 +65,12 @@ together define the authoring contract.
 ## CI & deploy
 
 - `.github/workflows/site.yml` — every PR runs the full ladder (conversion,
-  render gate, PDFs, site build); pushes to `main` also deploy to GitHub
-  Pages. TikZ SVGs are content-addressed and cached, so unchanged diagrams
-  never recompile.
+  render gate, PDFs, site build) and, once it passes, deploys a **live preview**
+  to `gh-pages/pr-preview/pr-<N>/` (a bot comments the URL; removed when the PR
+  closes). Pushes to `main` deploy production to the `gh-pages` root. TikZ SVGs
+  are content-addressed and cached, so unchanged diagrams never recompile.
+  See [`PR-PREVIEWS.md`](PR-PREVIEWS.md) for the hosting model and the one-time
+  Pages source setting (`gh-pages` / root).
 - Push protection: `git config core.hooksPath .githooks` enables a pre-push
   hook that rejects pushes when conversion fails (bypass once with
   `--no-verify`). For hard enforcement, make the `build` job a required
