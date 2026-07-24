@@ -48,7 +48,7 @@ for (const sig of ["SIGINT", "SIGTERM"]) {
 
 // LaTeX/pandoc runs write artifacts next to the sources — never rebuild on
 // those, or the watcher would loop forever.
-const ARTIFACT = /\.(aux|log|out|pdf|bbl|blg|brf|toc|fls|synctex(\.gz)?|fdb_latexmk)$|main-nosol\./;
+const ARTIFACT = /\.(aux|log|out|pdf|bbl|blg|brf|toc|fls|synctex(\.gz)?|fdb_latexmk)$|main-nosol\.|main\.autolabel\./;
 
 let timer = null;
 const pending = new Set();

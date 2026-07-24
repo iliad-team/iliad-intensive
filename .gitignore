@@ -24,6 +24,7 @@ tex/*/iliad.sty
 # LaTeX build artifacts (compiled PDFs are downstream artifacts too —
 # figure PDFs under tex/*/fig/ are the one committed exception)
 tex/*/main-nosol.*
+tex/*/main.autolabel.tex
 *.aux
 *.log
 *.out

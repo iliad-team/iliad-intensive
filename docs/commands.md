@@ -88,6 +88,12 @@ For \cref{ex:warmup-a}: each term is non-negative. \hint{when is $-t\log t = 0$?
   when wrapped this way, since the web never renders it. A `\cref` *outside*
   pointing *in* would be a dead link on the web — the build flags it with an
   advisory.
+- Numbered material (a `\section`, theorem, exercise) inside `pdfonly` is
+  safe for the numbering: the web reads every displayed number out of the
+  PDF's own `.aux`, so hiding, say, Theorem 2.4 leaves a faithful gap on the
+  web (…2.3, then 2.5), exactly mirroring the PDF. Just remember the hidden
+  thing isn't on the page — web-visible `\cref`s to it are dead links (the
+  build flags them, see above).
 
 ## Hints
 

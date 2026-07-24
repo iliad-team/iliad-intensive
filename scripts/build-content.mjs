@@ -30,6 +30,7 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, copyFi
 import YAML from "yaml";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { injectAutoLabels } from "./tex2mdx/autolabel.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEX = path.join(ROOT, "tex");
@@ -154,15 +155,25 @@ async function buildSlug(slug) {
     //    the compile must happen before conversion — a fresh CI checkout has no
     //    .aux, and converting without one reports every \cref as unresolved.
     const PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
-    const compile = async (base) => {
-      await tex(...PDFLATEX, `${base}.tex`);
+    const compile = async (base, src = `${base}.tex`) => {
+      await tex(...PDFLATEX, `-jobname=${base}`, src);
       try { await tex("bibtex", base); } catch { /* no citations — fine */ }
-      await tex(...PDFLATEX, `${base}.tex`);
-      await tex(...PDFLATEX, `${base}.tex`);
+      await tex(...PDFLATEX, `-jobname=${base}`, src);
+      await tex(...PDFLATEX, `-jobname=${base}`, src);
     };
+    // The web shows every displayed number (headings, theorems, exercises)
+    // straight out of the .aux, keyed by injected auto-labels (autolabel.mjs).
+    // So the compiled copy is main.tex + those labels — written to
+    // main.autolabel.tex and compiled under -jobname=main, keeping
+    // main.pdf/main.aux their names. Injection is same-line, so main.log
+    // line numbers still match main.tex. \label emits nothing visible: the
+    // PDF is unchanged. Downloads still copy the pristine main.tex.
+    const writeAutolabel = () => writeFileSync(path.join(dir, "main.autolabel.tex"),
+      injectAutoLabels(readFileSync(path.join(dir, "main.tex"), "utf8")).text);
     if (!CHECK_ONLY) {
+      writeAutolabel();
       try {
-        await compile("main");
+        await compile("main", "main.autolabel.tex");
       } catch {
         const log = path.join(dir, "main.log");
         const errLine = existsSync(log)
@@ -182,9 +193,12 @@ async function buildSlug(slug) {
       }
     } else if (!existsSync(path.join(dir, "main.aux"))) {
       // --check skips the full PDF build, but the converter still needs the
-      // .aux. One best-effort pass generates it; if it fails, the converter's
-      // unresolved-ref warnings say exactly what's missing.
-      try { await tex(...PDFLATEX, "main.tex"); } catch { /* see above */ }
+      // .aux (with the auto-labels). One best-effort pass generates it; if it
+      // fails, the converter's unresolved-ref warnings say exactly what's
+      // missing. (A pre-existing stale .aux is fine either way: the converter
+      // detects missing auto-labels and regenerates one itself.)
+      writeAutolabel();
+      try { await tex(...PDFLATEX, "-jobname=main", "main.autolabel.tex"); } catch { /* see above */ }
     }
 
     // 2. convert (tex → mdx + content-addressed SVGs). The converter exits 2 on
