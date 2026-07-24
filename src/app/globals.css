@@ -10,6 +10,10 @@
   --rule: #e5e5e0;
   --link: #2a4d8f;
   --link-hover: #1a3162;
+  /* Height of the sticky navbar — the single source of truth. The navbar,
+     the anchor scroll offset, and the sidebar's sticky offset all derive
+     from it. */
+  --header-h: 3rem;
 }
 
 @theme inline {
@@ -32,6 +36,9 @@
 html {
   background: var(--background);
   color: var(--foreground);
+  /* The sticky navbar covers the top of the viewport; stop anchor scrolls
+     (link clicks, #fragment loads, scrollIntoView) just below it. */
+  scroll-padding-top: calc(var(--header-h) + 0.75rem);
 }
 
 body {
