@@ -79,11 +79,22 @@ Consider $f(t) = t - 1 - \log t$.
 
 ## Learning outcomes and summary
 
-```latex
-\begin{summary}
-One paragraph on what this sheet is about.
-\end{summary}
+The summary is **metadata, not body text**: it goes in the `%--- iliad ---`
+comment block at the top of `main.tex`, as a YAML folded block scalar
+(continuation lines indented two spaces after the leading `% `):
 
+```latex
+%--- iliad ---
+% cluster: B
+% summary: >-
+%   One paragraph on what this sheet is about. It can run over several
+%   lines; the line breaks fold into spaces.
+%--- end ---
+```
+
+Learning outcomes stay in the body:
+
+```latex
 \begin{learningoutcomes}
   \begin{itemize}
     \item First outcome.
@@ -109,9 +120,12 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
 \end{learningoutcomes}
 ```
 
-- `summary` becomes the page's lede and its index blurb (italic block in
-  the PDF); `learningoutcomes` renders as the "What you'll learn" box where
-  you put it — both usually sit right after `\maketitle`.
+- The summary becomes the page's lede and its index blurb;
+  `learningoutcomes` renders as the "What you'll learn" box where you put
+  it — usually right after `\maketitle`.
+- Legacy sheets with a `\begin{summary}` env in the body still convert (it
+  is hoisted into the frontmatter), but the metadata block is the home for
+  new sheets; a frontmatter `summary:` overrides the env if both are present.
 - MDX: put `summary:` in the YAML frontmatter; `<LearningOutcomes>` with a
   markdown list inside. Group headings become bold subheadings in the box
   (not real headings — no anchor, not in the table of contents).

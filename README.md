@@ -80,8 +80,16 @@ that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
     ```
 
 2. **Optional metadata**:
-    * `\begin{summary} ... \end{summary}` summarizes the material, and is extracted
-    and displayed in the page index and under the page title.
+    * A `summary: >-` key in the `%--- iliad ---` metadata block summarizes the
+    material, and is displayed in the page index and under the page title:
+      ```
+      %--- iliad ---
+      % cluster: B
+      % summary: >-
+      %   One paragraph on what this sheet is about, indented two spaces
+      %   after the `% `; line breaks fold into spaces.
+      %--- end ---
+      ```
     * ```
        \begin{learningoutcomes}
        \begin{itemize}

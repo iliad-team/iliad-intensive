@@ -1,6 +1,11 @@
 %--- iliad ---
 % cluster: B
 % title: "Singular Learning Theory"
+% summary: >-
+%   Singular learning theory (SLT) places degeneracy as a core part of
+%   understanding how neural networks learn. We cover the parameter-function
+%   map, the meaning of degeneracy through the local learning coefficient, to
+%   Watanabe's free energy formula and Bayesian phase transitions.
 %--- end ---
 \documentclass[11pt]{article}
 % % %
@@ -70,8 +75,9 @@
 
 
 \title{
-    \textbf{Degeneracy in Deep Learning}\\
-    An Invitation to Singular Learning Theory
+    Singular Learning Theory
+%\textbf{Degeneracy in Deep Learning}\\
+    %An Invitation to Singular Learning Theory
 }
 \author{
     \authorname{Kai Ogden}\\
@@ -125,14 +131,6 @@
 % % % 
 % Begin body
 \clearpage
-
-\begin{summary}
-Singular learning theory (SLT) places \emph{degeneracy} as a core part of
-understanding how neural networks learn.
-We cover the parameter-function map, the meaning of degeneracy
-through the local learning coefficient, to Watanabe's free energy formula and
-Bayesian phase transitions.
-\end{summary}
 
 \section*{Introduction}
 \label{sec:intro}
@@ -200,7 +198,7 @@ technical sections, each with definitions and guided exercises.
         connecting the LLC to Bayesian learning and discusses its implications.
 \end{enumerate}
 We conclude with \cref{sec:readings}, providing pointers for further study and
-surveying the literature on SLT and deep learning. 
+surveying the literature on SLT and deep learning.
 \begin{solutionsonly}
 \Cref{apx:solutions}
 provides worked solutions for all exercises.

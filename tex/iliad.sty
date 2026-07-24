@@ -35,9 +35,6 @@
 %       introduced by \subsection*{Heading} and its own itemize (the group
 %       headings render as bold subheadings on the web). Renders as the
 %       matching box on the web.
-%   \begin{summary} ... \end{summary}
-%       One-paragraph lede. Becomes the page's summary on the web and in
-%       the module index; prints as an italic block in the PDF.
 %
 % Title block: the website extracts its byline from \title{} and \author{}.
 % \author supports affiliations:
@@ -314,8 +311,9 @@
 \newcommand{\authorname}[1]{#1}
 \newcommand{\affiliation}[1]{\normalfont\small #1}
 
-% \begin{summary} ... \end{summary} — the one-paragraph lede; hoisted into
-% the page's frontmatter on the web, italic block in the PDF.
+% \begin{summary} ... \end{summary} — legacy; the page summary belongs in the
+% %--- iliad --- metadata block (summary: >-). Kept so old sheets compile:
+% hoisted into the web frontmatter, italic block in the PDF.
 \newenvironment{summary}{\begin{quotation}\noindent\itshape}{\end{quotation}}
 
 % ----------------------------------------------------------- conveniences ---
