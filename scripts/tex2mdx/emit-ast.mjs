@@ -59,7 +59,7 @@ const ENV_SIGNATURES = {
   proposition: { signature: "o" }, corollary: { signature: "o" },
   definition: { signature: "o" }, fact: { signature: "o" },
   example: { signature: "o" }, remark: { signature: "o" },
-  learningoutcomes: {}, summary: {}, hint: {}, solutionsonly: {},
+  learningoutcomes: {}, summary: {}, hint: {}, solutionsonly: {}, pdfonly: {},
   abstract: {}, figure: { signature: "o" }, table: { signature: "o" },
   tabular: { signature: "m" }, quote: {}, quotation: {},
   itemize: { signature: "o" }, enumerate: { signature: "o" }, description: { signature: "o" },
@@ -86,6 +86,7 @@ const THM_COUNTED = new Set(["theorem", "lemma", "proposition", "corollary", "fa
 // ------------------------------------------------------------- run state ---
 let ctx = null;                 // caller-supplied context
 let anchorMap = {};             // label -> anchor
+let droppedLabels = new Set();  // labels inside dropped pdfonly blocks
 let authorMacros = {};          // name -> {signature, body(nodes)}
 let expandDepth = 0;
 let counters = null;
@@ -394,6 +395,15 @@ function emitEnv(n) {
       // content, bracketed by invisible JSX-comment markers so the -nosol
       // stripper (stripMdxSolutions) can remove the whole span.
       mdx = `{/* iliad:solutionsonly:start */}\n\n${walk(n.content).trim()}\n\n{/* iliad:solutionsonly:end */}`;
+      break;
+    case "pdfonly":
+      // Content kept in both PDF variants but absent from the web: dropped
+      // whole, unwalked, so nothing inside (headings, anchors, \crefs) leaks
+      // into the page, the TOC, or the .mdx downloads. Labels defined inside
+      // are recorded: a \cref to one from visible prose resolves via the aux
+      // and would silently emit a dead link, so emitDocument advises on it.
+      for (const l of allLabels(n.content)) droppedLabels.add(l);
+      mdx = "";
       break;
     // Definition/theorem family render axiom-style: a bold markdown lead
     // inside the coloured box (math in titles renders; no header chrome).
@@ -824,6 +834,7 @@ function emitBibliography() {
 export function emitDocument(bodyTex, context) {
   ctx = context;
   anchorMap = {};
+  droppedLabels = new Set();
   authorMacros = {};
   citedKeys = new Set();
   inExercise = false;
@@ -866,5 +877,14 @@ export function emitDocument(bodyTex, context) {
   // the References list for everything the page cited
   counters = { section: 0, subsec: 0, subsubsec: 0, appendix: false, ex: {}, thm: {} };
   citedKeys = new Set();
-  return relocateSolutions(walk(ast.content)) + emitBibliography();
+  const md = relocateSolutions(walk(ast.content)) + emitBibliography();
+
+  // a \cref may target a label inside a dropped pdfonly block — it resolves
+  // via the aux, so the link emits but points at nothing. Tell the author.
+  for (const l of droppedLabels) {
+    if (md.includes(`](#${anchorMap[l] ?? slug(l)})`)) {
+      advise(`prose links to "${l}", which sits inside a pdfonly block and is dropped from the page — the web link is dead; move the \\cref inside pdfonly or reword`, l);
+    }
+  }
+  return md;
 }

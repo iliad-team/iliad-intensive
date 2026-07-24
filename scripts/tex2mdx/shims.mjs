@@ -109,7 +109,7 @@ export const CONTRACT_NAMES = new Set([
   "authorname", "affiliation",
   "definition", "theorem", "lemma", "proposition", "corollary", "fact", "example",
   "label", "cref", "Cref", "hint", "note", "important", "solutionbox", "exercisebox", "ifsolutions",
-  "solutionsonly",
+  "solutionsonly", "pdfonly",
 ]);
 
 export const KNOWN_FRONT_KEYS = new Set([

@@ -45,6 +45,7 @@ around it (CI also rejects redefinitions of contract names).
 | `exercise` | env | numbered problem box ("Exercise 2.1"), own per-section counter |
 | `solution` | env | worked answer bound to an exercise; hidden by `\solutionsfalse` |
 | `solutionsonly` | env | plain content shown only in the with-solutions build (answer key / instructor aside); no box or binding; stripped from `-nosol` |
+| `pdfonly` | env | kept in both PDF variants, dropped entirely from the web build; nest `solutionsonly` inside it for with-solutions-PDF-only content |
 | `learningoutcomes` | env | "What you'll learn" box; body is an `itemize`, or `\subsection*{}` groups each with their own `itemize` |
 | `definition` `theorem` `lemma` `proposition` `corollary` `fact` `example` | envs | amsthm family sharing one per-section counter |
 | `proof` | env | amsthm; collapsible on the web |
@@ -113,3 +114,9 @@ pair up. The build produces every download in two variants: with solutions,
 and with every solution stripped (`-nosol`) — the stripped `.tex`/`.mdx`/
 `.pdf` are safe to hand out or paste into an LLM. `\solutionsfalse` is the
 authoring-time equivalent for your own PDF compiles.
+
+A sheet that collects its solutions in a back-of-sheet section should wrap
+that section's `\appendix`/`\section{Solutions}` header in `pdfonly` +
+`solutionsonly`: the web relocates the solutions under their exercises and
+would otherwise show the emptied header, and the `-nosol` PDF must not show
+it either. See "PDF-only content" in [commands.md](commands.md).

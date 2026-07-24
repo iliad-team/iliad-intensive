@@ -62,6 +62,33 @@ For \cref{ex:warmup-a}: each term is non-negative. \hint{when is $-t\log t = 0$?
   is **not** honoured on the web (the converter can't evaluate TeX conditionals),
   whereas `solutionsonly` works in both.
 
+## PDF-only content
+
+```latex
+\begin{pdfonly}
+\begin{solutionsonly}
+\clearpage
+\appendix
+\section{Solutions}
+\label{apx:solutions}
+\end{solutionsonly}
+\end{pdfonly}
+```
+
+- Content kept in **both** PDF variants but dropped from the web page and the
+  `.mdx` downloads without a trace — nothing inside lands in the page, the
+  sidebar, or the anchors.
+- The motivating case is a collected back-of-sheet solutions section: on the
+  web its solutions relocate under their exercises, so its `\appendix` /
+  `\section{Solutions}` header would be left pointing at nothing. Nest
+  `solutionsonly` inside `pdfonly` (as above) and the header appears **only**
+  in the with-solutions PDF.
+- The "don't `\cref` the solutions section" rule is lifted *inside* `pdfonly`:
+  a sentence like "\Cref{apx:solutions} provides worked solutions." is fine
+  when wrapped this way, since the web never renders it. A `\cref` *outside*
+  pointing *in* would be a dead link on the web — the build flags it with an
+  advisory.
+
 ## Hints
 
 ```latex

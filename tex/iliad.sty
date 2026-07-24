@@ -225,6 +225,13 @@
   \ifsolutions\else\expandafter\endcomment\fi
 }
 
+% -------------------------------------------------------------- pdf only ---
+% \begin{pdfonly} ... \end{pdfonly} — content kept in BOTH PDF variants but
+% dropped entirely from the web build by the converter (tex2mdx). For content
+% that should appear only in the with-solutions PDF (e.g. the heading of a
+% back-of-sheet solutions section), nest solutionsonly inside it.
+\newenvironment{pdfonly}{}{}
+
 % ------------------------------------------------------------------ hint ---
 % One name, two contract forms:
 %   \hint{try induction}           inline: prints "[Hint: try induction]"
