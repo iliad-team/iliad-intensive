@@ -35,9 +35,6 @@
 %       introduced by \subsection*{Heading} and its own itemize (the group
 %       headings render as bold subheadings on the web). Renders as the
 %       matching box on the web.
-%   \begin{summary} ... \end{summary}
-%       One-paragraph lede. Becomes the page's summary on the web and in
-%       the module index; prints as an italic block in the PDF.
 %
 % Title block: the website extracts its byline from \title{} and \author{}.
 % \author supports affiliations:
@@ -90,10 +87,20 @@
 \newif\ifiliad@geometry
 \iliad@geometrytrue
 \DeclareOption{nogeometry}{\iliad@geometryfalse}
+% Solutions are shown by default. Authors may write \solutionsfalse in the
+% document, or load the package with [nosolutions], to hide every solution and
+% solutionsonly block from their own PDF compile. (The site build produces its
+% spoiler-free -nosol downloads by stripping instead; see build-content.mjs.)
+\newif\ifsolutions
+\solutionstrue
+\DeclareOption{nosolutions}{\solutionsfalse}
 \ProcessOptions\relax
 
 \ifiliad@geometry
-  \RequirePackage[paperwidth=6.5in, paperheight=9.5in, margin=1cm]{geometry}
+  % includefoot keeps the 1cm margins but reserves the footer inside the margin
+  % box, so page numbers (and any \cfoot) print on the page instead of hanging
+  % off the bottom edge.
+  \RequirePackage[paperwidth=6.5in, paperheight=9.5in, margin=1cm, includefoot]{geometry}
 \fi
 
 \RequirePackage{amsmath}
@@ -110,10 +117,6 @@
 \RequirePackage{hyperref}
 \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
 \RequirePackage[capitalise,noabbrev]{cleveref}
-
-% ---------------------------------------------------------------- toggle ---
-\newif\ifsolutions
-\solutionstrue   % authors write \solutionsfalse in main.tex to hide solutions
 
 % -------------------------------------------------------- theorem family ---
 % One shared counter, numbered within section.
@@ -208,6 +211,27 @@
   \fi
 }
 
+% -------------------------------------------------------- solutions only ---
+% \begin{solutionsonly} ... \end{solutionsonly} — content that appears ONLY in
+% the solutions build: an answer key, an instructor aside, a spoiler. Plain
+% passthrough when solutions are shown; swallowed whole (like a solution) under
+% \solutionsfalse / [nosolutions]. Unlike solution it has no box, heading, or
+% exercise binding, and is never relocated. The site build removes it from the
+% -nosol downloads (stripTexSolutions / stripMdxSolutions), so it is
+% spoiler-free there too.
+\newenvironment{solutionsonly}{%
+  \ifsolutions\else\expandafter\comment\fi
+}{%
+  \ifsolutions\else\expandafter\endcomment\fi
+}
+
+% -------------------------------------------------------------- pdf only ---
+% \begin{pdfonly} ... \end{pdfonly} — content kept in BOTH PDF variants but
+% dropped entirely from the web build by the converter (tex2mdx). For content
+% that should appear only in the with-solutions PDF (e.g. the heading of a
+% back-of-sheet solutions section), nest solutionsonly inside it.
+\newenvironment{pdfonly}{}{}
+
 % ------------------------------------------------------------------ hint ---
 % One name, two contract forms:
 %   \hint{try induction}           inline: prints "[Hint: try induction]"
@@ -267,10 +291,12 @@
   \iliad@calloutend
 }
 
-% remark — an aside; renders as a note callout on the web.
-\newenvironment{remark}{%
+% remark — an aside; renders as a note callout on the web. An optional title
+% is appended in parentheses: \begin{remark}[Encodings] -> "Remark (Encodings)"
+% (matching the tex -> MDX converter, which renders "**Remark (Encodings).**").
+\newenvironment{remark}[1][]{%
   \refstepcounter{remark}%
-  \iliad@calloutbegin{Remark}{blue}%
+  \iliad@calloutbegin{Remark\ifblank{#1}{}{ (#1)}}{blue}%
 }{%
   \iliad@calloutend
 }
@@ -292,8 +318,9 @@
 \newcommand{\authorname}[1]{#1}
 \newcommand{\affiliation}[1]{\normalfont\small #1}
 
-% \begin{summary} ... \end{summary} — the one-paragraph lede; hoisted into
-% the page's frontmatter on the web, italic block in the PDF.
+% \begin{summary} ... \end{summary} — legacy; the page summary belongs in the
+% %--- iliad --- metadata block (summary: >-). Kept so old sheets compile:
+% hoisted into the web frontmatter, italic block in the PDF.
 \newenvironment{summary}{\begin{quotation}\noindent\itshape}{\end{quotation}}
 
 % ----------------------------------------------------------- conveniences ---

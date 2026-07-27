@@ -1,14 +1,18 @@
-% YAML frontmatter for the website sits in the block below — SIMPLE one-line
-% values only. LaTeX ignores it (it is a comment); the converter lifts it
-% verbatim into the module frontmatter and CI validates it (pure YAML).
+% YAML frontmatter for the website sits in the block below. LaTeX ignores it
+% (it is a comment); the converter lifts it verbatim into the module
+% frontmatter and CI validates it (pure YAML).
 % Keys: title, cluster, summary, contributors — all optional. The website
-% extracts title/contributors/summary from \title{}, \author{}, and
-% \begin{summary} in the LaTeX; a frontmatter key here overrides the
-% extracted value. (`unlisted: true` is a maintainer flag: the page is
-% built but linked from nowhere — you almost certainly don't want it.)
+% extracts title/contributors from \title{} and \author{}; a frontmatter key
+% here overrides the extracted value. `summary:` lives here (metadata, not
+% body text) — for a paragraph, use a YAML folded block scalar (`>-`) with
+% continuation lines indented two spaces after the leading `% `.
+% (`unlisted: true` is a maintainer flag: the page is built but linked from
+% nowhere — you almost certainly don't want it.)
 %--- iliad -------------------------------------------------------------------
 % title: "Example Worksheet: The Kitchen Sink"
 % cluster: D
+% summary: >-
+%   A dummy worksheet demonstrating every construct the pipeline supports.
 % unlisted: true
 %--- end ----------------------------------------------------------------------
 \documentclass[11pt]{article}
@@ -40,13 +44,6 @@
 
 \begin{document}
 \maketitle
-
-% The one-paragraph lede: shown under the title on the web and in the
-% module index. (A one-line `summary:` frontmatter key also works and
-% takes precedence.)
-\begin{summary}
-A dummy worksheet demonstrating every construct the pipeline supports.
-\end{summary}
 
 % The "What you'll learn" box. Usually sits right here, after \maketitle.
 % The body is ordinary LaTeX. Simplest form: a single itemize.
@@ -244,6 +241,15 @@ iff $t = 1$. Then with $t_x = q(x)/p(x)$,
    \sum_x \bigl(p(x) - q(x)\bigr) \geq 0, \]
 and equality forces $t_x = 1$ wherever $p(x) > 0$, i.e.\ $p = q$.
 \end{solution}
+
+% A solutionsonly block appears ONLY in the with-solutions build: it renders as
+% plain content here and in the with-solutions PDF, and is removed entirely from
+% every -nosol download (like a solution, but with no box, heading, or exercise
+% binding). Use it for an answer key, an instructor aside, or any spoiler.
+\begin{solutionsonly}
+\textbf{Instructor note.} Exercise~\ref{ex:gibbs-hard} is the one to discuss on
+the board if time is short; the warm-up can be left for self-study.
+\end{solutionsonly}
 
 \bibliographystyle{plain}
 \bibliography{biblo}

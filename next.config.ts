@@ -11,6 +11,12 @@ const nextConfig: NextConfig = {
   // sub-path such as a GitHub Pages project site. Leave unset for local dev
   // and root-domain hosting.
   basePath: process.env.NEXT_PUBLIC_BASE_PATH ?? "",
+  // The `preview` loop (PREVIEW_ONLY set) skips type-checking and linting on
+  // each rebuild — a couple of seconds saved per save. The real build/CI (no
+  // PREVIEW_ONLY) always type-checks and lints.
+  ...(process.env.PREVIEW_ONLY
+    ? { typescript: { ignoreBuildErrors: true }, eslint: { ignoreDuringBuilds: true } }
+    : {}),
 };
 
 export default nextConfig;

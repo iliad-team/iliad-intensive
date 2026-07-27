@@ -43,6 +43,58 @@ For \cref{ex:warmup-a}: each term is non-negative. \hint{when is $-t\log t = 0$?
   `\solutionsfalse`; stripped entirely from the `-nosol` downloads.
 - MDX: `<Solution>…</Solution>`
 
+## Solutions-only content
+
+```latex
+\begin{solutionsonly}
+\textbf{Instructor note.} Discuss \cref{ex:gibbs-hard} on the board first.
+\end{solutionsonly}
+```
+
+- Content that appears **only** in the with-solutions build — an answer key, an
+  instructor aside, a spoiler. Unlike `solution` it has no box, heading, or
+  exercise binding, and it is never relocated: it renders as plain content
+  exactly where you write it.
+- Removed entirely from every `-nosol` download (PDF, `.tex`, `.mdx`), the same
+  way solutions are, so those stay spoiler-free. Also hidden from your own PDF
+  by `\solutionsfalse` / loading iliad with `[nosolutions]`.
+- Prefer this to a bare `\ifsolutions…\fi`: the conditional works in the PDF but
+  is **not** honoured on the web (the converter can't evaluate TeX conditionals),
+  whereas `solutionsonly` works in both.
+
+## PDF-only content
+
+```latex
+\begin{pdfonly}
+\begin{solutionsonly}
+\clearpage
+\appendix
+\section{Solutions}
+\label{apx:solutions}
+\end{solutionsonly}
+\end{pdfonly}
+```
+
+- Content kept in **both** PDF variants but dropped from the web page and the
+  `.mdx` downloads without a trace — nothing inside lands in the page, the
+  sidebar, or the anchors.
+- The motivating case is a collected back-of-sheet solutions section: on the
+  web its solutions relocate under their exercises, so its `\appendix` /
+  `\section{Solutions}` header would be left pointing at nothing. Nest
+  `solutionsonly` inside `pdfonly` (as above) and the header appears **only**
+  in the with-solutions PDF.
+- The "don't `\cref` the solutions section" rule is lifted *inside* `pdfonly`:
+  a sentence like "\Cref{apx:solutions} provides worked solutions." is fine
+  when wrapped this way, since the web never renders it. A `\cref` *outside*
+  pointing *in* would be a dead link on the web — the build flags it with an
+  advisory.
+- Numbered material (a `\section`, theorem, exercise) inside `pdfonly` is
+  safe for the numbering: the web reads every displayed number out of the
+  PDF's own `.aux`, so hiding, say, Theorem 2.4 leaves a faithful gap on the
+  web (…2.3, then 2.5), exactly mirroring the PDF. Just remember the hidden
+  thing isn't on the page — web-visible `\cref`s to it are dead links (the
+  build flags them, see above).
+
 ## Hints
 
 ```latex
@@ -60,11 +112,22 @@ Consider $f(t) = t - 1 - \log t$.
 
 ## Learning outcomes and summary
 
-```latex
-\begin{summary}
-One paragraph on what this sheet is about.
-\end{summary}
+The summary is **metadata, not body text**: it goes in the `%--- iliad ---`
+comment block at the top of `main.tex`, as a YAML folded block scalar
+(continuation lines indented two spaces after the leading `% `):
 
+```latex
+%--- iliad ---
+% cluster: B
+% summary: >-
+%   One paragraph on what this sheet is about. It can run over several
+%   lines; the line breaks fold into spaces.
+%--- end ---
+```
+
+Learning outcomes stay in the body:
+
+```latex
 \begin{learningoutcomes}
   \begin{itemize}
     \item First outcome.
@@ -90,9 +153,12 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
 \end{learningoutcomes}
 ```
 
-- `summary` becomes the page's lede and its index blurb (italic block in
-  the PDF); `learningoutcomes` renders as the "What you'll learn" box where
-  you put it — both usually sit right after `\maketitle`.
+- The summary becomes the page's lede and its index blurb;
+  `learningoutcomes` renders as the "What you'll learn" box where you put
+  it — usually right after `\maketitle`.
+- Legacy sheets with a `\begin{summary}` env in the body still convert (it
+  is hoisted into the frontmatter), but the metadata block is the home for
+  new sheets; a frontmatter `summary:` overrides the env if both are present.
 - MDX: put `summary:` in the YAML frontmatter; `<LearningOutcomes>` with a
   markdown list inside. Group headings become bold subheadings in the box
   (not real headings — no anchor, not in the table of contents).
@@ -122,13 +188,15 @@ MDX: `<Definition id="def-entropy">**Definition 2.1 (entropy).** …</Definition
 Don't confuse $\log$ bases here.
 \end{callout}
 
-\begin{remark}
+\begin{remark}[optional title]
 An aside in the mathematical register.
 \end{remark}
 ```
 
 - Types: `note` (default), `tip`, `warning` — coloured boxes on web + PDF
   (`[boxes]`).
+- `remark` takes an optional title, appended in parentheses:
+  `\begin{remark}[Encodings]` renders as "Remark (Encodings)".
 - Both may be labelled: no number shows in the box, but
   `\cref{co:pitfall}` prints "Callout 2.1" and links to it.
 - MDX: `<Callout type="warning" id="co-pitfall">…</Callout>`
