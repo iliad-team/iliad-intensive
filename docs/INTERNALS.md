@@ -26,6 +26,7 @@ tex/iliad.sty                               the authoring contract, PDF side
         ▼
 content/modules/<slug>.mdx                  page bodies           (gitignored)
 content/index.json                          homepage/sidebar list (gitignored)
+content/status.json                         /admin/status table   (gitignored)
 public/uploads/<slug>/*.svg                 figures + TikZ        (gitignored)
 public/downloads/<slug>/*                   pdf/tex/mdx ±nosol,   (gitignored)
                                             +slides pdf/tex if slides.tex
@@ -35,9 +36,10 @@ public/downloads/<slug>/*                   pdf/tex/mdx ±nosol,   (gitignored)
 out/                                        static HTML/CSS/JS → GitHub Pages
 ```
 
-`content/clusters.json` (hand-edited, committed) is the one content file
-that is *not* generated: it maps cluster ids (`A`, `B`, …) to labels and
-URL slugs.
+Two content files are hand-edited and committed rather than generated:
+`content/clusters.json` maps cluster ids (`A`, `B`, …) to labels and URL
+slugs, and `content/days.yml` is the teaching-day roster behind
+`/admin/status` (everything else on that page is derived from the build).
 
 ## What the site reads at build time
 
@@ -48,6 +50,7 @@ runtime inputs. If it's not in this table, the site doesn't depend on it.
 |---|---|---|
 | `content/modules/*.mdx` | `src/lib/content.ts` | page bodies + frontmatter; **every** file here becomes a page, listed or not |
 | `content/index.json` | `src/lib/content.ts` | homepage/sidebar listing + ordering + heading TOCs (absence ⇒ page is unlisted, still built) |
+| `content/status.json` | `src/lib/status.ts` | the `/admin/status` table (absence ⇒ the page renders a "run the content build" hint) |
 | `content/clusters.json` | `src/lib/cluster-store.ts` | cluster labels and the first URL segment (`/learning/<slug>/`); falls back to `DEFAULT_CLUSTERS` in `src/lib/clusters.ts` |
 | `public/downloads/<slug>/` | `src/lib/content.ts` (`listDownloads`) | which download buttons a page offers (dir listing at build time) |
 | `public/uploads/<slug>/*.svg` | the browser, not the build | figure `<img>` targets referenced from the MDX |
@@ -92,6 +95,7 @@ Components (`src/components/`): `ModulePageShell` (sidebar + content grid),
 | `tex2mdx/shims.mjs` | all dialect knowledge: contract env tables, KaTeX synonyms, macro overrides — `iliad.sty`'s web-side twin |
 | `tex2mdx/tikz.mjs` | TikZ → standalone compile → content-addressed `tikz-<sha>.svg` (unchanged diagrams never recompile; CI caches `public/uploads` on `hashFiles('tex/**')`) |
 | `tex2mdx/tex2mdx-check.mjs` | the render gate: compiles the MDX with the site's exact plugin pipeline and KaTeX-renders every math span |
+| `build-status.mjs` | last step of the content build: `content/days.yml` (committed roster) + what the build produced → `content/status.json` for `/admin/status`. Worksheets attach to a day via their own `day:` frontmatter, so the derived columns can't go stale; roster data errors are fatal |
 | `watch.mjs` | `./run.sh watch`: dev server + rebuild-on-save loop |
 
 Two `package.json`s: the site's (root) and `scripts/tex2mdx/`'s (unified-latex,

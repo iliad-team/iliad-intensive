@@ -26,6 +26,34 @@ Edit `main.tex`/`main.mdx`, save, refresh, see http://localhost:3000
 See `./run.sh --help` for details.
 `./run.sh ci` runs the CI action as if you had pushed to the repo.
 
+## Material status
+
+**[iliad-team.github.io/iliad-intensive/admin/status](https://iliad-team.github.io/iliad-intensive/admin/status/)**
+— one row per teaching day: is the worksheet live, is there a deck, the day's
+Google-Doc tab, and where its source is. Every push rebuilds it, so it always
+describes the site as deployed.
+
+Most of that table is *observed*, not maintained: a day's material and slides
+columns come from what the build actually produced. So there is no status to
+remember to update after you port a day — you add one line to your own
+worksheet's `%--- iliad ---` block naming its day, and the row fills itself in:
+
+```
+%--- iliad ---
+% day: B.4
+%--- end ---
+```
+
+Two worksheets may name the same day; both show up in its row. A `day:` code
+that no day owns fails the build, so a typo can't quietly orphan your page.
+
+The hand-kept half is [`content/days.yml`](content/days.yml): the day roster
+itself (code, title, lead, Doc tab) and, for days nobody has ported yet, where
+the source is — plus a `slides:` URL for a deck that only exists as a PDF
+someone handed you. Edit that file to add a day or update a source; the file's
+own comments document every field. It feeds a public page, so keep chase-ups
+and anything unflattering out of it.
+
 ## Folder structure
 
 Each folder in `tex/` represents a page on the course site.
@@ -114,6 +142,9 @@ that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
       and override whatever is extracted from the LaTeX. A `slides:` key holds
       the URL of an externally hosted deck (for a PDF-only deck with no source);
       it renders as an outbound link and is superseded by a compiled `slides.tex`.
+      A `day:` key names the teaching day this sheet is the material for
+      (`% day: B.4`, a code from `content/days.yml`) — that one line is what
+      files it on the [status page](#material-status).
 
 3. **Commands**: See `docs/commands.md` for details.
 * Exercises: `\begin{exercise}[Optional Title]\label{ex:your-label} ... \end{exercise}`

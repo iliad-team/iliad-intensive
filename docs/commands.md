@@ -256,6 +256,29 @@ tex/<slug>/slides.tex        # any self-contained LaTeX (usually beamer)
 - The build emits a non-fatal **advisory** for any worksheet with no
   `slides.tex` (whether or not a `slides:` URL is set), in the full build and
   `./run.sh ci` — not in the `--check` watch/pre-push loop.
+- For a day with **no worksheet yet**, there is no frontmatter to hold a
+  `slides:` URL — put it on the day itself in `content/days.yml` instead. Deck
+  precedence, highest first: a compiled `slides.tex` → a worksheet's `slides:`
+  URL → the day's `slides:` URL → no deck.
+
+## Which teaching day is this?
+
+```
+%--- iliad ---
+% day: B.4
+%--- end ---
+```
+
+- One line naming the day this worksheet is the material for — a code from
+  [`content/days.yml`](../content/days.yml). It's what files the sheet on
+  [`/admin/status`](https://iliad-team.github.io/iliad-intensive/admin/status/),
+  the per-day table of what's live: adding it is the whole "mark it done" step,
+  because everything else in the row is read off the build.
+- A code no day owns **fails the build** (with the list of valid codes), so a
+  typo can't leave your page unfiled.
+- Two worksheets may name the same day — D.3 is AIXI + Solomonoff Induction,
+  and both appear in that row.
+- MDX-authored sheets use the same key in their YAML frontmatter: `day: B.4`.
 
 ## Citations
 
