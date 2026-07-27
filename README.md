@@ -35,24 +35,29 @@ describes the site as deployed.
 
 Most of that table is *observed*, not maintained: a day's material and slides
 columns come from what the build actually produced. So there is no status to
-remember to update after you port a day — you add one line to your own
-worksheet's `%--- iliad ---` block naming its day, and the row fills itself in:
+remember to update after you port a day — you list your slug under its day in
+[`schedule.yaml`](schedule.yaml), and the row fills itself in.
 
+That one committed file is the whole hand-kept half, and it is the course: the
+clusters, the teaching days (code, title, lead, Doc tab), which worksheets are
+each day's material, and — for days nobody has ported yet — where the source
+is, plus a `slides:` URL for a deck that only exists as a PDF someone handed
+you.
+
+```yaml
+      - code: D.3
+        title: AIXI
+        worksheets:
+          - solomonoff-induction    # order here is the order on the site
+          - aixi
 ```
-%--- iliad ---
-% day: B.4
-%--- end ---
-```
 
-Two worksheets may name the same day; both show up in its row. A `day:` code
-that no day owns fails the build, so a typo can't quietly orphan your page.
-
-The hand-kept half is [`content/days.yml`](content/days.yml): the day roster
-itself (code, title, lead, Doc tab) and, for days nobody has ported yet, where
-the source is — plus a `slides:` URL for a deck that only exists as a PDF
-someone handed you. Edit that file to add a day or update a source; the file's
-own comments document every field. It feeds a public page, so keep chase-ups
-and anything unflattering out of it.
+Its order *is* the site's order — clusters, then days, then a day's own
+worksheets — on the homepage, in the sidebar, and on the status page. Several
+worksheets per day is normal. Run `node scripts/schedule.mjs` to validate it and
+print the course as the site will present it; the file's own comments document
+every field. It feeds a public page, so keep chase-ups and anything
+unflattering out of it.
 
 ## Folder structure
 
@@ -135,16 +140,17 @@ that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
       grouped under:
       ```
       %--- iliad ---
-      % cluster: D
+      % summary: >-
+      %   One paragraph on what this sheet is about.
       %--- end ---
       ```
-      `title:`, `summary:`, and `contributors:` keys are also accepted there
+      `title:`, `summary:`, and `contributors:` keys are accepted there
       and override whatever is extracted from the LaTeX. A `slides:` key holds
       the URL of an externally hosted deck (for a PDF-only deck with no source);
       it renders as an outbound link and is superseded by a compiled `slides.tex`.
-      A `day:` key names the teaching day this sheet is the material for
-      (`% day: B.4`, a code from `content/days.yml`) — that one line is what
-      files it on the [status page](#material-status).
+      Its cluster and teaching day are **not** keys here — list the slug under
+      its day in [`schedule.yaml`](schedule.yaml) and the build stamps both in
+      (see [status page](#material-status)).
 
 3. **Commands**: See `docs/commands.md` for details.
 * Exercises: `\begin{exercise}[Optional Title]\label{ex:your-label} ... \end{exercise}`

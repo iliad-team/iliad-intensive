@@ -1,0 +1,248 @@
+# schedule.yaml — the curriculum, in order. The single hand-kept file the
+# build reads; everything else about a worksheet is observed, not declared.
+#
+# This file owns three things, and nothing else does:
+#
+#   1. the clusters — their order, display labels, and URL segments
+#   2. the teaching days within each cluster, in the order they are taught
+#   3. which worksheets are the material for each day, in reading order
+#
+# Order is positional throughout: the order of `clusters:`, of a cluster's
+# `days:`, and of a day's `worksheets:` IS the order the site presents them —
+# on the homepage, in the sidebar, and on /admin/status. There are no sort
+# keys to keep in sync, and no alphabetical fallback to be surprised by
+# (Solomonoff Induction before AIXI is a fact about teaching order, which no
+# sort of the titles could have recovered).
+#
+# ── Where a worksheet's day and cluster come from ───────────────────────────
+# Here, and only here. A tex/<slug>/main.tex carries its own title, summary and
+# contributors — things about the worksheet — but never its place in the course.
+# The build stamps `cluster:` and `day:` into the generated MDX from this file,
+# so a day's material is one edit here, and no source file can disagree with
+# the schedule about where it sits. Writing `cluster:` or `day:` in a worksheet
+# frontmatter block is an error.
+#
+# Every worksheet in tex/ must be listed by exactly one day, or be marked
+# `unlisted: true` in its own frontmatter (the format-demo sheet). Anything
+# else fails the build rather than sorting itself silently to the bottom.
+#
+# ── Cluster fields ─────────────────────────────────────────────────────────
+#   id         required  Single letter/digit. The part of a day code before the
+#                        dot: day B.4 belongs to cluster B. Unique.
+#   label      required  Heading shown above the cluster's worksheets.
+#   urlSlug    required  First path segment: /learning/training-dynamics/.
+#                        Unique, and never "admin" (it would shadow
+#                        /admin/status and make the worksheet unreachable).
+#   days       optional  The teaching days, in taught order.
+#
+# ── Day fields ─────────────────────────────────────────────────────────────
+#   code       required  e.g. B.4. Its letter must be the enclosing cluster's
+#                        id. Unique across the file.
+#   title      required  The day's name, as the schedule calls it.
+#   lead       required  Who owns the material — the person to ask.
+#   doc        required  This day's tab in the big Google Doc (docs/LINKS.md).
+#   worksheets optional  Slugs of tex/<slug>/ worksheets, in reading order.
+#                        Omit or leave empty for a day nobody has ported yet.
+#                        Several worksheets per day is normal (D.3 is
+#                        Solomonoff Induction then AIXI).
+#   source     required  Where the *buildable* source is for a day nobody has
+#                        ported yet. Ignored the moment the day has a
+#                        worksheet — /admin/status then shows "in repo"
+#                        instead, so this field can never rot into a lie. One
+#                        of:
+#                          ready     real source in hand, just needs porting in
+#                          readings  reading day — the reading list IS the
+#                                    material (it still gets a page: the
+#                                    reading guide, see A.1)
+#                          partial   something missing, or source unverified
+#                          missing   only compiled PDFs exist; nothing buildable
+#   sourceUrl  optional  Upstream repo, for `ready` / `partial`.
+#   slides     optional  URL of a deck hosted elsewhere — the prebuilt PDF
+#                        somebody handed you, with no LaTeX source. Used only
+#                        while no worksheet supplies a deck. Full precedence:
+#                          a compiled tex/<slug>/slides.tex  (hosted here)
+#                            → a worksheet's own `slides:` frontmatter URL
+#                            → this key
+#                            → no deck
+#   note       optional  One short, durable, neutral line. /admin/status is
+#                        PUBLIC: no chase-ups, no blame, nothing you wouldn't
+#                        say to the lead's face. That belongs in
+#                        scratch/MATERIAL.md, which is gitignored and never
+#                        reaches the site.
+#
+# Live days only. The wrap-up day carries no module material and is left out.
+
+clusters:
+  # Prerequisites and background. No teaching day of its own — it holds the
+  # URL space (/foundations/…) for the prerequisite material.
+  - id: "0"
+    label: Foundations
+    urlSlug: foundations
+    days: []
+
+  - id: A
+    label: A — Alignment
+    urlSlug: alignment
+    days:
+      - code: A.1
+        title: AI Alignment Introduction
+        lead: Leon
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.ozdc2do4wrbw
+        source: readings
+        worksheets:
+          - ai-alignment-intro
+
+      - code: A.2
+        title: Alignment in Practice
+        lead: Evzen
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.i1ocmcfi54i2
+        source: readings
+        note: deck exists as a Drive PDF only — add its URL as `slides:` when you have it
+
+      - code: A.3
+        title: Alignment in Practice 2
+        lead: Garrett
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.g73qz582zioy
+        source: readings
+        note: reading + discussion day; the two discussion worksheets live in the Doc
+
+  - id: B
+    label: B — Learning
+    urlSlug: learning
+    days:
+      - code: B.2
+        title: Mysteries of Deep Learning
+        lead: Garrett (Zach remote lecture)
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.do5apxz819k1
+        source: readings
+        note: deck exists as a Drive PDF only — add its URL as `slides:` when you have it
+
+      - code: B.3
+        title: Singular Learning Theory
+        lead: Kai + Matthew Farrugia-Roberts
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.8q8aoxfgo9bw
+        source: ready
+        worksheets:
+          - singular-learning-theory
+
+      - code: B.4
+        title: Training Dynamics
+        lead: Guillaume
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.wo7jypvrb6ii
+        source: ready
+        sourceUrl: https://github.com/gcorlouer/iliad_intensive_training_dynamics
+        worksheets:
+          - training-dynamics
+
+      - code: B.5
+        title: Data Attribution
+        lead: Louis
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.agn5xl6zra7l
+        source: ready
+        sourceUrl: https://github.com/LouisYRYJ/illiad_data_attribution
+        note: source repo is private
+        worksheets:
+          - data-attribution
+
+  - id: C
+    label: C — Abstractions, Representations, and Interpretability
+    urlSlug: interpretability
+    days:
+      - code: C.1
+        title: Intro to ML Engineering
+        lead: Julian
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.u7odobssyqur
+        source: ready
+        sourceUrl: https://github.com/wusche1/Illiad_ML_Engineering
+        note: notebooks + LaTeX; a track-B variant lives in a second repo
+
+      - code: C.2
+        title: Mechanistic Interpretability
+        lead: Julian
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.alpz10jgotvn
+        source: ready
+        sourceUrl: https://github.com/wusche1/Illiad_Mech_Interp
+
+      - code: C.3
+        title: Computational Mechanics
+        lead: Xavier
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.649vumndszu5
+        source: ready
+        sourceUrl: https://github.com/14xp/iliad-comp-mech-materials
+
+      - code: C.4
+        title: Abstractions and Latents
+        lead: Satya + Daniel Chiang
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.lzn2w9mlavru
+        source: missing
+        note: only compiled PDFs so far; the code lives on sourcehut
+
+  - id: D
+    label: D — Agency
+    urlSlug: agency
+    days:
+      - code: D.1
+        title: Decision Theory and Reinforcement Learning
+        lead: Fernando
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.uqpqtto4ldg0
+        source: ready
+        note: the RL half lives inside the decision-theory worksheet, not a separate one
+        worksheets:
+          - decision-theory
+
+      - code: D.2
+        title: Policy Gradients and Misgeneralization
+        lead: David Q
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.hu1actdm586n
+        source: missing
+
+      - code: D.3
+        title: AIXI
+        lead: David Q
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.fs4zbfhzzqjf
+        source: ready
+        # Solomonoff first: AIXI is the Bayesian mixture put to work in an
+        # agent, so it reads second.
+        worksheets:
+          - solomonoff-induction
+          - aixi
+
+      - code: D.4
+        title: Agent Foundations
+        lead: Daniel + Satya
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.8r11zv4s7dki
+        source: ready
+        sourceUrl: https://github.com/Danielc-lgtm/iliad-intensive
+
+      - code: D.5
+        title: Decision Theory
+        lead: Daniel + Satya
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.xelg5yi9w039
+        source: ready
+        sourceUrl: https://github.com/Danielc-lgtm/iliad-intensive
+        note: ships its own decision-theory-slides.tex
+
+      - code: D.6
+        title: Instrumental Convergence / Doom Day
+        lead: Leon
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.pefcteqoku51
+        source: readings
+        note: deck exists as a Drive PDF only — add its URL as `slides:` when you have it
+
+  - id: E
+    label: E — Safety Guarantees and their Limits
+    urlSlug: safety
+    days:
+      - code: E.1
+        title: Debate
+        lead: Stephan
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.2q3bv3luklh0
+        source: missing
+        note: only compiled PDFs so far
+
+      - code: E.2
+        title: Steganography & Backdoors
+        lead: Stephan + Louis
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.n0qqrafijfpi
+        source: missing
+        note: only compiled PDFs so far

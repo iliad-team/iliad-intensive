@@ -1,16 +1,18 @@
 % YAML frontmatter for the website sits in the block below. LaTeX ignores it
 % (it is a comment); the converter lifts it verbatim into the module
 % frontmatter and CI validates it (pure YAML).
-% Keys: title, cluster, summary, contributors — all optional. The website
-% extracts title/contributors from \title{} and \author{}; a frontmatter key
-% here overrides the extracted value. `summary:` lives here (metadata, not
-% body text) — for a paragraph, use a YAML folded block scalar (`>-`) with
+% Keys: title, summary, contributors — all optional. The website extracts
+% title/contributors from \title{} and \author{}; a frontmatter key here
+% overrides the extracted value. `summary:` lives here (metadata, not body
+% text) — for a paragraph, use a YAML folded block scalar (`>-`) with
 % continuation lines indented two spaces after the leading `% `.
-% (`unlisted: true` is a maintainer flag: the page is built but linked from
-% nowhere — you almost certainly don't want it.)
+% Where the sheet sits in the course — its cluster and teaching day — is NOT a
+% key here: list the slug under its day in schedule.yaml and the build stamps
+% both in. (`unlisted: true` is a maintainer flag: the page is built but
+% linked from nowhere, and excused from the schedule — this demo is the one
+% sheet that wants it.)
 %--- iliad -------------------------------------------------------------------
 % title: "Example Worksheet: The Kitchen Sink"
-% cluster: D
 % summary: >-
 %   A dummy worksheet demonstrating every construct the pipeline supports.
 % unlisted: true

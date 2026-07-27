@@ -1,24 +1,24 @@
 /**
  * Pure cluster helpers. Client + server safe — no fs imports here. The
- * server-only loader that reads content/clusters.json lives in
+ * server-only loader that reads the cluster table out of schedule.yaml lives in
  * ./cluster-store.ts so client components like SidebarNav can import the
  * helpers without dragging node:fs/promises into the browser bundle.
  */
 
+/** Display order is list order — schedule.yaml has no sort key. */
 export type Cluster = {
   id: string;
   label: string;
   urlSlug: string;
-  position: number;
 };
 
 export const DEFAULT_CLUSTERS: Cluster[] = [
-  { id: "0", label: "Foundations", urlSlug: "foundations", position: 0 },
-  { id: "A", label: "Cluster A — Alignment", urlSlug: "alignment", position: 10 },
-  { id: "B", label: "Cluster B — Learning", urlSlug: "learning", position: 20 },
-  { id: "C", label: "Cluster C — Abstractions, Representations, and Interpretability", urlSlug: "interpretability", position: 30 },
-  { id: "D", label: "Cluster D — Agency", urlSlug: "agency", position: 40 },
-  { id: "E", label: "Cluster E — Safety Guarantees and their Limits", urlSlug: "safety", position: 50 },
+  { id: "0", label: "Foundations", urlSlug: "foundations" },
+  { id: "A", label: "Cluster A — Alignment", urlSlug: "alignment" },
+  { id: "B", label: "Cluster B — Learning", urlSlug: "learning" },
+  { id: "C", label: "Cluster C — Abstractions, Representations, and Interpretability", urlSlug: "interpretability" },
+  { id: "D", label: "Cluster D — Agency", urlSlug: "agency" },
+  { id: "E", label: "Cluster E — Safety Guarantees and their Limits", urlSlug: "safety" },
 ];
 
 export function clusterUrlSlug(
