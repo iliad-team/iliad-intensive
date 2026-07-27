@@ -57,8 +57,13 @@ export function findInputs(tex) {
     if (c !== "\\") { i++; continue; }
     let m = /^\\begin\{([a-zA-Z*]+)\}/.exec(tex.slice(i));
     if (m) { if (VERBATIM.has(m[1])) verb = m[1]; i += m[0].length; continue; }
-    m = /^\\input\{([^}]*)\}/.exec(tex.slice(i));
+    m = /^\\input\s*\{([^}]*)\}/.exec(tex.slice(i));
     if (m) { hits.push({ start: i, end: i + m[0].length, arg: m[1] }); i += m[0].length; continue; }
+    // \include is NOT followed: it carries \clearpage semantics that inlining
+    // would silently change. Say so rather than skip it quietly — an unnoticed
+    // miss here means solutions surviving into a -nosol build.
+    m = /^\\include\s*\{([^}]*)\}/.exec(tex.slice(i));
+    if (m) { hits.push({ start: i, end: i + m[0].length, arg: m[1], include: true }); i += m[0].length; continue; }
     i += 2;                                       // any other \x escape
   }
   return hits;
@@ -112,14 +117,21 @@ export function transformInputTree(mainFile, { visit, childSuffix = null, warn =
     // remove an \input (stripping a solutions block that contained one), and
     // then it must not be followed.
     const text = visit(file, readFileSync(file, "utf8"), { inDoc: sawBeginDoc });
-    const dir = path.dirname(file);
-    const slot = files.length;                    // reserve: document order
-    files.push(null);
+    const dir = path.dirname(mainFile);           // TeX resolves \input from the
+    const slot = files.length;                    // main document's directory,
+    files.push(null);                             // not the including file's
     let self = "", flat = "", pos = 0;
     for (const h of findInputs(text)) {
       self += text.slice(pos, h.start);
       flat += append(text.slice(pos, h.start));
       pos = h.end;
+      if (h.include) {
+        warn(`\\include{${h.arg}} is not followed — use \\input, or auto-labels `
+           + "and the -nosol strip will miss everything in that file");
+        self += text.slice(h.start, h.end);
+        flat += text.slice(h.start, h.end);
+        continue;
+      }
       const child = resolveInput(dir, h.arg);
       if (!child) {
         warn(`\\input{${h.arg}} not found — file missing, content dropped`);
