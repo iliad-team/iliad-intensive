@@ -273,19 +273,33 @@ async function buildSlug(slug) {
   // 2.5 slides: compile slides.tex → slides.pdf (same 3× pdflatex + bibtex
   //     ladder as the worksheet). No -nosol variant, no MDX conversion.
   //     --check skips it (it produces no page, only a download).
+  //
+  //     A deck that mentions \HANDOUT opts in to a second, collapsed build:
+  //     the macro is \def-ed on the command line so the deck can pass
+  //     `handout` to the beamer class and drop its \pause reveals. That lands
+  //     as slides-handout.pdf next to the presentation build. Decks with no
+  //     reveals never mention \HANDOUT and so build once, as before.
+  const hasHandout = hasSlidesTex
+    && /\\HANDOUT\b/.test(readFileSync(path.join(dir, "slides.tex"), "utf8"));
   if (!CHECK_ONLY && hasSlidesTex) {
     const SLIDES_PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
-    try {
-      await tex(...SLIDES_PDFLATEX, "slides.tex");
-      try { await tex("bibtex", "slides"); } catch { /* no citations — fine */ }
-      await tex(...SLIDES_PDFLATEX, "slides.tex");
-      await tex(...SLIDES_PDFLATEX, "slides.tex");
-    } catch {
-      const log = path.join(dir, "slides.log");
-      const errLine = existsSync(log)
-        ? (readFileSync(log, "utf8").split("\n").find((l) => l.startsWith("!")) ?? "pdflatex failed")
-        : "pdflatex failed";
-      return done(false, `slides build failed: ${errLine.trim()} (see ${path.relative(ROOT, log)})`);
+    // exec() passes argv straight through (no shell), so the \def wrapper needs
+    // no quoting beyond JS's own backslash escapes.
+    const variants = [["slides", "slides.tex"]];
+    if (hasHandout) variants.push(["slides-handout", "\\def\\HANDOUT{}\\input{slides}"]);
+    for (const [job, src] of variants) {
+      try {
+        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
+        try { await tex("bibtex", job); } catch { /* no citations — fine */ }
+        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
+        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
+      } catch {
+        const log = path.join(dir, `${job}.log`);
+        const errLine = existsSync(log)
+          ? (readFileSync(log, "utf8").split("\n").find((l) => l.startsWith("!")) ?? "pdflatex failed")
+          : "pdflatex failed";
+        return done(false, `slides build failed (${job}): ${errLine.trim()} (see ${path.relative(ROOT, log)})`);
+      }
     }
   }
 
@@ -354,9 +368,14 @@ async function buildSlug(slug) {
     }
     // slides deck (no solutions variant): ship the PDF to view/download and
     // the .tex to download. Named <slug>-slides.* so listDownloads finds them.
+    // The collapsed build, when the deck opted into one, rides along as
+    // <slug>-slides-handout.pdf.
     if (hasSlidesTex) {
       copyFileSync(path.join(dir, "slides.pdf"), path.join(dl, `${slug}-slides.pdf`));
       copyFileSync(path.join(dir, "slides.tex"), path.join(dl, `${slug}-slides.tex`));
+      if (hasHandout) {
+        copyFileSync(path.join(dir, "slides-handout.pdf"), path.join(dl, `${slug}-slides-handout.pdf`));
+      }
     }
   }
   return done(true);

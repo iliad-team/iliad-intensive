@@ -28,7 +28,7 @@ content/modules/<slug>.mdx                  page bodies           (gitignored)
 content/index.json                          homepage/sidebar list (gitignored)
 public/uploads/<slug>/*.svg                 figures + TikZ        (gitignored)
 public/downloads/<slug>/*                   pdf/tex/mdx ±nosol,   (gitignored)
-                                            +slides pdf/tex if slides.tex
+                                            +slides pdf/tex (+handout pdf)
         │
         │  next build  (output: "export", basePath from NEXT_PUBLIC_BASE_PATH)
         ▼
@@ -85,7 +85,7 @@ Components (`src/components/`): `ModulePageShell` (sidebar + content grid),
 
 | File | Role |
 |---|---|
-| `build-content.mjs` | per-worksheet ladder, parallel across worksheets (default 4 workers, buffered logs): shared-`iliad.sty` shadow guard → PDF first (3× `pdflatex` + `bibtex` over the auto-labeled `main.autolabel.tex`, `-jobname=main`; the converter needs the `.aux` for `\cref` and for every displayed number — see `tex2mdx/autolabel.mjs`) → solution-stripped `-nosol` PDF → tex2mdx conversion → optional `slides.tex`→`slides.pdf` (+ no-slides advisory) → `fig/*.pdf`→SVG (`pdftocairo`) → KaTeX render gate → stage downloads (incl. `<slug>-slides.pdf/.tex`). Then `index.json`. MDX-authored sheets skip conversion (PDF via `pandoc`). `--check` = converter + render gate only (no PDFs, no slides, no advisory) |
+| `build-content.mjs` | per-worksheet ladder, parallel across worksheets (default 4 workers, buffered logs): shared-`iliad.sty` shadow guard → PDF first (3× `pdflatex` + `bibtex` over the auto-labeled `main.autolabel.tex`, `-jobname=main`; the converter needs the `.aux` for `\cref` and for every displayed number — see `tex2mdx/autolabel.mjs`) → solution-stripped `-nosol` PDF → tex2mdx conversion → optional `slides.tex`→`slides.pdf` (+ `slides-handout.pdf` when the deck mentions `\HANDOUT`; + no-slides advisory) → `fig/*.pdf`→SVG (`pdftocairo`) → KaTeX render gate → stage downloads (incl. `<slug>-slides.pdf/.tex/-slides-handout.pdf`). Then `index.json`. MDX-authored sheets skip conversion (PDF via `pandoc`). `--check` = converter + render gate only (no PDFs, no slides, no advisory) |
 | `tex2mdx/tex2mdx.mjs` | converter CLI: source registry, `.aux` cross-refs, frontmatter + `\title`/`\author` extraction, `\gdef` macro block, bibliography |
 | `tex2mdx/autolabel.mjs` | injects `\label{iliad-auto-N}` into every numbered construct (comment/verbatim-aware, same-line, deterministic); the build compiles the injected `main.autolabel.tex` (`-jobname=main`) so the `.aux` carries every displayed number, and the converter reads them back by label name — web numbering is PDF-true, never simulated |
 | `tex2mdx/emit-ast.mjs` | unified-latex typed AST → MDX emitter (no regex parsing of LaTeX) |
