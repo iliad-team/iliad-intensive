@@ -240,6 +240,20 @@ tex/<slug>/slides.tex        # any self-contained LaTeX (usually beamer)
   it beside the other downloads — the page gains a **Slides** row (view PDF,
   download PDF, download the `.tex`). Same 3× `pdflatex` + `bibtex` ladder as
   the worksheet; a compile error fails the build with `file.tex:line`.
+- **Handout variant.** A deck that mentions `\HANDOUT` opts into a second,
+  collapsed build. Guard the reveals with it in the preamble:
+  ```latex
+  \ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
+  \documentclass[10pt,aspectratio=169]{beamer}
+  ```
+  The build then also produces `slides-handout.pdf` by `\def`-ing the macro on
+  the command line, and the **Slides** row reads *present · handout · LaTeX*
+  instead of *view · download · LaTeX*. A deck with no `\pause` reveals simply
+  never mentions `\HANDOUT` and builds once. To reproduce either build by hand:
+  ```
+  pdflatex slides.tex                                  # presentation
+  pdflatex -jobname=slides-handout "\def\HANDOUT{}\input{slides}"   # handout
+  ```
 - `iliad.sty` is a *worksheet* contract and is **not** loaded for slides —
   style the deck however you like.
 - Slides are **never** converted to MDX and have **no** `-nosol` variant (a
