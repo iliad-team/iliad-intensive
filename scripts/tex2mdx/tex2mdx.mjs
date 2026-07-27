@@ -268,7 +268,7 @@ if (iliadBlock) {
 
 // ---------------- static contract checks (iliad.sty dialect) --------------
 if (usesExerciseEnv && !iliadBlock) {
-  advise("no %--- iliad --- frontmatter block at the top of main.tex — cluster/summary will be missing");
+  advise("no %--- iliad --- frontmatter block at the top of main.tex — the page summary will be missing");
 }
 { // duplicate labels break cross-referencing (last definition silently wins)
   const seen = new Set();
@@ -426,7 +426,9 @@ if (sumM) bodySummary = texToPlain(sumM[1]).replace(/\s+/g, " ").trim();
 // summary, which may be a YAML block scalar (`summary: >-` + indented lines).
 // title/contributors/summary fall back to \title{}/\author{}/\begin{summary}
 // in the LaTeX. An explicit frontmatter key takes precedence.
-// Missing title/cluster/contributors draw advisories, never failures.
+// Missing title/contributors draw advisories, never failures. `cluster:`/`day:`
+// are stamped in later by build-content.mjs from schedule.yaml, and are not
+// keys an author may write (see KNOWN_FRONT_KEYS).
 const blockKeys = new Set((iliadBlock ?? []).filter((l) => /^[A-Za-z]/.test(l)).map((l) => l.split(":")[0]));
 const front = [
   "---",
@@ -440,8 +442,6 @@ if (blockKeys.has("summary") && bodySummary)
   advise("summary given both as a frontmatter key and a \\begin{summary} block — the frontmatter key wins");
 if (!blockKeys.has("title") && title === "TODO")
   advise("no title: in the frontmatter block and no \\title{} — the page falls back to its slug");
-if (!blockKeys.has("cluster"))
-  advise("no cluster: in the frontmatter block — the page is ungrouped (URL under /page/)");
 if (!blockKeys.has("contributors") && !contributors.length)
   advise("no contributors: in the frontmatter block and no \\author{} — the page shows no authors");
 

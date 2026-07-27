@@ -8,6 +8,10 @@
  *   public/uploads/<slug>/tikz-*.svg     diagrams (content-addressed)
  *   public/downloads/<slug>/…            pdf/tex/mdx, each ± solutions
  *
+ * Where each page sits in the course — its cluster, its teaching day, and the
+ * order it is listed in — comes from schedule.yaml (see scripts/schedule.mjs),
+ * never from the worksheet itself; the build stamps it into the generated MDX.
+ *
  * Worksheets build in parallel (they are fully independent — each writes
  * only its own tex/<slug>/, uploads/<slug>/, downloads/<slug>/ and module
  * file); each worksheet's own steps stay sequential. Logs are buffered per
@@ -32,6 +36,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { injectAutoLabels } from "./tex2mdx/autolabel.mjs";
 import { buildStatus } from "./build-status.mjs";
+import { loadSchedule, ScheduleError } from "./schedule.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEX = path.join(ROOT, "tex");
@@ -79,6 +84,17 @@ const slugs = wanted.length ? wanted : allWorksheets;
 if (slugs.length === 0) { console.error("no tex/<slug>/main.tex or main.mdx sources found"); process.exit(1); }
 mkdirSync(MODULES, { recursive: true });
 
+// The curriculum: which day each worksheet is the material for, and the order
+// clusters/days/worksheets are taught in. Loaded before anything is built —
+// a typo in schedule.yaml should cost a second, not a full PDF ladder.
+let SCHEDULE;
+try {
+  SCHEDULE = loadSchedule();
+} catch (e) {
+  console.error(e instanceof ScheduleError ? `✗ ${e.message}` : e);
+  process.exit(1);
+}
+
 const pexec = promisify(execFile);
 const exec = (cmd, argv, opts = {}) =>
   pexec(cmd, argv, { maxBuffer: 64 * 1024 * 1024, ...opts });
@@ -117,6 +133,20 @@ const stripMdxSolutions = (mdx) => {
     out += mdx.slice(i, s).replace(/[ \t]+$/, "");
     i = j + (mdx[j] === "\n" ? 1 : 0);
   }
+};
+
+// Where a page sits in the course comes from schedule.yaml, never from the
+// worksheet: the build stamps `cluster:` and `day:` into the generated
+// frontmatter here. Everything downstream (the site's module pages,
+// build-status.mjs) reads the generated MDX, so it sees the schedule's answer
+// and cannot disagree with it. An unscheduled sheet — the unlisted format demo
+// — keeps whatever its own frontmatter says.
+const stampSchedule = (mdxOut, slug) => {
+  const sc = SCHEDULE.bySlug.get(slug);
+  if (!sc) return;
+  const raw = readFileSync(mdxOut, "utf8");
+  if (!raw.startsWith("---\n")) return;   // no frontmatter: the render gate's problem
+  writeFileSync(mdxOut, `---\ncluster: ${sc.cluster}\nday: ${sc.day}\n${raw.slice(4)}`);
 };
 
 /** Build one worksheet. Returns { ok, text } — text is the complete,
@@ -249,7 +279,15 @@ async function buildSlug(slug) {
     // open with a YAML frontmatter block (the index builder reads it).
     const raw = readFileSync(path.join(dir, "main.mdx"), "utf8");
     if (!/^---\n[\s\S]*?\n---\n/.test(raw)) {
-      return done(false, "main.mdx must start with a `---` YAML frontmatter block (title/cluster/summary/contributors)");
+      return done(false, "main.mdx must start with a `---` YAML frontmatter block (title/summary/contributors)");
+    }
+    // Place in the course belongs to schedule.yaml, not to the sheet. (The
+    // converter's unknown-key warning covers the LaTeX dialect; this is the
+    // same rule for an MDX-authored sheet, which has no such check.)
+    const owned = ["cluster", "day"].filter((k) => new RegExp(`^${k}:`, "m").test(raw.match(/^---\n([\s\S]*?)\n---\n/)[1]));
+    if (owned.length) {
+      return done(false, `main.mdx frontmatter sets \`${owned.join("`, `")}\` — ` +
+        "that lives in schedule.yaml (list the slug under its day) and is stamped in at build time");
     }
     copyFileSync(path.join(dir, "main.mdx"), mdxOut);
 
@@ -295,6 +333,10 @@ async function buildSlug(slug) {
       }
     }
   }
+
+  // 2.4 stamp the schedule's answer for cluster + day into the generated page,
+  //     before anything reads or ships it (render gate, downloads, index).
+  stampSchedule(mdxOut, slug);
 
   // 2.5 slides: compile slides.tex → slides.pdf (same 3× pdflatex + bibtex
   //     ladder as the worksheet). No -nosol variant, no MDX conversion.
@@ -438,27 +480,34 @@ if (!failed) {
     if (!m) continue;
     const fm = YAML.parse(m[1]);
     if (fm.unlisted) continue; // built + reachable by URL, but never listed
+    // Unscheduled and not unlisted is an error — but build-status.mjs owns that
+    // message (it knows every built module and every day), so here it is only
+    // skipped: with no place in the schedule there is no position to give it.
+    const sc = SCHEDULE.bySlug.get(slug);
+    if (!sc) continue;
     const headings = [];
     for (const hm of m[2].matchAll(/^(#{2,3}) (.+)$/gm)) {
       const text = hm[2].replace(/\*\*|\*/g, "").trim();
       headings.push({ level: hm[1].length, text, slug: ghSlug(text) });
     }
-    entries.push({ slug, title: fm.title ?? slug, cluster: fm.cluster ?? "0", frontmatter: fm, position: entries.length + 1, headings });
+    entries.push({ slug, title: fm.title ?? slug, cluster: sc.cluster, day: sc.day, frontmatter: fm, position: sc.position, headings });
   }
-  // stable ordering: cluster then title; the example sheet last (format demo)
-  entries.sort((a, b) => (a.slug === "example") - (b.slug === "example") || String(a.cluster).localeCompare(String(b.cluster)) || a.title.localeCompare(b.title));
-  entries.forEach((e, i) => (e.position = i + 1));
+  // Ordering is schedule.yaml's, start to finish: cluster order, then day
+  // order, then a day's own worksheet order. Titles never enter into it — an
+  // alphabetical fallback would put AIXI before Solomonoff Induction, which is
+  // backwards, and nothing about the two files could say so.
+  entries.sort((a, b) => a.position - b.position);
   writeFileSync(path.join(ROOT, "content", "index.json"), JSON.stringify(entries, null, 2) + "\n");
   console.log(`index.json: ${entries.length} modules`);
 }
 
 // ---------------------------- status.json ----------------------------------
-// The /admin/status table: content/days.yml (the hand-kept day roster) joined
+// The /admin/status table: schedule.yaml (the hand-kept curriculum) joined
 // with what this build actually produced. Runs even after a worksheet failure
-// so the page keeps rendering the days that DO work — but a bad roster (dup
-// code, a `day:` no day owns) is a data error and fails the build.
+// so the page keeps rendering the days that DO work — but a worksheet no day
+// lists is a data error and fails the build.
 try {
-  const s = buildStatus({ check: CHECK_ONLY });
+  const s = buildStatus({ check: CHECK_ONLY, schedule: SCHEDULE });
   const n = s.counts.decksBuilt;
   console.log(`status.json: ${s.counts.live}/${s.counts.days} days live, ` +
     `${n} deck${n === 1 ? "" : "s"} built → /admin/status`);

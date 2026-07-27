@@ -13,7 +13,7 @@ _src_repo/
 # CI); figures land in public/uploads/. The repo holds sources, not outputs.
 content/modules/
 content/index.json
-# derived from content/days.yml (committed) + what the build produced
+# derived from schedule.yaml (committed) + what the build produced
 content/status.json
 public/uploads/
 public/downloads/
