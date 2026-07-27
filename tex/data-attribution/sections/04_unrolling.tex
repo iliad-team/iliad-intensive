@@ -18,8 +18,7 @@ where each $h_t$ is one optimizer step (a gradient step, an Adam update, etc.): 
 \end{array}
 \]
 where each $f_\ell$ is one layer: $a_{\ell} = f_\ell(a_{\ell-1}; w)$.
-\begin{table}[h]
-\centering
+\begin{center}
 \small
 \begin{tabular}{lll}
 \toprule
@@ -31,8 +30,9 @@ Output & Loss $\ell(\text{logits})$ & Observable $\phi(w_T)$ \\
 Differentiation method & Backpropagation & Unrolling \\
 \bottomrule
 \end{tabular}
-\caption{Data attribution via unrolling is to a training run what backprop is to a forward pass: differentiating a composition of maps to identify which inputs matter most.}
-\end{table}
+\end{center}
+
+\noindent\emph{Data attribution via unrolling is to a training run what backprop is to a forward pass: differentiating a composition of maps to identify which inputs matter most.}
 
 % TODO: add reference to curse of unrolling paper later
 

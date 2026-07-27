@@ -98,14 +98,14 @@ The quantity $h_j = x_j^\top A^{-1} x_j$ that appeared in \Cref{ex:ols-if} measu
 is $1/n$ times a \emph{Mahalanobis-style} squared norm of $x_j$, taken in the metric defined by the data itself. Geometrically: directions that the data samples a lot correspond to large eigenvalues of $\widehat\Sigma_{xx}$ and contribute little to $h_j$, while directions that are barely sampled correspond to small eigenvalues of $\widehat\Sigma_{xx}$ and so blow up under $\widehat\Sigma_{xx}^{-1}$. \emph{Inputs that point in under-sampled directions get large leverage.} High-leverage points are unusual in feature space.
 
 \Cref{fig:if-vs-loo} illustrates the effect on a simple linear regression: removing a low-leverage point (A, near the bulk of the data) barely changes the fit, and the IF approximation is accurate. Removing a high-leverage point (B, an outlier on the $x$-axis) changes the fit dramatically, and the IF underestimates the true LOO effect.
+\end{remark}
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=\textwidth]{\imagepath/if_vs_loo.png}
+  \includegraphics[width=\textwidth]{\imgpath/if_vs_loo.png}
   \caption{Influence approximation vs.\ LOO ground truth for a linear regression. \emph{Left:} the full dataset. \emph{Centre:} removing the low-leverage point A ($h_A \approx 0.03$) barely perturbs the fit; the IF prediction closely matches LOO. \emph{Right:} removing the high-leverage point B ($h_B \approx 0.83$) moves the regression line substantially; the IF underestimates the true change. Note that both points have the same parameter influence.}
   \label{fig:if-vs-loo}
 \end{figure}
-\end{remark}
 
 \subsection{Translation to modern neural networks}\label{subsec:if-nn}
 

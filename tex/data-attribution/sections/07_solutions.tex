@@ -1,13 +1,11 @@
 % ---------------------------------------------------------
 \section{Solutions}\label{app:solutions}
 
-\subsection{Solutions to exercises from Section~\ref{sec:causality}}
 
-\paragraph{Solution to Exercise~\ref{ex:croissant-loo} (Leave-one-out attribution for croissants).}
 
 \subsection{Solutions to exercises from Section~\ref{sec:influence}}
 
-\paragraph{Solution to Exercise~\ref{ex:if-derive} (Derivation of the influence function).}
+\begin{solution}[ex:if-derive]
 
 \textit{(a)} Set $F(w,\beta) := \nabla_w L(w;\beta) = \sum_j \beta_j\,\nabla_w L(w,z_j)$. Then $F$ is $C^1$ in $(w,\beta)$ (assuming $L(\cdot,z_j)$ is $C^2$), and $F(w^*,\mathbf{1}) = \nabla_w L(w^*) = 0$ because $w^*$ is a critical point of the unperturbed loss. The Jacobian $\partial F/\partial w$ at $(w^*,\mathbf{1})$ equals $\nabla_w^2 L(w^*) = H$, and the invertibility hypothesis of the implicit function theorem is exactly the assumption that $H$ is invertible. The theorem then yields a unique $C^1$ map $\beta\mapsto w^*(\beta)$ on a neighborhood of $\mathbf{1}$ with $F(w^*(\beta),\beta)\equiv 0$.
 
@@ -37,7 +35,9 @@ Evaluating at $\beta = \mathbf{1}$ and solving,
 \]
 where in the last step both factors are evaluated at $\beta = \mathbf{1}$, i.e.\ at $w^*$.
 
-\paragraph{Solution to Exercise~\ref{ex:ols-if} (Linear regression).}
+\end{solution}
+
+\begin{solution}[ex:ols-if]
 
 \textit{(a)} The gradient of the training loss is $\nabla_w L(w) = -\sum_i x_i(y_i - x_i^\top w) = -\sum_i x_i y_i + Aw$. Setting this to zero gives $Aw^* = \sum_i x_i y_i$, hence $w^* = A^{-1}\sum_i x_i y_i$.
 
@@ -89,7 +89,9 @@ In the two limiting regimes:
 \end{itemize}
 This is a clean demonstration that even in a strictly convex, fully-converged setting the linearization in \Cref{def:if} loses control over precisely the points one most wants to attribute --- the ones the model could not fit without them. The lesson generalizes: high-leverage / outlier examples are exactly where IF approximations should be distrusted, and the modern fixes from \Cref{subsec:if-nn} (damping, GNH, PBRF) all address related but more severe versions of the same issue.
 
-\paragraph{Solution to Exercise~\ref{ex:if-degenerate} (Failure of the first-order approximation in a degenerate model).}
+\end{solution}
+
+\begin{solution}[ex:if-degenerate]
 
 \textit{(a)} The per-example loss is $\ell_i = \tfrac12(z_i - ab)^2$. Its second derivatives are
 \[
@@ -156,9 +158,11 @@ Since $\nabla\phi$ and $\nabla L_i$ both lie in the $\hat{\mathbf{v}}$ direction
 
 The punchline: for this particular observable ($\phi = ab$, which is constant along the orbit), the pseudoinverse gives a clean, minimizer-independent answer and the damping only introduces a spurious dependence. But for an observable that \emph{does} vary along the orbit --- say $\phi(w) = a^2$ --- $\nabla\phi$ would have a component in the null direction $(a^*,-b^*)$, the $1/\lambda$ term would contribute, and the IF would \emph{diverge} as $\lambda\to 0$. In that case damping is not a nuisance but a necessity, and the choice of minimizer genuinely matters. This is the core tension of the proximity gap: it is a distortion for orbit-invariant queries, but a regularizer for orbit-dependent ones.
 
+\end{solution}
+
 \subsection{Solutions to exercises from Section~\ref{sec:bayesian-if}}
 
-\paragraph{Solution to Exercise~\ref{ex:bif-covariance} (The BIF is a covariance).}
+\begin{solution}[ex:bif-covariance]
 
 Write $Z(\beta) = \int \exp(-\sum_j \beta_j L(w,z_j))\,\varphi(w)\,dw$ for the normalizing constant, so that
 \[
@@ -174,7 +178,9 @@ The first term is $-\E_{p_\beta}[\phi(w)\,L(w,z_i)]$. For the second, $\partial_
 \]
 Structurally: in the classical IF, the ``correlation'' between $L_i$ and $\phi$ is mediated by the inverse Hessian acting on their gradients at a point; in the BIF it is mediated by the full posterior distribution. The inverse Hessian is how a Gaussian posterior would produce a covariance (as we will see in \Cref{ex:bif-expansion}), so the BIF strictly generalizes the classical formula.
 
-\paragraph{Solution to Exercise~\ref{ex:bif-expansion} (Power series expansion of Bayesian influence functions).}
+\end{solution}
+
+\begin{solution}[ex:bif-expansion]
 
 \textit{(a)} The log-posterior is $\log p(w\mid\mathcal{D}) = -L(w) + \log\varphi(w) + \mathrm{const}$. Taylor-expanding $L(w)$ around the minimum $w^*$:
 \[
@@ -221,7 +227,9 @@ which is the damped IF of \Cref{eq:if-pbrf} with $\gamma$ in the role of $\lambd
 
 \textit{(f)} Summary: For regular (non-singular) models, the posterior is approximately Gaussian (Bernstein--von Mises), the Taylor expansion converges, and the $(1,1)$ term dominates (it scales as $O(1/n)$ while higher terms scale as $O(1/n^2)$ and beyond). The classical IF is a good approximation because it \emph{is} the leading term. For singular models (neural networks), the posterior is concentrated on a positive-dimensional variety, not at an isolated point. The Laplace approximation fails: the Hessian has a large null space, the posterior is non-Gaussian, and the Taylor series does not converge around $w^*$. In this regime, the BIF --- defined as an exact covariance under the true posterior --- captures the full geometry, while the classical IF is at best the leading term of an expansion that does not converge. The BIF is the fundamental object; the IF is the Gaussian shadow it casts.
 
-\paragraph{Solution to Exercise~\ref{ex:bif-ot} (Influence functions as optimal parameter shifts).}
+\end{solution}
+
+\begin{solution}[ex:bif-ot]
 
 \textit{(a)} Using $p_0^\beta(w) = e^{-\beta L(w)}/Z(\beta,0)$ and $p_\varepsilon^\beta(w) = e^{-\beta(L(w)-\varepsilon L_k(w))}/Z(\beta,\varepsilon)$, substituting into \eqref{eq:kl-expectation} gives
 \begin{align*}
@@ -268,9 +276,11 @@ This is minimized at $r = b = (A+\lambda I)^{-1}x_k r_k$. To check consistency w
 \end{itemize}
 This provides what \citet{mlodozeniec2025distributional} call a ``distributional'' justification for IFs in deep learning. The original justification (implicit function theorem, convexity) does not hold for neural networks. The Laplace/BIF justification (\Cref{ex:bif-expansion}) requires Gaussianity of the posterior, which also fails. But the transport optimality result asks only for bounded derivatives and a well-defined minimum --- conditions much closer to what actually holds in practice.
 
+\end{solution}
+
 \subsection{Solutions to exercises from Section~\ref{sec:unrolling}}
 
-\paragraph{Solution to Exercise~\ref{ex:unroll-derive} (Derivation of the unrolling formula).}
+\begin{solution}[ex:unroll-derive]
 
 \textit{(a)} Differentiating \eqref{eq:sgd-update} with respect to $\beta_i$ at $\beta = \mathbf{1}$ via the chain rule:
 \begin{align*}
@@ -290,7 +300,9 @@ where the last step follows from $\partial w_0/\partial \beta_i = 0$ killing the
 
 \textit{(c)} With the preconditioned update \eqref{eq:precond-update}, the indirect effect picks up the preconditioner in the Hessian term: $J_t^{(P)} = I - (\eta_t/b)\sum_{j\in B_t}P_t\nabla_w^2 L(w_t,z_j) = I - \eta_t P_t \widehat{H}_t$. The direct effect becomes $-(\eta_t/b)\,\mathbf{1}[i\in B_t]\,P_t\nabla_w L(w_t,z_i)$. Unrolling the recursion as in (b) gives \eqref{eq:unroll-precond}. The preconditioner $P_t$ at step $t$ acts as a local rescaling of the gradient: Adam's adaptive scaling amplifies gradients in directions with historically small second moments. A datum appearing early in training (when Adam has not yet accumulated accurate statistics) will have its gradient rescaled differently than the same datum appearing later, when $P_t$ has stabilized. This is a concrete mechanism by which optimizer choice affects per-datum attribution.
 
-\paragraph{Solution to Exercise~\ref{ex:unroll-to-if} (Convergence of unrolling to influence functions).}
+\end{solution}
+
+\begin{solution}[ex:unroll-to-if]
 
 \textit{(a)} Differentiating \eqref{eq:interpolated-sgd} with respect to $\varepsilon$ at $\varepsilon = 0$: the first row is just the SGD update, independent of $\varepsilon$. For the response, the chain rule gives two contributions: the indirect effect through $w_t(\varepsilon)$ picks up the mini-batch Hessian (giving $J_t\,r_t$ as in \Cref{ex:unroll-derive}), and the direct effect from the $(1-\varepsilon\,\mathbf{1}[i=k])$ factor contributes $+(\eta_t/b)\,\mathbf{1}[k\in B_t]\,\nabla_w L(w_t,z_k)$. This is \eqref{eq:response-markov}. Given the current state $(w_t,r_t)$ and the batch selection $B_t$ (which is i.i.d.\ and independent of history), the next state $(w_{t+1},r_{t+1})$ depends only on $(w_t,r_t)$ --- no earlier states are needed. This is the Markov property.
 
@@ -304,10 +316,13 @@ where the last step follows from $\partial w_0/\partial \beta_i = 0$ killing the
 
 ii. Project the ODE onto $\ker(H)$: $P_0\dot{r}(t) = -P_0 H\,r(t) + P_0\nabla_w L(w^*,z_k) = P_0\nabla_w L(w^*,z_k)$, since $P_0 H = 0$. Integrating: $P_0 r(t) = P_0 r(0) + t\,P_0\nabla_w L(w^*,z_k)$. This grows linearly unless $P_0\nabla_w L(w^*,z_k) = 0$, i.e.\ unless the per-example gradient has no component in the Hessian null space. The null space of $H$ at a local minimum corresponds to flat directions along the minimum manifold; the response diverges if the perturbation ``pushes'' along these flat directions, because the optimizer has no restoring force.
 
-\paragraph{Solution to Exercise~\ref{ex:dln-influence} (Stagewise influence in a deep linear network).}
+\end{solution}
+
+\begin{solution}[ex:dln-influence]
 
 \textit{(a)} The $A\mathcal{G}(t)$ and $\mathcal{G}(t)B$ terms describe how the perturbation rotates the singular basis. A rotation mixes already-learned modes into each other, so its effect on the weight matrix is proportional to the current mode strengths: if mode $k$ has not yet been learned ($\mathcal{G}_k \approx 0$), rotating its basis direction contributes nothing to $W(t)$. The $\mathcal{G}'_\varepsilon(t)$ term, by contrast, acts through the learning \emph{dynamics}: perturbing $s_k$ changes the speed at which mode $k$ is learned, and this matters precisely when the dynamics are sensitive to $s_k$ --- not when $\mathcal{G}_k(t)$ is large or small per se, but when $\mathcal{G}_k(t)$ is \emph{changing rapidly} as a function of $s_k$. This is why the derivative $g'_t(s_k) = \partial\mathcal{G}_k(t)/\partial s_k$ appears rather than $\mathcal{G}_k(t)$ itself.
 
 \textit{(b)} From \eqref{eq:dln-dynamics}, $\mathcal{G}_k(t) = s_k e^{2s_k t/\tau}/(e^{2s_k t/\tau} - 1 + s_k/\mathcal{G}_k(0))$. For $t \ll t_k^*$: $e^{2s_k t/\tau} \approx 1$, so $\mathcal{G}_k \approx \mathcal{G}_k(0)$ regardless of $s_k$ --- the mode hasn't started learning yet, and a small change in $s_k$ makes no difference, so $g'_t(s_k) \approx 0$. For $t \gg t_k^*$: $e^{2s_k t/\tau} \gg s_k/\mathcal{G}_k(0)$, so $\mathcal{G}_k \approx s_k$ and $g'_t(s_k) \approx 1$ --- but the \emph{residual} in mode $k$ is also $\approx 0$, so this term's contribution to the loss influence \eqref{eq:dln-influence-loss} is negligible. The product $g'_t(s_k) \times (\text{residual in mode } k)$ is peaked around $t \approx t_k^*$, when the mode is in transition: the dynamics are maximally sensitive to $s_k$ \emph{and} the residual is still nonzero.
 
 \textit{(c)} Write $x_{\mathrm{dog}} = (\alpha, +\delta)$ and $x_{\mathrm{cat}} = (\alpha, -\delta)$, where $\alpha$ is the shared mode-1 component and $\pm\delta$ are opposite mode-2 components (since $\Sigma_{xy}$ is diagonal, the standard basis is the singular basis). During mode-1 learning ($t \approx t_1^*$, mode 2 not yet active): the residual of the cat test example has a large mode-1 component, and $z_{\mathrm{dog}}$'s perturbation increases $s_1$ (via $(y_{\mathrm{dog}})_1 (x_{\mathrm{dog}})_1 > 0$), accelerating mode-1 learning. This reduces the cat test loss --- positive influence. After mode-2 learning ($t \approx t_2^*$): the cat's residual is now dominated by mode 2, and $z_{\mathrm{dog}}$'s mode-2 perturbation has the wrong sign for the cat (because $(x_{\mathrm{dog}})_2$ and $(x_{\mathrm{cat}})_2$ have opposite signs). This increases the cat test loss --- negative influence. The sign flip is sharpest around $t_2^*$, when $g'_t(s_2)$ peaks and the mode-2 residual transitions from large to small.
+\end{solution}
