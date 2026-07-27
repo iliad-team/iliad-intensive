@@ -122,6 +122,11 @@ export const KNOWN_FRONT_KEYS = new Set([
   // compiled our end. For a deck with LaTeX source, drop a slides.tex in the
   // worksheet folder instead and the build compiles + hosts the PDF.
   "slides",
+  // day: <code> — the teaching day this worksheet is the material for, e.g.
+  // "B.4". Must be a code listed in content/days.yml (the build fails on a
+  // code no day owns, so a typo can't orphan the page). It attaches the sheet
+  // to its row on /admin/status; several sheets may share one day.
+  "day",
 ]);
 
 // ------------------------------------------------------------------ tikz ---

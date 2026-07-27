@@ -31,6 +31,7 @@ import YAML from "yaml";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { injectAutoLabels } from "./tex2mdx/autolabel.mjs";
+import { buildStatus } from "./build-status.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEX = path.join(ROOT, "tex");
@@ -404,6 +405,21 @@ if (!failed) {
   entries.forEach((e, i) => (e.position = i + 1));
   writeFileSync(path.join(ROOT, "content", "index.json"), JSON.stringify(entries, null, 2) + "\n");
   console.log(`index.json: ${entries.length} modules`);
+}
+
+// ---------------------------- status.json ----------------------------------
+// The /admin/status table: content/days.yml (the hand-kept day roster) joined
+// with what this build actually produced. Runs even after a worksheet failure
+// so the page keeps rendering the days that DO work — but a bad roster (dup
+// code, a `day:` no day owns) is a data error and fails the build.
+try {
+  const s = buildStatus({ check: CHECK_ONLY });
+  const n = s.counts.decksBuilt;
+  console.log(`status.json: ${s.counts.live}/${s.counts.days} days live, ` +
+    `${n} deck${n === 1 ? "" : "s"} built → /admin/status`);
+} catch (e) {
+  console.error(`✗ ${e.message}`);
+  failed = true;
 }
 
 process.exit(failed ? 1 : 0);

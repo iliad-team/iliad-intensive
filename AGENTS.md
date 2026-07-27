@@ -9,8 +9,8 @@ Static Next.js site that renders the Iliad Intensive worksheets. **LaTeX is the 
 ## Layout
 
 - `tex/<slug>/main.tex` — the worksheet sources; **the only committed content** (plus per-module `biblo.bib`/figures and shared `tex/iliad.sty`).
-- `scripts/` — build pipeline: `build-content.mjs` runs `tex2mdx/` (LaTeX→MDX converter); `watch.mjs` rebuilds on change.
-- `content/` — `clusters.json` (committed config) + generated `modules/<slug>.mdx` and `index.json` (gitignored, built from `tex/`).
+- `scripts/` — build pipeline: `build-content.mjs` runs `tex2mdx/` (LaTeX→MDX converter) then `build-status.mjs` (the `/admin/status` data); `watch.mjs` rebuilds on change.
+- `content/` — `clusters.json` + `days.yml` (committed config; `days.yml` is the teaching-day roster behind `/admin/status`) + generated `modules/<slug>.mdx`, `index.json` and `status.json` (gitignored, built from `tex/`).
 - `src/` — the site (`app/`, `components/`, `lib/`).
 - `public/`, `out/`, `.next/`, `node_modules/`, `repos/` — assets, build output, deps, cloned source repos — all gitignored.
 
@@ -25,5 +25,8 @@ Static Next.js site that renders the Iliad Intensive worksheets. **LaTeX is the 
 
 ## Course-material tracking
 
+- **[`/admin/status`](src/app/admin/status/page.tsx)** — the live per-day table the site
+  itself publishes (worksheet · slides · Doc tab · source). Derived from the build, so it
+  matches what is deployed; the hand-kept roster is [`content/days.yml`](content/days.yml).
 - [`scratch/MATERIAL.md`](scratch/MATERIAL.md) — every live June day: source status + doc tab, with a handoff section. **Start here** for what's ported vs. missing.
 - [`PESTER_LIST.md`](PESTER_LIST.md) — who to chase for still-missing source.

@@ -13,6 +13,9 @@ export type Frontmatter = {
   /** External slide-deck URL (e.g. a Drive PDF); rendered as an outbound
    *  link. A compiled slides.pdf (from slides.tex) takes precedence. */
   slides?: string;
+  /** Teaching day this worksheet is the material for, e.g. "B.4" — a code
+   *  from content/days.yml. Attaches the sheet to its row on /admin/status. */
+  day?: string;
 };
 
 export type HeadingEntry = {
