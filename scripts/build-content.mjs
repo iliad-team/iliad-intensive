@@ -30,7 +30,8 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, copyFi
 import YAML from "yaml";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { injectAutoLabels } from "./tex2mdx/autolabel.mjs";
+import { injectAutoLabelsTree } from "./tex2mdx/autolabel.mjs";
+import { transformInputTree } from "./tex2mdx/texinput.mjs";
 import { buildStatus } from "./build-status.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -164,13 +165,21 @@ async function buildSlug(slug) {
     };
     // The web shows every displayed number (headings, theorems, exercises)
     // straight out of the .aux, keyed by injected auto-labels (autolabel.mjs).
-    // So the compiled copy is main.tex + those labels — written to
+    // So the compiled copy is the source + those labels — written to
     // main.autolabel.tex and compiled under -jobname=main, keeping
     // main.pdf/main.aux their names. Injection is same-line, so main.log
     // line numbers still match main.tex. \label emits nothing visible: the
-    // PDF is unchanged. Downloads still copy the pristine main.tex.
-    const writeAutolabel = () => writeFileSync(path.join(dir, "main.autolabel.tex"),
-      injectAutoLabels(readFileSync(path.join(dir, "main.tex"), "utf8")).text);
+    // PDF is unchanged. Downloads still ship the pristine source.
+    //
+    // The walk follows \input, so a multi-file worksheet gets a labelled copy
+    // of each section file too (sections/foo.autolabel.tex), with main's
+    // \input repointed at them. Keeping the files split rather than inlining
+    // them is what preserves main.log's file:line diagnostics.
+    const writeAutolabel = () => {
+      for (const f of injectAutoLabelsTree(path.join(dir, "main.tex")).files)
+        writeFileSync(f.path === path.join(dir, "main.tex")
+          ? path.join(dir, "main.autolabel.tex") : f.path, f.text);
+    };
     if (!CHECK_ONLY) {
       writeAutolabel();
       try {
@@ -185,8 +194,16 @@ async function buildSlug(slug) {
       // no-solutions PDF: compile a solution-stripped copy of the source.
       // Stripping (rather than \solutionsfalse) works for both dialects and
       // doubles as the spoiler-free .tex download.
+      //
+      // Strip across \input, or a multi-file worksheet keeps every solution
+      // that lives in a section file — main.tex has none of its own, so the
+      // "spoiler-free" handout was identical to the full one. Unlike the
+      // auto-label copy this one is INLINED into a single file: it is a
+      // download, and a reader who gets main-nosol.tex alone must be able to
+      // compile it without the section files it would otherwise \input.
       writeFileSync(path.join(dir, "main-nosol.tex"),
-        stripTexSolutions(readFileSync(path.join(dir, "main.tex"), "utf8")));
+        transformInputTree(path.join(dir, "main.tex"),
+          { visit: (_f, raw) => stripTexSolutions(raw) }).flat);
       try {
         await compile("main-nosol");
       } catch {
@@ -350,7 +367,11 @@ async function buildSlug(slug) {
     copyFileSync(mdxOut, path.join(dl, `${slug}.mdx`));
     writeFileSync(path.join(dl, `${slug}-nosol.mdx`), stripMdxSolutions(readFileSync(mdxOut, "utf8")));
     if (isTex) {
-      copyFileSync(path.join(dir, "main.tex"), path.join(dl, `${slug}.tex`));
+      // Ship the document inlined, not just main.tex: a multi-file worksheet's
+      // main.tex \inputs section files that are not part of the download, so
+      // on its own it does not compile. (main-nosol.tex is already inlined.)
+      writeFileSync(path.join(dl, `${slug}.tex`),
+        transformInputTree(path.join(dir, "main.tex"), { visit: (_f, raw) => raw }).flat);
       copyFileSync(path.join(dir, "main-nosol.tex"), path.join(dl, `${slug}-nosol.tex`));
     }
     // slides deck (no solutions variant): ship the PDF to view/download and
