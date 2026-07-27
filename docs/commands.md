@@ -289,6 +289,22 @@ References list at the bottom of the page; there, an entry with a `url`
 (or arXiv `eprint`) field makes its title the outbound link. Citations
 never link straight out of the page.
 
+**Pick whatever style you like.** `\bibliographystyle` governs the PDF only —
+the converter never reads it. It parses `biblo.bib` itself and normalizes
+every citation to the same author-year form on the web, so an alpha-label
+sheet (`alphaurl` → `[Knu73]`) and a natbib author-year one (`plainnat` →
+`(Fishburn, 1971)`) read identically online and differ only in their PDFs.
+natbib's commands are all understood: `\citet` keeps its grammatical form
+("Watanabe 2009 defines…"), while `\cite`, `\citep`, `\citealp` and
+`\citetext` render parenthesized.
+
+If you reach for a style outside base TeX Live — `alphaurl` comes from
+**urlbst**, packaged as `texlive-bibtex-extra` — add it to both `setup.sh`
+and the workflow's apt list. A style bibtex cannot open produces no `.bbl`,
+and pdflatex then degrades every `\cite` to `[?]` without erroring; the build
+treats any bibtex failure other than "this document has no bibliography" as
+fatal, so it cannot ship unnoticed again.
+
 ## Inline marks
 
 - `\hint{…}` → *[Hint: …]* — `\note{…}` → *[Note: …]*

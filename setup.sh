@@ -12,6 +12,10 @@ echo "== system packages (TeX Live, poppler, pandoc) =="
 # same packages keeps "passes locally, fails on CI" surprises to a minimum.
 need=()
 command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-science texlive-fonts-recommended cm-super lmodern)
+# urlbst's alphaurl.bst — probed by file, not by binary: a machine can have a
+# perfectly good pdflatex and still be missing the style, and then every \cite
+# in the PDF quietly renders as "[?]".
+kpsewhich alphaurl.bst >/dev/null 2>&1 || need+=(texlive-bibtex-extra)
 command -v pdftocairo >/dev/null || need+=(poppler-utils)
 command -v pandoc     >/dev/null || need+=(pandoc)
 command -v git-lfs    >/dev/null || need+=(git-lfs)

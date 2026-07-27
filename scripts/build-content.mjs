@@ -134,6 +134,29 @@ async function buildSlug(slug) {
   });
   const tex = (...argv) =>
     exec(argv[0], argv.slice(1), { cwd: dir });
+  // bibtex, staying quiet about the ONE failure that is genuinely fine: a
+  // document with no bibliography at all. Every other failure — a missing
+  // style file (alphaurl.bst lives in urlbst / texlive-bibtex-extra, which is
+  // easy to omit from a minimal TeX Live), an unreadable .bib — leaves no
+  // .bbl behind, and pdflatex then degrades every \cite in the finished PDF
+  // to "[?]" without erroring. Swallowing that shipped three worksheets with
+  // no citations at all while the build stayed green, so it is fatal now.
+  const bibtex = async (base) => {
+    try {
+      await tex("bibtex", base);
+    } catch (e) {
+      // bibtex exit codes: 1 = warnings only (an incomplete entry, say), 2 =
+      // errors, 3 = fatal. Warnings are the author's business, not the build's.
+      if (typeof e.code === "number" && e.code <= 1) return;
+      const out = `${e.stdout ?? ""}${e.stderr ?? ""}`;
+      // The document simply has no bibliography — nothing for bibtex to do.
+      if (/I found no \\(bibdata|citation) command/.test(out)) return;
+      const detail = out.split("\n").map((l) => l.trim()).filter(Boolean)
+        .find((l) => /^(I couldn't open|Sorry|Error|.*---line \d+)/.test(l))
+        ?? String(e.message).split("\n")[0];
+      throw Object.assign(new Error(`bibtex (${base}): ${detail}`), { bibtex: true });
+    }
+  };
   const isTex = existsSync(path.join(dir, "main.tex"));
   // A worksheet MAY ship a slide deck as slides.tex (any dialect — usually
   // beamer). It is compiled to slides.pdf and hosted alongside the downloads;
@@ -158,7 +181,7 @@ async function buildSlug(slug) {
     const PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
     const compile = async (base, src = `${base}.tex`) => {
       await tex(...PDFLATEX, `-jobname=${base}`, src);
-      try { await tex("bibtex", base); } catch { /* no citations — fine */ }
+      await bibtex(base);
       await tex(...PDFLATEX, `-jobname=${base}`, src);
       await tex(...PDFLATEX, `-jobname=${base}`, src);
     };
@@ -175,7 +198,8 @@ async function buildSlug(slug) {
       writeAutolabel();
       try {
         await compile("main", "main.autolabel.tex");
-      } catch {
+      } catch (e) {
+        if (e?.bibtex) return done(false, e.message);
         const log = path.join(dir, "main.log");
         const errLine = existsSync(log)
           ? (readFileSync(log, "utf8").split("\n").find((l) => l.startsWith("!")) ?? "pdflatex failed")
@@ -189,7 +213,8 @@ async function buildSlug(slug) {
         stripTexSolutions(readFileSync(path.join(dir, "main.tex"), "utf8")));
       try {
         await compile("main-nosol");
-      } catch {
+      } catch (e) {
+        if (e?.bibtex) return done(false, e.message);
         return done(false, `no-solutions PDF build failed (see ${path.relative(ROOT, path.join(dir, "main-nosol.log"))})`);
       }
     } else if (!existsSync(path.join(dir, "main.aux"))) {
@@ -278,10 +303,11 @@ async function buildSlug(slug) {
     const SLIDES_PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
     try {
       await tex(...SLIDES_PDFLATEX, "slides.tex");
-      try { await tex("bibtex", "slides"); } catch { /* no citations — fine */ }
+      await bibtex("slides");
       await tex(...SLIDES_PDFLATEX, "slides.tex");
       await tex(...SLIDES_PDFLATEX, "slides.tex");
-    } catch {
+    } catch (e) {
+      if (e?.bibtex) return done(false, e.message);
       const log = path.join(dir, "slides.log");
       const errLine = existsSync(log)
         ? (readFileSync(log, "utf8").split("\n").find((l) => l.startsWith("!")) ?? "pdflatex failed")
