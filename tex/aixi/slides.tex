@@ -1,0 +1,351 @@
+% Overview slides for the Iliad Intensive worksheets:
+%   - Solomonoff Induction  (solomonoff-worksheet.tex, Leon Lang)
+%   - AIXI                  (aixi-worksheet.tex, David Quarel)
+% Template cribbed from ../arena-intro-rl-slides/main.tex
+%
+% Build: pdflatex -> bibtex -> pdflatex -> pdflatex (bibtex needed for the
+%        References frame; CI's latexmk runs this automatically).
+%        pdflatex -interaction=nonstopmode -halt-on-error si_and_aixi_slides.tex
+%
+% Pause behaviour: the default build keeps the \pause reveals (presentation).
+% Define \HANDOUT to collapse them into a static handout, e.g.
+%   pdflatex "\def\HANDOUT{}\input{si_and_aixi_slides}"
+%   latexmk  ... -usepretex=\def\HANDOUT{}        (used by CI)
+
+\ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
+\documentclass[10pt,aspectratio=169]{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usetheme{Madrid}
+\usepackage{stmaryrd}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{calc, positioning, arrows.meta, shapes.geometric}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=white,   % white so the Madrid headline/footline nav links read on the dark bars
+    urlcolor=cyan,
+}
+% Beamer colors \cite via linkcolor (white => invisible on body slides), and
+% citecolor is ignored. Override the link color locally just for citations.
+\newcommand{\citev}[1]{\begingroup\hypersetup{linkcolor=cyan}\cite{#1}\endgroup}
+\urlstyle{same}
+
+%====================== macros shared with the worksheets ======================
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\cO}{\mathcal{O}}
+\newcommand{\cR}{\mathcal{R}}
+\newcommand{\cE}{\mathcal{E}}
+\newcommand{\cH}{\mathcal{H}}
+\newcommand{\cM}{\mathcal{M}}
+\newcommand{\Mc}{\mathcal{M}}
+\newcommand{\Ex}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\B}{\mathbb{B}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\TV}{\mathrm{TV}}
+\newcommand{\KL}{\mathrm{KL}}
+\newcommand{\aes}{{\text{\ae}}}            % action--percept history symbol
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+\newcommand{\green}[1]{\textcolor{green!55!black}{#1}}
+\newcommand{\purple}[1]{\textcolor{violet}{#1}}
+\newcommand{\iver}[1]{\llbracket #1 \rrbracket}
+
+%===============================================================================
+\begin{document}
+
+\title[AIXI: a speedrun]{Universal AI: AIXI}
+\author[David Quarel]{David Quarel}
+\institute[Iliad Intensive]{Iliad Intensive}
+\date{June 2026}
+
+\frame{\titlepage}
+
+%===============================================================================
+\begin{frame}{The big picture: one agent, two halves}
+\begin{itemize}
+    \item \textbf{Universal AI} asks: what would an \emph{optimally intelligent} agent look like, given unlimited compute and the weakest possible assumptions?
+    \pause
+    \item It splits into two problems:
+    \begin{enumerate}
+        \item \textbf{Prediction (Solomonoff):} passively observe a sequence $x_1, x_2, \ldots$ and predict the next symbol. \emph{How should you learn?}
+        \pause
+        \item \textbf{Action (AIXI):} interact with an unknown environment, take actions, collect reward. \emph{How should you act?}
+    \end{enumerate}
+    \pause
+    \item \textbf{The common engine:} a single \textbf{Bayesian mixture} $\xi$ over a class $\cM$ of candidate environments, weighted by a prior $w_\nu$.
+    \begin{itemize}
+        \item Solomonoff: $\xi$ (eventually) predicts as well as the truth $\mu$.
+        \item AIXI: the Bayes-optimal policy $\pi_\xi^*$ (eventually) acts as well as the optimal policy $\pi_\mu^*$ for true environment $\mu$.
+    \end{itemize}
+    \pause
+    \item \textbf{Universal} choice: $\cM=$ all computable environments, prior $w_\nu = 2^{-K(\nu)}$ ($K$ is the ``complexity'' of the environment). Assumption ``$\mu\in\cM$'' becomes ``\emph{the universe is computable}''.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The Bayesian mixture $\xi$}
+\begin{block}{Definition}
+Class $\cM=\{\nu_1,\nu_2,\dots\}$ with prior weights $w_\nu>0$, $\sum_\nu w_\nu = 1$.
+\[
+\xi(x_{1:t}) := \sum_{\nu \in \cM} w_\nu\, \nu(x_{1:t}).
+\]
+\end{block}
+\pause
+\begin{itemize}
+    \item \textbf{Key fact (mixture is a predictor):} its one-step prediction is a
+    \emph{posterior-weighted} average of the members' predictions (you prove this today!)
+    \[
+    \xi(x_t \mid x_{<t}) = \sum_{\nu \in \cM} w(\nu \mid x_{<t})\, \nu(x_t \mid x_{<t}),
+    \qquad
+    w(\nu \mid x_{<t}) = w_\nu\,\frac{\nu(x_{<t})}{\xi(x_{<t})}.
+    \]
+    \pause
+    \item \textbf{Posterior update is multiplicative:}
+    $w(\nu \mid x_{1:t}) = w(\nu\mid x_{<t})\cdot \dfrac{\nu(x_t\mid x_{<t})}{\xi(x_t\mid x_{<t})}$: we
+    reweight by how well $\nu$ predicted vs.\ $\xi$ (Bayes' rule!)
+\end{itemize}
+\end{frame}
+
+%========================= PART 2: AIXI ========================================
+\begin{frame}
+\begin{center}
+{\Huge \textbf{Part II: AIXI}}\\[1em]
+{\large \emph{Learning to act}}\\[2em]
+\end{center}
+\end{frame}
+
+\begin{frame}{From prediction to action}
+\begin{itemize}
+    \item Now the agent doesn't just watch: it \textbf{acts}, and its actions shape what it sees.
+    \pause
+    \item At each step $t$: the agent picks action $a_t$, the environment returns a
+    \textbf{percept} $e_t=(o_t,r_t)$ = observation $+$ reward.
+    \[
+    h = a_1\, e_1 \; a_2\, e_2 \; a_3\, e_3 \;\cdots \qquad
+    (\text{history } \aes_{<t})
+    \]
+    \pause
+    \item Spaces: actions $\cA$, observations $\cO$, rewards $\cR \subset [0,1]$, percepts $\cE=\cO\times\cR$,
+    and (finite) histories $\cH^* := (\cA \times \cE)^* := \cup_{t=0}^\infty (\cA \times \cE)^t$.
+    \pause
+    \item \textbf{No Markov / MDP assumption!} Both the policy and environment can depend on all prior percepts.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The three players}
+\begin{block}{Policy $\pi$}
+$\pi(a_t \mid \aes_{<t}) : \cH \to \Delta \cA$  is the agent's distribution over the next action given history.
+\end{block}
+\pause
+\begin{block}{Environment $\nu$}
+$\nu(e_t \mid \aes_{<t}\, a_t) : \cH \times \cA \to \Delta \cE$ is the environment's distribution over the next percept given history and action. 
+True (unknown) environment is $\mu$.
+\end{block}
+\pause
+\begin{block}{Interaction measure $\nu^\pi$}
+Run $\pi$ inside $\nu$ and multiply along the history:
+\[
+\nu^\pi(\aes_{t:m} \mid \aes_{<t}) := \prod_{k=t}^m \pi(a_k\mid \aes_{<k})\,\nu(e_k\mid \aes_{<k}a_k).
+\]
+\end{block}
+% \pause
+% \textbf{Factorization:} $\nu^\pi = \pi \cdot \nu$ --- the policy factor is the same for every $\nu$, so it \emph{cancels} when comparing environments. This is what makes everything reduce to the prediction problem.
+\end{frame}
+
+\begin{frame}{Value, optimality, and AIXI}
+\begin{block}{Value function (assuming geometric discount $\gamma$)}
+% \[
+% V_\nu^{\pi}(\aes_{<t}) := (1-\gamma)\,\Ex_\nu^\pi\!\Big[\textstyle\sum_{k\geq t} \gamma^{k-t} r_k \;\Big|\; \aes_{<t}\Big] \in [0,1].
+% \]
+\vspace{-0.3cm}
+\begin{align*}
+V_\nu^{\pi,m}(\aes_{<t})
+~&=~ (1-\gamma)\, {\Ex_\nu^\pi} [G_{t-1:m} \mid \aes_{<t}] \text{ with } G_{t-1:m} = \sum_{k=t}^{m} \gamma^{k-t}\, r_k \\
+~&=~ (1-\gamma) \sum_{\aes_{t:m}} \nu^\pi(\aes_{t:m} \mid \aes_{<t}) \sum_{k=t}^{m} \gamma^{k-t}\, r_k 
+\end{align*}
+\end{block}
+\pause
+The \textbf{infinite-horizon value} is defined as the pointwise limit 
+$$
+V_\nu^\pi \equiv  V_\nu^{\pi,\infty}(\aes_{<t}) := \lim_{m \to \infty} V_\nu^{\pi,m}(\aes_{<t}).
+$$
+\pause
+The \textbf{optimal value} is $V_\nu^{*,m}(\aes_{<t}) := \sup_\pi V_\nu^{\pi,m}(\aes_{<t})$, with $V_\nu^* \equiv V_\nu^{*,\infty}$.%
+\pause
+\begin{itemize}
+    \item \textbf{Optimal value} $V_\nu^* := \sup_\pi V_\nu^\pi$; an optimal policy $\pi_\nu^*$ satisfies $V_\nu^{\pi_\nu^*} = V_\nu^*$.
+    \item \textbf{Bayes-optimal policy} $\pi_\xi^* \in \argmax_\pi V_\xi^\pi$: acts optimally w.r.t.\ the \emph{mixture} $\xi$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{AIXI}
+\begin{block}{AIXI}
+$\pi_\xi^*$ with $\cM=$ all lower-semicomputable environments and prior $w_\nu = 2^{-K(\nu)}$.
+Write $\xi_U$ for $\xi$ with this choice of $\cM$ and $w_\nu$, so \text{AIXI} = $\pi_{\xi_U}^*$.
+\end{block}
+\textbf{Intuition:} \emph{The Bayes-optimal agent with prior according to Occam's razor: Act optimally according
+to environments that you believe to be in, assuming the simplest environments consistant with
+observations are more likely to be true.}
+\pause
+\begin{block}{AIXI, explicitly}
+\red{$\max$ over actions}, \blue{$\sum$ over percepts}, choosing actions that maximise the \green{$\xi$-weighted} \purple{discounted return}:
+\[
+\resizebox{\linewidth}{!}{$\displaystyle
+    a_t = \red{\argmax_{a_t}}\lim_{m\to\infty}
+        \blue{\sum_{e_t}}\red{\max_{a_{t+1}}}\blue{\sum_{e_{t+1}}}\!\cdots\!
+      \red{\max_{a_m}}\blue{\sum_{e_m}} \,
+      \green{\xi(e_{t:m}\mid \aes_{<t}\,a_{t:m})} \, 
+      \purple{\sum_{k=t}^m 
+        \gamma^{k-t} r_k} 
+$}
+\]
+\end{block}
+\end{frame}
+
+% \begin{frame}{Key structural properties of $V$}
+% \begin{block}{Linearity of $V^\pi$ in the environment}
+% \[
+% V_\xi^\pi(\aes_{<t}) = \sum_{\nu\in\cM} w(\nu\mid \aes_{<t})\, V_\nu^\pi(\aes_{<t}).
+% \]
+% The mixture's value is the posterior average of the members' values.
+% \end{block}
+% \pause
+% \begin{block}{Dominance of value}
+% $\xi^\pi(\aes_{1:m}) \geq w_\nu\, \nu^\pi(\aes_{1:m})$ --- the mixture covers every environment.
+% \end{block}
+% \pause
+% \textbf{Caveat:} $V_\xi^*$ (optimal value) is only \emph{convex}, not linear --- one policy must do well across all $\nu$ at once. (E.g.\ predicting a two-headed vs.\ two-tailed coin: each is trivial alone, the mixture is a fair coin.)
+% \end{frame}
+
+\begin{frame}{The three main AIXI results}
+\begin{center}
+\begin{tikzpicture}[
+    node distance=3mm and 28mm,
+    box/.style={draw, rounded corners, align=center, font=\normalsize, inner sep=7pt, minimum height=14mm, minimum width=34mm},
+    main/.style={box, thick, double, fill=blue!5},
+    arr/.style={-{Stealth}, line width=0.8pt}
+]
+\node[box] (f) {\textbf{Foundations} \\ measures, mixture,\\ optimal policies,\\ dominance, linearity};
+\node[main, above right=3mm and 28mm of f] (r1) {\textbf{On-policy convergence}\\ $V_\xi^\pi - V_\mu^\pi \to 0$};
+\node[main, right=28mm of f] (r2) {\textbf{Can't be fooled}\\ good env $\Rightarrow$ good value};
+\node[main, below right=3mm and 28mm of f] (r3) {\textbf{Self-optimizing}\\ $\pi_\xi^*$ acts as well\\ as if it knew $\mu$};
+\draw[arr] (f) -- (r1);
+\draw[arr] (f) -- (r2);
+\draw[arr] (f) -- (r3);
+\end{tikzpicture}
+\end{center}
+\begin{itemize}
+    \item All three: the Bayesian agent inherits the guarantees it would have if it knew the truth.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Result 1: On-policy value convergence}
+\begin{block}{Theorem}
+For any $\mu\in\cM$ and any policy $\pi$,
+\[
+V_\xi^\pi(\aes_{<t}) - V_\mu^\pi(\aes_{<t}) \;\to\; 0 \qquad \mu^\pi\text{-almost surely}.
+\]
+\end{block}
+\textbf{Intuition:} \emph{A policy that acts, pretending the environment is $\xi$, 
+will eventually act as well as if it were in the true environment $\mu$.}
+\end{frame}
+
+\begin{frame}{Result 2: AIXI can't be fooled}
+\begin{block}{Theorem (deterministic $\mu$)}
+If the truth is reachable-good, $V_\mu^*(\aes_{<t}) > \varepsilon$ along the played history, then
+\[
+V_\xi^*(\aes_{<t}) \;\geq\; w_\mu\,\varepsilon \;>\; 0 .
+\]
+\end{block}
+% \pause
+% \textbf{Two short steps:}
+% \begin{itemize}
+%     \item By linearity, plugging in $\pi_\mu^*$ and dropping all but the $\mu$ term:
+%     $V_\xi^*(\aes_{<t}) \geq w(\mu\mid \aes_{<t})\, V_\mu^*(\aes_{<t})$.
+%     \pause
+%     \item For deterministic $\mu$, the posterior never shrinks: $w(\mu\mid \aes_{<t}) \geq w_\mu$.
+% \end{itemize}
+\pause
+\textbf{Intuition:} \emph{Whenever good behaviour in $\mu$ is achievable,
+the Bayes-optimal agent secures at least a fraction proportional to the prior weight of $\mu$.}
+\end{frame}
+
+\begin{frame}{Result 3: Self-optimizing property (stretch goal)}
+\begin{block}{Theorem}
+If \emph{some} policy can learn to act optimally in every $\nu\in\cM$, then $\pi_\xi^*$ does too:
+\[
+V_\mu^*(\aes_{<t}) - V_\mu^{\pi_\xi^*}(\aes_{<t}) \to 0 \quad \mu^\pi\text{-a.s.}
+\]
+\end{block}
+\pause
+% \textbf{Engine: likelihood ratios are martingales.}
+% \begin{itemize}
+%     \item $X_{\nu,t} := \nu(\aes_{1:t})/\mu(\aes_{1:t})$ is a non-negative $\mu^\pi$-martingale.
+%     \pause
+%     \item \textbf{Doob} $\Rightarrow$ it converges. Split environments into:
+%     \emph{ruled out} ($X_{\nu,\infty}=0$, posterior vanishes) vs.\ \emph{still plausible} ($X_{\nu,\infty}>0$).
+%     \pause
+%     \item \textbf{Change of measure} (Markov inequality) transfers convergence between $\nu$ and $\mu$.
+% \end{itemize}
+% \pause
+\textbf{Intuition:} \emph{The Bayes-optimal agent that is unaware of which environment it is in learns to act
+just as well, as the best possible policy that already knows which environment it is in ($\mu$).}
+\end{frame}
+
+%========================= WRAP-UP ============================================
+% \begin{frame}{The two sheets, side by side}
+% \small
+% \begin{center}
+% \renewcommand{\arraystretch}{1.4}
+% \begin{tabular}{l|l|l}
+%  & \textbf{Solomonoff} & \textbf{AIXI} \\\hline
+% Setting & passive prediction & active interaction \\
+% Data & sequence $x_{1:t}$ & history $\aes_{<t}$ (actions + percepts) \\
+% Engine & mixture $\xi(x_{1:t})=\sum_\nu w_\nu \nu$ & same, with policies: $\xi^\pi = \pi\cdot\xi$ \\
+% Tool & dominance, KL, Pinsker & dominance, linearity, TV, martingales \\
+% Guarantee & $S^\mu_\infty \leq -\ln w_\mu$ & $V_\xi^\pi \to V_\mu^\pi$; self-optimizing \\
+% Universal & $w_\nu = 2^{-K(\nu)} \Rightarrow K(\mu)\ln 2$ & $\cM=$ all comp.\ env., $w_\nu=2^{-K(\nu)}$ \\
+% \end{tabular}
+% \end{center}
+% \pause
+% \begin{itemize}
+%     \item \textbf{One idea throughout:} a dominant Bayesian mixture inherits the truth's guarantees, up to a prior penalty $-\ln w_\mu$.
+%     \item \textbf{Universality:} pick the prior $2^{-K(\nu)}$ and the penalty becomes the truth's description length.
+% \end{itemize}
+% \end{frame}
+
+\begin{frame}{Takeaways}
+\begin{itemize}
+    \item \textbf{Solomonoff} solves induction: mix over all computable hypotheses, weighted by simplicity.
+    Total prediction error $\leq K(\mu)\ln 2$.
+    \pause
+    \item \textbf{AIXI} lifts this to action: the Bayes-optimal policy over the same universal mixture.
+    It learns to predict \emph{and} to act as well as if it knew the world.
+    \pause
+    \item \textbf{The catch:} both are \emph{incomputable} ($K$ is incomputable; $\cM$ is intractable to enumerate).
+    They are gold standards, not computable algorithms, and the prior's $2^{-K(\nu)}$ hides a dependency
+    on the choice of universal Turing machine.
+    \pause
+    \item \textbf{Why care for safety:} a precise, assumption-light model of idealized 
+    intelligence providing a lens on what optimal agents do. For example, we
+    can show under what circumstances AIXI would \href{https://people.idsia.ch/~ring/AGI-2011/Paper-B.pdf}{wirehead}~\citev{Ring:11delusion},
+    \href{https://arxiv.org/pdf/2006.03357}{safely rather than recklessly explore}~\citev{Cohen:20curiosity}, or
+    \href{https://link.springer.com/chapter/10.1007/978-3-642-22887-2_1}{self-modify}~\citev{Orseau:11selfmod}
+    as a model of what superintelligent agents would do.
+\end{itemize}
+\end{frame}
+
+%========================= REFERENCES ==========================================
+\begin{frame}[allowframebreaks]{References}
+\footnotesize
+\setbeamertemplate{bibliography item}[text]
+\bibliographystyle{alphaurl}
+\bibliography{biblo}
+\end{frame}
+
+\end{document}
