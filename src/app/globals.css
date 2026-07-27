@@ -142,6 +142,13 @@ nav,
   color: var(--muted);
 }
 
+/* A LaTeX quote environment is just indented text — the indent (left rule)
+   is enough; drop the typography plugin's automatic “ ” marks. */
+.prose blockquote p:first-of-type::before,
+.prose blockquote p:last-of-type::after {
+  content: none;
+}
+
 .prose code {
   font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
   font-size: 0.88em;
