@@ -97,6 +97,25 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
   markdown list inside. Group headings become bold subheadings in the box
   (not real headings — no anchor, not in the table of contents).
 
+## Table of contents
+
+```latex
+\tableofcontents   % usually right after \maketitle
+```
+
+- Optional. In the PDF, `\tableofcontents` produces LaTeX's usual ToC.
+- On the web, the converter emits an in-page **Contents** list at the same
+  spot — a nested list of links to every `section`/`subsection`/`subsubsection`,
+  numbered exactly as the headings are (`1`, `1.1`, `4.2.1`).
+- It is built from the headings that survive conversion, so links never
+  dangle: a section whose body relocated away (e.g. a `Solutions` appendix,
+  whose solutions move under their exercises on the web) is left out
+  automatically. The auto-generated References list is not included.
+- No `.toc` file or CI change is involved — writing `\tableofcontents` in the
+  source is all it takes.
+- MDX-authored sheets (`main.mdx`) have no `\tableofcontents`; write the page
+  with headings and rely on the sidebar nav.
+
 ## Theorem family
 
 ```latex
@@ -122,7 +141,7 @@ MDX: `<Definition id="def-entropy">**Definition 2.1 (entropy).** …</Definition
 Don't confuse $\log$ bases here.
 \end{callout}
 
-\begin{remark}
+\begin{remark}[Optional title]
 An aside in the mathematical register.
 \end{remark}
 ```
@@ -131,6 +150,8 @@ An aside in the mathematical register.
   (`[boxes]`).
 - Both may be labelled: no number shows in the box, but
   `\cref{co:pitfall}` prints "Callout 2.1" and links to it.
+- `remark` takes an optional `[title]`, shown in the box header as
+  "Remark (Title)" on both PDF and web; omit it for a plain "Remark".
 - MDX: `<Callout type="warning" id="co-pitfall">…</Callout>`
 
 ## Math, macros, cross-references

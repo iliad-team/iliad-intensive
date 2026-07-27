@@ -26,7 +26,7 @@ import { SRC_FILES, lineOf, warnings, warn, advisories, advise, fmtIssue, snippe
 import { MACRO_OVERRIDE, MACRO_SKIP, applyShims, applyMathShims, trimMacroBody,
          CREF_NAME_DEFAULTS, THM_FAMILY, CONTRACT_NAMES, KNOWN_FRONT_KEYS } from "./shims.mjs";
 import { initTikz, renderTikzSnippets, tikzCount } from "./tikz.mjs";
-import { emitDocument, texToPlain } from "./emit-ast.mjs";
+import { emitDocument, texToPlain, buildToc } from "./emit-ast.mjs";
 import { entries as bibtexEntries } from "bibtex-parse";
 
 // Optional yaml lib (from the public repo's node_modules) for strict
@@ -417,7 +417,7 @@ if (!blockKeys.has("contributors") && !contributors.length)
 
 // ------------------------------ run ---------------------------------------
 // AST emit (two passes handled inside emit-ast)
-const bodyMdx = tidy(emitDocument(body, {
+let bodyMdx = tidy(emitDocument(body, {
   refs,
   preamble,
   declaredThms,
@@ -430,6 +430,12 @@ const bodyMdx = tidy(emitDocument(body, {
   warnSnapshot: () => [warnings.length, advisories.length],
   warnRestore: ([w, a]) => { warnings.length = w; advisories.length = a; },
 }));
+// Fill the \tableofcontents placeholder AFTER tidy(): the ToC is a nested list
+// whose indentation tidy() would otherwise strip (it dedents every line).
+if (bodyMdx.includes("<!--ILIAD_TOC-->")) {
+  const toc = buildToc(bodyMdx);
+  bodyMdx = bodyMdx.replace(/\n*<!--ILIAD_TOC-->\n*/g, toc ? `\n\n${toc}\n\n` : "\n\n");
+}
 const result = `${front}\n\n$${gdef}$\n\n${bodyMdx}\n`;
 writeFileSync(output, result);
 

@@ -268,10 +268,12 @@
   \iliad@calloutend
 }
 
-% remark — an aside; renders as a note callout on the web.
-\newenvironment{remark}{%
+% remark — an aside; renders as a note callout on the web. Optional [title]
+% is shown in the box header as "Remark (Title)", matching the converter's
+% web output (which parses the same optional argument).
+\newenvironment{remark}[1][]{%
   \refstepcounter{remark}%
-  \iliad@calloutbegin{Remark}{blue}%
+  \iliad@calloutbegin{Remark\ifblank{#1}{}{ (#1)}}{blue}%
 }{%
   \iliad@calloutend
 }

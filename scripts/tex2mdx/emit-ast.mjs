@@ -29,7 +29,7 @@ const TEXT_MACROS = {
 };
 // macros dropped with NO arguments consumed
 const NOOP_MACROS = new Set([
-  "maketitle", "tableofcontents", "centering", "solutionstrue", "solutionsfalse",
+  "maketitle", "centering", "solutionstrue", "solutionsfalse",
   "allowdisplaybreaks", "phantomsection", "sloppy", "AND", "And", "name",
   "height", "width", "depth", "centerline", "noindent", "medskip", "smallskip",
   "bigskip", "hfill", "hfil", "vfill", "vfil", "null", "clearpage", "newpage",
@@ -560,6 +560,9 @@ function emitMacro(n) {
     }
     case "item": return "";   // stray \item outside a list
     case "section": case "subsection": case "subsubsection": return emitHeading(n);
+    // \tableofcontents: emit a placeholder; the real ToC is built from the
+    // surviving headings once emission + pruning are done (see emitDocument).
+    case "tableofcontents": return "\n\n<!--ILIAD_TOC-->\n\n";
   }
 
   // author-defined macro: expand and re-walk
@@ -770,7 +773,31 @@ function relocateSolutions(md) {
       advise(`section "${plain}" emptied by solution relocation was dropped, but prose still links to it — reword the sentence that points at the solutions section`, plain);
     }
   }
+
+  // 4. the \tableofcontents placeholder is filled by the caller AFTER tidy(),
+  //    because tidy() dedents every line and would flatten the nested list.
   return out;
+}
+
+// -------------------------------------------------------------- contents ---
+// \tableofcontents becomes an in-page ToC on the web, built from the headings
+// that SURVIVE pruning (so no link dangles at a moved-out section, e.g. the
+// Solutions appendix). The converter already numbers headings ("1", "1.1",
+// "4.2.1") identically to LaTeX, so the numbers are read straight off the
+// heading text and the anchors are the same ghSlug the site (rehype-slug) and
+// build-content's index use — guaranteeing the links resolve. References is
+// converter-added (not a source section) and is left out.
+export function buildToc(out) {
+  const items = [];
+  for (const line of out.split("\n")) {
+    const h = /^(#{2,4}) +(.+?)\s*$/.exec(line);
+    if (!h) continue;
+    const text = h[2].replace(/\*\*|\*/g, "").trim();
+    if (!text || text === "References") continue;
+    const indent = "  ".repeat(h[1].length - 2);
+    items.push(`${indent}- [${text}](#${ghSlug(text)})`);
+  }
+  return items.length ? `**Contents**\n\n${items.join("\n")}` : "";
 }
 
 // -------------------------------------------------------------- references ---
