@@ -50,7 +50,7 @@ Gotchas that WILL bite in a fresh worktree:
   trip npm's optional-dep prune bug). Just add the nested symlink.
 - `repos/` is gitignored → the source clone does not exist in the worktree. Copy it in (above)
   or read it from the main checkout's absolute path.
-- `tex/iliad.sty`, `content/clusters.json`, `scripts/`, `src/` **are** committed, so they're
+- `tex/iliad.sty`, `schedule.yaml`, `scripts/`, `src/` **are** committed, so they're
   present in the worktree.
 - The **pre-push hook** runs a full `next build`, which cannot resolve a *symlinked*
   `node_modules` ("points out of the filesystem root") and will reject the push. This is a
@@ -72,7 +72,12 @@ Spawn a `general-purpose` subagent whose working area is `$WT/tex/$SLUG/`. Give 
 
 ### Framework contract the subagent must obey
 - One authored `main.tex`. First lines = YAML comment block:
-  `%--- iliad ---` / `% cluster: <A–E>` / `% title: ...` / `% summary: ...` / `%--- end ---`.
+  `%--- iliad ---` / `% title: ...` / `% summary: ...` / `%--- end ---`.
+  **No `cluster:` or `day:` keys** — those live in `schedule.yaml` and writing them
+  here fails the build. Instead, list the new slug under its day's `worksheets:` in
+  `schedule.yaml` (in reading order if the day has more than one); that is what puts
+  the page on the site, and the build stamps its cluster and day in. Check with
+  `node scripts/schedule.mjs`. A worksheet no day lists fails the build.
 - `\documentclass[11pt]{article}`, then exactly
   `\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}`.
   Do **not** reload hyperref/cleveref (iliad.sty loads them).

@@ -2,6 +2,9 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import YAML from "yaml";
 
+/** Frontmatter of a *generated* module. `cluster`/`day` are stamped in by
+ *  build-content.mjs from schedule.yaml (an author may not write either); the
+ *  rest come from the worksheet's own source. */
 export type Frontmatter = {
   title?: string;
   cluster?: string;
@@ -13,8 +16,8 @@ export type Frontmatter = {
   /** External slide-deck URL (e.g. a Drive PDF); rendered as an outbound
    *  link. A compiled slides.pdf (from slides.tex) takes precedence. */
   slides?: string;
-  /** Teaching day this worksheet is the material for, e.g. "B.4" — a code
-   *  from content/days.yml. Attaches the sheet to its row on /admin/status. */
+  /** Teaching day this worksheet is the material for, e.g. "B.4". Several
+   *  worksheets may share one day. */
   day?: string;
 };
 
@@ -28,6 +31,10 @@ export type IndexEntry = {
   slug: string;
   title: string;
   cluster: string | null;
+  /** Teaching day code, e.g. "D.3". Several worksheets may share one. */
+  day?: string;
+  /** 1-based place in the curriculum, straight out of schedule.yaml's order
+   *  (cluster, then day, then the day's own worksheet order). */
   position?: number;
   frontmatter: Frontmatter;
   headings?: HeadingEntry[];

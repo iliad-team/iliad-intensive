@@ -3,10 +3,13 @@ import path from "node:path";
 
 /**
  * Reader for content/status.json — the build artifact behind /admin/status
- * (scripts/build-status.mjs: content/days.yml joined with what the build
- * actually produced). Holds facts only: cluster ids, slugs, upstream URLs.
- * Never a base-path-prefixed href — the page applies NEXT_PUBLIC_BASE_PATH
- * at render time, same rule as generated MDX.
+ * (scripts/build-status.mjs: schedule.yaml joined with what the build actually
+ * produced). Holds facts only: cluster ids, slugs, upstream URLs. Never a
+ * base-path-prefixed href — the page applies NEXT_PUBLIC_BASE_PATH at render
+ * time, same rule as generated MDX.
+ *
+ * `days`, and each day's `modules`, are in schedule.yaml's order — the order
+ * the course is taught in.
  */
 
 /** How a worksheet's deck reaches the reader. */
@@ -26,8 +29,8 @@ export type DayModule = {
   deck: Deck;
 };
 
-/** Where a day's buildable source is. `in-repo` is derived (a worksheet
- *  claimed the day); the rest come from content/days.yml. */
+/** Where a day's buildable source is. `in-repo` is derived (the day has a
+ *  worksheet); the rest come from schedule.yaml. */
 export type SourceKind = "in-repo" | "ready" | "readings" | "partial" | "missing";
 
 export type Day = {
@@ -36,8 +39,8 @@ export type Day = {
   title: string;
   lead: string;
   doc: string;
-  /** `kind` is the current truth, `declared` is what days.yml claimed — they
-   *  differ once a worksheet claims the day (a ported reading day is both). */
+  /** `kind` is the current truth, `declared` is what schedule.yaml claimed —
+   *  they differ once the day has a worksheet (a ported reading day is both). */
   source: { kind: SourceKind; declared: SourceKind; url: string | null; note: string | null };
   slidesUrl: string | null;
   modules: DayModule[];
@@ -50,8 +53,6 @@ export type Status = {
    *  compiled, so the deck and PDF columns understate reality. */
   checkOnly: boolean;
   days: Day[];
-  /** Built modules that claim no day — surfaced, not hidden. */
-  unassigned: DayModule[];
   counts: {
     days: number;
     live: number;
