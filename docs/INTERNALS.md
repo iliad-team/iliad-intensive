@@ -36,10 +36,11 @@ public/downloads/<slug>/*                   pdf/tex/mdx ±nosol,   (gitignored)
 out/                                        static HTML/CSS/JS → GitHub Pages
 ```
 
-Two content files are hand-edited and committed rather than generated:
-`content/clusters.json` maps cluster ids (`A`, `B`, …) to labels and URL
-slugs, and `content/days.yml` is the teaching-day roster behind
-`/admin/status` (everything else on that page is derived from the build).
+One file is hand-edited and committed rather than generated: `schedule.yaml`,
+the curriculum. It maps cluster ids (`A`, `B`, …) to labels and URL slugs,
+lists the teaching days, and says which worksheets are each day's material —
+so it fixes both the site's ordering and the `/admin/status` roster
+(everything else on that page is derived from the build).
 
 ## What the site reads at build time
 
@@ -51,7 +52,7 @@ runtime inputs. If it's not in this table, the site doesn't depend on it.
 | `content/modules/*.mdx` | `src/lib/content.ts` | page bodies + frontmatter; **every** file here becomes a page, listed or not |
 | `content/index.json` | `src/lib/content.ts` | homepage/sidebar listing + ordering + heading TOCs (absence ⇒ page is unlisted, still built) |
 | `content/status.json` | `src/lib/status.ts` | the `/admin/status` table (absence ⇒ the page renders a "run the content build" hint) |
-| `content/clusters.json` | `src/lib/cluster-store.ts` | cluster labels and the first URL segment (`/learning/<slug>/`); falls back to `DEFAULT_CLUSTERS` in `src/lib/clusters.ts` |
+| `schedule.yaml` | `src/lib/cluster-store.ts` | cluster labels and the first URL segment (`/learning/<slug>/`), in the order the file lists them; falls back to `DEFAULT_CLUSTERS` in `src/lib/clusters.ts` |
 | `public/downloads/<slug>/` | `src/lib/content.ts` (`listDownloads`) | which download buttons a page offers (dir listing at build time) |
 | `public/uploads/<slug>/*.svg` | the browser, not the build | figure `<img>` targets referenced from the MDX |
 | `NEXT_PUBLIC_BASE_PATH` env | `next.config.ts`, `src/lib/mdx.tsx`, module page | sub-path hosting (GitHub Pages project site); applied at render time, never baked into generated MDX |
@@ -77,7 +78,7 @@ Libraries (`src/lib/`):
 | `content.ts` | fs readers: module MDX + frontmatter, `index.json`, downloads dir |
 | `mdx.tsx` | **the renderer.** `next-mdx-remote` + remark-math/rehype-katex/rehype-slug, plus the component catalogue the converter emits: `Callout`, `Exercise`, `Solution` (a `<details>`), `LearningOutcomes`, `Definition`, `Theorem`, `Figure`. Component *names* are the contract with `scripts/tex2mdx/`; the styling is this site's own. Content-hash cache so `next dev` doesn't re-render unchanged pages |
 | `clusters.ts` | pure cluster helpers (client-safe, no fs) |
-| `cluster-store.ts` | server-only loader for `clusters.json` (`server-only` import enforces the split) |
+| `cluster-store.ts` | server-only loader for `schedule.yaml`'s cluster table (`server-only` import enforces the split) |
 
 Components (`src/components/`): `ModulePageShell` (sidebar + content grid),
 `SidebarNav` (cluster-grouped module list with per-page heading TOC),
@@ -88,14 +89,15 @@ Components (`src/components/`): `ModulePageShell` (sidebar + content grid),
 
 | File | Role |
 |---|---|
-| `build-content.mjs` | per-worksheet ladder, parallel across worksheets (default 4 workers, buffered logs): shared-`iliad.sty` shadow guard → PDF first (3× `pdflatex` + `bibtex` over the auto-labeled `main.autolabel.tex`, `-jobname=main`; the converter needs the `.aux` for `\cref` and for every displayed number — see `tex2mdx/autolabel.mjs`) → solution-stripped `-nosol` PDF → tex2mdx conversion → optional `slides.tex`→`slides.pdf` (+ no-slides advisory) → `fig/*.pdf`→SVG (`pdftocairo`) → KaTeX render gate → stage downloads (incl. `<slug>-slides.pdf/.tex`). Then `index.json`. MDX-authored sheets skip conversion (PDF via `pandoc`). `--check` = converter + render gate only (no PDFs, no slides, no advisory) |
+| `build-content.mjs` | per-worksheet ladder, parallel across worksheets (default 4 workers, buffered logs): shared-`iliad.sty` shadow guard → PDF first (3× `pdflatex` + `bibtex` over the auto-labeled `main.autolabel.tex`, `-jobname=main`; the converter needs the `.aux` for `\cref` and for every displayed number — see `tex2mdx/autolabel.mjs`) → solution-stripped `-nosol` PDF → tex2mdx conversion → optional `slides.tex`→`slides.pdf` (+ no-slides advisory) → `fig/*.pdf`→SVG (`pdftocairo`) → KaTeX render gate → stamp `cluster:`/`day:` from `schedule.yaml` → stage downloads (incl. `<slug>-slides.pdf/.tex`). Then `index.json`, ordered by the schedule. MDX-authored sheets skip conversion (PDF via `pandoc`). `--check` = converter + render gate only (no PDFs, no slides, no advisory) |
 | `tex2mdx/tex2mdx.mjs` | converter CLI: source registry, `.aux` cross-refs, frontmatter + `\title`/`\author` extraction, `\gdef` macro block, bibliography |
 | `tex2mdx/autolabel.mjs` | injects `\label{iliad-auto-N}` into every numbered construct (comment/verbatim-aware, same-line, deterministic); the build compiles the injected `main.autolabel.tex` (`-jobname=main`) so the `.aux` carries every displayed number, and the converter reads them back by label name — web numbering is PDF-true, never simulated |
 | `tex2mdx/emit-ast.mjs` | unified-latex typed AST → MDX emitter (no regex parsing of LaTeX) |
 | `tex2mdx/shims.mjs` | all dialect knowledge: contract env tables, KaTeX synonyms, macro overrides — `iliad.sty`'s web-side twin |
 | `tex2mdx/tikz.mjs` | TikZ → standalone compile → content-addressed `tikz-<sha>.svg` (unchanged diagrams never recompile; CI caches `public/uploads` on `hashFiles('tex/**')`) |
 | `tex2mdx/tex2mdx-check.mjs` | the render gate: compiles the MDX with the site's exact plugin pipeline and KaTeX-renders every math span |
-| `build-status.mjs` | last step of the content build: `content/days.yml` (committed roster) + what the build produced → `content/status.json` for `/admin/status`. Worksheets attach to a day via their own `day:` frontmatter, so the derived columns can't go stale; roster data errors are fatal |
+| `schedule.mjs` | reads + validates `schedule.yaml` (the one hand-kept curriculum file) for both build steps, and derives each worksheet's cluster, day and position from its order. Run it standalone to print the course order. Data errors are fatal |
+| `build-status.mjs` | last step of the content build: `schedule.yaml` + what the build produced → `content/status.json` for `/admin/status`. Which worksheets a day has is the schedule's answer; everything else in the row is read off disk, so the derived columns can't go stale. A built worksheet no day lists is fatal |
 | `watch.mjs` | `./run.sh watch`: dev server + rebuild-on-save loop |
 
 Two `package.json`s: the site's (root) and `scripts/tex2mdx/`'s (unified-latex,
@@ -159,10 +161,10 @@ the `/about` page, the cookie `gate/` route, the `api/download` route
 (static dir listings replaced it), `proxy.ts`, and Vercel hosting itself.
 
 **What was dropped from the admin repo: all of it.** No code was reused —
-only its *data contracts* survive: the `content/clusters.json` and
-`content/index.json` shapes (this repo's `clusters.json` is a hand-kept
-copy of what the admin exporter shipped), the MDX component/attribute
-names, and the frontmatter keys. Everything the CMS did is replaced by a
+only its *data contracts* survive: the cluster-table and `content/index.json`
+shapes (the cluster table began as a hand-kept copy of what the admin
+exporter shipped, and now lives in `schedule.yaml`), the MDX
+component/attribute names, and the frontmatter keys. Everything the CMS did is replaced by a
 cheaper equivalent: Postgres → git; WYSIWYG editor + Claude conversion
 worker → the `iliad.sty` contract + deterministic `tex2mdx`; publish
 pipeline + exporter → `build-content.mjs` in CI; auth/allowlist → GitHub

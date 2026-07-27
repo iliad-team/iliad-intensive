@@ -112,21 +112,23 @@ export const CONTRACT_NAMES = new Set([
   "solutionsonly", "pdfonly",
 ]);
 
+// Frontmatter describes the WORKSHEET. Where it sits in the course — its
+// cluster and its teaching day — belongs to schedule.yaml, which lists the slug
+// under its day; the build stamps `cluster:`/`day:` into the generated MDX from
+// there. So neither is a key here, and writing one draws the unknown-key
+// warning (which fails the build) rather than quietly contradicting the
+// schedule.
 export const KNOWN_FRONT_KEYS = new Set([
-  "title", "cluster", "summary", "contributors", "slug",
+  "title", "summary", "contributors", "slug",
   // unlisted: true — page is built and reachable by URL but excluded from
-  // content/index.json (homepage/sidebar). Used by the template worksheet.
+  // content/index.json (homepage/sidebar), and excused from the schedule.
+  // Used by the template worksheet.
   "unlisted",
   // slides: <url> — a link to an externally hosted slide deck (e.g. a Drive
   // PDF). Rendered as an outbound "Slides ↗" link; nothing is served or
   // compiled our end. For a deck with LaTeX source, drop a slides.tex in the
   // worksheet folder instead and the build compiles + hosts the PDF.
   "slides",
-  // day: <code> — the teaching day this worksheet is the material for, e.g.
-  // "B.4". Must be a code listed in content/days.yml (the build fails on a
-  // code no day owns, so a typo can't orphan the page). It attaches the sheet
-  // to its row on /admin/status; several sheets may share one day.
-  "day",
 ]);
 
 // ------------------------------------------------------------------ tikz ---

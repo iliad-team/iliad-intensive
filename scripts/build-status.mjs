@@ -1,15 +1,18 @@
 #!/usr/bin/env node
 /**
- * build-status.mjs — content/days.yml + what's actually on disk
+ * build-status.mjs — schedule.yaml + what's actually on disk
  *                    → content/status.json  (what /admin/status renders)
  *
  * The split that keeps the page honest:
  *
- *   HAND-KEPT (content/days.yml)   the day roster — code, title, lead, Doc
- *                                  tab, and where the upstream source is for
- *                                  days nobody has ported yet. The build
- *                                  cannot know these: an unported day has
- *                                  nothing on disk to find.
+ *   HAND-KEPT (schedule.yaml)      the curriculum — clusters, teaching days
+ *                                  (code, title, lead, Doc tab), which
+ *                                  worksheets are each day's material, and
+ *                                  where the upstream source is for days
+ *                                  nobody has ported yet. The build cannot
+ *                                  know these: an unported day has nothing on
+ *                                  disk to find, and teaching order is not a
+ *                                  property of any file.
  *
  *   DERIVED (here, every build)    is the worksheet live · does it have a
  *                                  compiled deck or only a hosted PDF · which
@@ -18,16 +21,16 @@
  *                                  porting a day — and the table cannot claim
  *                                  something the build didn't produce.
  *
- * A worksheet joins a day from its own frontmatter (`day: B.4`), never from
- * the roster — one file to touch when you port, and the roster stays put.
+ * Days and their worksheets are listed in schedule.yaml's order, which is
+ * teaching order — never sorted here.
  *
  * status.json holds facts, not URLs: cluster ids and slugs, never a base-path-
  * prefixed href (the page applies NEXT_PUBLIC_BASE_PATH at render time — see
  * docs/DEVELOPMENT.md on never baking the base path into generated content).
  *
- * Data errors here are FATAL: a duplicate code, an unknown `day:` reference or
- * a missing required field is a one-line fix, and a status page that quietly
- * drops a day is worse than a red build.
+ * Data errors are FATAL, in schedule.mjs (bad roster) and here (a built
+ * worksheet no day lists). Each is a one-line fix, and a status page that
+ * quietly drops a day is worse than a red build.
  *
  * Usage: build-status.mjs            (also called by build-content.mjs)
  */
@@ -35,16 +38,13 @@ import { readFileSync, writeFileSync, readdirSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import YAML from "yaml";
+import { loadSchedule, ScheduleError } from "./schedule.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEX = path.join(ROOT, "tex");
 const MODULES = path.join(ROOT, "content", "modules");
 const DOWNLOADS = path.join(ROOT, "public", "downloads");
-const DAYS_FILE = path.join(ROOT, "content", "days.yml");
-const CLUSTERS_FILE = path.join(ROOT, "content", "clusters.json");
 const OUT_FILE = path.join(ROOT, "content", "status.json");
-
-const SOURCE_KINDS = new Set(["ready", "readings", "partial", "missing"]);
 
 class DataError extends Error {}
 const bad = (msg) => { throw new DataError(msg); };
@@ -62,7 +62,7 @@ function frontmatterOf(slug) {
 }
 
 /**
- * The deck for one worksheet, by the precedence documented in days.yml:
+ * The deck for one worksheet, by the precedence documented in schedule.yaml:
  * compiled slides.tex (hosted here) → the sheet's own `slides:` URL → none.
  * "built" means the source exists; `pdf` says whether this run actually
  * staged it (a --check run compiles no PDFs).
@@ -81,101 +81,76 @@ function deckOf(slug, fm) {
 }
 
 /**
- * @param {{check?: boolean}} opts  check: this came from a --check run
- *   (watch / preview / pre-push), which compiles no PDFs — so the deck and
- *   PDF columns understate reality. Recorded in status.json and said out loud
- *   on the page, rather than reading as "the deck disappeared".
+ * @param {{check?: boolean, schedule?: object}} opts
+ *   check: this came from a --check run (watch / preview / pre-push), which
+ *     compiles no PDFs — so the deck and PDF columns understate reality.
+ *     Recorded in status.json and said out loud on the page, rather than
+ *     reading as "the deck disappeared".
+ *   schedule: an already-loaded schedule.yaml (build-content.mjs loads it up
+ *     front to fail fast); omitted, it is read here.
  */
-export function buildStatus({ check = false } = {}) {
-  if (!existsSync(DAYS_FILE)) bad(`missing ${path.relative(ROOT, DAYS_FILE)} — the day roster for /admin/status`);
+export function buildStatus({ check = false, schedule } = {}) {
+  const sched = schedule ?? loadSchedule();
 
-  let doc;
-  try {
-    doc = YAML.parse(readFileSync(DAYS_FILE, "utf8"));
-  } catch (e) {
-    bad(`content/days.yml is not valid YAML: ${String(e.message).split("\n")[0]}`);
-  }
-  if (!doc || !Array.isArray(doc.days)) bad("content/days.yml must be a `days:` list");
-
-  const clusters = JSON.parse(readFileSync(CLUSTERS_FILE, "utf8")) ?? [];
-  const clusterIds = new Set(clusters.map((c) => String(c.id)));
-  // Module pages live at /<cluster-urlSlug>/<slug>, so a cluster called
-  // "admin" would put a worksheet at /admin/status. Next resolves the static
-  // route first, meaning the *worksheet* silently becomes unreachable — a
-  // confusing failure to debug, and free to rule out here.
-  const clash = clusters.find((c) => String(c.urlSlug) === "admin");
-  if (clash) {
-    bad(`content/clusters.json: cluster "${clash.id}" uses urlSlug "admin", which collides ` +
-        "with the /admin/status page — rename it (a worksheet under it would be unreachable)");
-  }
-
-  // ---- the roster -----------------------------------------------------------
+  // ---- the roster, in schedule order --------------------------------------
   const days = new Map();
-  for (const [i, d] of doc.days.entries()) {
-    const where = `content/days.yml: days[${i}]`;
-    for (const k of ["code", "title", "lead", "doc", "source"]) {
-      if (!d?.[k]) bad(`${where} is missing required key \`${k}\``);
-    }
-    const code = String(d.code);
-    if (days.has(code)) bad(`${where}: duplicate day code "${code}"`);
-    if (!SOURCE_KINDS.has(d.source)) {
-      bad(`${where}: source: "${d.source}" — must be one of ${[...SOURCE_KINDS].join(", ")}`);
-    }
-    // The letter before the dot is the cluster; a day in an unknown cluster
-    // would silently sort into nowhere on the page.
-    const cluster = code.split(".")[0];
-    if (!clusterIds.has(cluster)) {
-      bad(`${where}: day code "${code}" implies cluster "${cluster}", which is not in content/clusters.json`);
-    }
-    days.set(code, {
-      code,
-      cluster,
-      title: String(d.title),
-      lead: String(d.lead),
-      doc: String(d.doc),
-      // `declared` is what the roster says; `kind` is what's true now (the two
-      // differ once a worksheet claims the day). Keeping both means porting a
-      // reading day doesn't erase the fact that it IS a reading day.
-      source: { kind: d.source, declared: d.source, url: d.sourceUrl ?? null, note: d.note ?? null },
-      slidesUrl: d.slides ?? null,   // day-level fallback deck (hosted elsewhere)
+  for (const d of sched.days) {
+    days.set(d.code, {
+      code: d.code,
+      cluster: d.cluster,
+      title: d.title,
+      lead: d.lead,
+      doc: d.doc,
+      // `declared` is what the schedule says the source situation is; `kind` is
+      // what's true now (the two differ once the day has a worksheet). Keeping
+      // both means porting a reading day doesn't erase that it IS a reading day.
+      source: { ...d.source, declared: d.source.kind },
+      slidesUrl: d.slidesUrl,
       modules: [],
     });
   }
 
-  // ---- what's actually built, attached to its day -------------------------
-  const unassigned = [];
+  // ---- what's actually built, in the order its day lists it ---------------
+  // Each day pulls its own worksheets, so intra-day order is the schedule's
+  // (D.3 reads Solomonoff Induction, then AIXI) rather than alphabetical.
+  const scheduled = new Set();
+  for (const d of sched.days) {
+    const day = days.get(d.code);
+    for (const slug of d.worksheets) {
+      scheduled.add(slug);
+      // Listed but not built yet: a --check run that skipped it, or a slug
+      // whose worksheet failed this run. The day just isn't live.
+      if (!existsSync(path.join(MODULES, `${slug}.mdx`))) continue;
+      const fm = frontmatterOf(slug);
+      if (!fm) continue;
+      day.modules.push({
+        slug,
+        title: fm.title ?? slug,
+        cluster: d.cluster,
+        unlisted: fm.unlisted === true,
+        pdf: existsSync(path.join(DOWNLOADS, slug, `${slug}.pdf`)),
+        deck: deckOf(slug, fm),
+      });
+    }
+  }
+
+  // A worksheet nobody scheduled has no row, no position and no cluster — so
+  // it would vanish from the site rather than appear in the wrong place. Fatal
+  // here, where both halves are known. `unlisted: true` opts out (the
+  // format-demo sheet is deliberately outside the curriculum).
   const builtSlugs = existsSync(MODULES)
     ? readdirSync(MODULES).filter((f) => f.endsWith(".mdx")).map((f) => f.replace(/\.mdx$/, "")).sort()
     : [];
   for (const slug of builtSlugs) {
-    const fm = frontmatterOf(slug);
-    if (!fm) continue;
-    const entry = {
-      slug,
-      title: fm.title ?? slug,
-      cluster: fm.cluster ?? null,
-      unlisted: fm.unlisted === true,
-      pdf: existsSync(path.join(DOWNLOADS, slug, `${slug}.pdf`)),
-      deck: deckOf(slug, fm),
-    };
-    if (!fm.day) {
-      // No `day:` at all — a template or a stray. Surfaced on the page rather
-      // than hidden, except the deliberately unlisted example sheet.
-      if (!entry.unlisted) unassigned.push(entry);
-      continue;
-    }
-    const code = String(fm.day);
-    const day = days.get(code);
-    if (!day) {
-      bad(`tex/${slug}/ declares day: ${code}, which is not a day in content/days.yml — ` +
-          `fix the typo or add the day (codes: ${[...days.keys()].join(", ")})`);
-    }
-    day.modules.push(entry);
+    if (scheduled.has(slug)) continue;
+    if (!existsSync(path.join(TEX, slug))) continue;   // stale artifact of a removed worksheet
+    if (frontmatterOf(slug)?.unlisted === true) continue;
+    bad(`tex/${slug}/ is not listed by any day in schedule.yaml — add the slug under its ` +
+        "day's `worksheets:` (or set `unlisted: true` in its frontmatter to keep it off the course)");
   }
 
   // ---- roll up the two derived columns ------------------------------------
   for (const day of days.values()) {
-    day.modules.sort((a, b) => a.title.localeCompare(b.title));
     // material: live once any worksheet for this day is built and listed.
     day.live = day.modules.some((m) => !m.unlisted);
     // slides: best deck any worksheet offers, else the day-level hosted URL.
@@ -184,15 +159,14 @@ export function buildStatus({ check = false } = {}) {
     else if (decks.length) day.slides = { kind: "external", decks };
     else if (day.slidesUrl) day.slides = { kind: "external", decks: [{ kind: "external", url: day.slidesUrl }] };
     else day.slides = { kind: "none", decks: [] };
-    // source: derived once ported — the roster's guess never outlives reality.
+    // source: derived once ported — the schedule's guess never outlives reality.
     if (day.modules.length) day.source = { ...day.source, kind: "in-repo" };
   }
 
-  const list = [...days.values()];   // roster order is the schedule's order
+  const list = [...days.values()];   // schedule order = teaching order
   const status = {
     checkOnly: check,
     days: list,
-    unassigned,
     counts: {
       days: list.length,
       live: list.filter((d) => d.live).length,
@@ -213,7 +187,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     const s = buildStatus();
     console.log(`status.json: ${s.counts.live}/${s.counts.days} days live → /admin/status`);
   } catch (e) {
-    console.error(e instanceof DataError ? `✗ ${e.message}` : e);
+    console.error(e instanceof DataError || e instanceof ScheduleError ? `✗ ${e.message}` : e);
     process.exit(1);
   }
 }

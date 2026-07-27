@@ -7,7 +7,13 @@ import { BuildStamp } from "@/components/BuildStamp";
 const HERO_SUMMARY =
   "The Iliad Intensive is a month-long, full-time AI alignment course for students with strong mathematics, physics, or theoretical-CS backgrounds. These are the materials from the April 2026 cohort — mathematical exercises, self-contained lecture notes on topics from singular learning theory to debate, and pointers for further study. About 20 contributors developed them. We share them to invite feedback and enable independent study.";
 
-function sortedItems<T extends { slug: string; cluster: string | null; position?: number }>(items: T[]): T[] {
+/**
+ * Curriculum order, not alphabetical: `position` comes from schedule.yaml (see
+ * scripts/schedule.mjs) — cluster order, then teaching-day order, then the
+ * order a day lists its own worksheets. Falling back to the slug would only
+ * matter for an entry the build somehow left unpositioned.
+ */
+function sortedItems<T extends { slug: string; position?: number }>(items: T[]): T[] {
   return [...items].sort(
     (a, b) =>
       (a.position ?? Number.POSITIVE_INFINITY) -
@@ -24,8 +30,9 @@ export default async function Home() {
     if (!byCluster.has(k)) byCluster.set(k, []);
     byCluster.get(k)!.push(p);
   }
-  // Cluster order: clusters from clusters.json (in their position order), then
-  // any ids present in `items` that aren't in the cluster table, then "Other".
+  // Cluster order: the clusters of schedule.yaml, in the order it lists them,
+  // then any ids present in `items` that aren't in the cluster table, then
+  // "Other".
   const known = clusterList.map((c) => c.id);
   const orderedClusters = known
     .filter((c) => byCluster.has(c))
@@ -60,6 +67,14 @@ export default async function Home() {
                       className="block font-serif text-[1.25rem] leading-snug hover:text-[var(--link)]"
                       style={{ fontWeight: 500 }}
                     >
+                      {/* The teaching day, so the list reads as the schedule it
+                          is. Two worksheets may share a day (D.3 is Solomonoff
+                          Induction then AIXI) — both show its code. */}
+                      {p.day && (
+                        <span className="mr-2 align-[0.1em] font-sans text-[0.72rem] tracking-[0.08em] text-zinc-400">
+                          {p.day}
+                        </span>
+                      )}
                       {p.title}
                     </Link>
                     {p.frontmatter?.summary && (
