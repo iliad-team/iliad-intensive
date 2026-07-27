@@ -26,6 +26,7 @@ import { SRC_FILES, lineOf, warnings, warn, advisories, advise, fmtIssue, snippe
 import { MACRO_OVERRIDE, MACRO_SKIP, applyShims, applyMathShims, trimMacroBody,
          CREF_NAME_DEFAULTS, THM_FAMILY, CONTRACT_NAMES, KNOWN_FRONT_KEYS } from "./shims.mjs";
 import { initTikz, renderTikzSnippets, tikzCount } from "./tikz.mjs";
+import { injectAutoLabels } from "./autolabel.mjs";
 import { emitDocument, texToPlain, buildToc } from "./emit-ast.mjs";
 import { entries as bibtexEntries } from "bibtex-parse";
 
@@ -84,18 +85,28 @@ if (!tikzSrc.endsWith("/")) tikzSrc += "/";
 // ----------------------------- .aux → refs --------------------------------
 // Build label -> { name, num }.  name from cleveref type: section/subsection
 // => "Problem", the shared theorem counter => "Theorem".
+// One best-effort pdflatex pass over the auto-labeled source (numbers are
+// written to the .aux as they occur, so a single pass is enough for refs).
+// Compiles from a temp dir with cwd at the sheet so relative inputs
+// (../iliad.sty, bib, figures) resolve.
+function generateAux(texFile) {
+  const dir = mkdtempSync(path.join(tmpdir(), "tex2mdx-"));
+  const base = path.basename(texFile, ".tex");
+  writeFileSync(path.join(dir, base + ".autolabel.tex"), rawTex);
+  try {
+    execFileSync("pdflatex", ["-interaction=nonstopmode", "-output-directory=" + dir,
+      "-jobname=" + base, path.join(dir, base + ".autolabel.tex")],
+      { cwd: path.dirname(path.resolve(texFile)), stdio: "ignore" });
+  } catch { /* nonstop: warnings are fine as long as the aux got written */ }
+  const gen = path.join(dir, base + ".aux");
+  return existsSync(gen) ? gen : null;
+}
 function ensureAux(texFile) {
   if (auxPath && existsSync(auxPath)) return auxPath;
   const sib = path.join(path.dirname(texFile), path.basename(texFile, ".tex") + ".aux");
   if (existsSync(sib)) return sib;
-  // generate
-  const dir = mkdtempSync(path.join(tmpdir(), "tex2mdx-"));
-  try {
-    execFileSync("pdflatex", ["-interaction=nonstopmode", "-output-directory=" + dir, path.resolve(texFile)],
-      { cwd: path.dirname(path.resolve(texFile)), stdio: "ignore" });
-  } catch { /* nonstop: warnings are fine as long as the aux got written */ }
-  const gen = path.join(dir, path.basename(texFile, ".tex") + ".aux");
-  if (!existsSync(gen)) { console.error("Could not generate .aux (pdflatex failed). Pass --aux."); process.exit(1); }
+  const gen = generateAux(texFile);
+  if (!gen) { console.error("Could not generate .aux (pdflatex failed). Pass --aux."); process.exit(1); }
   return gen;
 }
 // Printed name per cref type. Defaults are the capitalised type; a sheet's own
@@ -141,7 +152,10 @@ function parseAux(auxFile) {
 }
 
 // --------------------------- read + split ---------------------------------
-const rawTex = readFileSync(input, "utf8");
+// Auto-labels first (see autolabel.mjs): the identical injection ran over the
+// source the .aux was compiled from, so every numbered construct's displayed
+// number is read out of the .aux — never simulated — by matching label names.
+const { text: rawTex, labels: autoLabels } = injectAutoLabels(readFileSync(input, "utf8"));
 // Inline \input{file} recursively (multi-file worksheets are fine — pdflatex
 // resolves them, so the converter must too; silently dropping them would lose
 // content). \input{preamble}-style extensionless names get .tex appended.
@@ -165,7 +179,17 @@ const preamble = tex.slice(0, docStart);
 let body = tex.slice(docStart + "\\begin{document}".length, docEnd);
 
 applyCrefnames(preamble);                    // before parseAux: names depend on it
-const refs = parseAux(ensureAux(input));
+let refs = parseAux(ensureAux(input));
+// self-heal a stale .aux: one compiled before auto-labels existed (or from an
+// editor's own run on the pristine source) has none of the injected names —
+// regenerate from the injected source rather than falling back to simulation.
+if (autoLabels.length && !(autoLabels[autoLabels.length - 1] in refs)) {
+  const regen = generateAux(input);
+  if (regen) refs = parseAux(regen);
+  if (!(autoLabels[autoLabels.length - 1] in refs)) {
+    warn("the .aux has no auto-label entries (stale, and regenerating failed) — displayed numbering falls back to simulated counters");
+  }
+}
 initTikz({ tikzDir, tikzSrc, getRefs: () => refs }, preamble);
 // dialect detection: iliad.sty sheets use the exercise env; legacy sheets use
 const usesExerciseEnv = /\\begin\{exercise\}/.test(body);
@@ -227,12 +251,17 @@ if (iliadBlock) {
       warn(`frontmatter block is not valid YAML: ${String(e.message).split("\n")[0]}`);
     }
   } else {
-    // structural fallback: every line must be a key or a list item
+    // structural fallback: every line must be a key, a list item, or the
+    // indented continuation of a block scalar (`summary: >-` …)
+    let inBlockScalar = false;
     for (const l of iliadBlock) {
+      if (inBlockScalar && (/^\s/.test(l) || l === "")) continue;
+      inBlockScalar = false;
       if (!/^[A-Za-z][\w-]*:/.test(l) && !/^\s+- /.test(l) && !/^\s+\w+:/.test(l))
         warn(`frontmatter block line doesn't look like YAML: "${l.slice(0, 50)}"`, l.slice(0, 50));
       const km = l.match(/^([A-Za-z][\w-]*):/);
       if (km && !KNOWN_FRONT_KEYS.has(km[1])) warn(`unknown frontmatter key "${km[1]}" — known keys: ${[...KNOWN_FRONT_KEYS].join(", ")}`, `${km[1]}:`);
+      if (/^[A-Za-z][\w-]*:\s*[|>][+-]?\s*$/.test(l)) inBlockScalar = true;
     }
   }
 }
@@ -393,9 +422,10 @@ let bodySummary = null;
 const sumM = body.match(/\\begin\{summary\}([\s\S]*?)\\end\{summary\}/);
 if (sumM) bodySummary = texToPlain(sumM[1]).replace(/\s+/g, " ").trim();
 
-// frontmatter: nothing is mandatory, and the block is for SIMPLE one-line
-// values only — title/contributors/summary fall back to \title{}/\author{}/
-// \begin{summary} in the LaTeX. An explicit frontmatter key takes precedence.
+// frontmatter: nothing is mandatory. Values are one-line scalars, except
+// summary, which may be a YAML block scalar (`summary: >-` + indented lines).
+// title/contributors/summary fall back to \title{}/\author{}/\begin{summary}
+// in the LaTeX. An explicit frontmatter key takes precedence.
 // Missing title/cluster/contributors draw advisories, never failures.
 const blockKeys = new Set((iliadBlock ?? []).filter((l) => /^[A-Za-z]/.test(l)).map((l) => l.split(":")[0]));
 const front = [

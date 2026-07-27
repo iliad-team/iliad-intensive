@@ -13,6 +13,9 @@ export type Frontmatter = {
   /** External slide-deck URL (e.g. a Drive PDF); rendered as an outbound
    *  link. A compiled slides.pdf (from slides.tex) takes precedence. */
   slides?: string;
+  /** Teaching day this worksheet is the material for, e.g. "B.4" — a code
+   *  from content/days.yml. Attaches the sheet to its row on /admin/status. */
+  day?: string;
 };
 
 export type HeadingEntry = {
@@ -65,7 +68,13 @@ export async function listIndex(): Promise<IndexEntry[]> {
 export async function listSlugs(): Promise<string[]> {
   try {
     const files = await readdir(CONTENT_DIR);
-    return files.filter((f) => f.endsWith(".mdx")).map((f) => f.replace(/\.mdx$/, ""));
+    const slugs = files.filter((f) => f.endsWith(".mdx")).map((f) => f.replace(/\.mdx$/, ""));
+    // Preview optimization (./run.sh preview <slug>): when PREVIEW_ONLY is set,
+    // only that worksheet's page is statically generated, so a rebuild renders
+    // just the section you edited instead of every module. Never set in a real
+    // build, so production/deploy output is unaffected.
+    const only = process.env.PREVIEW_ONLY;
+    return only ? slugs.filter((s) => s === only) : slugs;
   } catch {
     return [];
   }

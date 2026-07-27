@@ -12,6 +12,7 @@ import { getParser } from "@unified-latex/unified-latex-util-parse";
 import { printRaw } from "@unified-latex/unified-latex-util-print-raw";
 import { listNewcommands } from "@unified-latex/unified-latex-util-macros";
 import { warn, advise, snippetOf, warnings, advisories } from "./state.mjs";
+import { isAutoLabel } from "./autolabel.mjs";
 import { applyMathShims } from "./shims.mjs";
 import { slug, ghSlug, readGroup, readOpt, readArg } from "./util.mjs";
 import { registerTikz } from "./tikz.mjs";
@@ -59,7 +60,7 @@ const ENV_SIGNATURES = {
   proposition: { signature: "o" }, corollary: { signature: "o" },
   definition: { signature: "o" }, fact: { signature: "o" },
   example: { signature: "o" }, remark: { signature: "o" },
-  learningoutcomes: {}, summary: {}, hint: {},
+  learningoutcomes: {}, summary: {}, hint: {}, solutionsonly: {}, pdfonly: {},
   abstract: {}, figure: { signature: "o" }, table: { signature: "o" },
   tabular: { signature: "m" }, quote: {}, quotation: {},
   itemize: { signature: "o" }, enumerate: { signature: "o" }, description: { signature: "o" },
@@ -86,6 +87,7 @@ const THM_COUNTED = new Set(["theorem", "lemma", "proposition", "corollary", "fa
 // ------------------------------------------------------------- run state ---
 let ctx = null;                 // caller-supplied context
 let anchorMap = {};             // label -> anchor
+let droppedLabels = new Set();  // labels inside dropped pdfonly blocks
 let authorMacros = {};          // name -> {signature, body(nodes)}
 let expandDepth = 0;
 let counters = null;
@@ -229,12 +231,37 @@ const itemJoin = (lead, txt) => (txt.startsWith("$$") ? `${lead}\n\n${txt}` : `$
 // LEVEL of the env body. LaTeX binds any top-level \label to the environment
 // (labels inside nested enumerates/equations bind to those instead, so we
 // don't descend). Placement is the author's choice; right after \begin is
-// merely the clearest style.
+// merely the clearest style. Injected auto-labels (autolabel.mjs) are skipped:
+// they carry the aux number but must never become the env's identity/anchor.
 function leadingLabel(nodes) {
   for (const n of nodes) {
-    if (n.type === "macro" && n.content === "label") return lastArgRaw(n);
+    if (n.type === "macro" && n.content === "label") {
+      const l = lastArgRaw(n);
+      if (l && !isAutoLabel(l)) return l;
+    }
   }
   return null;
+}
+// the injected auto-label, if the environment has one (top level, like above)
+function autoLabelOf(nodes) {
+  for (const n of nodes) {
+    if (n.type === "macro" && n.content === "label") {
+      const l = lastArgRaw(n);
+      if (isAutoLabel(l)) return l;
+    }
+  }
+  return null;
+}
+// Displayed number for a numbered construct: the author's label or the
+// injected auto-label resolved through the .aux (both name the same counter
+// value). `sim` is the counter-simulated fallback — reached only when the
+// construct has no aux entry at all (an env expanded from an author macro,
+// or an aux that predates auto-labels and could not be regenerated).
+function displayNum(nodes, label, sim, what) {
+  const num = (label && ctx.refs[label]?.num) || ctx.refs[autoLabelOf(nodes) ?? ""]?.num;
+  if (num) return num;
+  warn(`displayed number for ${what} not found in the .aux — using a simulated counter, which can drift from the PDF`, snippetOf(printRaw(nodes)));
+  return sim;
 }
 function allLabels(nodes) {
   const out = [];
@@ -334,12 +361,13 @@ function emitEnv(n) {
   const id = label ? ` id="${slug(label)}"` : "";
   const opt = argRaw(n, 0);
 
-  // theorem-family number: aux wins for labeled envs, else simulated
+  // theorem-family number: read from the .aux (author label or injected
+  // auto-label — see displayNum); the counter is kept only as its fallback
   let thmNum = null;
   const declared = ctx.declaredThms[env];
   if (THM_COUNTED.has(env) || (env === "remark" && ctx.remarkNumbered) || (declared && !BUILTIN_ENVS.has(env))) {
     counters.thm[secNum()] = (counters.thm[secNum()] || 0) + 1;
-    thmNum = (label && ctx.refs[label]?.num) || `${secNum()}.${counters.thm[secNum()]}`;
+    thmNum = displayNum(n.content, label, `${secNum()}.${counters.thm[secNum()]}`, env);
   }
 
   let mdx = null;
@@ -349,7 +377,7 @@ function emitEnv(n) {
       // no component attribute, no UI chrome, no validation (author's choice).
       const { dd, star, skip, rest } = takeMarks(n.content);
       counters.ex[secNum()] = (counters.ex[secNum()] || 0) + 1;
-      const num = `${secNum()}.${counters.ex[secNum()]}`;
+      const num = displayNum(n.content, label, `${secNum()}.${counters.ex[secNum()]}`, "exercise");
       const wasIn = inExercise; inExercise = true;
       const inner = walk(rest);
       inExercise = wasIn;
@@ -389,6 +417,21 @@ function emitEnv(n) {
       mdx = `<Solution${forAttr}>\n\n${walk(n.content).trim()}\n\n</Solution>`;
       break;
     }
+    case "solutionsonly":
+      // Content shown only in the solutions build. Rendered as plain inline
+      // content, bracketed by invisible JSX-comment markers so the -nosol
+      // stripper (stripMdxSolutions) can remove the whole span.
+      mdx = `{/* iliad:solutionsonly:start */}\n\n${walk(n.content).trim()}\n\n{/* iliad:solutionsonly:end */}`;
+      break;
+    case "pdfonly":
+      // Content kept in both PDF variants but absent from the web: dropped
+      // whole, unwalked, so nothing inside (headings, anchors, \crefs) leaks
+      // into the page, the TOC, or the .mdx downloads. Labels defined inside
+      // are recorded: a \cref to one from visible prose resolves via the aux
+      // and would silently emit a dead link, so emitDocument advises on it.
+      for (const l of allLabels(n.content)) droppedLabels.add(l);
+      mdx = "";
+      break;
     // Definition/theorem family render axiom-style: a bold markdown lead
     // inside the coloured box (math in titles renders; no header chrome).
     case "definition":
@@ -400,13 +443,13 @@ function emitEnv(n) {
       break;
     }
     case "fact":
-      mdx = `<Callout type="note">\n\n**Fact${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${attr(opt)})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="note">\n\n**Fact${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
       break;
     case "remark":
-      mdx = `<Callout type="note">\n\n**Remark${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${attr(opt)})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="note">\n\n**Remark${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
       break;
     case "example":
-      mdx = `<Callout type="tip">\n\n**Example${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${attr(opt)})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="tip">\n\n**Example${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
       break;
     case "callout": {
       const type = ["note", "tip", "warning"].includes((opt ?? "").trim()) ? opt.trim() : "note";
@@ -424,7 +467,7 @@ function emitEnv(n) {
       break;
     default: {
       if (declared) {
-        mdx = `<Callout type="note">\n\n**${declared}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${attr(opt)})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+        mdx = `<Callout type="note">\n\n**${declared}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
       } else {
         warn(`unknown environment "${env}" — wrapper dropped, contents converted as plain prose`, `\\begin{${env}}`);
         mdx = `{/* TODO(tex2mdx): env ${env} */}\n${walk(n.content)}`;
@@ -553,7 +596,12 @@ function emitMacro(n) {
     case "difficulty": return `**[${lastArgRaw(n) ?? ""}]** `;
     case "important": return "**(★)** ";
     case "skippable": return "**(∗)** ";   // legacy "skip on a first pass" mark
-    case "paragraph": return `\n\n**${walkArg(n, 0).trim()}.** `;
+    case "paragraph": {
+      // Bold run-in heading. Add a trailing period only if the author's title
+      // doesn't already end in terminal punctuation (avoids "Prerequisites..").
+      const t = walkArg(n, 0).trim();
+      return `\n\n**${/[.!?:]$/.test(t) ? t : t + "."}** `;
+    }
     case "ifdef": case "ifdefined": case "ifcsdef": {
       const nm = (argRaw(n, 0) ?? "").trim().replace(/^\\/, "");
       return walkArg(n, nm in authorMacros ? 1 : 2);
@@ -580,25 +628,36 @@ function emitMacro(n) {
 }
 
 // -------------------------------------------------------------- headings ---
-function emitHeading(n) {
+function emitHeading(n, runLabels = []) {
   const name = n.content;
   const starred = !!argRaw(n, 0);
   const titleNodes = n.args[n.args.length - 1].content;
   // Inside a learningoutcomes box, group headings are just bold lines — no
   // numbering, no TOC entry, no anchor.
   if (inLearningOutcomes) return `\n\n**${walk(titleNodes).trim()}**\n\n`;
-  // label immediately after the heading is absorbed by walk() lookahead;
-  // here we only compute numbering + text
-  let headText;
+  // the labels following the heading are absorbed by walk() lookahead and
+  // passed in: the displayed number is their .aux value (the injected
+  // auto-label, or any author label — same counter); the walked-along
+  // counters are only the fallback
+  let sim;
   if (name === "subsubsection") {
     if (!starred) counters.subsubsec++;
-    headText = `${starred ? "" : secNum() + "." + counters.subsec + "." + counters.subsubsec + " "}${walk(titleNodes).trim()}`;
+    sim = `${secNum()}.${counters.subsec}.${counters.subsubsec}`;
   } else if (name === "subsection") {
     if (!starred) { counters.subsec++; counters.subsubsec = 0; }
-    headText = `${starred ? "" : secNum() + "." + counters.subsec + " "}${walk(titleNodes).trim()}`;
+    sim = `${secNum()}.${counters.subsec}`;
   } else {
     if (!starred) { counters.section++; counters.subsec = 0; counters.subsubsec = 0; }
-    headText = `${starred ? "" : secNum() + ". "}${walk(titleNodes).trim()}`;
+    sim = secNum();
+  }
+  let headText = walk(titleNodes).trim();
+  if (!starred) {
+    let num = runLabels.filter(Boolean).map((l) => ctx.refs[l]?.num).find(Boolean);
+    if (!num) {
+      warn(`displayed number for \\${name} not found in the .aux — using a simulated counter, which can drift from the PDF`, snippetOf(printRaw(titleNodes)));
+      num = sim;
+    }
+    headText = `${num}${name === "section" ? "." : ""} ${headText}`;
   }
   pendingHeading = { text: headText, level: name === "section" ? "##" : name === "subsection" ? "###" : "####" };
   return `\n\n${pendingHeading.level} ${headText}\n\n`;
@@ -612,7 +671,24 @@ function walk(nodes) {
   for (let i = 0; i < nodes.length; i++) {
     const n = nodes[i];
     switch (n.type) {
-      case "string": out += n.content; break;
+      case "string": {
+        // LaTeX text ligatures. The parser emits each `, ', and - as its own
+        // string node, so a run is N identical adjacent nodes:
+        //   ``...''  -> "..."   (lone apostrophes like it's are left alone)
+        //   --       -> – (en dash)      ---  -> — (em dash)
+        // Math and \verb bypass this handler, so derivatives ($L''$) and
+        // command flags (\verb|--flag|) are unaffected.
+        const prevSame = i > 0 && nodes[i - 1].type === "string" &&
+          nodes[i - 1].content === n.content;
+        if ((n.content === "`" || n.content === "'") && prevSame) {
+          out = out.slice(0, -1) + '"';
+        } else if (n.content === "-" && prevSame) {
+          out = out.slice(0, -1) + (out.endsWith("–") ? "—" : "–");
+        } else if (n.content === "~") {
+          out += " ";                 // LaTeX tie -> non-breaking space
+        } else out += n.content;
+        break;
+      }
       case "whitespace": out += " "; break;
       case "parbreak": out += "\n\n"; break;
       case "comment": break;
@@ -627,17 +703,24 @@ function walk(nodes) {
       case "verbatim": out += "\n\n```\n" + (n.content ?? "").trim?.() + "\n```\n\n"; break;
       case "verb": out += "`" + n.content + "`"; break;
       case "macro": {
-        // heading label lookahead: \section{..}\label{..}
+        // heading label lookahead: \section{..}\label{auto}\label{..} — the
+        // whole run of following \labels is absorbed: the injected auto-label
+        // carries the heading's .aux number, author labels bind its anchor
         if ((n.content === "section" || n.content === "subsection" || n.content === "subsubsection")) {
-          const h = emitHeading(n);
-          // find following \label (skipping whitespace)
-          let j = i + 1;
-          while (j < nodes.length && (nodes[j].type === "whitespace" || nodes[j].type === "parbreak")) j++;
-          if (j < nodes.length && nodes[j].type === "macro" && nodes[j].content === "label") {
-            const l = lastArgRaw(nodes[j]);
-            if (l) anchorMap[l] = ghSlug(pendingHeading.text);
-            i = j;
+          const runLabels = [];
+          let j = i;
+          for (;;) {
+            let k = j + 1;
+            while (k < nodes.length && (nodes[k].type === "whitespace" || nodes[k].type === "parbreak")) k++;
+            if (k < nodes.length && nodes[k].type === "macro" && nodes[k].content === "label") {
+              runLabels.push(lastArgRaw(nodes[k])); j = k;
+            } else break;
           }
+          const h = emitHeading(n, runLabels);
+          if (!inLearningOutcomes && pendingHeading) {
+            for (const l of runLabels) if (l && !isAutoLabel(l)) anchorMap[l] = ghSlug(pendingHeading.text);
+          }
+          i = j;
           out += h;
           break;
         }
@@ -823,6 +906,7 @@ function emitBibliography() {
 export function emitDocument(bodyTex, context) {
   ctx = context;
   anchorMap = {};
+  droppedLabels = new Set();
   authorMacros = {};
   citedKeys = new Set();
   inExercise = false;
@@ -865,5 +949,15 @@ export function emitDocument(bodyTex, context) {
   // the References list for everything the page cited
   counters = { section: 0, subsec: 0, subsubsec: 0, appendix: false, ex: {}, thm: {} };
   citedKeys = new Set();
-  return relocateSolutions(walk(ast.content)) + emitBibliography();
+  const md = relocateSolutions(walk(ast.content)) + emitBibliography();
+
+  // a \cref may target a label inside a dropped pdfonly block — it resolves
+  // via the aux, so the link emits but points at nothing. Tell the author.
+  for (const l of droppedLabels) {
+    if (isAutoLabel(l)) continue;
+    if (md.includes(`](#${anchorMap[l] ?? slug(l)})`)) {
+      advise(`prose links to "${l}", which sits inside a pdfonly block and is dropped from the page — the web link is dead; move the \\cref inside pdfonly or reword`, l);
+    }
+  }
+  return md;
 }

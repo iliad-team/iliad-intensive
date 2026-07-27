@@ -90,7 +90,10 @@ const components = {
    * for collapsible proofs (the tex->mdx converter emits these).
    */
   Solution: ({ title = "Solution", children }: { title?: string; children: ReactNode }) => (
-    <details className="my-3 rounded-md border border-zinc-200 px-3 py-2">
+    /* suppressHydrationWarning: <details> toggles natively before React
+       hydrates (a click, or Chrome auto-expanding for find-in-page), so the
+       DOM's `open` state is the user's, not ours to reconcile. */
+    <details suppressHydrationWarning className="my-3 rounded-md border border-zinc-200 px-3 py-2">
       <summary className="cursor-pointer font-medium">{title}</summary>
       <div className="mt-2">{children}</div>
     </details>
@@ -103,7 +106,9 @@ const components = {
    * Usage: <Hint>nudge in the right direction</Hint>
    */
   Hint: ({ children }: { children: ReactNode }) => (
-    <details className="my-3 rounded-md border border-zinc-200 px-3 py-2">
+    /* suppressHydrationWarning: same pre-hydration native-toggle race as
+       Solution above. */
+    <details suppressHydrationWarning className="my-3 rounded-md border border-zinc-200 px-3 py-2">
       <summary className="cursor-pointer font-medium">Hint</summary>
       <div className="mt-2">{children}</div>
     </details>

@@ -19,10 +19,14 @@ export const MACRO_OVERRIDE = {
   "\\exmax": "\\mathop{\\overset{\\max}{\\sum}}\\limits",   // defined via \mathchoice — TeX primitive KaTeX lacks
 };
 
-// Author macros never exported to KaTeX (layout/scaffolding).
+// Author macros never exported to KaTeX (layout/scaffolding). These are
+// LaTeX structural / page-layout commands a worksheet may (re)define for the
+// PDF; they are never math and would otherwise pollute the KaTeX \gdef block.
 export const MACRO_SKIP = new Set([
   "\\mytitle", "\\mysubsection", "\\exmaxsym", "\\thesection",
   "\\crefrangeconjunction", "\\thesubsection",
+  "\\section", "\\subsection", "\\subsubsection", "\\paragraph",
+  "\\headrulewidth", "\\footrulewidth", "\\solutionlistskip",
 ]);
 
 // Package commands with no KaTeX implementation but an exact synonym.
@@ -105,6 +109,7 @@ export const CONTRACT_NAMES = new Set([
   "authorname", "affiliation",
   "definition", "theorem", "lemma", "proposition", "corollary", "fact", "example",
   "label", "cref", "Cref", "hint", "note", "important", "solutionbox", "exercisebox", "ifsolutions",
+  "solutionsonly", "pdfonly",
 ]);
 
 export const KNOWN_FRONT_KEYS = new Set([
@@ -117,6 +122,11 @@ export const KNOWN_FRONT_KEYS = new Set([
   // compiled our end. For a deck with LaTeX source, drop a slides.tex in the
   // worksheet folder instead and the build compiles + hosts the PDF.
   "slides",
+  // day: <code> — the teaching day this worksheet is the material for, e.g.
+  // "B.4". Must be a code listed in content/days.yml (the build fails on a
+  // code no day owns, so a typo can't orphan the page). It attaches the sheet
+  // to its row on /admin/status; several sheets may share one day.
+  "day",
 ]);
 
 // ------------------------------------------------------------------ tikz ---

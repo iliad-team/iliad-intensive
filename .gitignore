@@ -9,11 +9,14 @@ _src/
 # original source repo copied into a port worktree root (see skills/PORT.md)
 _src_repo/
 scratch/
+_src_repo/
 # generated content — build artifacts, never committed.
 # Modules (.mdx) and the index are produced upstream (tex -> mdx converter /
 # CI); figures land in public/uploads/. The repo holds sources, not outputs.
 content/modules/
 content/index.json
+# derived from content/days.yml (committed) + what the build produced
+content/status.json
 public/uploads/
 public/downloads/
 
@@ -22,14 +25,10 @@ public/downloads/
 # shared tex/iliad.sty, so local copies must never be committed.
 tex/*/iliad.sty
 
-# Draft worksheet, not yet ported to the iliad.sty contract: standalone
-# LaTeX with its own preamble (natbib + far.bst), outside the site build.
-# Keep it out of the repo until it is ported.
-tex/singular-learning-theory/
-
 # LaTeX build artifacts (compiled PDFs are downstream artifacts too —
 # figure PDFs under tex/*/fig/ are the one committed exception)
 tex/*/main-nosol.*
+tex/*/main.autolabel.tex
 *.aux
 *.log
 *.out
@@ -66,3 +65,6 @@ _minted*/
 
 # cloned source repos for MATERIAL.md hunt (see MATERIAL.md handoff)
 repos/
+
+# git worktrees kept inside the repo
+/worktrees/
