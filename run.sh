@@ -26,7 +26,7 @@ Usage:
   ./run.sh build           static-export the site -> out/
   ./run.sh <script>        any other script from package.json
 
-First time here? ./setup.sh installs everything (TeX Live, poppler, pandoc,
+First time here? ./setup.sh installs everything (TeX Live, poppler,
 Node via nvm, npm deps).
 
 The edit loop for a worksheet:
