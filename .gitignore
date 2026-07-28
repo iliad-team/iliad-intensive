@@ -1,5 +1,9 @@
 # dependencies / build
-node_modules/
+# No trailing slash: new-worktree.sh wires up node_modules as a SYMLINK, and
+# `node_modules/` matches directories only — the symlinks showed as untracked
+# and one `git add -A` committed one (an absolute path, dead on every other
+# machine). Matching by name covers the real directory and the symlink both.
+node_modules
 .next/
 out/
 *.tsbuildinfo

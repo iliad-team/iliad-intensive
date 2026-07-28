@@ -239,6 +239,20 @@ tex/<slug>/slides.tex        # any self-contained LaTeX (usually beamer)
   it beside the other downloads — the page gains a **Slides** row (view PDF,
   download PDF, download the `.tex`). Same 3× `pdflatex` + `bibtex` ladder as
   the worksheet; a compile error fails the build with `file.tex:line`.
+- **Handout variant.** A deck that mentions `\HANDOUT` opts into a second,
+  collapsed build. Guard the reveals with it in the preamble:
+  ```latex
+  \ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
+  \documentclass[10pt,aspectratio=169]{beamer}
+  ```
+  The build then also produces `slides-handout.pdf` by `\def`-ing the macro on
+  the command line, and the **Slides** row reads *present · handout · LaTeX*
+  instead of *view · download · LaTeX*. A deck with no `\pause` reveals simply
+  never mentions `\HANDOUT` and builds once. To reproduce either build by hand:
+  ```
+  pdflatex slides.tex                                  # presentation
+  pdflatex -jobname=slides-handout "\def\HANDOUT{}\input{slides}"   # handout
+  ```
 - `iliad.sty` is a *worksheet* contract and is **not** loaded for slides —
   style the deck however you like.
 - Slides are **never** converted to MDX and have **no** `-nosol` variant (a
@@ -295,6 +309,22 @@ citations render as author-year text linking to an anchored entry in a
 References list at the bottom of the page; there, an entry with a `url`
 (or arXiv `eprint`) field makes its title the outbound link. Citations
 never link straight out of the page.
+
+**Pick whatever style you like.** `\bibliographystyle` governs the PDF only —
+the converter never reads it. It parses `biblo.bib` itself and normalizes
+every citation to the same author-year form on the web, so an alpha-label
+sheet (`alphaurl` → `[Knu73]`) and a natbib author-year one (`plainnat` →
+`(Fishburn, 1971)`) read identically online and differ only in their PDFs.
+natbib's commands are all understood: `\citet` keeps its grammatical form
+("Watanabe 2009 defines…"), while `\cite`, `\citep`, `\citealp` and
+`\citetext` render parenthesized.
+
+If you reach for a style outside base TeX Live — `alphaurl` comes from
+**urlbst**, packaged as `texlive-bibtex-extra` — add it to both `setup.sh`
+and the workflow's apt list. A style bibtex cannot open produces no `.bbl`,
+and pdflatex then degrades every `\cite` to `[?]` without erroring; the build
+treats any bibtex failure other than "this document has no bibliography" as
+fatal, so it cannot ship unnoticed again.
 
 ## Inline marks
 
