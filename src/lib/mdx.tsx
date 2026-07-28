@@ -146,9 +146,17 @@ const components = {
 
   /**
    * Figure — image with caption.
-   * Usage: <Figure src="/uploads/<slug>/file.png" alt="..." caption="..." />
+   * Usage: <Figure src="/uploads/<slug>/file.png" alt="...">Caption $math$.</Figure>
+   *
+   * The caption is CHILDREN, not a prop: a JSX attribute is an inert string that
+   * KaTeX never sees, so `caption="... $h_A \approx 0.03$ ..."` silently
+   * published as "... ()". As children it goes through the MDX pipeline and its
+   * math renders like any other. `caption` is still accepted for captions with
+   * no markup, and `alt` stays a plain string — HTML alt text cannot hold math.
    */
-  Figure: ({ src, alt, caption }: { src: string; alt?: string; caption?: string }) => (
+  Figure: ({ src, alt, caption, children }: {
+    src: string; alt?: string; caption?: string; children?: ReactNode;
+  }) => (
     <figure className="my-6 text-center" data-component="figure">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       {/* w-full: TikZ SVGs carry their natural TeX size in pt as intrinsic
@@ -161,8 +169,10 @@ const components = {
         decoding="async"
         className="mx-auto h-auto w-full rounded"
       />
-      {caption ? (
-        <figcaption className="mt-2 text-sm text-zinc-600">{caption}</figcaption>
+      {children ?? caption ? (
+        <figcaption className="mt-2 text-sm text-zinc-600 [&>p]:m-0">
+          {children ?? caption}
+        </figcaption>
       ) : null}
     </figure>
   ),
