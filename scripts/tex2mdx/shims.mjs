@@ -27,6 +27,12 @@ export const MACRO_SKIP = new Set([
   "\\crefrangeconjunction", "\\thesubsection",
   "\\section", "\\subsection", "\\subsubsection", "\\paragraph",
   "\\headrulewidth", "\\footrulewidth", "\\solutionlistskip",
+  // KaTeX has \llbracket/\rrbracket natively and renders them properly. The
+  // worksheets define them from kernel pieces ([\![ … ]\!]) only because
+  // stmaryrd costs ~79 MB of CI download for those two glyphs — a PDF-side
+  // workaround the web has no reason to inherit. Skipping the export leaves
+  // KaTeX's real glyphs in force; exporting would also \gdef them recursively.
+  "\\llbracket", "\\rrbracket",
 ]);
 
 // Package commands with no KaTeX implementation but an exact synonym.

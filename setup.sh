@@ -10,12 +10,14 @@ cd "$(dirname "$0")"
 echo "== system packages (TeX Live, poppler, pandoc) =="
 # Keep this list in sync with .github/workflows/site.yml — installing the
 # same packages keeps "passes locally, fails on CI" surprises to a minimum.
+#
+# The list is kept deliberately lean: it is ~245 MB of download and the biggest
+# cost in a CI run. texlive-bibtex-extra and texlive-science are NOT here on
+# purpose — see the note in the workflow. alphaurl.bst is vendored at
+# tex/alphaurl.bst, and stmaryrd's two glyphs are built from kernel pieces, so
+# neither package is needed to build the worksheets.
 need=()
-command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-science texlive-fonts-recommended cm-super lmodern)
-# urlbst's alphaurl.bst — probed by file, not by binary: a machine can have a
-# perfectly good pdflatex and still be missing the style, and then every \cite
-# in the PDF quietly renders as "[?]".
-kpsewhich alphaurl.bst >/dev/null 2>&1 || need+=(texlive-bibtex-extra)
+command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-fonts-recommended cm-super lmodern)
 command -v pdftocairo >/dev/null || need+=(poppler-utils)
 command -v pandoc     >/dev/null || need+=(pandoc)
 command -v git-lfs    >/dev/null || need+=(git-lfs)

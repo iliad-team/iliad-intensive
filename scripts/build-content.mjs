@@ -162,15 +162,24 @@ async function buildSlug(slug) {
       ? `▸ ${slug} ✓ (${((Date.now() - t0) / 1000).toFixed(1)}s)\n`
       : `✗ ${slug}: ${headline}\n`) + notes.map((n) => n.replace(/\s*$/, "") + "\n").join(""),
   });
+  // Every TeX tool runs with the worksheet folder as cwd. BSTINPUTS adds the
+  // shared tex/ dir to bibtex's style search path so tex/alphaurl.bst — vendored
+  // verbatim from urlbst 0.9.1, 36 KB — satisfies \bibliographystyle{alphaurl}
+  // without the 75 MB texlive-bibtex-extra package. The trailing colon means
+  // "then the normal search path", so a system copy still wins where present.
+  // (tex/singular-learning-theory/far.bst already relies on bibtex finding a
+  // repo-local style; this just hoists the trick to a shared location.)
   const tex = (...argv) =>
-    exec(argv[0], argv.slice(1), { cwd: dir });
+    exec(argv[0], argv.slice(1), {
+      cwd: dir,
+      env: { ...process.env, BSTINPUTS: `${TEX}:${process.env.BSTINPUTS ?? ""}` },
+    });
   // bibtex, staying quiet about the ONE failure that is genuinely fine: a
-  // document with no bibliography at all. Every other failure — a missing
-  // style file (alphaurl.bst lives in urlbst / texlive-bibtex-extra, which is
-  // easy to omit from a minimal TeX Live), an unreadable .bib — leaves no
-  // .bbl behind, and pdflatex then degrades every \cite in the finished PDF
-  // to "[?]" without erroring. Swallowing that shipped three worksheets with
-  // no citations at all while the build stayed green, so it is fatal now.
+  // document with no bibliography at all. Every other failure — a style file
+  // that cannot be opened, an unreadable .bib — leaves no .bbl behind, and
+  // pdflatex then degrades every \cite in the finished PDF to "[?]" without
+  // erroring. Swallowing that shipped three worksheets with no citations at
+  // all while the build stayed green, so it is fatal now.
   const bibtex = async (base) => {
     try {
       await tex("bibtex", base);

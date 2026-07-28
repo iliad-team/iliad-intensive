@@ -62,15 +62,22 @@ jobs:
         # expansion under [T1]{fontenc}. lmodern: pandoc's default PDF template
         # (used for MDX-authored worksheets) loads lmodern.sty unconditionally;
         # it is only a Recommends of texlive, so --no-install-recommends drops
-        # it — name it explicitly. texlive-bibtex-extra: ships urlbst, whose
-        # alphaurl.bst several worksheets and every deck select; without it
-        # bibtex cannot open the style, writes no .bbl, and every \cite in the
-        # PDF silently becomes "[?]".
+        # it — name it explicitly.
+        #
+        # This download is the job's biggest single cost and a slow Ubuntu
+        # mirror can stall it for 15+ minutes, so keep it lean. Two packages
+        # were deliberately removed rather than added:
+        #   texlive-bibtex-extra (75 MB) — was installed for one 36 KB file,
+        #     alphaurl.bst; that is vendored at tex/alphaurl.bst and found via
+        #     BSTINPUTS (see scripts/build-content.mjs).
+        #   texlive-science (4 MB) — hard-depends on texlive-lang-greek (75 MB)
+        #     and its only user here was stmaryrd, for two bracket glyphs now
+        #     built from kernel pieces.
+        # Together that is ~154 MB, roughly half the former download.
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y --no-install-recommends \
-            texlive-latex-extra texlive-pictures texlive-science \
-            texlive-bibtex-extra \
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
+            texlive-latex-extra texlive-pictures \
             texlive-fonts-recommended cm-super lmodern poppler-utils pandoc
           # contributor LaTeX is untrusted: never enable shell-escape
 

@@ -20,7 +20,13 @@
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usetheme{Madrid}
-\usepackage{stmaryrd}
+% stmaryrd supplied only \llbracket/\rrbracket here, and on Debian it arrives via
+% texlive-science, which hard-depends on texlive-lang-greek -- ~79 MB of CI
+% download for two glyphs. Built from kernel pieces instead. \mathopen/\mathclose
+% keep delimiter spacing correct. The web is unaffected: KaTeX has \llbracket
+% natively, and the converter skips these two (scripts/tex2mdx/shims.mjs).
+\newcommand{\llbracket}{\mathopen{[\![}}
+\newcommand{\rrbracket}{\mathclose{]\!]}}
 \usepackage{xcolor}
 \usepackage{tikz}
 \usetikzlibrary{calc, positioning, arrows.meta, shapes.geometric}
