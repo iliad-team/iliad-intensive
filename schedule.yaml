@@ -97,7 +97,8 @@ clusters:
         lead: Evzen
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.i1ocmcfi54i2
         source: readings
-        note: deck exists as a Drive PDF only — add its URL as `slides:` when you have it
+        worksheets:
+          - alignment-in-practice
 
       - code: A.3
         title: Alignment in Practice 2
