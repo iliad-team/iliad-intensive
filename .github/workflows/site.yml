@@ -56,13 +56,10 @@ jobs:
             echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: TeX Live + poppler + pandoc
+      - name: TeX Live + poppler
         # Keep this list in sync with ./setup.sh — it is the reference package
         # set. cm-super: scalable CM fonts, needed by microtype's font
-        # expansion under [T1]{fontenc}. lmodern: pandoc's default PDF template
-        # (used for MDX-authored worksheets) loads lmodern.sty unconditionally;
-        # it is only a Recommends of texlive, so --no-install-recommends drops
-        # it — name it explicitly. texlive-bibtex-extra: ships urlbst, whose
+        # expansion under [T1]{fontenc}. texlive-bibtex-extra: ships urlbst, whose
         # alphaurl.bst several worksheets and every deck select; without it
         # bibtex cannot open the style, writes no .bbl, and every \cite in the
         # PDF silently becomes "[?]".
@@ -71,7 +68,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends \
             texlive-latex-extra texlive-pictures texlive-science \
             texlive-bibtex-extra \
-            texlive-fonts-recommended cm-super lmodern poppler-utils pandoc
+            texlive-fonts-recommended cm-super poppler-utils
           # contributor LaTeX is untrusted: never enable shell-escape
 
       - uses: actions/setup-node@v4

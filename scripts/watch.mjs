@@ -47,7 +47,7 @@ for (const sig of ["SIGINT", "SIGTERM"]) {
   process.on(sig, () => { dev.kill("SIGTERM"); process.exit(0); });
 }
 
-// LaTeX/pandoc runs write artifacts next to the sources — never rebuild on
+// LaTeX runs write artifacts next to the sources — never rebuild on
 // those, or the watcher would loop forever. (Shared: see artifacts.mjs.)
 const ARTIFACT = BUILD_ARTIFACT;
 

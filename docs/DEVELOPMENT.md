@@ -45,7 +45,7 @@ together define the authoring contract.
 - `./run.sh watch [slug]` — live loop: dev server + fast rebuild on every save
   (scripts/watch.mjs; ignores LaTeX build artifacts to avoid loops).
 - `./run.sh ci` — the full CI ladder (content build + static site build).
-- `./setup.sh` — idempotent local install (apt TeX/poppler/pandoc, nvm Node 22,
+- `./setup.sh` — idempotent local install (apt TeX/poppler, nvm Node 22,
   npm deps).
 - **Order matters**: the PDF compiles BEFORE conversion because the converter
   resolves `\cref`/`\ref` through LaTeX's `.aux` — a fresh checkout has none,

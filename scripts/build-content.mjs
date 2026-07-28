@@ -7,6 +7,8 @@
  *   content/index.json                   homepage/sidebar listing
  *   public/uploads/<slug>/tikz-*.svg     diagrams (content-addressed)
  *   public/downloads/<slug>/…            pdf/tex/mdx, each ± solutions
+ *                                        (MDX-authored sheets: mdx only — a
+ *                                        reading day is a web page, not a PDF)
  *
  * Where each page sits in the course — its cluster, its teaching day, and the
  * order it is listed in — comes from schedule.yaml (see scripts/schedule.mjs),
@@ -68,7 +70,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 // A worksheet is authored either in LaTeX (main.tex — converted to MDX) or
-// directly in MDX (main.mdx — served as-is, PDF via pandoc). tex wins if
+// directly in MDX (main.mdx — served as-is; a web page only, never a PDF). tex wins if
 // a folder somehow has both.
 const allWorksheets = readdirSync(TEX, { withFileTypes: true })
   .filter((d) => d.isDirectory()
@@ -334,47 +336,14 @@ async function buildSlug(slug) {
     }
     copyFileSync(path.join(dir, "main.mdx"), mdxOut);
 
-    // PDF via pandoc (markdown source, KaTeX-style math; JSX component tags
-    // are raw HTML to pandoc and are dropped from the PDF — their contents
-    // survive). The frontmatter title becomes a normal \maketitle title;
-    // contributors map to \author. No .tex is generated for MDX sheets.
-    if (!CHECK_ONLY) {
-      writeFileSync(path.join(dir, "main-nosol.mdx"), stripMdxSolutions(raw));
-      let authors = [];
-      try {
-        const fm = YAML.parse(raw.match(/^---\n([\s\S]*?)\n---\n/)[1]) ?? {};
-        if (Array.isArray(fm.contributors)) authors = fm.contributors.map(String);
-      } catch { /* frontmatter validity is the render gate's problem */ }
-      const pandocArgs = (src, out) => [src, "--from", "markdown+tex_math_dollars",
-        "-V", "geometry:margin=1in",
-        ...authors.flatMap((a) => ["--metadata", `author=${a}`]),
-        "-o", out];
-      // Preflight the one non-obvious dependency of pandoc's default PDF
-      // template: lmodern.sty. The `lmodern` apt package is only a Recommends,
-      // so `apt-get install --no-install-recommends` (both CI and setup.sh)
-      // skips it — yet a full local TeX Live ships it, so a broken build sails
-      // through locally and fails only on CI with an opaque "Error producing
-      // PDF". Fail here instead, everywhere, with the actual fix. (This exact
-      // gap broke the first MDX-authored sheet's CI run.)
-      try {
-        await exec("kpsewhich", ["lmodern.sty"]);
-      } catch {
-        return done(false,
-          "pandoc PDF needs lmodern.sty, which is not installed. Install the " +
-          "`lmodern` apt package (a Recommends, so --no-install-recommends skips " +
-          "it) and keep setup.sh and .github/workflows/site.yml in sync.");
-      }
-      try {
-        await tex("pandoc", ...pandocArgs("main.mdx", "main.pdf"));
-        await tex("pandoc", ...pandocArgs("main-nosol.mdx", "main-nosol.pdf"));
-      } catch (e) {
-        // Surface the REAL error: pandoc's first stderr line is a useless
-        // "Error producing PDF."; the cause (missing .sty, bad glyph, …) is in
-        // the lines that follow. Keep the tail so CI logs actually say why.
-        const detail = String(e.stderr || e.stdout || e.message).trim();
-        return done(false, `pandoc PDF build failed:\n${detail.split("\n").slice(-40).join("\n")}`);
-      }
-    }
+    // No PDF, by design. LaTeX is the format that becomes a PDF; MDX is the
+    // format that becomes a web page. An MDX-authored sheet (a reading day —
+    // a list of links) has nothing a print artifact adds, and a pandoc PDF
+    // alongside it was actively wrong: pandoc drops the JSX component tags but
+    // keeps their contents, so <Solution> answers printed inline, and an MDX
+    // {/* … */} expression has no tag to drop and leaked as literal source.
+    // So: no pandoc, no .pdf and no .tex download for these sheets — the page
+    // and its .mdx (± solutions) are the whole output.
   }
 
   // 2.4 stamp the schedule's answer for cluster + day into the generated page,
@@ -465,16 +434,17 @@ async function buildSlug(slug) {
   }
 
   // 5. downloads (PDFs were already built in step 1). Every format ships a
-  //    with-solutions file and a -nosol variant; MDX-authored sheets have no
-  //    .tex to serve.
+  //    with-solutions file and a -nosol variant. MDX-authored sheets ship
+  //    Markdown only: they have no .tex, and by design no .pdf either — see
+  //    the MDX branch in step 2.
   if (!CHECK_ONLY) {
     const dl = path.join(DOWNLOADS, slug);
     mkdirSync(dl, { recursive: true });
-    copyFileSync(path.join(dir, "main.pdf"), path.join(dl, `${slug}.pdf`));
-    copyFileSync(path.join(dir, "main-nosol.pdf"), path.join(dl, `${slug}-nosol.pdf`));
     copyFileSync(mdxOut, path.join(dl, `${slug}.mdx`));
     writeFileSync(path.join(dl, `${slug}-nosol.mdx`), stripMdxSolutions(readFileSync(mdxOut, "utf8")));
     if (isTex) {
+      copyFileSync(path.join(dir, "main.pdf"), path.join(dl, `${slug}.pdf`));
+      copyFileSync(path.join(dir, "main-nosol.pdf"), path.join(dl, `${slug}-nosol.pdf`));
       // Ship the document inlined, not just main.tex: a multi-file worksheet's
       // main.tex \inputs section files that are not part of the download, so
       // on its own it does not compile. (main-nosol.tex is already inlined.)

@@ -74,8 +74,9 @@ name-of-my-material/
 
 You can write either in LaTeX or Markdown, as you prefer.
 The main file for the material is `main.[tex|mdx]` (`.tex` files are converted
-to `mdx` by the repo's own converter, `scripts/tex2mdx/`; pandoc is only used
-to build the PDF of Markdown-authored sheets).
+to `mdx` by the repo's own converter, `scripts/tex2mdx/`). A LaTeX sheet also
+builds a PDF you can download; a Markdown-authored sheet is a web page only —
+no PDF is produced for it.
 Slides are optional. Drop a `slides.tex` (any self-contained LaTeX — beamer is
 the usual choice; `iliad.sty` is *not* loaded for slides) in the folder and the
 build compiles it to a PDF hosted next to the worksheet — the page grows a
