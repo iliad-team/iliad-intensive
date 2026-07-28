@@ -24,6 +24,24 @@ Static Next.js site that renders the Iliad Intensive worksheets. **LaTeX is the 
 - [`iliad-sty.md`](docs/iliad-sty.md) — the `iliad.sty` worksheet contract (macros/environments).
 - [`LINKS.md`](docs/LINKS.md) — Google-Doc tab link for each day.
 
+## Agent skills — `.claude/skills/`
+
+Committed, and the only place the harness looks for project skills
+(`.claude/skills/<name>/SKILL.md`; the directory name is the `/command`). They
+hold **procedures**, loaded on demand; durable reference belongs in `docs/`, and
+always-loaded facts belong here in `AGENTS.md`.
+
+- [`port-day`](.claude/skills/port-day/SKILL.md) — port a teaching day into
+  `tex/<slug>/`: LaTeX days from a cloned source repo, reading days from the
+  Iliad Mega Doc. Covers the verbatim mandate (transcribe, never write),
+  worktree setup, the `iliad.sty` contract, the Drive convention for raw-PDF
+  decks, and the commit/PR ritual. Invoked for "port A.3", "do the next reading
+  day", or adding a deck to a day.
+
+`CLAUDE.md` is a one-line `@AGENTS.md` import, not a duplicate: Claude Code
+reads `CLAUDE.md` and not `AGENTS.md`, so deleting it unloads every instruction
+in this file. Other agents read `AGENTS.md` directly.
+
 ## Course-material tracking
 
 - **[`/admin/status`](src/app/admin/status/page.tsx)** — the live per-day table the site

@@ -1,25 +1,24 @@
 #!/usr/bin/env bash
 #
 # ./setup.sh — install everything needed to develop this repo locally:
-# TeX Live (+poppler, pandoc) via apt, Node 22 via nvm, npm dependencies.
+# TeX Live (+poppler) via apt, Node 22 via nvm, npm dependencies.
 # Idempotent: re-running only installs what's missing.
 
 set -euo pipefail
 cd "$(dirname "$0")"
 
-echo "== system packages (TeX Live, poppler, pandoc) =="
+echo "== system packages (TeX Live, poppler) =="
 # Keep this list in sync with .github/workflows/site.yml — installing the
 # same packages keeps "passes locally, fails on CI" surprises to a minimum.
 #
-# The list is kept deliberately lean: it is ~245 MB of download and the biggest
-# cost in a CI run. texlive-bibtex-extra and texlive-science are NOT here on
-# purpose — see the note in the workflow. alphaurl.bst is vendored at
-# tex/alphaurl.bst, and stmaryrd's two glyphs are built from kernel pieces, so
-# neither package is needed to build the worksheets.
+# The list is kept deliberately lean — it is the biggest single cost in a CI
+# run, and a slow Ubuntu mirror can stall it for 15+ minutes. texlive-bibtex-extra
+# and texlive-science are NOT here on purpose (see the note in the workflow):
+# alphaurl.bst is vendored at tex/alphaurl.bst, and stmaryrd's two glyphs are
+# built from kernel pieces, so neither package is needed to build the worksheets.
 need=()
-command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-fonts-recommended cm-super lmodern)
+command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-fonts-recommended cm-super)
 command -v pdftocairo >/dev/null || need+=(poppler-utils)
-command -v pandoc     >/dev/null || need+=(pandoc)
 command -v git-lfs    >/dev/null || need+=(git-lfs)
 if [ ${#need[@]} -gt 0 ]; then
   echo "installing: ${need[*]}"

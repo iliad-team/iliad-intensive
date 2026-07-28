@@ -69,29 +69,26 @@ jobs:
             echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: TeX Live + poppler + pandoc
+      - name: TeX Live + poppler
         # Keep this list in sync with ./setup.sh — it is the reference package
         # set. cm-super: scalable CM fonts, needed by microtype's font
-        # expansion under [T1]{fontenc}. lmodern: pandoc's default PDF template
-        # (used for MDX-authored worksheets) loads lmodern.sty unconditionally;
-        # it is only a Recommends of texlive, so --no-install-recommends drops
-        # it — name it explicitly.
+        # expansion under [T1]{fontenc}.
         #
         # This download is the job's biggest single cost and a slow Ubuntu
-        # mirror can stall it for 15+ minutes, so keep it lean. Two packages
-        # were deliberately removed rather than added:
+        # mirror can stall it for 15+ minutes, so keep it lean. Two packages are
+        # deliberately absent rather than forgotten:
         #   texlive-bibtex-extra (75 MB) — was installed for one 36 KB file,
         #     alphaurl.bst; that is vendored at tex/alphaurl.bst and found via
         #     BSTINPUTS (see scripts/build-content.mjs).
         #   texlive-science (4 MB) — hard-depends on texlive-lang-greek (75 MB)
         #     and its only user here was stmaryrd, for two bracket glyphs now
         #     built from kernel pieces.
-        # Together that is ~154 MB, roughly half the former download.
+        # Together ~154 MB, roughly half what this step used to fetch.
         run: |
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
             texlive-latex-extra texlive-pictures \
-            texlive-fonts-recommended cm-super lmodern poppler-utils pandoc
+            texlive-fonts-recommended cm-super poppler-utils
           # contributor LaTeX is untrusted: never enable shell-escape
 
       - uses: actions/setup-node@v4
