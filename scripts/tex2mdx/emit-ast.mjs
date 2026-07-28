@@ -217,22 +217,28 @@ const bracketArg = (n) => {
 };
 
 // plain text for JSX attributes. A JSX attribute is an inert string: KaTeX
-// never sees it, so math cannot survive here. Dropping it silently turned
-// "point A ($h_A \approx 0.03$)" into "point A ()" on the page, so say so.
-function mdToPlain(md) {
+// never sees it, so math cannot survive here — dropping it silently turned
+// "point A ($h_A \approx 0.03$)" into "point A ()" on the page. Where the
+// attribute is the only option (a box title, an <img alt>) that is worth an
+// advisory; `quiet` suppresses it for alt text, whose caption is emitted
+// separately as renderable children.
+function mdToPlain(md, quiet = false) {
   const s = md.replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
   const out = s
     .replace(/\$\$?[^$]*\$\$?/g, "")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/[*`]/g, "")
     .replace(/\s+/g, " ").trim();
-  if (/\$\$?[^$]*\$\$?/.test(s)) {
-    advise(`math is dropped from "${out.slice(0, 70)}" — it becomes a plain attribute (figure caption, alt text or box title), which cannot render math; reword it in words`, snippetOf(s));
+  if (!quiet && /\$\$?[^$]*\$\$?/.test(s)) {
+    advise(`math is dropped from "${out.slice(0, 70)}" — it becomes a plain attribute (a box title, or the page title), which cannot render math; reword it in words`, snippetOf(s));
   }
   return out;
 }
-const attr = (nodesOrStr) =>
-  mdToPlain(typeof nodesOrStr === "string" ? walkStr(nodesOrStr) : walk(nodesOrStr)).replace(/"/g, "'");
+const toPlain = (nodesOrStr, quiet) =>
+  mdToPlain(typeof nodesOrStr === "string" ? walkStr(nodesOrStr) : walk(nodesOrStr), quiet)
+    .replace(/"/g, "'");
+const attr = (nodesOrStr) => toPlain(nodesOrStr, false);
+const attrQuiet = (nodesOrStr) => toPlain(nodesOrStr, true);
 
 function walkStr(texStr) {           // parse a raw string fragment and walk it
   return walk(parser().parse(texStr).content);
@@ -550,8 +556,14 @@ function emitFigure(n) {
     const tEnd = raw.indexOf(`\\end{${tEnv}}`);
     src = registerTikz(raw.slice(tm.index, tEnd + `\\end{${tEnv}}`.length), tEnv === "tikzcd").src;
   }
-  const capMd = caption ? attr(caption) : "";
-  const fig = `<Figure src="${src}" alt="${capMd || "figure"}"${capMd ? ` caption="${capMd}"` : ""} />`;
+  // The caption is emitted as CHILDREN so it goes through the MDX pipeline and
+  // its math renders; only `alt` stays flattened, because HTML alt text cannot
+  // hold math at all (attrQuiet, so that inherent loss draws no advisory).
+  const capMd = caption ? walkStr(caption).trim() : "";
+  const altMd = caption ? attrQuiet(caption) : "";
+  const fig = capMd
+    ? `<Figure src="${src}" alt="${altMd || "figure"}">\n\n${capMd}\n\n</Figure>`
+    : `<Figure src="${src}" alt="figure" />`;
   return `\n${figLabel ? `<div id="${slug(figLabel)}">\n${fig}\n</div>` : fig}\n`;
 }
 
