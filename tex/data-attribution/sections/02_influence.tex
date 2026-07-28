@@ -34,9 +34,12 @@ Under the assumptions above, the implicit function theorem gives (\Cref{ex:if-de
 \]
 where $H$ is the Hessian of $L$ at $w^*$.
 For any differentiable observable $\phi:W\to\mathbb{R}$, the chain rule then yields the \emph{influence on $\phi$}:
-\[
-  \mathcal{I}(z_i,\phi) \;:=\; \frac{\partial\,\phi(w^*(\beta))}{\partial \beta_i}\bigg\rvert_{\beta=\mathbf{1}} \;=\; \nabla_w \phi(w^*)^\top\,\mathcal{I}_{\mathrm{param}}(z_i) \;=\; -\,\nabla_w \phi(w^*)^\top\,H^{-1}\,\nabla_w L(w^*,z_i).
-\]
+\begin{align*}
+  \mathcal{I}(z_i,\phi) \; 
+  &:=\; \frac{\partial\,\phi(w^*(\beta))}{\partial \beta_i}\bigg\rvert_{\beta=\mathbf{1}} \\
+  & =\; \nabla_w \phi(w^*)^\top\,\mathcal{I}_{\mathrm{param}}(z_i) \\
+  & =\; -\,\nabla_w \phi(w^*)^\top\,H^{-1}\,\nabla_w L(w^*,z_i).
+\end{align*}
 \end{definition}
 
 Thus we get three components

@@ -64,9 +64,10 @@ where $B_t$ is a mini-batch of size $m$ and $\epsilon$ is the step size. After a
 \begin{example}[Bayesian linear regression]\label{ex:bayesian-ols}
 Take the linear regression setup of \Cref{ex:ols-if} with a Gaussian prior $w\sim\mathcal{N}(0,\tau^2I)$ added. The posterior is conjugate: $w\mid\mathcal{D}\sim\mathcal{N}(\mu,V)$ with $V = (\tau^{-2}I + \sigma^{-2}A)^{-1}$ and $\mu = \sigma^{-2}V\sum_i x_i y_i$. A direct Gaussian-moment computation applied to \eqref{eq:bif-covariance} with the observable $\phi(w) = w$ gives
 \[
-  \mathrm{BIF}(z_j, w) \;=\; -\mathrm{Cov}_p\bigl(L(w,z_j),\,w\bigr) \;=\; \frac{V\, x_j\, r_j}{\sigma^2} \;=\; (A + \lambda I)^{-1}\,x_j\,r_j, \qquad \lambda := \sigma^2/\tau^2,
+  \mathrm{BIF}(z_j, w) \;=\; -\mathrm{Cov}_p\bigl(L(w,z_j),\,w\bigr) \;=\; \frac{V\, x_j\, r_j}{\sigma^2} \;=\; (A + \lambda I)^{-1}\,x_j\,r_j
 \]
-where $r_j = y_j - x_j^\top\mu$ is the posterior-mean residual. This is the \emph{damped} influence function with the damping parameter $\lambda$ equal to the ratio of observation noise to prior variance. In the flat-prior limit $\tau\to\infty$ we have $\lambda\to 0$, $\mu\to w^*$, and we recover the classical IF of \Cref{ex:ols-if}.
+where $r_j = y_j - x_j^\top\mu$ is the posterior-mean residual and $\lambda := \sigma^2/\tau^2$.
+This is the \emph{damped} influence function with the damping parameter $\lambda$ equal to the ratio of observation noise to prior variance. In the flat-prior limit $\tau\to\infty$ we have $\lambda\to 0$, $\mu\to w^*$, and we recover the classical IF of \Cref{ex:ols-if}.
 \end{example}
 
 \subsection{Exercise: Connecting Bayesian and classical influence functions}\label{subsec:bif-if-connection}
