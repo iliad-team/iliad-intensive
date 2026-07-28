@@ -462,7 +462,9 @@ let bodyMdx = tidy(emitDocument(body, {
 // whose indentation tidy() would otherwise strip (it dedents every line).
 if (bodyMdx.includes("<!--ILIAD_TOC-->")) {
   const toc = buildToc(bodyMdx);
-  bodyMdx = bodyMdx.replace(/\n*<!--ILIAD_TOC-->\n*/g, toc ? `\n\n${toc}\n\n` : "\n\n");
+  // function replacement: heading text reaches here verbatim, and a literal
+  // `$$` (or `$&`) in it would otherwise be read as a $-substitution pattern
+  bodyMdx = bodyMdx.replace(/\n*<!--ILIAD_TOC-->\n*/g, () => (toc ? `\n\n${toc}\n\n` : "\n\n"));
 }
 const result = `${front}\n\n$${gdef}$\n\n${bodyMdx}\n`;
 writeFileSync(output, result);
