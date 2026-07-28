@@ -136,7 +136,8 @@ clusters:
         lead: Garrett (Zach remote lecture)
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.do5apxz819k1
         source: missing
-        note: deck exists as a Drive PDF only — add its URL as `slides:` when you have it
+        worksheets:
+          - mysteries-of-deep-learning
 
       - code: B.3
         title: Singular Learning Theory
