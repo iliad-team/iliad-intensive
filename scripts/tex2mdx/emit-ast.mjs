@@ -208,14 +208,28 @@ const argRaw = (n, i) => (n.args && n.args[i] && n.args[i].content.length ? prin
 const lastArgRaw = (n) => (n.args && n.args.length ? printRaw(n.args[n.args.length - 1].content) : null);
 const walkArg = (n, i) => (n.args && n.args[i] ? walk(n.args[i].content) : "");
 
-// plain text for JSX attributes
+// The [..] argument of a macro, wherever the parser put it. unified-latex gives
+// \item three argument slots — two empty positional ones around the bracketed
+// group — so indexing args[0] silently misses every \item[label].
+const bracketArg = (n) => {
+  const a = (n.args ?? []).find((x) => x.openMark === "[" && x.content.length);
+  return a ? printRaw(a.content) : null;
+};
+
+// plain text for JSX attributes. A JSX attribute is an inert string: KaTeX
+// never sees it, so math cannot survive here. Dropping it silently turned
+// "point A ($h_A \approx 0.03$)" into "point A ()" on the page, so say so.
 function mdToPlain(md) {
-  return md
-    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+  const s = md.replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  const out = s
     .replace(/\$\$?[^$]*\$\$?/g, "")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/[*`]/g, "")
     .replace(/\s+/g, " ").trim();
+  if (/\$\$?[^$]*\$\$?/.test(s)) {
+    advise(`math is dropped from "${out.slice(0, 70)}" — it becomes a plain attribute (figure caption, alt text or box title), which cannot render math; reword it in words`, snippetOf(s));
+  }
+  return out;
 }
 const attr = (nodesOrStr) =>
   mdToPlain(typeof nodesOrStr === "string" ? walkStr(nodesOrStr) : walk(nodesOrStr)).replace(/"/g, "'");
@@ -302,7 +316,7 @@ function splitItems(nodes) {
   for (const n of nodes) {
     if (n.type === "macro" && n.content === "item") {
       if (cur) items.push(cur);
-      cur = { optLabel: argRaw(n, 0), nodes: [] };
+      cur = { optLabel: bracketArg(n), nodes: [] };
       continue;
     }
     if (cur) cur.nodes.push(n);
@@ -316,9 +330,17 @@ function emitList(env, n) {
   const letters = env === "enumerate" && inExercise;
   const wasIn = inExercise; inExercise = false;
   const out = items.map((it, k) => {
-    const lead = it.optLabel ? `**${attr(it.optLabel)}** ` : "";
+    // The label is markdown body text, not a JSX attribute, so it is walked
+    // (not flattened through attr) and its math renders like any other. Bold
+    // it the way LaTeX's own list styling does — unless the author already
+    // marked it up (\item[\textbf{[00]}]), where another ** would nest and
+    // emit literal asterisks.
+    const lab = it.optLabel ? walkStr(it.optLabel).trim() : null;
+    const lead = lab ? (/[*_`]/.test(lab) ? `${lab} ` : `**${lab}** `) : "";
     const txt = walk(it.nodes).trim();
-    if (letters) return itemJoin(`**(${String.fromCharCode(97 + k)})** ${lead}`.trim(), txt);
+    // An explicit \item[..] wins over the synthesized (a)/(b) marker: it is
+    // what the PDF prints, and authors use it to name parts they refer back to.
+    if (letters) return itemJoin((lead || `**(${String.fromCharCode(97 + k)})** `).trim(), txt);
     const marker = env === "enumerate" ? `${k + 1}.` : "-";
     return itemJoin(`${marker} ${lead}`.trim(), txt);
   }).join(letters ? "\n\n" : "\n");
@@ -747,10 +769,12 @@ export function texToPlain(texStr) {
   const p = _parser ?? getParser({ environments: ENV_SIGNATURES, macros: CONTRACT_MACROS });
   const saved = ctx;
   if (!ctx) ctx = { refs: {}, BIB: {}, declaredThms: {}, commentCmds: new Set(), remarkNumbered: false, tikzSrc: "/" };
-  // title fragments degrade gracefully: no warnings from unknown macros here
-  const w = warnings.length, a = advisories.length;
+  // title fragments degrade gracefully: no warnings from unknown macros here.
+  // Advisories DO survive — the frontmatter title/summary are attributes too,
+  // so math in \title{} is dropped and the author needs to hear about it.
+  const w = warnings.length;
   const out = mdToPlain(walkFragment(p, texStr));
-  warnings.length = w; advisories.length = a;
+  warnings.length = w;
   ctx = saved;
   return out.replace(/"/g, "'");
 }
