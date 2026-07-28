@@ -82,10 +82,12 @@ together define the authoring contract.
   sheet uses this).
 - An optional `tex/<slug>/slides.tex` is compiled (same pdflatex+bibtex ladder)
   to `slides.pdf` and staged as `<slug>-slides.pdf`/`.tex`; never converted to
-  MDX, no `-nosol` variant. A `slides:` frontmatter URL links an externally
-  hosted deck instead (a compiled `slides.tex` wins). Every worksheet with no
-  `slides.tex` draws a non-fatal advisory (full build / `./run.sh ci` only, not
-  `--check`).
+  MDX, no `-nosol` variant. A deck mentioning `\HANDOUT` also gets a collapsed
+  `slides-handout.pdf` (staged as `<slug>-slides-handout.pdf`), built by
+  `\def`-ing the macro on the command line. A `slides:` frontmatter URL links
+  an externally hosted deck instead (a compiled `slides.tex` wins). Every
+  worksheet with no `slides.tex` draws a non-fatal advisory (full build /
+  `./run.sh ci` only, not `--check`).
 - Generated MDX is host-agnostic (`/uploads/…` URLs); the site's `Figure`
   component and download links apply `NEXT_PUBLIC_BASE_PATH` at render time.
   Never bake the base path into generated content — it double-prefixes.

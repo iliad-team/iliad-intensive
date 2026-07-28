@@ -35,6 +35,10 @@ function Box({ href, download, children }: { href: string; download?: boolean; c
  * unaffected by the toggle. `slidesUrl` is an externally hosted deck (from
  * the `slides:` frontmatter key) — linked, never hosted here; a compiled
  * <slug>-slides.pdf takes precedence over it.
+ *
+ * A deck that opted into a collapsed build ships <slug>-slides-handout.pdf
+ * too; the row then reads present · handout · LaTeX instead of the
+ * view · download · LaTeX it shows for a single-variant deck.
  */
 export function DownloadsRow({
   slug,
@@ -55,6 +59,7 @@ export function DownloadsRow({
 
   const hasSlidesPdf = files.includes(`${slug}-slides.pdf`);
   const hasSlidesTex = files.includes(`${slug}-slides.tex`);
+  const hasSlidesHandout = files.includes(`${slug}-slides-handout.pdf`);
 
   if (exts.length === 0 && !hasSlidesPdf && !slidesUrl) return null;
 
@@ -85,8 +90,17 @@ export function DownloadsRow({
         {hasSlidesPdf ? (
           <li className="flex items-center gap-2">
             <span className={rowLabel}>Slides</span>
-            <Box href={href(`${slug}-slides.pdf`)}>view</Box>
-            <Box href={href(`${slug}-slides.pdf`)} download>download</Box>
+            {hasSlidesHandout ? (
+              <>
+                <Box href={href(`${slug}-slides.pdf`)}>present</Box>
+                <Box href={href(`${slug}-slides-handout.pdf`)}>handout</Box>
+              </>
+            ) : (
+              <>
+                <Box href={href(`${slug}-slides.pdf`)}>view</Box>
+                <Box href={href(`${slug}-slides.pdf`)} download>download</Box>
+              </>
+            )}
             {hasSlidesTex && (
               <Box href={href(`${slug}-slides.tex`)} download>LaTeX</Box>
             )}

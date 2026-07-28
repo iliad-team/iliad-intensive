@@ -62,11 +62,15 @@ jobs:
         # expansion under [T1]{fontenc}. lmodern: pandoc's default PDF template
         # (used for MDX-authored worksheets) loads lmodern.sty unconditionally;
         # it is only a Recommends of texlive, so --no-install-recommends drops
-        # it — name it explicitly.
+        # it — name it explicitly. texlive-bibtex-extra: ships urlbst, whose
+        # alphaurl.bst several worksheets and every deck select; without it
+        # bibtex cannot open the style, writes no .bbl, and every \cite in the
+        # PDF silently becomes "[?]".
         run: |
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends \
             texlive-latex-extra texlive-pictures texlive-science \
+            texlive-bibtex-extra \
             texlive-fonts-recommended cm-super lmodern poppler-utils pandoc
           # contributor LaTeX is untrusted: never enable shell-escape
 

@@ -208,14 +208,28 @@ const argRaw = (n, i) => (n.args && n.args[i] && n.args[i].content.length ? prin
 const lastArgRaw = (n) => (n.args && n.args.length ? printRaw(n.args[n.args.length - 1].content) : null);
 const walkArg = (n, i) => (n.args && n.args[i] ? walk(n.args[i].content) : "");
 
-// plain text for JSX attributes
+// The [..] argument of a macro, wherever the parser put it. unified-latex gives
+// \item three argument slots — two empty positional ones around the bracketed
+// group — so indexing args[0] silently misses every \item[label].
+const bracketArg = (n) => {
+  const a = (n.args ?? []).find((x) => x.openMark === "[" && x.content.length);
+  return a ? printRaw(a.content) : null;
+};
+
+// plain text for JSX attributes. A JSX attribute is an inert string: KaTeX
+// never sees it, so math cannot survive here. Dropping it silently turned
+// "point A ($h_A \approx 0.03$)" into "point A ()" on the page, so say so.
 function mdToPlain(md) {
-  return md
-    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+  const s = md.replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  const out = s
     .replace(/\$\$?[^$]*\$\$?/g, "")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/[*`]/g, "")
     .replace(/\s+/g, " ").trim();
+  if (/\$\$?[^$]*\$\$?/.test(s)) {
+    advise(`math is dropped from "${out.slice(0, 70)}" — it becomes a plain attribute (figure caption, alt text or box title), which cannot render math; reword it in words`, snippetOf(s));
+  }
+  return out;
 }
 const attr = (nodesOrStr) =>
   mdToPlain(typeof nodesOrStr === "string" ? walkStr(nodesOrStr) : walk(nodesOrStr)).replace(/"/g, "'");
@@ -292,12 +306,17 @@ function takeMarks(nodes) {
 }
 
 // ------------------------------------------------------------------ lists ---
+// Nodes before the first \item are discarded. Only list-parameter setup lives
+// there legitimately (\itemsep=2pt, the \setlength pair \tightlist expands to);
+// real body text is a LaTeX error ("Something's wrong--perhaps a missing
+// \item") that fails the PDF build before the converter ever runs, so there is
+// nothing here for us to police.
 function splitItems(nodes) {
   const items = []; let cur = null;
   for (const n of nodes) {
     if (n.type === "macro" && n.content === "item") {
       if (cur) items.push(cur);
-      cur = { optLabel: argRaw(n, 0), nodes: [] };
+      cur = { optLabel: bracketArg(n), nodes: [] };
       continue;
     }
     if (cur) cur.nodes.push(n);
@@ -311,9 +330,17 @@ function emitList(env, n) {
   const letters = env === "enumerate" && inExercise;
   const wasIn = inExercise; inExercise = false;
   const out = items.map((it, k) => {
-    const lead = it.optLabel ? `**${attr(it.optLabel)}** ` : "";
+    // The label is markdown body text, not a JSX attribute, so it is walked
+    // (not flattened through attr) and its math renders like any other. Bold
+    // it the way LaTeX's own list styling does — unless the author already
+    // marked it up (\item[\textbf{[00]}]), where another ** would nest and
+    // emit literal asterisks.
+    const lab = it.optLabel ? walkStr(it.optLabel).trim() : null;
+    const lead = lab ? (/[*_`]/.test(lab) ? `${lab} ` : `**${lab}** `) : "";
     const txt = walk(it.nodes).trim();
-    if (letters) return itemJoin(`**(${String.fromCharCode(97 + k)})** ${lead}`.trim(), txt);
+    // An explicit \item[..] wins over the synthesized (a)/(b) marker: it is
+    // what the PDF prints, and authors use it to name parts they refer back to.
+    if (letters) return itemJoin((lead || `**(${String.fromCharCode(97 + k)})** `).trim(), txt);
     const marker = env === "enumerate" ? `${k + 1}.` : "-";
     return itemJoin(`${marker} ${lead}`.trim(), txt);
   }).join(letters ? "\n\n" : "\n");
@@ -745,10 +772,12 @@ export function texToPlain(texStr) {
   const p = _parser ?? getParser({ environments: ENV_SIGNATURES, macros: CONTRACT_MACROS });
   const saved = ctx;
   if (!ctx) ctx = { refs: {}, BIB: {}, declaredThms: {}, commentCmds: new Set(), remarkNumbered: false, tikzSrc: "/" };
-  // title fragments degrade gracefully: no warnings from unknown macros here
-  const w = warnings.length, a = advisories.length;
+  // title fragments degrade gracefully: no warnings from unknown macros here.
+  // Advisories DO survive — the frontmatter title/summary are attributes too,
+  // so math in \title{} is dropped and the author needs to hear about it.
+  const w = warnings.length;
   const out = mdToPlain(walkFragment(p, texStr));
-  warnings.length = w; advisories.length = a;
+  warnings.length = w;
   ctx = saved;
   return out.replace(/"/g, "'");
 }
@@ -786,7 +815,10 @@ function relocateSolutions(md) {
   const openRe = /<Solution for="([^"]*)">/g;
   for (let m; (m = openRe.exec(md)); ) {
     const end = findBlockEnd(md, m.index, "Solution");
-    if (end === -1) break;
+    if (end === -1) {
+      warn("a <Solution> block is unbalanced — it and every solution after it stay where the author put them", snippetOf(md.slice(m.index, m.index + 200)));
+      break;
+    }
     sols.push({ anchor: m[1], body: "<Solution>" + md.slice(m.index + m[0].length, end) });
     out += md.slice(last, m.index) + mark(sols.length - 1);
     last = end;
@@ -801,9 +833,13 @@ function relocateSolutions(md) {
     const ex = out.indexOf(`<Exercise id="${s.anchor}">`);
     if (ex !== -1) at = findBlockEnd(out, ex, "Exercise");
     if (at === -1) {
-      // no matching exercise (contract violation, warned at emission) —
-      // put the solution back where the author had it
-      out = out.replace(mark(k), s.body);
+      // No matching exercise: the label exists (emission warns when it does
+      // not) but does not belong to one, so there is nothing to move under.
+      // Put the solution back where the author had it. The replacement is a
+      // FUNCTION: as a string, every `$$` in the body — i.e. every display
+      // math fence — would be eaten as a $-substitution pattern.
+      warn(`solution names [${s.anchor}], which is not an exercise — it stays where the author put it instead of moving under one`, snippetOf(s.body));
+      out = out.replace(mark(k), () => s.body);
       return;
     }
     for (;;) {
@@ -820,42 +856,13 @@ function relocateSolutions(md) {
     out = out.slice(0, at) + `\n\n${s.body}` + out.slice(at);
   });
 
-  // 3. prune headings whose whole section emptied out (a "Solutions"
-  //    appendix, say). The markers are the evidence: only sections a
-  //    solution actually left are candidates; pruned headings leave a
-  //    marker too, so an emptied parent section cascades.
-  const isMark = (l) => /^<!--iliad:moved:[^>]*-->$/.test(l.trim());
-  const lines = out.split("\n");
-  const pruned = [];
-  for (let changed = true; changed; ) {
-    changed = false;
-    for (let i = 0; i < lines.length; i++) {
-      const h = /^(#{2,6}) /.exec(lines[i]);
-      if (!h) continue;
-      let j = i + 1, marks = 0, content = false;
-      while (j < lines.length) {
-        const hh = /^(#{2,6}) /.exec(lines[j]);
-        if (hh && hh[1].length <= h[1].length) break;
-        if (isMark(lines[j])) marks++;
-        else if (hh || lines[j].trim() !== "") { content = true; break; }
-        j++;
-      }
-      if (!content && marks > 0) {
-        pruned.push(lines[i].slice(h[0].length).trim());
-        lines.splice(i, j - i, "<!--iliad:moved:h-->");
-        changed = true;
-      }
-    }
-  }
-  out = lines.join("\n").replace(/\n*<!--iliad:moved:[^>]*-->\n*/g, "\n\n");
-
-  // a \cref may still point at a pruned heading — tell the author
-  for (const text of pruned) {
-    const plain = text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\*\*|\*/g, "").trim();
-    if (out.includes(`](#${ghSlug(plain)})`)) {
-      advise(`section "${plain}" emptied by solution relocation was dropped, but prose still links to it — reword the sentence that points at the solutions section`, plain);
-    }
-  }
+  // 3. drop the position markers. Headings are NEVER pruned, even when
+  //    relocation empties them: the converter is faithful to the source, so a
+  //    section that renders empty is a .tex problem for the author to fix and
+  //    must stay visible (with its anchor, so \crefs to it keep resolving).
+  //    An authored solutions appendix belongs in pdfonly — that is how a sheet
+  //    keeps the emptied heading off the web (see docs/iliad-sty.md).
+  out = out.replace(/\n*<!--iliad:moved:[^>]*-->\n*/g, "\n\n");
 
   // 4. the \tableofcontents placeholder is filled by the caller AFTER tidy(),
   //    because tidy() dedents every line and would flatten the nested list.
@@ -863,13 +870,13 @@ function relocateSolutions(md) {
 }
 
 // -------------------------------------------------------------- contents ---
-// \tableofcontents becomes an in-page ToC on the web, built from the headings
-// that SURVIVE pruning (so no link dangles at a moved-out section, e.g. the
-// Solutions appendix). The converter already numbers headings ("1", "1.1",
-// "4.2.1") identically to LaTeX, so the numbers are read straight off the
-// heading text and the anchors are the same ghSlug the site (rehype-slug) and
-// build-content's index use — guaranteeing the links resolve. References is
-// converter-added (not a source section) and is left out.
+// \tableofcontents becomes an in-page ToC on the web, built from every heading
+// the page emits — the same set LaTeX lists, since headings are never dropped.
+// The converter already numbers headings ("1", "1.1", "4.2.1") identically to
+// LaTeX, so the numbers are read straight off the heading text and the anchors
+// are the same ghSlug the site (rehype-slug) and build-content's index use —
+// guaranteeing the links resolve. References is converter-added (not a source
+// section) and is left out.
 export function buildToc(out) {
   const items = [];
   for (const line of out.split("\n")) {
@@ -882,6 +889,7 @@ export function buildToc(out) {
   }
   return items.length ? `**Contents**\n\n${items.join("\n")}` : "";
 }
+
 
 // -------------------------------------------------------------- references ---
 // LaTeX typesets its own bibliography; on the web every cited entry gets an
