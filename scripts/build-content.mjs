@@ -105,10 +105,36 @@ const exec = (cmd, argv, opts = {}) =>
 // Strip both the `solution` answer blocks and the `solutionsonly` (answer-key /
 // instructor-aside) blocks — everything meant to vanish from the spoiler-free
 // -nosol downloads.
+//
+// Delimiters are matched against a comment-MASKED copy (every character after
+// an unescaped % blanked, length and newlines preserved, so offsets still line
+// up with the original) and the spans are then cut out of the real text. A
+// commented-out `% \begin{solution}` must not pair with the next REAL
+// `\end{solution}`: that silently deleted every exercise in between, and the
+// -nosol PDF still compiled, so nothing caught it.
+const maskComments = (tex) =>
+  tex.split("\n").map((line) => {
+    for (let i = 0; i < line.length; i++) {
+      if (line[i] === "\\") { i++; continue; }
+      if (line[i] === "%") return line.slice(0, i) + " ".repeat(line.length - i);
+    }
+    return line;
+  }).join("\n");
+
+const cutSpans = (tex, re) => {
+  const masked = maskComments(tex);
+  let out = "", last = 0;
+  for (let m; (m = re.exec(masked)); ) {
+    out += tex.slice(last, m.index);
+    last = m.index + m[0].length;
+  }
+  return out + tex.slice(last);
+};
+
 const stripTexSolutions = (tex) =>
-  tex
-    .replace(/[ \t]*\\begin\{solution\}[\s\S]*?\\end\{solution\}[ \t]*\n?/g, "")
-    .replace(/[ \t]*\\begin\{solutionsonly\}[\s\S]*?\\end\{solutionsonly\}[ \t]*\n?/g, "");
+  cutSpans(
+    cutSpans(tex, /[ \t]*\\begin\{solution\}[\s\S]*?\\end\{solution\}[ \t]*\n?/g),
+    /[ \t]*\\begin\{solutionsonly\}[\s\S]*?\\end\{solutionsonly\}[ \t]*\n?/g);
 // MDX: strip only bare <Solution> answer blocks — titled ones
 // (<Solution title="Hint">, ...title="Proof">) stay, matching what
 // stripTexSolutions keeps in the .tex. Depth-aware because an answer may

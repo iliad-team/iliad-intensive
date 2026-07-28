@@ -292,6 +292,11 @@ function takeMarks(nodes) {
 }
 
 // ------------------------------------------------------------------ lists ---
+// Nodes before the first \item are discarded. Only list-parameter setup lives
+// there legitimately (\itemsep=2pt, the \setlength pair \tightlist expands to);
+// real body text is a LaTeX error ("Something's wrong--perhaps a missing
+// \item") that fails the PDF build before the converter ever runs, so there is
+// nothing here for us to police.
 function splitItems(nodes) {
   const items = []; let cur = null;
   for (const n of nodes) {
@@ -783,7 +788,10 @@ function relocateSolutions(md) {
   const openRe = /<Solution for="([^"]*)">/g;
   for (let m; (m = openRe.exec(md)); ) {
     const end = findBlockEnd(md, m.index, "Solution");
-    if (end === -1) break;
+    if (end === -1) {
+      warn("a <Solution> block is unbalanced — it and every solution after it stay where the author put them", snippetOf(md.slice(m.index, m.index + 200)));
+      break;
+    }
     sols.push({ anchor: m[1], body: "<Solution>" + md.slice(m.index + m[0].length, end) });
     out += md.slice(last, m.index) + mark(sols.length - 1);
     last = end;
@@ -798,9 +806,13 @@ function relocateSolutions(md) {
     const ex = out.indexOf(`<Exercise id="${s.anchor}">`);
     if (ex !== -1) at = findBlockEnd(out, ex, "Exercise");
     if (at === -1) {
-      // no matching exercise (contract violation, warned at emission) —
-      // put the solution back where the author had it
-      out = out.replace(mark(k), s.body);
+      // No matching exercise: the label exists (emission warns when it does
+      // not) but does not belong to one, so there is nothing to move under.
+      // Put the solution back where the author had it. The replacement is a
+      // FUNCTION: as a string, every `$$` in the body — i.e. every display
+      // math fence — would be eaten as a $-substitution pattern.
+      warn(`solution names [${s.anchor}], which is not an exercise — it stays where the author put it instead of moving under one`, snippetOf(s.body));
+      out = out.replace(mark(k), () => s.body);
       return;
     }
     for (;;) {
@@ -817,44 +829,16 @@ function relocateSolutions(md) {
     out = out.slice(0, at) + `\n\n${s.body}` + out.slice(at);
   });
 
-  // 3. prune headings whose whole section emptied out (a "Solutions"
-  //    appendix, say). The markers are the evidence: only sections a
-  //    solution actually left are candidates; pruned headings leave a
-  //    marker too, so an emptied parent section cascades.
-  const isMark = (l) => /^<!--iliad:moved:[^>]*-->$/.test(l.trim());
-  const lines = out.split("\n");
-  const pruned = [];
-  for (let changed = true; changed; ) {
-    changed = false;
-    for (let i = 0; i < lines.length; i++) {
-      const h = /^(#{2,6}) /.exec(lines[i]);
-      if (!h) continue;
-      let j = i + 1, marks = 0, content = false;
-      while (j < lines.length) {
-        const hh = /^(#{2,6}) /.exec(lines[j]);
-        if (hh && hh[1].length <= h[1].length) break;
-        if (isMark(lines[j])) marks++;
-        else if (hh || lines[j].trim() !== "") { content = true; break; }
-        j++;
-      }
-      if (!content && marks > 0) {
-        pruned.push(lines[i].slice(h[0].length).trim());
-        lines.splice(i, j - i, "<!--iliad:moved:h-->");
-        changed = true;
-      }
-    }
-  }
-  out = lines.join("\n").replace(/\n*<!--iliad:moved:[^>]*-->\n*/g, "\n\n");
-
-  // a \cref may still point at a pruned heading — tell the author
-  for (const text of pruned) {
-    const plain = text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\*\*|\*/g, "").trim();
-    if (out.includes(`](#${ghSlug(plain)})`)) {
-      advise(`section "${plain}" emptied by solution relocation was dropped, but prose still links to it — reword the sentence that points at the solutions section`, plain);
-    }
-  }
+  // 3. drop the position markers. Headings are NEVER pruned, even when
+  //    relocation empties them: the converter is faithful to the source, so a
+  //    section that renders empty is a .tex problem for the author to fix and
+  //    must stay visible (with its anchor, so \crefs to it keep resolving).
+  //    An authored solutions appendix belongs in pdfonly — that is how a sheet
+  //    keeps the emptied heading off the web (see docs/iliad-sty.md).
+  out = out.replace(/\n*<!--iliad:moved:[^>]*-->\n*/g, "\n\n");
   return out;
 }
+
 
 // -------------------------------------------------------------- references ---
 // LaTeX typesets its own bibliography; on the web every cited entry gets an
