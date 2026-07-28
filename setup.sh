@@ -16,6 +16,10 @@ command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures 
 # perfectly good pdflatex and still be missing the style, and then every \cite
 # in the PDF quietly renders as "[?]".
 kpsewhich alphaurl.bst >/dev/null 2>&1 || need+=(texlive-bibtex-extra)
+# lmodern.sty — same story: decks \usepackage{lmodern}, but it is only an apt
+# *Recommends* of texlive, so a --no-install-recommends box has pdflatex and
+# no lmodern. Probe the file, not the binary.
+kpsewhich lmodern.sty >/dev/null 2>&1 || need+=(lmodern)
 command -v pdftocairo >/dev/null || need+=(poppler-utils)
 command -v git-lfs    >/dev/null || need+=(git-lfs)
 if [ ${#need[@]} -gt 0 ]; then
