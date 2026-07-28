@@ -68,5 +68,10 @@ _minted*/
 # cloned source repos for MATERIAL.md hunt (see MATERIAL.md handoff)
 repos/
 
-# git worktrees kept inside the repo
+# git worktrees kept inside the repo. Both patterns matter: the root-anchored
+# one is where new-worktree.sh puts them, and `.claude/worktrees/` is where the
+# agent harness puts its own — each a full checkout, and NOT covered by the
+# anchored pattern, so without this line `git add .claude/` (to commit the
+# skills) stages an embedded git repo as a broken gitlink.
 /worktrees/
+.claude/worktrees/
