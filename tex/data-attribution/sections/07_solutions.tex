@@ -1,9 +1,20 @@
 % ---------------------------------------------------------
+% Header block is pdfonly + solutionsonly: the web relocates every solution
+% under its exercise, and the -nosol PDF must not show an emptied appendix.
+% See docs/iliad-sty.md ("A sheet that collects its solutions ...").
+\begin{pdfonly}
+\begin{solutionsonly}
+\clearpage
+\appendix
 \section{Solutions}\label{app:solutions}
+\end{solutionsonly}
+\end{pdfonly}
 
 
 
+\begin{pdfonly}\begin{solutionsonly}
 \subsection{Solutions to exercises from Section~\ref{sec:influence}}
+\end{solutionsonly}\end{pdfonly}
 
 \begin{solution}[ex:if-derive]
 
@@ -160,7 +171,9 @@ The punchline: for this particular observable ($\phi = ab$, which is constant al
 
 \end{solution}
 
+\begin{pdfonly}\begin{solutionsonly}
 \subsection{Solutions to exercises from Section~\ref{sec:bayesian-if}}
+\end{solutionsonly}\end{pdfonly}
 
 \begin{solution}[ex:bif-covariance]
 
@@ -278,7 +291,9 @@ This provides what \citet{mlodozeniec2025distributional} call a ``distributional
 
 \end{solution}
 
+\begin{pdfonly}\begin{solutionsonly}
 \subsection{Solutions to exercises from Section~\ref{sec:unrolling}}
+\end{solutionsonly}\end{pdfonly}
 
 \begin{solution}[ex:unroll-derive]
 

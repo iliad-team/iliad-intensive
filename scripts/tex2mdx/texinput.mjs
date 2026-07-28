@@ -23,8 +23,9 @@
  *     callers that want to preserve the file split (the auto-labelled compile
  *     does, so pdflatex's file:line diagnostics keep pointing at real sources);
  *   - `flat`, the whole document inlined into one string, for callers that
- *     want a self-contained result (the converter parses it; the -nosol .tex
- *     download ships it, so what a reader downloads actually compiles).
+ *     want a self-contained result (the converter parses it; the .tex downloads
+ *     ship it, so they no longer reference section files that were never part
+ *     of the download — they still need iliad.sty, which is not shipped).
  *
  * Determinism is the contract autolabel.mjs depends on: every consumer walks
  * via this function, so all of them assign the same label to the same

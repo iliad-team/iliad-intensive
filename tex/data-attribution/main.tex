@@ -50,7 +50,8 @@
 \bibliography{biblo}
 
 % ---------------------------------------------------------
-\appendix
+% \appendix lives inside the solutions file's pdfonly/solutionsonly header,
+% so a -nosol build has no stray appendix at all.
 \input{sections/07_solutions}
 
 \end{document}
