@@ -28,10 +28,14 @@
  * Flags:
  *   --check        converter + render gate only (fast; no PDFs/downloads) —
  *                  what the pre-push hook runs
- *   --jobs N       parallel worksheet builds (default 4)
+ *   --jobs N       parallel worksheet builds (default: CPU core count)
+ *   --no-cache     rebuild every worksheet, ignoring the per-worksheet input
+ *                  hash that normally skips unchanged ones
  */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { availableParallelism } from "node:os";
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, copyFileSync } from "node:fs";
 import YAML from "yaml";
 import path from "node:path";
@@ -58,13 +62,21 @@ const CHECK_ONLY = args.includes("--check");
 // redundant there — a bad equation shows as a visible error in the browser
 // instead of failing the build. The full build / CI never pass it.
 const NO_GATE = args.includes("--no-gate");
-const JOBS = Math.max(1, parseInt(args.includes("--jobs") ? args[args.indexOf("--jobs") + 1] : "4", 10) || 4);
+// Default to the machine's core count rather than a fixed 4. Measured effect
+// today: none — with 7 worksheets a cold build is bounded by the slowest single
+// sheet (aixi, ~26s), not by how many run alongside it, so 4 vs 12 workers came
+// out identical (40.8s vs 40.7s, interleaved best-of-4). Kept because it costs
+// nothing and stops under-using a big machine as the course grows toward 19
+// days, when the worker count starts to bind. CI runners have 4 cores and land
+// on the old value regardless.
+const DEFAULT_JOBS = availableParallelism?.() ?? 4;
+const JOBS = Math.max(1, parseInt(args.includes("--jobs") ? args[args.indexOf("--jobs") + 1] : String(DEFAULT_JOBS), 10) || DEFAULT_JOBS);
 // positional args are worksheet slugs; none = build everything
 const wanted = [];
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === "--check" || args[i] === "--no-gate") continue;
+  if (args[i] === "--check" || args[i] === "--no-gate" || args[i] === "--no-cache") continue;
   if (args[i] === "--jobs") { i++; continue; }
-  if (args[i].startsWith("-")) { console.error(`unknown flag ${args[i]} — usage: build-content.mjs [--check] [--no-gate] [--jobs N] [slug ...]`); process.exit(1); }
+  if (args[i].startsWith("-")) { console.error(`unknown flag ${args[i]} — usage: build-content.mjs [--check] [--no-gate] [--no-cache] [--jobs N] [slug ...]`); process.exit(1); }
   wanted.push(args[i]);
 }
 
@@ -177,6 +189,82 @@ const stampSchedule = (mdxOut, slug) => {
   writeFileSync(mdxOut, `---\ncluster: ${sc.cluster}\nday: ${sc.day}\n${raw.slice(4)}`);
 };
 
+// ---------------------- per-worksheet build cache ---------------------------
+// Compiling one worksheet is ~6 pdflatex passes, and most builds change a single
+// sheet yet recompile all of them. So each worksheet records a hash of every
+// input that can affect its output; a rebuild is skipped when the hash still
+// matches AND every artifact it would have produced is still on disk. CI keeps
+// those artifacts in actions/cache, so an untouched day costs nothing there too.
+//
+// The hash has to cover everything, or a stale PDF ships silently. Miss an input
+// and the failure mode is invisible — so this errs toward over-hashing: the
+// whole scripts/ tree counts, not just the converter, and schedule.yaml counts
+// because it is stamped into the MDX. `--no-cache` forces a full rebuild.
+const NO_CACHE = args.includes("--no-cache");
+
+// Artifacts share tex/<slug>/ with sources, so top-level generated files are
+// excluded by extension (fig/ is all source, including its .pdf figures, and is
+// hashed whole). Anything not listed here counts as an input by default.
+const ARTIFACT_EXT = /\.(pdf|aux|log|out|toc|nav|snm|bbl|blg|fls|fdb_latexmk|synctex\.gz)$/i;
+const ARTIFACT_NAME = new Set(["main.autolabel.tex", "main-nosol.tex", "main-nosol.mdx", ".build-hash"]);
+
+const hashPath = (h, p) => {
+  if (!existsSync(p)) return;
+  h.update(path.basename(p));
+  h.update(readFileSync(p));
+};
+function hashDir(h, root, all = false) {
+  if (!existsSync(root)) return;
+  for (const e of readdirSync(root, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    // node_modules is a symlink in every worktree (new-worktree.sh) and is
+    // pinned by the lockfiles anyway — never walk it.
+    if (e.name === "node_modules" || e.isSymbolicLink()) continue;
+    if (!all && (ARTIFACT_NAME.has(e.name) || ARTIFACT_EXT.test(e.name))) continue;
+    const p = path.join(root, e.name);
+    h.update(e.name);
+    if (e.isDirectory()) hashDir(h, p, true);
+    else h.update(readFileSync(p));
+  }
+}
+
+const worksheetHash = (slug) => {
+  const h = createHash("sha256");
+  hashDir(h, path.join(TEX, slug));                    // the sheet's own sources
+  hashPath(h, path.join(TEX, "iliad.sty"));            // shared worksheet contract
+  hashPath(h, path.join(TEX, "alphaurl.bst"));         // vendored bibliography style
+  hashDir(h, path.join(ROOT, "scripts"), true);        // converter + this build script
+  hashPath(h, path.join(ROOT, "schedule.yaml"));       // stamped into the frontmatter
+  return h.digest("hex");
+};
+
+// A skip is only safe if everything downstream is already present. That includes
+// the figures: public/uploads belongs to the separate diagram cache, so if that
+// one missed while this one hit, a skipped worksheet would ship broken images.
+// Checking the uploads the cached MDX actually references closes that gap.
+const outputsPresent = (slug) => {
+  const dl = path.join(DOWNLOADS, slug);
+  const mdx = path.join(MODULES, `${slug}.mdx`);
+  // Mirror exactly what step 5 stages, or a sheet becomes permanently
+  // uncacheable. An MDX-authored sheet is a web page and builds no PDF or .tex
+  // at all, so only the two .mdx downloads are guaranteed for it.
+  const need = [mdx, path.join(dl, `${slug}.mdx`), path.join(dl, `${slug}-nosol.mdx`)];
+  if (existsSync(path.join(TEX, slug, "main.tex"))) {
+    need.push(path.join(dl, `${slug}.pdf`), path.join(dl, `${slug}-nosol.pdf`),
+              path.join(dl, `${slug}.tex`), path.join(dl, `${slug}-nosol.tex`));
+  }
+  if (existsSync(path.join(TEX, slug, "slides.tex"))) need.push(path.join(dl, `${slug}-slides.pdf`));
+  if (!need.every(existsSync)) return false;
+  // Anchored on the slug, because this build only ever writes figures to
+  // public/uploads/<slug>/. A bare /uploads/ match would also hit external URLs
+  // that happen to contain that segment (ai-alignment-intro cites one), and the
+  // worksheet would then never be cacheable.
+  const refs = new RegExp(`/uploads/${slug}/([^\\s"')]+)`, "g");
+  for (const m of readFileSync(mdx, "utf8").matchAll(refs)) {
+    if (!existsSync(path.join(UPLOADS, slug, decodeURIComponent(m[1])))) return false;
+  }
+  return true;
+};
+
 /** Build one worksheet. Returns { ok, text } — text is the complete,
  *  atomically printable log block for this slug. */
 async function buildSlug(slug) {
@@ -184,21 +272,44 @@ async function buildSlug(slug) {
   const mdxOut = path.join(MODULES, `${slug}.mdx`);
   const t0 = Date.now();
   const notes = [];
-  const done = (ok, headline = "") => ({
-    ok,
-    text: (ok
-      ? `▸ ${slug} ✓ (${((Date.now() - t0) / 1000).toFixed(1)}s)\n`
-      : `✗ ${slug}: ${headline}\n`) + notes.map((n) => n.replace(/\s*$/, "") + "\n").join(""),
-  });
+  const stamp = path.join(dir, ".build-hash");
+  const done = (ok, headline = "") => {
+    // Record the stamp only on a clean full build: a --check run produces no
+    // artifacts, and a failed one must not look cached on the next attempt.
+    if (ok && !CHECK_ONLY) { try { writeFileSync(stamp, inputHash); } catch { /* non-fatal */ } }
+    return {
+      ok,
+      text: (ok
+        ? `▸ ${slug} ✓ (${((Date.now() - t0) / 1000).toFixed(1)}s)\n`
+        : `✗ ${slug}: ${headline}\n`) + notes.map((n) => n.replace(/\s*$/, "") + "\n").join(""),
+    };
+  };
+  // Cache check. Only for full builds — --check is converter + gate only, cheap
+  // already, and produces none of the artifacts outputsPresent() looks for.
+  const inputHash = CHECK_ONLY ? null : worksheetHash(slug);
+  if (inputHash && !NO_CACHE && existsSync(stamp)
+      && readFileSync(stamp, "utf8").trim() === inputHash
+      && outputsPresent(slug)) {
+    return { ok: true, text: `↷ ${slug} cached (inputs unchanged)\n` };
+  }
+  // Every TeX tool runs with the worksheet folder as cwd. BSTINPUTS adds the
+  // shared tex/ dir to bibtex's style search path so tex/alphaurl.bst — vendored
+  // verbatim from urlbst 0.9.1, 36 KB — satisfies \bibliographystyle{alphaurl}
+  // without the 75 MB texlive-bibtex-extra package. The trailing colon means
+  // "then the normal search path", so a system copy still wins where present.
+  // (tex/singular-learning-theory/far.bst already relies on bibtex finding a
+  // repo-local style; this just hoists the trick to a shared location.)
   const tex = (...argv) =>
-    exec(argv[0], argv.slice(1), { cwd: dir });
+    exec(argv[0], argv.slice(1), {
+      cwd: dir,
+      env: { ...process.env, BSTINPUTS: `${TEX}:${process.env.BSTINPUTS ?? ""}` },
+    });
   // bibtex, staying quiet about the ONE failure that is genuinely fine: a
-  // document with no bibliography at all. Every other failure — a missing
-  // style file (alphaurl.bst lives in urlbst / texlive-bibtex-extra, which is
-  // easy to omit from a minimal TeX Live), an unreadable .bib — leaves no
-  // .bbl behind, and pdflatex then degrades every \cite in the finished PDF
-  // to "[?]" without erroring. Swallowing that shipped three worksheets with
-  // no citations at all while the build stayed green, so it is fatal now.
+  // document with no bibliography at all. Every other failure — a style file
+  // that cannot be opened, an unreadable .bib — leaves no .bbl behind, and
+  // pdflatex then degrades every \cite in the finished PDF to "[?]" without
+  // erroring. Swallowing that shipped three worksheets with no citations at
+  // all while the build stayed green, so it is fatal now.
   const bibtex = async (base) => {
     try {
       await tex("bibtex", base);

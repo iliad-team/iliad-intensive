@@ -319,12 +319,17 @@ natbib's commands are all understood: `\citet` keeps its grammatical form
 ("Watanabe 2009 defines…"), while `\cite`, `\citep`, `\citealp` and
 `\citetext` render parenthesized.
 
-If you reach for a style outside base TeX Live — `alphaurl` comes from
-**urlbst**, packaged as `texlive-bibtex-extra` — add it to both `setup.sh`
-and the workflow's apt list. A style bibtex cannot open produces no `.bbl`,
-and pdflatex then degrades every `\cite` to `[?]` without erroring; the build
-treats any bibtex failure other than "this document has no bibliography" as
-fatal, so it cannot ship unnoticed again.
+A style bibtex cannot open produces no `.bbl`, and pdflatex then degrades every
+`\cite` to `[?]` without erroring — so the build treats any bibtex failure
+other than "this document has no bibliography" as fatal.
+
+`alphaurl` needs no package: it is vendored at `tex/alphaurl.bst` (verbatim from
+urlbst 0.9.1) and found through `BSTINPUTS`, because the Debian package carrying
+it is 75 MB for one 36 KB file. For a style that is neither vendored nor in base
+TeX Live, prefer **vendoring the `.bst`** over adding an apt package — the CI TeX
+download is the build's biggest cost and a slow mirror can stall it for 15+
+minutes. A per-worksheet `.bst` works too
+(`tex/singular-learning-theory/far.bst` does exactly that).
 
 ## Inline marks
 

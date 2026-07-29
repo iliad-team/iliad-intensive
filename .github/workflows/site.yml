@@ -19,7 +19,14 @@ on:
 
 concurrency:
   group: site-${{ github.ref }}
-  cancel-in-progress: true
+  # Superseding an in-flight PR run is what you want: a new push makes the old
+  # preview moot. Superseding a push to MAIN is not — that run carries the
+  # production build and deploy, so cancelling it means the merge silently never
+  # publishes. Three of the last four merges died exactly that way, 3s in, with
+  # "Canceling since a higher priority waiting request for site-refs/heads/main
+  # exists", leaving production several commits behind (broken citations, 404 on
+  # the decks) while every PR check showed green.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Default read-only; the deploy/preview jobs opt into write explicitly.
 permissions:
@@ -31,6 +38,12 @@ jobs:
     # removes the old preview. Every other event builds.
     if: github.event_name != 'pull_request' || github.event.action != 'closed'
     runs-on: ubuntu-latest
+    # A healthy run is ~3 minutes. The one unbounded step is the TeX download,
+    # which a degraded Ubuntu mirror has stalled past 15 minutes while still
+    # *looking* like progress. Fail at 8 instead: a run that slow has already
+    # missed the point, and a clear timeout beats a job that appears busy.
+    # Re-running is the fix; the mirror is usually fine on the next attempt.
+    timeout-minutes: 8
     steps:
       # lfs: true — figures under tex/**/fig/*.png are stored in Git LFS
       # (.gitattributes). Without this the working tree gets pointer files, and
@@ -59,15 +72,22 @@ jobs:
       - name: TeX Live + poppler
         # Keep this list in sync with ./setup.sh — it is the reference package
         # set. cm-super: scalable CM fonts, needed by microtype's font
-        # expansion under [T1]{fontenc}. texlive-bibtex-extra: ships urlbst, whose
-        # alphaurl.bst several worksheets and every deck select; without it
-        # bibtex cannot open the style, writes no .bbl, and every \cite in the
-        # PDF silently becomes "[?]".
+        # expansion under [T1]{fontenc}.
+        #
+        # This download is the job's biggest single cost and a slow Ubuntu
+        # mirror can stall it for 15+ minutes, so keep it lean. Two packages are
+        # deliberately absent rather than forgotten:
+        #   texlive-bibtex-extra (75 MB) — was installed for one 36 KB file,
+        #     alphaurl.bst; that is vendored at tex/alphaurl.bst and found via
+        #     BSTINPUTS (see scripts/build-content.mjs).
+        #   texlive-science (4 MB) — hard-depends on texlive-lang-greek (75 MB)
+        #     and its only user here was stmaryrd, for two bracket glyphs now
+        #     built from kernel pieces.
+        # Together ~154 MB, roughly half what this step used to fetch.
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y --no-install-recommends \
-            texlive-latex-extra texlive-pictures texlive-science \
-            texlive-bibtex-extra \
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
+            texlive-latex-extra texlive-pictures \
             texlive-fonts-recommended cm-super poppler-utils
           # contributor LaTeX is untrusted: never enable shell-escape
 
@@ -92,6 +112,31 @@ jobs:
           path: public/uploads
           key: tikz-${{ hashFiles('tex/**') }}
           restore-keys: tikz-
+
+      # Worksheet artifacts, so a day nobody touched is not recompiled. Each
+      # worksheet stores a hash of its inputs in tex/<slug>/.build-hash and the
+      # build skips it when that hash matches AND its artifacts are all still
+      # here (scripts/build-content.mjs) — restoring them is what makes the skip
+      # possible. Deliberately NOT caching public/uploads: the diagram cache
+      # above owns that path, and two cache actions on one path fight. The skip
+      # check verifies every /uploads/ path its MDX references, so a diagram-cache
+      # miss forces a rebuild rather than shipping a figure-less page.
+      #
+      # The key intentionally never hits (it carries the commit sha), so the
+      # cache is rewritten every run and restore-keys pulls the newest one —
+      # per-worksheet granularity lives in the hashes, not in the cache key.
+      - name: Restore worksheet build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            tex/*/.build-hash
+            tex/*/*.pdf
+            tex/*/*.aux
+            tex/*/*.bbl
+            content/modules
+            public/downloads
+          key: worksheets-${{ github.sha }}
+          restore-keys: worksheets-
 
       # The SAME command developers and the pre-push hook run locally
       # (./run.sh ci) — one definition in package.json, no drift. The base path
