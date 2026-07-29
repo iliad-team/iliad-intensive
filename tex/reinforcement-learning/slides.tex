@@ -1,0 +1,1190 @@
+% Read only link: https://www.overleaf.com/read/nzcgzksgzgvz#4f4bf3
+
+% to turn into handout mode, add [10pt, a4paper, handout]
+% Reveals are \pause'd. Define \HANDOUT to collapse them into a static
+% handout; the site build produces both variants (see docs/commands.md).
+\ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
+\documentclass[10pt,a4paper]{beamer}
+\usepackage[latin1]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usetheme{Madrid}
+\usepackage{ulem}
+\usepackage{algorithm2e}
+\usepackage{algpseudocode}
+\usepackage{diffcoeff}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{cancel}
+\usepackage{pgfplots}
+\usepackage{background}
+\usepackage{stmaryrd}
+\usepackage{ulem}
+\usepackage{tikz}
+\usepackage{subcaption}
+\usepackage{ifthen}
+
+% for algo.tex
+%\usepackage{algorithm}
+%\usepackage{algpseudocode}
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=white,
+    filecolor=magenta,      
+    urlcolor=cyan,
+}
+\urlstyle{same}
+
+
+\DeclareMathOperator*{\argmin}{\arg\!\min}
+
+\usetikzlibrary{calc, fadings, decorations.pathreplacing, automata, positioning, arrows, shapes.geometric, arrows.meta, positioning}
+
+
+
+\algnewcommand\algorithmicinput{\textbf{Input:}}
+\algnewcommand\Input{\item[\algorithmicinput]}
+
+\algnewcommand\algorithmicoutput{\textbf{Output:}}
+\algnewcommand\Output{\item[\algorithmicoutput]}
+
+\algnewcommand\algorithmiceffect{\textbf{Effect:}}
+\algnewcommand\Effect{\item[\algorithmiceffect]}
+
+
+\newcommand{\biject}{\langle \cdot \rangle}
+\newcommand{\bij}[1]{\langle {#1} \rangle}
+
+\renewcommand{\S}{\mathcal{S}}
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\R}{\mathcal{R}}
+\renewcommand{\Pr}{\text{Pr}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\iter}{\xrightarrow{I}}
+\newcommand{\eval}{\xrightarrow{E}}
+\newcommand{\bth}{{\boldsymbol{\theta}}}
+\newcommand{\pth}{{\boldsymbol{\phi}}}
+\renewcommand{\P}{\text{P}}
+\newcommand{\Ex}{\mathbb{E}}
+\newcommand{\iver}[1]{\llbracket  {#1} \rrbracket}
+
+
+\newcommand{\bs}[1][]{%
+	\begin{tikzpicture}[baseline,x=0.8\ht\strutbox,y=0.8\ht\strutbox,line width=0.125ex,#1]
+		\def\arm{(-2.5,0.95) to (-2,0.95) (-1.9,1) to (-1.5,0) (-1.35,0) to (-0.8,0)};
+		\draw \arm;
+		\draw[xscale=-1] \arm;
+		\def\headpart{(0.6,0) arc[start angle=-40, end angle=40,x radius=0.6,y radius=0.8]};
+		\draw \headpart;
+		\draw[xscale=-1] \headpart;
+		\def\eye{(-0.075,0.15) .. controls (0.02,0) .. (0.075,-0.15)};
+		\draw[shift={(-0.3,0.8)}] \eye;
+		\draw[shift={(0,0.85)}] \eye;
+		% draw mouth
+		\draw (-0.1,0.2) to [out=15,in=-100] (0.4,0.95); 
+\end{tikzpicture}}
+
+%to disable pauses, uncomment
+%\renewcommand{\onslide}[2]{#1}
+
+
+
+\begin{document}
+
+\title[Reinforcement Learning Basics Any\% Speedrun] %optional
+{Reinforcement Learning Basics Any\% Speedrun }
+
+ 
+\author[David Quarel] % (optional, for multiple authors)
+{David Quarel}
+ 
+\institute[ARENA] % (optional)
+{
+  ARENA
+}
+ 
+\date[\today] % (optional)
+{\today}
+ 
+\frame{\titlepage}
+
+\begin{frame}
+\frametitle{What is Reinforcement Learning?}
+\begin{itemize}
+	\item Up to this point we've been mostly within the regime of 
+	supervised learning
+	\begin{enumerate} 
+		\item We have access to labelled training data
+		\item  Agent only sees ``real world'' once it's already performing well 
+		\item Data is i.i.d between batches 
+		\item No planning required, future predictions don't depend on past
+		predictions
+	\end{enumerate}  
+	\pause
+	\item RL is vastly different: Agent takes actions in an interactive environment,
+	receive scalar reward as feedback. This lends itself to several problems:
+	\begin{enumerate}
+		\item  \textbf{Sparse reward:} Sparse feedback to do good
+
+		\item \textbf{Reward attribution:} Which action mattered?
+
+		\item \textbf{No ground truth:} Optimal policy unknown
+
+		\item \textbf{Explore vs. Exploit tradeoff:}
+		\begin{enumerate}
+			\item \textbf{Exploration:} Learn how the world works
+			\item \textbf{Exploitation:} Exploit best understanding to get reward
+		\end{enumerate} 
+	\item \textbf{(often) Online only:} No clear distinction between training and testing.
+	\end{enumerate} 
+\end{itemize}
+	
+\end{frame}
+
+ 
+\begin{frame}
+\begin{figure}
+	\centering
+	\includegraphics[width=1\linewidth]{fig/yann}
+\end{figure}
+\end{frame}
+%
+\begin{frame}
+	\begin{figure}
+	\includegraphics[width=1\linewidth]{fig/cherry}
+	\end{figure}
+\end{frame}
+
+
+% SKIP ALL TEH BANDITS STUFF
+
+% \begin{frame}
+% 	\frametitle{Multi-Armed Bandits}
+% 	\begin{itemize}
+% 		\item The simplest type of RL environment with interaction
+% 		% \pause
+% 		\item Agent has a set of ``arms'' 
+% 		(actions) $\A$. Environment has a family of (unknown) reward distributions
+% 		$\{p_a\}_{a \in \A}$ for each action.
+% 		% \pause
+% 		\item On timestep $t$, agent chooses action $a_t$ and receives
+% 		reward $r_t \sim p_{a_t}(\cdot)$.
+% 		% \pause
+% 		\item Goal: always choose the arm with the highest
+% 		expected payout:
+% 		$$
+% 		q_*(a) = \mathbb{E}[r_t | a_t = a]
+% 		$$
+% 		% \pause
+% 		\item Need to balance trying all the arms to get a
+% 		good estimate of the value of each arm, v.s. always trying
+% 		to pull the best arm.
+% 	\end{itemize}
+% \end{frame}
+
+% \begin{frame}
+% 	\begin{figure}
+% 		\centering
+% 		\includegraphics[width=0.9\linewidth]{fig/bandito}
+% 		\label{fig:bandito}
+% 	\end{figure}
+% \end{frame}
+
+% \begin{frame}{Bandit Algorithm}
+% 	\begin{itemize}
+% 		\item $\hat{Q}_t(a)$ is the agent's estimate of the reward 
+% 		of playing arm $a$, having access to the history of rewards
+% 		up to time $t$.
+% 		$$
+% 		\hat{Q}_t(a) = \frac{\text{sum of rewards when $a$ chosen up to timestep $t$}}
+% 		{\text{number of times $a$ chosen up to timestep $t$}}
+% 		$$
+% 		% \pause 
+% 		\item
+% 		$\hat{Q}_t(a)$ represents the empirical average reward obtained from action $a$
+% 		up to and including timestep $t$. 
+% 		% \pause 
+% %		\item In practice, easier to init 
+% %		$\hat{Q}_1(a) = \hat{R}_1(a) = \hat{N}_1(a) = 0$ and
+% %		\begin{align*}
+% %			&\hat{R}_{t+1}(a) \leftarrow \hat{R}_{t}(a) + r_t \iver{a_t=a} \\
+% %		& \hat{N}_{t+1}(a) \leftarrow \hat{N}_{t}(a) + \iver{a_t=a} \\
+% %		& \hat{Q}_{t+1}(a) \leftarrow \frac{\hat{R}_{t+1}(a)}{N_{t+1}(a)}
+% %		\end{align*}
+% %	where $\iver{P} = 1$ if $P$ evaluates to True, else $\iver{P}=0$.
+% 	% \pause 
+% 	\item Choose arm with highest estimated payout: $a_{t+1} := \argmax \hat{Q}_t(a)$.
+% 	% \pause
+% 	\item \textbf{Problem:} Can get stuck with a suboptimal arm.
+% 	\end{itemize}
+% \end{frame}
+
+% \begin{frame}{Encouraging Exploration}
+% 	\begin{enumerate}
+% 		\item \textbf{First approach:} Just do random stuff every now and 
+% 		again, hope for the best
+% 		$$
+% 		a^{\epsilon-greedy}_t = \begin{cases}
+% 			\text{Do random action} & \text{Prob } \epsilon \\
+% 			\argmax_{a'} \hat{Q}_t(a') & \text{Prob } 1-\epsilon 
+% 		\end{cases}
+% 		$$
+% 		\pause
+% 		\item \textbf{Better approach:} Give a bonus to actions seldom taken
+% 		\begin{align*}
+% 		a^{UCB}_t &= \argmax_{a'}
+% 		\left( 
+% 		\underbrace{\hat{Q}_t(a')}_{\text{reward estimate}} + \underbrace{c \sqrt{\frac{\ln t}{N_t(a')}}}_{\text{exploration bonus}}
+% 		\right) \\
+% 		\text{where } N_t(a) &= \text{number of times $a$ chosen during timesteps $1, \ldots, t$}
+% 		\end{align*}
+% 		% \pause
+% 		\item \textbf{Intuition:} Error of
+% 		$\hat{Q}_t(a)$ is  $\propto \frac{1}{\sqrt{N_t(a)}}$. Add a bonus proportional to variance,
+% 		so actions with high variance $\equiv$ few samples get explored
+% 		% \pause
+% 		\item Add $\ln t$ to numerator to ensure every action is sampled
+% 		infinitely often. \href{https://tor-lattimore.com/downloads/book/book.pdf}{Theory} says $\ln t$ and $c=2$ best.
+% 	\end{enumerate}
+	
+% \end{frame}
+
+% END OF BANDITS STUFF
+
+\begin{frame}
+	\frametitle{Agent-Environment Interaction Loop (MDPs)}
+	\begin{itemize}
+		\item MDP is 4-tuple $(\S, T, \A, R)$:
+			\begin{itemize}
+				\item \textit{states} $\S$
+				\item \textit{actions} $\A$
+				\item \textit{transition distribution} $T : \S \times \A \to \Delta \S$. $T(s' | s, a) = \Pr(s_{t+1} = s' | s_t = s, a_t = a)$.
+				\item \textit{reward function} $R : \S \times \A \times \S \to \mathbb{R}$
+			\end{itemize}
+		\pause
+		\item Agent has \textit{policy} $\pi : \S \to \Delta \A$. $\pi(a|s) = \Pr(a_t = a | s_t = s)$.
+		\pause
+		\item On timestep $t$, 
+		\begin{itemize}
+			\item Agent samples $a_t \sim \pi(\cdot | s_t)$, gives action $a_t$ to environment. 
+			\item Environment samples $s_{t+1} \sim T(\cdot \mid s_t,a_t)$, computes $r_{t+1} = R(s_t, a_t, s_{t+1})$, and gives \textit{percept} $(s_{t+1}, r_{t+1})$ to agent.
+		\end{itemize}
+		\pause
+		\item Generates an interaction history, or \textit{trajectory}
+			$$
+			s_0, a_0, r_1, s_1, a_1, r_2, s_2, a_2, r_3, s_3, \ldots
+			$$
+			\vspace{-0.5cm}
+	\end{itemize}
+		\begin{figure}
+			\centering
+			\includegraphics[width=0.5\linewidth]{fig/loop}
+			\label{fig:loop}
+		\end{figure}
+		
+\end{frame}
+
+\begin{frame}
+	\frametitle{Objective of the Agent}
+	
+	\begin{itemize}
+		\item At timestep $t$, the \textit{return} $G_t$ is the sum
+		of all future rewards:
+		$$
+		G_t = r_{t+1} + r_{t+2} + r_{t+3} + \ldots 
+		$$
+		\pause
+        \vspace{-0.6cm}
+		\item \textbf{Goal}: Maximise the return.
+		\pause
+		\begin{itemize}
+			\item For episodic  
+			(finite length interaction) environments of maximum duration $T$,
+			return $G_t = r_{t+1} + r_{t+2} + \ldots + r_T$ well defined.   
+		\end{itemize}
+		\pause
+		\item \textbf{Problems:} (for continuing environments)
+		\begin{itemize}
+			\item The return may diverge or be undefined
+            % \begin{itemize}
+			%  \item compare $2,2,2,2,\ldots$ with $1,1,1,1,\ldots$
+            %  \end{itemize}
+            \pause
+			\item The agent might be lazy
+            %  \begin{itemize}
+            %     \item compare $1,1,1\ldots$ with $0,0,\ldots, 0, 1,1,1,\ldots$
+            % \end{itemize}
+            \pause
+			\item The environment is stochastic, and the rewards are often
+			up to chance. How to trade-off unlikely big rewards with
+			likely small rewards?
+            \pause
+			\item May desire rewards now to be more valuable than rewards later:
+			\$100 now? Or \$110 in a year?
+		\end{itemize}
+		\pause
+		\item \textbf{Solutions:} 
+		\begin{itemize}
+			\item Add a discount factor $\gamma \in [0, 1)$
+			so rewards more imminent are worth more, and the
+			return is always well defined.
+			$$
+			G_t = r_{t+1} + \gamma r_{t+2} + \gamma^2 r_{t+3} + \ldots 
+			$$
+			\item Want agent to choose actions to
+			maximise the \textit{expected} return.
+		\end{itemize}
+		
+	\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\frametitle{Core Assumptions}
+
+These kind of environments are called \textit{Markov Descision Processes} (MDPs),
+and have the following ``nice'' properties
+\begin{enumerate}
+	\pause
+		\item \textbf{Stationary:} The environmental distribution $T$
+		is fixed and does not change over time
+		% \begin{itemize}
+		% 	\item \textit{Old data is as useful as new data}
+		% \end{itemize}
+		\pause
+		\item \textbf{Markovian:} The behaviour of the environment
+		depend only on the current state $s_t$
+		and action $a_t$. 
+		% \begin{itemize}
+		% 	\item \textit{Only need to consider the current state to act optimally,
+		% 	the past is irrelevant}
+		% \end{itemize}
+	\pause
+		\item \textbf{Fully Observable:} The state is a full description
+		of the world
+		% \begin{itemize}
+		% 	\item \textit{Agent always has access to sufficient information to 
+		% 	(at least in principle) choose the optimal action}
+		% \end{itemize}
+	\pause
+		\item \textbf{Reward Hypothesis:} 
+		\begin{quote}
+			``That all of what we mean by goals and purposes can be well thought of as
+			the maximization of the expected value of the cumulative sum of a received
+			scalar signal (called reward).'' -Rich Sutton
+			% \begin{itemize}
+			% 	\item Reward alone is sufficient to communicate any desired behaviour
+			% \end{itemize}
+		\end{quote}
+\end{enumerate}
+
+\end{frame}
+
+\begin{frame}
+\frametitle{Value Function}
+
+\begin{itemize}
+	\item Want to define the ``goodness'' (\textit{value}) of a state, so the agent can take
+	actions to move towards ``good'' states, and away from ``bad'' states.
+	\pause
+	\item The value of a state depends also on the current policy $\pi$ chosen
+	by the agent.
+	\pause
+	\begin{block}{Value Function}
+		\vspace{-0.4cm}
+		\begin{align*}
+		V_\pi(s) =& \mathbb{E}_\pi [G_t | s_t =  s]
+		\end{align*}
+	\end{block}
+(Expectation is also with respect to the transitional distribution $T$.)
+\end{itemize}
+	
+\end{frame}
+
+
+\begin{frame}
+	\frametitle{Bellman Equation}
+We note that since 
+\begin{align*}
+G_t &= r_{t+1} + \gamma r_{t+2} + \gamma^2 r_{t+3} + \ldots \\
+&= r_{t+1} + \gamma (r_{t+2} + \gamma r_{t+3} + \ldots) \\
+&= r_{t+1} + \gamma G_{t+1}
+\end{align*}
+\pause
+we can then define the value function recursively,
+\begin{align*}
+\onslide<2->{V_\pi(s) &= \mathbb{E}_\pi [G_t \mid s_t = s]}\\
+\onslide<3->{&= \mathbb{E}_\pi [r_{t+1} + \gamma G_{t+1} \mid s_t = s]} \\
+\onslide<4->{&= \mathbb{E}_\pi [r_{t+1} \mid s_t = s]
++ \gamma \mathbb{E}_\pi [G_{t+1} \mid s_t = s]} \\
+\onslide<5->{&= \sum_{a} \pi(a | s) \sum_{s' } T(s' | s, a) R(s,a,s')  \\
+&\quad + \gamma \sum_{a} \pi(a | s) \sum_{s'} T(s' | s, a) 
+\mathbb{E}_\pi [G_{t+1} \mid s_{t+1} = s']} \\
+\onslide<6->{&= \sum_{a} \pi(a | s) \sum_{s' } T(s' | s, a) \left( R(s,a,s') + \gamma V_\pi(s') \right)}
+	\end{align*}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Policy Evaluation}
+	This gives the \textbf{Bellman equation}
+	\begin{block}{Bellman Equation}
+		$$
+		V_\pi(s) = \sum_{a \in \A} \pi(a | s) \sum_{s' \in \S} T(s' | s, a) \left( R(s,a,s') + \gamma V_\pi(s') \right) 
+		$$
+	\end{block}
+
+\begin{itemize}
+	\pause
+\item Equation is linear in $V_{\pi}(\cdot)$, 
+giving a set of \textbf{linear} simultaneous equations.
+\pause
+\item Given policy $\pi$, can now easy solve for $V_{\pi}(s_1), V_{\pi}(s_2), \ldots$
+\pause
+\item Computing $V_\pi$ from $\pi$ is called \textbf{policy evaluation}, denote $\pi \overset{E}{\rightarrow} V_\pi$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+\begin{block}{Bellman Equation (stochastic policy)}
+	$$
+	V_\pi(s) = \sum_{a \in \A} \pi(a | s) \sum_{s' \in \S} T(s' | s, a) \left( R(s,a,s') + \gamma V_\pi(s') \right) 
+	$$
+\end{block}
+
+Assuming policy $\pi : S \to A$ is deterministic
+\begin{block}{Bellman Equation (deterministic policy)}
+	$$
+	V_\pi(s) = \sum_{s'} T(s' | s, a) \left( R(s,a,s') + \gamma V_\pi(s') \right) 
+	$$
+	where $a = \pi(s)$.
+\end{block}
+\pause
+Only need to sum over all states to find equation for $V_\pi(s)$ 
+in terms of the value of all states $\{V_\pi(s')\}_{s' \in \S}$. 
+\end{frame}
+
+
+
+\begin{frame}
+	\begin{itemize}
+		\item States $\S = {s_0, s_L,s_R}$, actions $\A = \{a_L, a_R\}$,
+		possible rewards $\R= \{0,1,2\}$.
+		\item Each transition indicates if an action is taken, the reward returned
+		and which state to transition to
+		\item What is the best action from state $s_0$?
+	\end{itemize}
+	\frametitle{Example Environment}
+		\begin{figure}
+		\centering
+		\includegraphics[width=0.7\linewidth]{fig/w3d2_env1}
+		\label{fig:w3d2env1}
+	\end{figure}
+	\pause
+	\textbf{Exercise:} Depends on the choice of $\gamma$! Verify that
+	\begin{align*}
+		V_{\pi_L}(s_0) &= \frac{1}{1-\gamma^2} \quad
+		V_{\pi_R}(s_0) = \frac{2\gamma}{1-\gamma^2}
+	\end{align*}
+	so breakeven is at $\gamma = \frac{1}{2}$.
+\end{frame}
+
+
+\begin{frame}
+	\frametitle{Optimal Bellman}
+	\begin{itemize}
+		\item Policy $\pi_1$ is \textbf{better} than $\pi_2$ ($\pi_1 \geq \pi_2$)
+		if $\forall s. V_{\pi_1}(s) \geq V_{\pi_2}(s)$. A policy is \textbf{optimal}
+		if it is better than all other policies. 
+		\pause
+		\item \textbf{Theorem:} An optimal policy $\pi^*$ always exists (may not be unique). 
+		Define optimal value function as 
+		$$
+		V_*(s) := \max_{\pi} V_{\pi}(s) \equiv V_{\pi^*}(s)
+		$$
+		\pause
+	\end{itemize}
+
+\begin{block}{Optimal Bellman Equation}
+	$$
+	V_*(s) = \max_a \sum_{s'} T(s' | s, a) \left( R(s,a,s') + \gamma V_*(s') \right)
+	$$
+\end{block}
+Gives a set of \textbf{non-linear} simultaneous equations with variables
+$ V_*(s_1),  V_*(s_2), \ldots$
+%\pause
+\textbf{Problem:} No clear way to solve for $V_*(\cdot)$
+%\pause
+
+Can't just compute $V_\pi$ using policy evaluation for all $\pi$, as
+there are $|\A|^{|\S|}$ many to choose from.
+
+\end{frame}
+
+\begin{frame}
+	\frametitle{Policy Improvement}
+	\begin{itemize}
+		\item Obviously we have that
+		\begin{align}
+		V_*(s) = & \red{\max_a} \sum_{s'} T(s' | s, \red{a}) \left( R(s,\red{a},s') + \gamma \red{V_*(s')} \right) \\
+		\geq 
+		& \red{\max_a} \sum_{s'} T(s' | s, \red{a}) \left( R(s,\red{a},s') + \gamma \red{ V_{\pi}(s') } \right) \\
+		\geq & \sum_{s'} T(s' | s, \red{\pi(s)}) \left( R(s,\red{\pi(s)},s') + \gamma \red{V_\pi(s')} \right) \\
+         = & V_\pi(s)
+		\end{align}
+		\pause
+		
+		\item Given the value of a policy $V_\pi$, can feed it through the optimal Bellman
+		equation (2) to get a better policy $\pi'$. Denote $V_\pi \overset{I}{\rightarrow} \pi'$.
+	\end{itemize}
+\pause
+\begin{block}{Policy Improvement}
+$$
+\pi'(s) := \argmax_a \sum_{s'} T(s' | s,a) 
+\left( R(s,a,s') + \gamma V_{\pi}(s') \right)
+$$
+\end{block}
+\textbf{Exercise:} Prove $\pi' \geq \pi$.
+\end{frame}
+
+
+\begin{frame}{Policy Iteration}
+
+\begin{block}{Policy Improvement (I)}
+	$$
+	\pi'(s) \leftarrow \argmax_a \sum_{s'} T(s' | s,a) 
+	\left( R(s,a,s') + \gamma V_{\pi}(s') \right)
+	$$
+\end{block}
+
+	\begin{block}{Policy Evaluation (E)}
+	Solve
+	$$
+	V_\pi(s) = \sum_{a} \pi(a | s) \sum_{s'} T(s' | s, a) \left( R(s,a,s') + \gamma V_\pi(s') \right) 
+	$$ for $V_\pi(s_1), V_\pi(s_2), \ldots$.
+\end{block}
+
+\pause
+\begin{itemize}
+	\item Start with arbitrary policy $\pi_0$.
+	%\pause
+	\item Note that $\pi_*$ is fixed point of policy improvement.
+	%\pause
+	\item Alternate until policy is stable
+\end{itemize}
+%\pause
+$$
+\pi_0 \eval V_{\pi_0} \iter \pi_1 \eval V_{\pi_1} \eval \pi_2 \iter V_{\pi_2}
+\eval \ldots \iter \pi_* \eval V_{\pi^*} \iter \pi_* 
+$$
+\pause
+\textbf{Theorem:} Policy iteration converges to optimal policy in finitely 
+many steps!
+\end{frame}
+
+
+\begin{frame}
+    \frametitle{Slippery Gridworld}
+    \include{single_gridworld}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Optimal Policy for Slippery Gridworld}
+    % \begin{figure}
+    %     \centering
+    %     \includegraphics[width=1\linewidth]{fig/gridworld_policy}
+    %     \label{fig:gridworldpolicy}
+    % \end{figure}
+    \include{gridworld}
+    \vspace{-1.3cm}
+    \pause
+    \begin{enumerate}[(a)]
+        \item \textbf{Patient:} The penalty is slight, so the agent takes the long way around to get to heaven.
+        \pause
+        \item \textbf{Risky:} The penalty is moderate, so the agent takes the shortest path to heaven, risking hell
+        along the way.
+        \pause
+        \item \textbf{Agony:} The penalty is severe, so the agent wants to end the episode as quickly as possible.
+        \pause
+        \item \textbf{Bliss:} The reward is positive on each timestep, 
+		so the agent runs away from heaven or hell to drag out the episode as long as possible.  
+    \end{enumerate}
+\end{frame}
+
+\begin{frame}
+	\small{
+    \frametitle{Glossary}
+    \begin{itemize}
+        \item \textbf{Transition} distribution $T : \S \times \A \to \Delta \S$, sample $s' \sim T(\cdot | s,a)$.
+        \item \textbf{Reward} function $R : \S \times \A \times \S \to \mathbb{R}$, write \textbf{reward} $r_{t+1} := R(s_t, a_t, s_{t+1}$)
+        \item \textbf{Policy} $\pi : \S \to \Delta \A$ (stochastic) or $\pi : \S \to \A$ (deterministic), take $a_{t} = \pi(s_t)$ or sample $a_{t} \sim \pi(\cdot | s_t)$.
+        \item \textbf{History/Trajectory}
+        $
+        s_0, a_0, r_1, s_1, a_1, r_2, s_2, a_2, r_3, s_3, \ldots
+        $
+        \item \textbf{Agent} is the algorithm that selects the \textit{policy} based on the \textit{history}.
+        \item \textbf{Discount} $\gamma \in [0,1)$. Adjusts how far-sighted agent is. $\gamma = 0$ is \emph{myopic}. $\gamma \to 1$ is \emph{far-sighted}.
+        \item \textbf{Return} $G_t = r_{t+1} + \gamma r_{t+2} + \gamma^2 r_{t+3} + \ldots = r_{t+1} + \gamma G_{t+1}$ is sum of \textit{future discounted rewards}.
+        \item \textbf{Goal} is to \textbf{maximise} $G_t$.
+        \item \textbf{Value} function $V_{\pi}(s) = \mathbb{E}_\pi [ G_t | s_t = s]$.
+        \item \textbf{Bellman} equation 
+        $
+        V_\pi(s) = \sum_{s' \in \S} T(s' | s, a) \left( R(s,a,s') + \gamma V_\pi(s') \right) 
+        $ 
+		\item \textbf{Policy Improvement}
+			$
+			\pi'(s) \leftarrow \argmax_{a \in \A} \sum_{s' \in \S} T(s' | s,a) 
+			\left( R(s,a,s') + \gamma V_{\pi}(s') \right)
+			$
+		\item \textbf{Policy Evaluation}
+			Solve
+			$
+			V_\pi(s) = \sum_{a \in \A} \sum_{s' \in \S} T(s' | s, a) \left( r + \gamma V_\pi(s') \right) 
+			$ for $V_\pi(s_1), V_\pi(s_2), \ldots$.
+        
+        \hspace{0pt}
+        \rule{0.3\textwidth}{0.5pt}
+        \vspace{0.1cm}
+        
+        
+        \footnotesize{$\Delta X$ is the set of all probability vectors $[p_1, \ldots, p_n]$ over outcomes in $X$.}
+    \end{itemize}
+	}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Problems with Policy Iteration}
+    
+    \begin{block}{Policy Improvement (I)}
+        $$
+        \pi_{n+1}(s) \leftarrow \argmax_a \sum_{s'} T(s' | s,a) 
+        \left( R(s,a,s') + \gamma V_{\pi_n}(s') \right)
+        $$
+    \end{block}
+    
+    \begin{block}{Policy Evaluation (E)}
+        Solve
+        $$
+        V_\pi(s) = \sum_{a} \pi(a | s) \sum_{s'} T(s' | s, a) \left( R(s,a,s') + \gamma V_\pi(s') \right) 
+        $$ for $V_\pi(s_1), V_\pi(s_2), \ldots$.
+    \end{block}
+    
+    \begin{itemize}
+        \item Requires white-box access to the environmental distribution $T$
+        and reward function $R$.
+        \item Only works for environments with few enough states and actions
+        to sweep through.
+    \end{itemize}
+    \pause
+    For the moment, we weaken only the first assumption. Environment
+    is black box, sample percepts $(s',r)$ given state-action pair $(s,a)$ from unknown
+	$T$ and $R$.
+    
+\end{frame}
+
+\begin{frame}
+\frametitle{Temporal Difference Learning}
+
+\begin{itemize}
+	\item \textbf{Goal:} Perform policy evaluation without access to environmental
+	distribution.
+	\pause
+	\item \textbf{Motivation:} Consider once again the value function:
+	\begin{align*}
+		V_\pi(s) = 
+		\underset{\substack{a = \pi(s) \\ s' \sim T(\cdot | s, a)}}{\mathbb{E}} \left[ R(s,a,s') + \gamma V_\pi(s') \right] 
+	\end{align*}
+\pause
+	On timestep $t$, this is \textit{on average}, equal to the actual reward $r_{t+1}$, plus the discounted value of the actual next state $s_{t+1}$.
+	$$
+	V_{\pi}(s_t) \approx r_{t+1} + \gamma V_{\pi}(s_{t+1})
+	$$
+	\pause
+\end{itemize}
+\vspace{-0.5cm}
+We define the \textbf{TD-Error} as the difference 
+$$
+\delta_t := r_{t+1} + \gamma V_\pi(s_{t+1}) - V_\pi(s_t)
+$$
+\pause
+This then gives us an update rule to improve on our estimate $\hat{V}_\pi$ 
+of $V_\pi$,
+similar to SGD, called \textit{TD(0)}.
+\begin{align*}
+\hat{V}_\pi(s_t)  \leftarrow &\hat{V}_\pi(s_t) + \alpha \delta_t  
+ \equiv \hat{V}_\pi(s_t) + \alpha \left( r_{t+1} + \gamma \hat{V}_\pi(s_{t+1}) - \hat{V}_\pi(s_t) \right) 
+\end{align*}
+where $\alpha \in (0,1]$ is the \textbf{learning rate}.
+
+\textbf{Theorem:} Given $\alpha \to 0$ in a nice way, 
+TD(0) guaranteed to converge to $V_\pi$. 
+
+%\pause
+%\begin{block}{Problem 1}
+%Only the value of a single state is updated on each time step. States that were visited along the way to a high reward state
+%presumably are also states that the agent should desire to visit, so they should be updated too.
+%\end{block}
+\end{frame}
+
+\begin{frame}{Q-Value}
+	\begin{itemize}
+		\item \textbf{Q-value} is the expected return
+		from state $s$, taking action $a$, and thereafter following policy $\pi$. 
+	\end{itemize}
+$$
+Q_\pi(s,a)	= \mathbb{E}_\pi [G_t  | s_t =  s, a_t = a]
+$$
+\pause
+Contrast with the value function
+$$
+V_\pi(s)= \mathbb{E}_\pi [G_t  | s_t =  s]
+$$
+\pause
+\begin{block}{Q-value Bellman}
+	$$
+	Q_\pi(s,a) = \sum_{s'} T(s' | s, a) \left( R(s,a,s') + \gamma Q_\pi(s', a') \right)
+	$$
+	where $a' = \pi(s')$
+\end{block}
+\begin{block}{Optimal Q-value Bellman}
+	$$
+	Q_*(s,a) = \sum_{s'} T(s' | s, a) \left( R(s,a,s') + \max_{a'} Q_*(s', a') 
+	\right)
+	$$
+\end{block}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Q-value vs. Value}
+	
+\textbf{Exercise:} Can state $Q$ in terms of $V$, and vice-versa.
+\begin{align*}
+Q_\pi(s,a) &= \sum_{s'} T(s' | s,a) \left( R(s,a,s') + \gamma V_\pi(s') \right) \\
+V_\pi(s) &= \sum_{s'} T(s' | s, \pi(s)) \left( R(s,a,s') 
+	+ \gamma Q_\pi(s', \pi(s')) \right) \\
+	\intertext{\quad}
+	Q_*(s,a) &= \sum_{s'} T(s' | s,a) \left( R(s,a,s') + \gamma V_*(s') \right) \\
+	V_*(s) &= \max_a \sum_{s'} T(s' | s, a) \left( R(s,a,s') 
+	+ \gamma \max_{a'} Q_*(s', a') \right) \\
+\end{align*}
+
+\end{frame}
+
+
+\begin{frame}
+	\frametitle{Motivation for Q-Value}
+\begin{itemize}
+\item So far, we have been learning a policy $\pi$, and using
+$\pi$ to compute $V_\pi$.
+\pause
+\item Even if we were given $V_*$ directly,
+can't recover $\pi_*$ without white-box access to $T$ and $R$ (environment).
+$$
+\pi_*(s) = \argmax_a \sum_{s'} \red{T(s'| s, a)} \left( 
+\red{R(s,a,s')} + 
+\gamma V_*(s') \right)
+$$  \pause
+		\item However, given $Q_*$, we can directly recover $\pi_*$
+		$$
+		\pi_*(s) = \argmax_a Q_*(s,a)
+		$$
+		\pause
+		\item \textbf{Idea:} Learn $Q_*$ instead, argmax to recover policy $\pi_*$
+\end{itemize}
+\end{frame}
+
+%
+\begin{frame}
+	\frametitle{SARSA: On-Policy TD Control}
+Apply same argument as TD(0) to the Q-Value
+\begin{align*}
+	Q_*(s,a) = 
+	\underset{\substack{s' \sim T(\cdot | s, a)}}{\mathbb{E}} \left[ R(s,a,s') + \gamma Q_*(s', \pi_*(s')) \right]
+\end{align*}
+\pause
+On timestep $t$, this is ``\textit{on average}'', equal to the actual reward $r_{t+1}$, plus the discounted Q-value of the actual next state-action pair $s_{t+1},a_{t+1}$.
+$$
+Q_{*}(s_t, a_t) \approx r_{t+1} + \gamma Q_{*}(s_{t+1}, a_{t+1})
+$$
+Update depends on $(s_t, a_t, r_t, s_{t+1}, a_{t+1})$.
+\pause
+\begin{block}{SARSA Update Rule}
+$$
+\hat{Q}_*(s_t, a_t) \leftarrow  \hat{Q}_*(s_t, a_t) + \alpha 
+\left( r_{t+1} + \gamma \hat{Q}_*(s_{t+1}, a_{t+1}) - \hat{Q}_*(s_t, a_t) \right) 
+$$
+where $\alpha \in (0,1]$ is the \textbf{learning rate}.
+\end{block}
+\pause
+Actions drawn from $\varepsilon$-greedy strategy 
+$$
+\pi^{\varepsilon\text{-greedy}}(s) = \begin{cases}
+ \text{do random action} & \text{prob } \varepsilon \\
+ \argmax_a \hat{Q}_*(s,a) & \text{prob } 1-\varepsilon 
+\end{cases}
+$$
+\pause
+\textbf{Theorem:} Under ``niceness'' conditions 
+SARSA guaranteed to converge to $Q_*$. 
+	
+\end{frame}
+
+%
+\begin{frame}
+\frametitle{Q-Learning: Off-Policy TD Control}
+	\begin{itemize}
+		\item Why learn from $a_{t+1}$ when it was a random exploration action? 
+		Why not instead learn
+		from the best\footnote{according to the current Q-value estimates} action $\argmax_{a'} Q(s_{t+1}, a')$ that should have been taken?
+	\end{itemize}
+	\pause
+	
+\begin{block}{Q-Learning Update Rule}
+$$
+\hat{Q}_*(s_t, a_t)  \leftarrow \hat{Q}_*(s_t,a_t)
++ \alpha \left( 
+r_{t+1} + \gamma \max_{a'} \hat{Q}(s_{t+1}, a') - \hat{Q}(s_t, a_t)
+\right)
+$$
+Actions taken via $\varepsilon$-greedy strategy over $\hat{Q}_*(s,a)$.
+\end{block}
+\pause
+\textbf{Theorem:} Under \href{https://link.springer.com/article/10.1007/BF00992698}{``niceness'' conditions} 
+Q-learning guaranteed to converge to $Q_*$. 
+\end{frame}
+
+
+\begin{frame}
+	\frametitle{SARSA v.s. Q-Learning}
+	\begin{block}{SARSA Update Rule}
+		$$
+		\hat{Q}_*(s_t, a_t) \leftarrow  \hat{Q}_*(s_t, a_t) + \alpha 
+		\left( r_{t+1} + \gamma \hat{Q}_*(s_{t+1}, \red{a_{t+1}}) - \hat{Q}_*(s_t, a_t) \right) 
+		$$
+	\end{block}
+\begin{block}{Q-Learning Update Rule}
+	$$
+	\hat{Q}_*(s_t, a_t)  \leftarrow \hat{Q}_*(s_t,a_t)
+	+ \alpha \left( 
+	r_{t+1} + \gamma \red{\max_{a'}} \hat{Q}(s_{t+1}, \red{a'}) - \hat{Q}(s_t, a_t)
+	\right)
+	$$
+\end{block}
+\begin{itemize}
+	\item Q-Learning (usually) tends to converge faster than SARSA, and chooses more
+	aggressive/risky moves 
+	\item SARSA learns from the moves that were actually
+	taken, including any exploration
+	\item In ``risky'' environments, SARSA will learn to avoid getting near dangerous situations
+	(to avoid accidentally taking a very bad exploratory move). Q-Learning will not.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+	
+	\begin{figure}
+		\centering
+		\includegraphics[height=0.5\textheight]{fig/sarsa.png}
+	\end{figure}
+	\vspace{-0.45cm}
+	\begin{figure}
+		\centering
+		\includegraphics[height=0.5\textheight]{fig/qlearn.png}
+	\end{figure}
+\end{frame}
+
+
+\begin{frame}
+	\frametitle{Beyond Tabular Learning}
+	
+\begin{itemize}
+	\item All the methods up to this point assume sweeping through 
+	all state-action pairs is tractable
+	\pause
+	\item What about large/continuous state spaces?
+	%\pause
+	\begin{itemize}
+		\item State aggregation?
+		%\pause
+		\item Parameterised policy $\pi_\theta$, learn best $\theta$?
+		%\pause
+		\item Craft a heuristic by hand?
+	\end{itemize}
+%\pause
+	\item In general, would like the agent to learn useful features for us
+	\pause
+	\begin{itemize}
+		\item Something deep learning excels at!
+	\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\centering
+		\includegraphics[height=\textheight]{fig/drake}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Difficulties with using Neural Networks for RL}
+	
+	
+		Neural networks expect to be trained in a supervised learning fashion,
+		with batches of data fed in, loss computed, and gradients backpropagated.  
+	
+	
+	\textbf{Idea:} Reduce the reinforcement learning problem
+	to a supervised learning problem?
+		\pause
+		\begin{itemize}
+		\item Interaction with environment is \textit{NOT} i.i.d
+		\begin{itemize}
+			\pause
+			\item Collect many trajectories, dump into a buffer and shuffle
+		\end{itemize}
+		\pause
+		\item Rewards are sparse
+		\begin{itemize}
+			\pause
+			\item $\varepsilon$-greedy explore, hope for the best
+                % \item (Advanced: Add a critic to learn a guess of reward to help the actor)
+		\end{itemize}
+		\pause
+		\item No ground truth to compare against
+		\begin{itemize}
+			\pause
+			\item Bootstrap from current estimates (i.e. Q-Learning)
+		\end{itemize}
+	\end{itemize}
+\end{frame}
+
+
+
+\begin{frame}{Deep Q-Networks (DQN)}
+	\begin{itemize}
+		\item The Q-Value estimate $\hat{Q}_*(s,a;\theta)$ 
+		is now stored as a network, with parameters $\theta$.
+		Recall the TD-error for Q-Learning
+		$$
+		\delta_t = r_{t+1} + \gamma \max_{a'} Q_{*}(s_{t+1}, a'; \theta) 
+		- Q_{*}(s_t, a_t;\theta)
+		$$
+		\pause
+		\item \textbf{Idea:} Accumulate experience 
+		$(s^i,a^i,r^i,s_{\text{new}}^i)$ via interaction, optimise
+		$\theta$ to minimise loss $L(\theta)$ = average TD-error
+		\pause
+		\begin{itemize}
+			\item In practice, experience is accumulated in a buffer, and batches
+			are sampled at random to make data ``more i.i.d''
+			\pause
+			\item Also use seperate set of parameters $\theta_{\text{target}}$ 
+			for the target network, copy weights every so often for stability
+		\end{itemize}
+		\pause
+		\begin{align*}
+		L(\theta) &=  \mathbb{E} \left[
+		\left( r_{t+1} + \gamma \max_{a'} Q_{*}(s_{t+1}, a'; \theta_{\text{target}} ) -  Q_{*}(s_t, a_t; \theta)
+		\right)^2 \right] \\
+        & = \frac{1}{N}\sum_{i=1}^{N} 
+		\left(
+		r^i + \gamma \max_{a'} Q_{*}(s^i_\text{new}, a'; \theta_{\text{target}} ) -  Q_{*}(s^i, a^i; \theta)
+		\right)^2
+		\end{align*}
+		\pause
+		Gradient descent to minimize $L(\theta)$
+	\end{itemize}
+\end{frame}
+
+\begin{frame}
+    \centering
+    \includegraphics[width=\textwidth]{fig/dqn_block.png}
+\end{frame}
+
+\begin{frame}{Deep Q-Networks (DQN) for Episodic Environments}
+	\begin{itemize}
+		\item Annoying caveat for episodic environments: Need to modify the TD-error, depending if $s_{t+1}$ 
+		is a terminal state.
+		\item Assume environment samples $(s_{t+1}, r_{t+1}, d_{t+1})$ given $(s_t, a_t)$,
+		where $d_{t+1}$ (done) indicates if the episode ended on timestep $t+1$ ($s_{t+1}$ is arbitrary in such cases).
+		\begin{align*}
+			\delta_t &= y_t - Q_{*}(s_t, a_t;\theta) \\
+		y_t &= \begin{cases}
+			r_{t+1} & d_{t+1} = True \\
+			r_{t+1} + \gamma \max_{a'} Q_{*}(s_{t+1}, a'; \theta_{\text{target}}) & d_{t+1} = False 
+		\end{cases} \\
+		&= r_{t+1} + \gamma \max_{a'} Q_{*}(s_{t+1}, a'; \theta_{\text{target}}) \llbracket \text{not } d_{t+1} \rrbracket
+		\end{align*}
+		Loss function is now
+		$$
+		L(\theta) = \frac{1}{N} \sum_{i=1}^N \left(y_t - Q_*(s_t,a_t; \theta )\right)^2
+		$$
+		\end{itemize}
+\end{frame}
+
+
+\begin{frame}[fragile]
+\begin{figure}
+	\centering
+	\includegraphics[width=0.7\linewidth]{fig/dqn_algo}
+        % generated from algo.tex
+        \label{fig:dqnalgo}
+\end{figure}
+
+
+\end{frame}
+
+
+%\begin{frame}
+%\frametitle{DQN Extensions}	
+%	\begin{itemize}
+%		\item \textbf{Prioritized experience replay:} Having a priority over
+%		experiences, replaying more ``important'' experiences
+%		\pause
+%		\item \textbf{Dueling networks:} Learn the value $V_\pi$ and advantage $A_\pi$ seperately ($A_\pi(s,a) = Q_\pi(s,a) - V_\pi(s))$,
+%		allowing the value of each action to be learned independently
+%		\pause
+%		\item \textbf{Noisy-DQN:} Add noise to Q-network weights to encourage exploration
+%		\pause
+%		\item \textbf{Distributional DQN:} Models the distribution of expected returns instead of the expected return itself, enabling better handling of risk and uncertainty.
+%%		\pause
+%%		\item \textbf{Actor-Critic:} One network learns the policy (actor), another learns the value (critic). The critic critiques how good the
+%%		actions taken by the actor. Critic provides lower variance feedback than the environment.
+%	\end{itemize}
+%\end{frame}
+
+%\begin{frame}[fragile]
+%	\begin{algorithm}[H]
+%	\caption{Deep Q-Learning with Replay Buffer}\label{alg:cap}
+%	\begin{algorithmic}[1]
+%		\Input Environment $p$, Number of episodes $M$, replay buffer size $N$
+%		\State Initialise replay buffer $\mathcal{D}$ to capacity $N$
+%		\For{episode = 1 to $M$}
+%		\State Sample initial state $s$ from environment
+%		\State $d \leftarrow$ False
+%		\State Initalize target parameters $\theta_\text{target} \leftarrow \theta$
+%		\While{$d$ = False}
+%		\State $a \leftarrow \begin{cases}
+%			\text{random action} & \text{prob } \varepsilon   \\
+%			\argmax_{a'} Q(s,a' ; \theta ) & \text{prob } 1- \varepsilon 
+%		\end{cases}$
+%		\State Sample $(s_{\text{new}}, r,d) \sim p(\cdot | s,a)$
+%		\State Store experience $(s,a,r,s_{\text{new}},d)$ in $\mathcal{D}$
+%		\State $s_{\text{new}} \leftarrow s$
+%		\If{Learning on this step}
+%		\State Sample minibatch 
+%		$B \leftarrow \{(s^i, a^i, r^i, s^i_{\text{new}}, d^i)\}_{i=1}^{|B|}$
+%		from $\mathcal{D}$
+%		\For{$j=1$ to $|B|$}
+%		\State $y^j \leftarrow \begin{cases}
+%			r^j & d^j = \text{True} \\
+%			r^j + \gamma \max_{a'} Q(s^j_{\text{new}}, a' ; \theta_{\text{target}}) & d^j = \text{False}
+%		\end{cases}$  
+%		\EndFor
+%		\State Define loss $L(\theta) = \frac{1}{|B|}\sum_{i=1}^{|B|} 
+%		\left( y^i - Q(s^i, a^i; \theta ) \right)^2$
+%		\State Gradient descent step $\theta \leftarrow \theta - \eta \nabla_\theta L(\theta)$
+%		\EndIf
+%		\If{Update target this step}
+%		\State $\theta_{\text{target}} \leftarrow \theta$
+%		\EndIf
+%		\EndWhile
+%		\EndFor
+%	\end{algorithmic}
+%	\end{algorithm}
+%%\end{frame}
+%
+%
+%%
+%%\begin{frame}
+%%	\frametitle{Contents}
+%%	\tableofcontents
+%%\end{frame}
+
+
+% \begin{frame}
+% 	\frametitle{CartPole}
+% 	\begin{itemize}
+% 		\item State space $(x, v, \theta, \omega) \subseteq \mathbb{R}^4$, representing
+% 		\begin{itemize}
+% 			\item $-4.8 \leq x \leq 4.8$, position of the cart (meters)
+% 			\item $-\infty \leq v \leq \infty$, velocity of the cart (meters/second)
+% 			\item $-28^\circ \leq \theta \leq 28^\circ$, angle of the pole (measured from vertical) (degrees)
+% 			\item $-\infty \leq \omega \leq \infty$, angular velocity of the pole (degrees/second)  
+% 		\end{itemize}
+% 		\item Actions: $\{L,R\}$ Apply a force of 10 newtons to the left/right of the cart
+% 		\item Environment: Takes old state $s_t = (x_t, v_t, \theta_t, \omega_t)$ and
+% 		force $a_t \in {L,R}$, simulates the physics of the cartpole system using Euler's method
+% 		in a 20ms timestep, returns the new state space 
+% 		$s_{t+1} = (x_{t+1}, v_{t+1}, \theta_{t+1}, \omega_{t+1})$ and reward $r_{t+1} = 1$
+% 		\item Episode terminates if $|x| \geq 2.4$ (the cart rolls off the track)
+% 		or $|\theta| \geq 12^\circ$ (the pole moves too far off vertical) or 500 timesteps (= 10 seconds)
+% 		elapse.
+% 		\item Initial state sampled uniformly from $[-0.05, 0.05]^4$ (to avoid agent memorising 
+% 		a sequence of actions).
+% 		\item Agent knows nothing about poles, or carts, or the laws of physics. Has to infer all of this from
+% 		a vector of 4 numbers, and then determine a strategy to keep the cart centred and the pole upright
+% 	\end{itemize}
+% \end{frame}
+
+
+
+%\begin{frame}
+%	\frametitle{CartPole \red{(LFG edition)}}
+%	\begin{itemize}
+%		\item State space $(x, v, \theta, \omega) \subseteq \mathbb{R}^4$, representing
+%		\begin{itemize}
+%			\item $-4.8 \leq x \leq 4.8$, position of the cart (meters)
+%			\item $-\infty \leq v \leq \infty$, velocity of the cart (meters/second)
+%			\item $-28^\circ \leq \theta \leq 28^\circ$, angle of the pole (measured from vertical) (degrees)
+%			\item $-\infty \leq \omega \leq \infty$, angular velocity of the pole (degrees/second)  
+%		\end{itemize}
+%		\item Actions: $\{L,R\}$ Apply a force of 10 newtons to the left/right of the cart
+%		\item Environment: Takes old state $s_t = (x_t, v_t, \theta_t, \omega_t)$ and
+%		force $a_t \in {L,R}$, simulates the physics of the cartpole system using Euler's method
+%		in a 20ms timestep, returns the new state space 
+%		$s_{t+1} = (x_{t+1}, v_{t+1}, \theta_{t+1}, \omega_{t+1})$ and reward \red{$r_{t+1} = \omega$}
+%		\item Episode terminates if $|x| \geq 2.4$ (the cart rolls off the track)
+%		or \red{\sout{$|\theta| \geq 12^\circ$ (the pole moves too far off vertical)}} or \red{5000} timesteps (\red{=100} seconds)
+%		elapse.
+%		\item Initial state sampled uniformly from $[-0.05, 0.05]^4$ (to avoid agent memorising 
+%		a sequence of actions).
+%		\item Agent knows nothing about poles, or carts, or the laws of physics. Has to infer all of this from
+%		a vector of 4 numbers, and then determine a strategy to \sout{keep the cart centred and the pole upright}
+%		\red{\textbf{GOTTA GO FAST}}
+%	\end{itemize}
+%\end{frame}
+
+
+\iffalse
+
+\begin{frame}
+\frametitle{Robins-Monro Convergence conditions}
+
+The Robins-Monro convergence conditions are properties of the learning rate that
+are usually required in most proofs to ensure convergence.
+
+Let $\alpha_t$ denote the learning rate at time $t$. Then the conditions are
+
+$$
+\sum_{t=1}^\infty \alpha_t = \infty \text{ and } \sum_{t=1}^\infty \alpha_t^2 < \infty
+$$
+
+Intuitively, the first condition ensures that the steps are large enough to eventually overcome
+any initial conditions/random fluctuations, and the second condition ensures that eventually the 
+steps become small enough to ensure convergence.
+\pause 
+
+An example of such a learning rate would be $\alpha_t = 1/t$.
+
+Note that the usual method of choosing $\forall t, \alpha_t = \alpha \in \mathbb{R}$ 
+fails the RM conditions.
+\end{frame}
+
+\fi
+
+\end{document}
