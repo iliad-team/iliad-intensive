@@ -254,6 +254,15 @@ export default async function StatusPage() {
       {/* Wide table: scrolls inside its own box so the page body never does. */}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[860px] border-collapse">
+          {/* Day and Lead are labels, not content: left to size themselves they
+              held a whole line each ("Decision Theory and Reinforcement
+              Learning", "Kai + Matthew Farrugia-Roberts") and starved the four
+              columns that actually carry status. Pinned narrow here and allowed
+              to wrap instead — the slack goes to Material and Source. */}
+          <colgroup>
+            <col className="w-[9.5rem]" />
+            <col className="w-[7rem]" />
+          </colgroup>
           <thead>
             <tr className="border-b border-zinc-300">
               <th className={th}>Day</th>
@@ -292,11 +301,11 @@ export default async function StatusPage() {
                 const source = sourceCell(day);
                 return (
                   <tr key={day.code} className="border-b border-zinc-200">
-                    <td className={`${td} whitespace-nowrap`}>
+                    <td className={td}>
                       <span className="text-zinc-400">{day.code}</span>{" "}
-                      <span className="font-serif text-[0.95rem]">{dayTitle}</span>
+                      {dayTitle}
                     </td>
-                    <td className={`${td} whitespace-nowrap text-zinc-600`}>{day.lead}</td>
+                    <td className={`${td} text-zinc-600`}>{day.lead}</td>
                     <td className={`${td} ${TONE[material.tone].cell}`}>{material.node}</td>
                     <td className={`${td} ${TONE[slides.tone].cell}`}>{slides.node}</td>
                     <td className={td}>
