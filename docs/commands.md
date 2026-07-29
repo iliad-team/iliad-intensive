@@ -161,6 +161,9 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
 - MDX: put `summary:` in the YAML frontmatter; `<LearningOutcomes>` with a
   markdown list inside. Group headings become bold subheadings in the box
   (not real headings — no anchor, not in the table of contents).
+- A summary that is missing, empty, or still `TODO` draws a non-fatal
+  **advisory** on both paths (LaTeX and MDX) — it is the one metadata field that
+  shows up twice, so an unfinished one is worth naming out loud.
 
 ## Theorem family
 

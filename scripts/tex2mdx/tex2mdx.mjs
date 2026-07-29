@@ -235,11 +235,15 @@ function parseIliadBlock(raw) {
 const iliadBlock = parseIliadBlock(rawTex);
 // A present-but-misspecified block is a hard failure (WARN => exit 2);
 // a missing block only draws an advisory (TODO placeholders are emitted).
+// The parsed frontmatter block, kept for the summary checks further down (a
+// `summary: >-` block scalar is only readable through the YAML parser).
+let frontBlock = null;
 if (iliadBlock) {
   const text = iliadBlock.join("\n");
   if (YAMLLIB) {
     try {
       const parsed = YAMLLIB.parse(text);
+      frontBlock = parsed;
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         warn("frontmatter block is not a YAML mapping (expected `key: value` lines)");
       } else {
@@ -444,6 +448,20 @@ if (!blockKeys.has("title") && title === "TODO")
   advise("no title: in the frontmatter block and no \\title{} — the page falls back to its slug");
 if (!blockKeys.has("contributors") && !contributors.length)
   advise("no contributors: in the frontmatter block and no \\author{} — the page shows no authors");
+// A summary is optional but load-bearing: it is the page's lede AND its blurb in
+// the homepage/sidebar index, so a sheet that ships without one reads as
+// unfinished. `summary: TODO` is what a port writes when the source has no
+// summary to transcribe (nobody may invent one), which makes it easy to forget.
+if (iliadBlock) {
+  const declared = typeof frontBlock?.summary === "string" ? frontBlock.summary.trim() : null;
+  const missing = !blockKeys.has("summary") && !bodySummary;
+  if (missing)
+    advise("no summary: in the frontmatter block — the page and its index entry show no lede");
+  else if (blockKeys.has("summary") && !declared)
+    advise("summary: in the frontmatter block is empty — the page and its index entry show no lede");
+  else if (declared && /^todo\b/i.test(declared))
+    advise(`summary: is still a placeholder ("${declared.slice(0, 40)}") — the page ships it verbatim as its lede`);
+}
 
 // ------------------------------ run ---------------------------------------
 // AST emit (two passes handled inside emit-ast)
