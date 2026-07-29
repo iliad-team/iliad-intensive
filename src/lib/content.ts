@@ -33,6 +33,11 @@ export type IndexEntry = {
   cluster: string | null;
   /** Teaching day code, e.g. "D.3". Several worksheets may share one. */
   day?: string;
+  /** 1-based place within this sheet's own day, and how many the day has.
+   *  Together they give the display code (D.3.1) — see dayCode() in
+   *  ./clusters.ts. `day` above stays the canonical, undotted identity. */
+  part?: number;
+  parts?: number;
   /** 1-based place in the curriculum, straight out of schedule.yaml's order
    *  (cluster, then day, then the day's own worksheet order). */
   position?: number;
