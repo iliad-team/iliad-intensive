@@ -33,6 +33,9 @@ tex/*/iliad.sty
 tex/*/main-nosol.*
 # auto-labelled copies: main's, plus one per \input'ed section file
 *.autolabel.tex
+# Per-worksheet input hash — lets a build skip a sheet whose inputs are
+# unchanged (scripts/build-content.mjs). Purely a local/CI-cache artifact.
+tex/*/.build-hash
 *.aux
 *.log
 *.out

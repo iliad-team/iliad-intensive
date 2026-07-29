@@ -10,15 +10,18 @@ cd "$(dirname "$0")"
 echo "== system packages (TeX Live, poppler) =="
 # Keep this list in sync with .github/workflows/site.yml — installing the
 # same packages keeps "passes locally, fails on CI" surprises to a minimum.
+#
+# The list is kept deliberately lean — it is the biggest single cost in a CI
+# run, and a slow Ubuntu mirror can stall it for 15+ minutes. texlive-bibtex-extra
+# and texlive-science are NOT here on purpose (see the note in the workflow):
+# alphaurl.bst is vendored at tex/alphaurl.bst, and stmaryrd's two glyphs are
+# built from kernel pieces, so neither package is needed to build the worksheets.
 need=()
-command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-science texlive-fonts-recommended cm-super)
-# urlbst's alphaurl.bst — probed by file, not by binary: a machine can have a
-# perfectly good pdflatex and still be missing the style, and then every \cite
-# in the PDF quietly renders as "[?]".
-kpsewhich alphaurl.bst >/dev/null 2>&1 || need+=(texlive-bibtex-extra)
-# lmodern.sty — same story: decks \usepackage{lmodern}, but it is only an apt
-# *Recommends* of texlive, so a --no-install-recommends box has pdflatex and
-# no lmodern. Probe the file, not the binary.
+command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-fonts-recommended cm-super)
+# lmodern.sty — decks \usepackage{lmodern}, but it is only an apt *Recommends*
+# of texlive, so a --no-install-recommends box has a perfectly good pdflatex and
+# no lmodern. Probe the FILE, not the binary: this is the one gap the pdflatex
+# check above cannot see, and it fails the deck build outright.
 kpsewhich lmodern.sty >/dev/null 2>&1 || need+=(lmodern)
 command -v pdftocairo >/dev/null || need+=(poppler-utils)
 command -v git-lfs    >/dev/null || need+=(git-lfs)
