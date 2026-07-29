@@ -184,9 +184,9 @@ clusters:
         lead: Fernando
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.uqpqtto4ldg0
         source: ready
-        note: the RL half lives inside the decision-theory worksheet, not a separate one
+        note: the RL half lives inside the preferences-to-rewards worksheet, not a separate one
         worksheets:
-          - decision-theory
+          - preferences-to-rewards
 
       - code: D.2
         title: Policy Gradients and Misgeneralization
@@ -223,7 +223,6 @@ clusters:
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.xelg5yi9w039
         source: ready
         sourceUrl: https://github.com/Danielc-lgtm/iliad-intensive
-        note: ships its own decision-theory-slides.tex
 
       - code: D.6
         title: Instrumental Convergence / Doom Day
