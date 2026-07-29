@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { listDownloads, listIndex, listSlugs, readModuleMdx } from "@/lib/content";
-import { clusterUrlSlug } from "@/lib/clusters";
-import { listClusters } from "@/lib/cluster-store";
+import { clusterUrlSlug, dayCode } from "@/lib/clusters";
+import { listClusters, listDays } from "@/lib/cluster-store";
 import { MdxBody } from "@/lib/mdx";
 import { ModulePageShell } from "@/components/ModulePageShell";
 import { SidebarNav } from "@/components/SidebarNav";
@@ -34,10 +35,11 @@ export default async function ModulePage({
 }) {
   const { cluster: clusterParam, slug } = await params;
 
-  const [mod, modules, clusterList, downloads] = await Promise.all([
+  const [mod, modules, clusterList, days, downloads] = await Promise.all([
     readModuleMdx(slug),
     listIndex(),
     listClusters(),
+    listDays(),
     listDownloads(slug),
   ]);
 
@@ -49,6 +51,15 @@ export default async function ModulePage({
 
   const fm = mod.frontmatter;
 
+  // Which teaching day this page belongs to, and which part of it. `part`/`parts`
+  // live in the index (they are curriculum facts, not the sheet's own), so read
+  // them off this page's own index entry; the day's title comes from the same
+  // schedule.yaml the index was ordered by.
+  const entry = modules.find((m) => m.slug === slug);
+  const code = dayCode(fm.day ?? entry?.day, entry?.part, entry?.parts);
+  const title = days.find((d) => d.code === (fm.day ?? entry?.day))?.title;
+  const dayLabel = code && title ? `${code} · ${title}` : code;
+
   return (
     <ModulePageShell sidebar={<SidebarNav modules={modules} activeSlug={slug} clusters={clusterList} />}>
       <article>
@@ -59,9 +70,20 @@ export default async function ModulePage({
           >
             {fm.title ?? slug}
           </h1>
-          {fm.cluster && (
+          {(fm.cluster || dayLabel) && (
             <div className="font-sans mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs uppercase tracking-wide text-zinc-500">
-              <span>Cluster {fm.cluster}</span>
+              {fm.cluster && <span>Cluster {fm.cluster}</span>}
+              {/* Which teaching day this page is part of. Arriving from search,
+                  a worksheet otherwise has no context — and when a day is taught
+                  in several parts, being part 2 of D.3 is the first thing worth
+                  knowing about the page. */}
+              {dayLabel && (entry?.parts && entry.parts > 1 ? (
+                <Link href={`/#${entry.day}`} className="hover:text-zinc-800 hover:underline">
+                  {dayLabel}
+                </Link>
+              ) : (
+                <span>{dayLabel}</span>
+              ))}
             </div>
           )}
           {fm.summary && (

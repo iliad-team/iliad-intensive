@@ -597,7 +597,14 @@ if (!failed) {
       const text = hm[2].replace(/\*\*|\*/g, "").trim();
       headings.push({ level: hm[1].length, text, slug: ghSlug(text) });
     }
-    entries.push({ slug, title: fm.title ?? slug, cluster: sc.cluster, day: sc.day, frontmatter: fm, position: sc.position, headings });
+    entries.push({
+      slug, title: fm.title ?? slug, cluster: sc.cluster, day: sc.day,
+      // Where the sheet sits inside its own day, so a listing can say D.3.1
+      // instead of two entries both labelled D.3. Display only: `day` stays the
+      // canonical code, which is what issues and /admin/status speak.
+      part: sc.part, parts: sc.parts,
+      frontmatter: fm, position: sc.position, headings,
+    });
   }
   // Ordering is schedule.yaml's, start to finish: cluster order, then day
   // order, then a day's own worksheet order. Titles never enter into it — an

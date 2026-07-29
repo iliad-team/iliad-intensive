@@ -51,3 +51,24 @@ export function clusterLabel(
   if (!cluster) return "Other";
   return list.find((c) => c.id === cluster)?.label ?? `Cluster ${cluster}`;
 }
+
+/**
+ * How a worksheet's teaching day is *displayed*: "D.3" for a day with one
+ * worksheet, "D.3.1" / "D.3.2" for one taught in several parts.
+ *
+ * Only days that actually have parts get numbered. A dotted code then always
+ * means "part n of several", and the ~15 single-worksheet days aren't implied to
+ * be part one of a series that doesn't exist.
+ *
+ * This is presentation only. The canonical code stays undotted ("D.3") — that's
+ * what schedule.yaml, /admin/status, the issue titles and the project board all
+ * speak, and a second identity for the same day would be one too many.
+ */
+export function dayCode(
+  day: string | null | undefined,
+  part?: number,
+  parts?: number,
+): string | null {
+  if (!day) return null;
+  return parts && parts > 1 && part ? `${day}.${part}` : day;
+}
