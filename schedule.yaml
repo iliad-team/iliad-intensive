@@ -223,6 +223,12 @@ clusters:
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.xelg5yi9w039
         source: ready
         sourceUrl: https://github.com/Danielc-lgtm/iliad-intensive
+        # One page per lecture, each with its own deck: the morning's
+        # single-agent theory, then the afternoon's multi-agent layer and the
+        # open-source Prisoner's Dilemma tournament.
+        worksheets:
+          - decision-theory
+          - open-source-game-theory
 
       - code: D.6
         title: Instrumental Convergence / Doom Day
