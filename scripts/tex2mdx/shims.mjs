@@ -40,6 +40,14 @@ export const MACRO_SKIP = new Set([
 export const KATEX_SHIMS = [
   [/\\mathds\b/g, "\\mathbb"],      // dsfont
   [/\\bm\b/g, "\\boldsymbol"],      // bm
+  // \ensuremath{X} is "X, in math mode either way" — the standard way to write a
+  // macro that works in a sentence and in an equation alike (amsthm's \qed is
+  // \ensuremath{\square}). Inside math it is already redundant, so drop the
+  // command and keep its braces: {X} is the same group to KaTeX. It matters here
+  // rather than only in MATH_TRANSFORMS because a \gdef body reaches KaTeX
+  // through this table, and that is where such a macro is defined.
+  // Prose usage is a real inline-math span — see emit-ast.mjs.
+  [/\\ensuremath\s*(?=\{)/g, ""],
 ];
 export const applyShims = (s) =>
   KATEX_SHIMS.reduce((acc, [re, to]) => acc.replace(re, to), s);

@@ -647,6 +647,14 @@ function emitMacro(n) {
     }
     case "item": return "";   // stray \item outside a list
     case "section": case "subsection": case "subsubsection": return emitHeading(n);
+    // \ensuremath{X} in prose: X typeset as math. This is how a macro is made
+    // usable in both modes (amsthm's \qed is \ensuremath{\square}), so a ported
+    // document reaches for it whenever one macro has to work in a sentence and
+    // in an equation. Inside math it is redundant and shims.mjs drops it.
+    case "ensuremath": {
+      const inner = mathClean(argRaw(n, 0) ?? "").replace(/\s+/g, " ").trim();
+      return inner ? `$${inner}$` : "";
+    }
   }
 
   // author-defined macro: expand and re-walk
