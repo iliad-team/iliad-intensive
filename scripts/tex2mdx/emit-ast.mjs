@@ -25,7 +25,14 @@ const TEXT_MACROS = {
   quad: " ", qquad: " ", enspace: " ", thinspace: " ", ",": " ", " ": " ",
   ";": " ", "!": "", ":": " ", "\n": " ", "'": "", "@": "", "`": "", "^": "",
   '"': "", "~": "",
-  "\\": "\n", "%": "%", "&": "&", "#": "#", _: "_", $: "$",
+  "\\": "\n", "%": "%", "&": "&", "#": "#", _: "_",
+  // A literal dollar in prose: \$1,000 in the source. It must NOT reach the page
+  // as a bare $, which remark-math reads as a math delimiter — two prices in a
+  // paragraph ("wins \$1,000,000 … and wins \$1,000") then become one bogus math
+  // span. Nor as \$: that escape exists in LaTeX and in KaTeX but not at the
+  // markdown layer, which is the same trap shims.mjs documents for math bodies.
+  // A character reference is the one spelling micromark leaves alone.
+  $: "&#36;",
   "{": "\\{", "}": "\\}",
   // The text-mode names for characters LaTeX reserves. An author reaches for
   // these whenever a sentence contains a pipe or an angle bracket, and pandoc
