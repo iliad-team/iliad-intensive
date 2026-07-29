@@ -211,6 +211,11 @@ clusters:
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.8r11zv4s7dki
         source: ready
         sourceUrl: https://github.com/Danielc-lgtm/iliad-intensive
+        # The reading guide and its exercises first, then the lecture note the
+        # day names as the optimization strand's primary pre-reading.
+        worksheets:
+          - agent-foundations
+          - optimization-thermodynamics
 
       - code: D.5
         title: Decision Theory
