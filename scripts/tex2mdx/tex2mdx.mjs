@@ -478,7 +478,13 @@ const bodyMdx = tidy(emitDocument(body, {
   warnSnapshot: () => [warnings.length, advisories.length],
   warnRestore: ([w, a]) => { warnings.length = w; advisories.length = a; },
 }));
-const result = `${front}\n\n$${gdef}$\n\n${bodyMdx}\n`;
+// The page's macros ride in a leading inline-math span, where KaTeX picks up the
+// \gdef's. A sheet that defines none must not get an empty one: `$$` on its own
+// line is a display-math OPENER to remark-math, which then swallows the rest of
+// the page into one unclosed span (and every worksheet in the repo happened to
+// define at least one macro, so nothing hit this until a ported reading guide
+// did).
+const result = `${front}\n\n${gdef.trim() ? `$${gdef}$\n\n` : ""}${bodyMdx}\n`;
 writeFileSync(output, result);
 
 // render extracted diagrams (content-addressed: unchanged ones are skipped,
