@@ -81,7 +81,9 @@ Slides are optional. Drop a `slides.tex` (any self-contained LaTeX — beamer is
 the usual choice; `iliad.sty` is *not* loaded for slides) in the folder and the
 build compiles it to a PDF hosted next to the worksheet — the page grows a
 **Slides** row (view / download the PDF, download the `.tex`). Slides are never
-converted to Markdown (a deck is a download, not a web page). If your deck only
+converted to Markdown (a deck is a download, not a web page). If you'd rather
+not write a beamer preamble, `tex/iliad-slides.sty` is a ready-made one you can
+load — optional, nothing checks for it (see `docs/commands.md`). If your deck only
 exists as a PDF with no source, don't commit the binary — host it (Drive, etc.)
 and add a `slides:` line to the `%--- iliad ---` block (see below); it renders
 as an outbound link instead. The build prints a (non-fatal) advisory for any

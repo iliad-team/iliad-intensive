@@ -255,6 +255,21 @@ tex/<slug>/slides.tex        # any self-contained LaTeX (usually beamer)
   ```
 - `iliad.sty` is a *worksheet* contract and is **not** loaded for slides —
   style the deck however you like.
+- **An optional shared style.** `tex/iliad-slides.sty` is a beamer preamble you
+  may load instead of writing your own: the Madrid theme, the usual maths and
+  graphics packages, link colours that stay readable on Madrid's dark bars, and
+  `\citev` for citations. Load it after `\documentclass`, local copy first:
+  ```latex
+  \ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
+  \documentclass[10pt,aspectratio=169]{beamer}
+  \IfFileExists{iliad-slides.sty}{\usepackage{iliad-slides}}{\usepackage{../iliad-slides}}
+  ```
+  The `\HANDOUT` line and `\documentclass` stay in your deck — the first has to
+  run before the class is loaded, and the second keeps the font size and aspect
+  ratio yours. Nothing enforces this: it is a starting point rather than a
+  contract, no build step checks for it, and `tex/training-dynamics/slides.tex`
+  uses the moloch theme with its own preamble instead. The example, AIXI and
+  Solomonoff decks load it.
 - Slides are **never** converted to MDX and have **no** `-nosol` variant (a
   deck is a download, not a web page).
 - No source, only a PDF deck? Don't commit the binary. Host it (e.g. Drive)
