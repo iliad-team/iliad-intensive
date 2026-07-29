@@ -18,14 +18,23 @@ on:
     branches: [main]
 
 concurrency:
-  group: site-${{ github.ref }}
-  # Superseding an in-flight PR run is what you want: a new push makes the old
-  # preview moot. Superseding a push to MAIN is not — that run carries the
-  # production build and deploy, so cancelling it means the merge silently never
-  # publishes. Three of the last four merges died exactly that way, 3s in, with
-  # "Canceling since a higher priority waiting request for site-refs/heads/main
-  # exists", leaving production several commits behind (broken citations, 404 on
-  # the decks) while every PR check showed green.
+  # Key PR runs on the PR NUMBER, not github.ref. Merging a PR fires two runs in
+  # the same second — the push to main, and pull_request/closed (which runs only
+  # preview-cleanup) — and on a merged PR the refs/pull/<N>/merge ref is already
+  # deleted, so the closed event's github.ref falls back to the BASE branch.
+  # Under `site-${{ github.ref }}` that put the cleanup run in main's own group,
+  # where cancel-in-progress is true for it (it is a pull_request event), so a
+  # 49-second `git rm` of a preview directory evicted the production build ~2s
+  # in: "Canceling since a higher priority waiting request for
+  # site-refs/heads/main exists". Whichever of the two runs claimed the slot
+  # first won, so it read as flaky — main lost 7 of 11 merges, leaving the live
+  # site commits behind while every PR check showed green.
+  #
+  # A PR event can no longer name main's group, so the race cannot be entered.
+  # The useful superseding survives: pushes to PR N still cancel N's stale
+  # preview build, and closing N cancels a build for a preview about to be
+  # deleted. Both are the same `site-<N>` group.
+  group: site-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Default read-only; the deploy/preview jobs opt into write explicitly.
