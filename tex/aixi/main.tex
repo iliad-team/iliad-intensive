@@ -13,7 +13,13 @@
 \usetikzlibrary{positioning, arrows.meta}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{cancel}
-\usepackage{stmaryrd}
+% stmaryrd supplied only \llbracket/\rrbracket here, and on Debian it arrives via
+% texlive-science, which hard-depends on texlive-lang-greek -- ~79 MB of CI
+% download for two glyphs. Built from kernel pieces instead. \mathopen/\mathclose
+% keep delimiter spacing correct. The web is unaffected: KaTeX has \llbracket
+% natively, and the converter skips these two (scripts/tex2mdx/shims.mjs).
+\newcommand{\llbracket}{\mathopen{[\![}}
+\newcommand{\rrbracket}{\mathclose{]\!]}}
 
 
 % iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty

@@ -35,6 +35,9 @@ tex/*/iliad-slides.sty
 # figure PDFs under tex/*/fig/ are the one committed exception)
 tex/*/main-nosol.*
 tex/*/main.autolabel.tex
+# Per-worksheet input hash — lets a build skip a sheet whose inputs are
+# unchanged (scripts/build-content.mjs). Purely a local/CI-cache artifact.
+tex/*/.build-hash
 *.aux
 *.log
 *.out

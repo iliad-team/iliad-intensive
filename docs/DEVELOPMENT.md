@@ -84,6 +84,15 @@ together define the authoring contract.
 - Generated MDX is host-agnostic (`/uploads/…` URLs); the site's `Figure`
   component and download links apply `NEXT_PUBLIC_BASE_PATH` at render time.
   Never bake the base path into generated content — it double-prefixes.
+- **Unchanged worksheets are skipped.** Each records a hash of its inputs in
+  `tex/<slug>/.build-hash`; if that still matches and every artifact it would
+  produce is present, the build prints `↷ <slug> cached` and moves on. Locally a
+  no-op full build is ~0s instead of ~40s; CI keeps the artifacts in
+  `actions/cache`, so a day nobody edited is not recompiled there either. The
+  hash covers the sheet's own sources plus `tex/iliad.sty`, `tex/alphaurl.bst`,
+  all of `scripts/`, and `schedule.yaml` — so touching the converter or the
+  shared style rebuilds everything, as it must. `--no-cache` forces a rebuild;
+  reach for it if you ever suspect a stale artifact.
 
 ## CI & deploy
 
