@@ -235,11 +235,15 @@ function parseIliadBlock(raw) {
 const iliadBlock = parseIliadBlock(rawTex);
 // A present-but-misspecified block is a hard failure (WARN => exit 2);
 // a missing block only draws an advisory (TODO placeholders are emitted).
+// The parsed frontmatter block, kept for the summary checks further down (a
+// `summary: >-` block scalar is only readable through the YAML parser).
+let frontBlock = null;
 if (iliadBlock) {
   const text = iliadBlock.join("\n");
   if (YAMLLIB) {
     try {
       const parsed = YAMLLIB.parse(text);
+      frontBlock = parsed;
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         warn("frontmatter block is not a YAML mapping (expected `key: value` lines)");
       } else {
@@ -444,6 +448,20 @@ if (!blockKeys.has("title") && title === "TODO")
   advise("no title: in the frontmatter block and no \\title{} — the page falls back to its slug");
 if (!blockKeys.has("contributors") && !contributors.length)
   advise("no contributors: in the frontmatter block and no \\author{} — the page shows no authors");
+// A summary is optional but load-bearing: it is the page's lede AND its blurb in
+// the homepage/sidebar index, so a sheet that ships without one reads as
+// unfinished. `summary: TODO` is what a port writes when the source has no
+// summary to transcribe (nobody may invent one), which makes it easy to forget.
+if (iliadBlock) {
+  const declared = typeof frontBlock?.summary === "string" ? frontBlock.summary.trim() : null;
+  const missing = !blockKeys.has("summary") && !bodySummary;
+  if (missing)
+    advise("no summary: in the frontmatter block — the page and its index entry show no lede");
+  else if (blockKeys.has("summary") && !declared)
+    advise("summary: in the frontmatter block is empty — the page and its index entry show no lede");
+  else if (declared && /^todo\b/i.test(declared))
+    advise(`summary: is still a placeholder ("${declared.slice(0, 40)}") — the page ships it verbatim as its lede`);
+}
 
 // ------------------------------ run ---------------------------------------
 // AST emit (two passes handled inside emit-ast)
@@ -460,7 +478,13 @@ const bodyMdx = tidy(emitDocument(body, {
   warnSnapshot: () => [warnings.length, advisories.length],
   warnRestore: ([w, a]) => { warnings.length = w; advisories.length = a; },
 }));
-const result = `${front}\n\n$${gdef}$\n\n${bodyMdx}\n`;
+// The page's macros ride in a leading inline-math span, where KaTeX picks up the
+// \gdef's. A sheet that defines none must not get an empty one: `$$` on its own
+// line is a display-math OPENER to remark-math, which then swallows the rest of
+// the page into one unclosed span (and every worksheet in the repo happened to
+// define at least one macro, so nothing hit this until a ported reading guide
+// did).
+const result = `${front}\n\n${gdef.trim() ? `$${gdef}$\n\n` : ""}${bodyMdx}\n`;
 writeFileSync(output, result);
 
 // render extracted diagrams (content-addressed: unchanged ones are skipped,

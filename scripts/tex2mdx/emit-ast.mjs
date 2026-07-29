@@ -25,8 +25,20 @@ const TEXT_MACROS = {
   quad: " ", qquad: " ", enspace: " ", thinspace: " ", ",": " ", " ": " ",
   ";": " ", "!": "", ":": " ", "\n": " ", "'": "", "@": "", "`": "", "^": "",
   '"': "", "~": "",
-  "\\": "\n", "%": "%", "&": "&", "#": "#", _: "_", $: "$",
+  "\\": "\n", "%": "%", "&": "&", "#": "#", _: "_",
+  // A literal dollar in prose: \$1,000 in the source. It must NOT reach the page
+  // as a bare $, which remark-math reads as a math delimiter — two prices in a
+  // paragraph ("wins \$1,000,000 … and wins \$1,000") then become one bogus math
+  // span. Nor as \$: that escape exists in LaTeX and in KaTeX but not at the
+  // markdown layer, which is the same trap shims.mjs documents for math bodies.
+  // A character reference is the one spelling micromark leaves alone.
+  $: "&#36;",
   "{": "\\{", "}": "\\}",
+  // The text-mode names for characters LaTeX reserves. An author reaches for
+  // these whenever a sentence contains a pipe or an angle bracket, and pandoc
+  // emits them for every such character when a Markdown document is converted.
+  textbar: "|", textgreater: ">", textless: "<", textbackslash: "\\",
+  textasciitilde: "~", textasciicircum: "^", textquotesingle: "'",
 };
 // macros dropped with NO arguments consumed
 const NOOP_MACROS = new Set([
@@ -567,6 +579,28 @@ function emitFigure(n) {
   return `\n${figLabel ? `<div id="${slug(figLabel)}">\n${fig}\n</div>` : fig}\n`;
 }
 
+// A \texttt{} body is code, so it lands in a Markdown code span verbatim — but
+// "verbatim" is the *characters the author meant*, not the LaTeX that spells
+// them. Inside \texttt one still has to write \_ for an underscore, {[} for a
+// bracket that would otherwise start an optional argument, \textbar{} for a
+// pipe; pandoc emits all of these when it converts a Markdown code span. Passing
+// the raw source through put that spelling on the page: a formula written
+// `a* = argmax_a E[U | do(A=a)]` in the source displayed as
+// a*\ =\ argmax\_a\ E{[}U\ \textbar{}\ do(A=a){]}.
+const TEXTTT_UNESCAPE = [
+  [/\\textbackslash\{\}|\\textbackslash\b/g, "\\"],   // first: it introduces no others
+  [/\\textbar\{\}|\\textbar\b/g, "|"],
+  [/\\textgreater\{\}|\\textgreater\b/g, ">"],
+  [/\\textless\{\}|\\textless\b/g, "<"],
+  [/\\textasciitilde\{\}|\\textasciitilde\b/g, "~"],
+  [/\\textasciicircum\{\}|\\textasciicircum\b/g, "^"],
+  [/\\textquotesingle\{\}|\\textquotesingle\b/g, "'"],
+  [/\{\[\}/g, "["], [/\{\]\}/g, "]"],
+  [/\\([_${}&#%~^])/g, "$1"],
+  [/\\ /g, " "],                                       // pandoc's escaped space
+];
+const texttt = (s) => TEXTTT_UNESCAPE.reduce((acc, [re, to]) => acc.replace(re, to), s);
+
 // ---------------------------------------------------------------- macros ---
 function emitMacro(n) {
   const name = n.content;
@@ -578,7 +612,7 @@ function emitMacro(n) {
   switch (name) {
     case "textbf": return `**${walkArg(n, 0)}**`;
     case "emph": case "textit": case "textsl": return `*${walkArg(n, 0)}*`;
-    case "texttt": return "`" + (lastArgRaw(n) ?? "") + "`";
+    case "texttt": return "`" + texttt(lastArgRaw(n) ?? "") + "`";
     case "textnormal": case "textrm": case "textup": case "textsf": case "textsc": case "textmd":
       return walkArg(n, 0);
     case "textcolor": return walkArg(n, 1);
@@ -647,6 +681,14 @@ function emitMacro(n) {
     }
     case "item": return "";   // stray \item outside a list
     case "section": case "subsection": case "subsubsection": return emitHeading(n);
+    // \ensuremath{X} in prose: X typeset as math. This is how a macro is made
+    // usable in both modes (amsthm's \qed is \ensuremath{\square}), so a ported
+    // document reaches for it whenever one macro has to work in a sentence and
+    // in an equation. Inside math it is redundant and shims.mjs drops it.
+    case "ensuremath": {
+      const inner = mathClean(argRaw(n, 0) ?? "").replace(/\s+/g, " ").trim();
+      return inner ? `$${inner}$` : "";
+    }
   }
 
   // author-defined macro: expand and re-walk

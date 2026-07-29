@@ -423,11 +423,25 @@ async function buildSlug(slug) {
     // Place in the course belongs to schedule.yaml, not to the sheet. (The
     // converter's unknown-key warning covers the LaTeX dialect; this is the
     // same rule for an MDX-authored sheet, which has no such check.)
-    const owned = ["cluster", "day"].filter((k) => new RegExp(`^${k}:`, "m").test(raw.match(/^---\n([\s\S]*?)\n---\n/)[1]));
+    const front = raw.match(/^---\n([\s\S]*?)\n---\n/)[1];
+    const owned = ["cluster", "day"].filter((k) => new RegExp(`^${k}:`, "m").test(front));
     if (owned.length) {
       return done(false, `main.mdx frontmatter sets \`${owned.join("`, `")}\` — ` +
         "that lives in schedule.yaml (list the slug under its day) and is stamped in at build time");
     }
+    // Same summary advisory the converter emits for a LaTeX sheet (see
+    // tex2mdx.mjs) — an MDX sheet never reaches the converter, so it needs its
+    // own. Advisory, never fatal: the summary is the page's lede and its index
+    // blurb, and `summary: TODO` is what a port leaves behind when the source
+    // had no summary to transcribe.
+    const declared = YAML.parse(front)?.summary;
+    const summary = typeof declared === "string" ? declared.trim() : null;
+    if (declared === undefined)
+      notes.push("⚠ advisory: no `summary:` in main.mdx frontmatter — the page and its index entry show no lede");
+    else if (!summary)
+      notes.push("⚠ advisory: `summary:` in main.mdx frontmatter is empty — the page and its index entry show no lede");
+    else if (/^todo\b/i.test(summary))
+      notes.push(`⚠ advisory: \`summary:\` is still a placeholder ("${summary.slice(0, 40)}") — the page ships it verbatim as its lede`);
     copyFileSync(path.join(dir, "main.mdx"), mdxOut);
 
     // No PDF, by design. LaTeX is the format that becomes a PDF; MDX is the

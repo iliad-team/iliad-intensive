@@ -26,6 +26,10 @@ public/downloads/
 # looks locally first, then one level up). In the repo everyone uses the
 # shared tex/iliad.sty, so local copies must never be committed.
 tex/*/iliad.sty
+# Same for the optional deck style, which slides.tex also loads local-first.
+# (Unlike iliad.sty there is no build guard against a stale local copy — a deck
+# is only ever a PDF download, so a drifting copy can't skew the website.)
+tex/*/iliad-slides.sty
 
 # LaTeX build artifacts (compiled PDFs are downstream artifacts too —
 # figure PDFs under tex/*/fig/ are the one committed exception)

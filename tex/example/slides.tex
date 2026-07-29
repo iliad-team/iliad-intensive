@@ -17,10 +17,14 @@
 % deck with no source, don't commit the binary — host it (e.g. Google Drive)
 % and add a `slides: <url>` line to the %--- iliad --- block in main.tex, which
 % renders as an outbound link instead.
+%
+% tex/iliad-slides.sty is an OPTIONAL shared deck style (Madrid theme, the usual
+% packages, readable link colours) loaded below. Nothing requires it: replace the
+% line with your own preamble and the build won't care — no part of the website
+% reads a deck.
 \ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
 \documentclass{beamer}
-\usetheme{default}
-\usepackage{amsmath}
+\IfFileExists{iliad-slides.sty}{\usepackage{iliad-slides}}{\usepackage{../iliad-slides}}
 
 \title{Example Worksheet: The Kitchen Sink}
 \subtitle{Slides}
