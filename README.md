@@ -54,10 +54,15 @@ you.
 
 Its order *is* the site's order — clusters, then days, then a day's own
 worksheets — on the homepage, in the sidebar, and on the status page. Several
-worksheets per day is normal. Run `node scripts/schedule.mjs` to validate it and
-print the course as the site will present it; the file's own comments document
-every field. It feeds a public page, so keep chase-ups and anything
-unflattering out of it.
+worksheets per day is normal, and the site numbers them from this order: the two
+above are shown as **D.3.1** Solomonoff Induction and **D.3.2** AIXI, listed
+together under the day, while a day with a single worksheet stays plain **D.3**.
+The numbers are display only — the day code you write here, and the one issues
+and `/admin/status` use, is always the undotted one.
+
+Run `node scripts/schedule.mjs` to validate the file and print the course as the
+site will present it, numbering included; its own comments document every field.
+It feeds a public page, so keep chase-ups and anything unflattering out of it.
 
 ## Folder structure
 

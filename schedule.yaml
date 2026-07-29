@@ -44,7 +44,13 @@
 #   worksheets optional  Slugs of tex/<slug>/ worksheets, in reading order.
 #                        Omit or leave empty for a day nobody has ported yet.
 #                        Several worksheets per day is normal (D.3 is
-#                        Solomonoff Induction then AIXI).
+#                        Solomonoff Induction then AIXI) — the site numbers them
+#                        from this order and lists them under the day: D.3.1,
+#                        D.3.2. A day with one worksheet is never numbered, so a
+#                        dotted code always means "part n of several". Display
+#                        only: `code` above stays the day's single identity, and
+#                        it is what /admin/status, the issues and the project
+#                        board speak.
 #   source     required  Where the *buildable* source is for a day nobody has
 #                        ported yet. Ignored the moment the day has a
 #                        worksheet — /admin/status then shows "in repo"
