@@ -11,17 +11,25 @@
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usetheme{Madrid}
-\usepackage{ulem}
-\usepackage{algorithm2e}
-\usepackage{algpseudocode}
-\usepackage{diffcoeff}
+% CI installs only texlive-latex-extra/-pictures/-fonts-recommended (see
+% .github/workflows/site.yml). algorithm2e + algpseudocode (texlive-science)
+% and ulem (texlive-plain-generic) are needed only by the commented-out DQN
+% pseudocode/cartpole frames below -- re-add them here if those are revived.
+%\usepackage{algorithm2e}
+%\usepackage{algpseudocode}
+%\usepackage{ulem}
 \usepackage{xcolor}
 \usepackage{tikz}
 \usepackage{cancel}
 \usepackage{pgfplots}
 \usepackage{background}
-\usepackage{stmaryrd}
-\usepackage{ulem}
+% stmaryrd supplied only \llbracket/\rrbracket here (\iver, and the DQN
+% TD-error frame); on Debian it arrives via texlive-science, ~79 MB of CI
+% download for two glyphs, so they are built from kernel pieces instead --
+% the same swap tex/aixi/slides.tex makes. (iliad.sty, which provides them
+% for worksheets, is deliberately not loaded for slide decks.)
+\providecommand{\llbracket}{\mathopen{[\![}}
+\providecommand{\rrbracket}{\mathclose{]\!]}}
 \usepackage{tikz}
 \usepackage{subcaption}
 \usepackage{ifthen}
@@ -46,14 +54,15 @@
 
 
 
-\algnewcommand\algorithmicinput{\textbf{Input:}}
-\algnewcommand\Input{\item[\algorithmicinput]}
-
-\algnewcommand\algorithmicoutput{\textbf{Output:}}
-\algnewcommand\Output{\item[\algorithmicoutput]}
-
-\algnewcommand\algorithmiceffect{\textbf{Effect:}}
-\algnewcommand\Effect{\item[\algorithmiceffect]}
+% (algpseudocode shortcuts, parked with the frames that used them)
+%\algnewcommand\algorithmicinput{\textbf{Input:}}
+%\algnewcommand\Input{\item[\algorithmicinput]}
+%
+%\algnewcommand\algorithmicoutput{\textbf{Output:}}
+%\algnewcommand\Output{\item[\algorithmicoutput]}
+%
+%\algnewcommand\algorithmiceffect{\textbf{Effect:}}
+%\algnewcommand\Effect{\item[\algorithmiceffect]}
 
 
 \newcommand{\biject}{\langle \cdot \rangle}
