@@ -4,6 +4,12 @@ import { readStatus, type Day, type Deck, type SourceKind } from "@/lib/status";
 import { listClusters } from "@/lib/cluster-store";
 import { clusterLabel, pagePath } from "@/lib/clusters";
 import { BUILT_AT, COMMIT_SHA, CommitLink } from "@/components/BuildStamp";
+import {
+  InFlightProvider, InFlightCell, InFlightCount, InFlightRest, StatusFreshness,
+} from "@/components/InFlight";
+// From its own module, not from InFlight.tsx: a server component importing a
+// value out of a "use client" file gets undefined. See flight-tone.ts.
+import { FLIGHT } from "@/components/flight-tone";
 import type { Cluster } from "@/lib/clusters";
 
 /**
@@ -17,6 +23,14 @@ import type { Cluster } from "@/lib/clusters";
  *
  * "admin" is a naming convention, not access control: this is a static page on
  * a public site. Keep schedule.yaml free of anything you wouldn't publish.
+ *
+ * One exception to "observed by the build", and it is marked as one: open pull
+ * requests, and whether this page's own commit is still main's tip, are fetched
+ * from GitHub in the reader's browser (components/InFlight.tsx). A branch that
+ * hasn't merged is not a property of a build from main, so no build could
+ * observe it. Everything from that source is additive — it never overrides a
+ * build-derived cell, and if the fetch fails the page is exactly what the build
+ * produced.
  */
 export const metadata = {
   title: "Material status — Iliad Intensive",
@@ -211,6 +225,11 @@ export default async function StatusPage() {
     .concat([...byCluster.keys()].filter((id) => !clusters.some((c) => c.id === id)));
 
   return (
+    // The provider is a client component wrapping server-rendered children:
+    // the table below is still built and rendered on the server, and the
+    // client leaves inside it (InFlightCell &c.) read the fetched PRs from
+    // context once they arrive.
+    <InFlightProvider dayCodes={status.days.map((d) => d.code)} deployedSha={COMMIT_SHA}>
     <main className="mx-auto w-full max-w-[1100px] px-6 py-10">
       <header className="mb-8">
         <h1 className="font-serif text-[2.1rem] leading-[1.15] tracking-tight" style={{ fontWeight: 600 }}>
@@ -222,6 +241,8 @@ export default async function StatusPage() {
           table can&apos;t drift from what the site actually serves. The day roster, which
           worksheets are each day&apos;s material, the Doc tabs, and where the source lives for
           a day nobody has ported yet are the hand-kept part, in <code>schedule.yaml</code>.
+          Open pull requests are the one live column, read from GitHub when you load the
+          page rather than baked in by the build.
         </p>
         {/* Tallies in the same tones as the column they summarise. */}
         <dl className="mt-5 flex flex-wrap gap-2 font-sans text-[0.8rem]">
@@ -240,8 +261,12 @@ export default async function StatusPage() {
               <dd className="inline opacity-80">{label}</dd>
             </span>
           ))}
+          {/* Appears only once the fetch lands — the build can't count these. */}
+          <InFlightCount />
         </dl>
       </header>
+
+      <StatusFreshness builtAt={BUILT_AT} />
 
       {status.checkOnly && (
         <p className="mb-6 border-l-2 border-amber-400 bg-amber-50/60 px-3 py-2 font-sans text-[0.8rem] leading-relaxed text-zinc-700">
@@ -254,6 +279,15 @@ export default async function StatusPage() {
       {/* Wide table: scrolls inside its own box so the page body never does. */}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[860px] border-collapse">
+          {/* Day and Lead are labels, not content: left to size themselves they
+              held a whole line each ("Decision Theory and Reinforcement
+              Learning", "Kai + Matthew Farrugia-Roberts") and starved the four
+              columns that actually carry status. Pinned narrow here and allowed
+              to wrap instead — the slack goes to Material and Source. */}
+          <colgroup>
+            <col className="w-[9.5rem]" />
+            <col className="w-[7rem]" />
+          </colgroup>
           <thead>
             <tr className="border-b border-zinc-300">
               <th className={th}>Day</th>
@@ -292,12 +326,18 @@ export default async function StatusPage() {
                 const source = sourceCell(day);
                 return (
                   <tr key={day.code} className="border-b border-zinc-200">
-                    <td className={`${td} whitespace-nowrap`}>
+                    <td className={td}>
                       <span className="text-zinc-400">{day.code}</span>{" "}
-                      <span className="font-serif text-[0.95rem]">{dayTitle}</span>
+                      {dayTitle}
                     </td>
-                    <td className={`${td} whitespace-nowrap text-zinc-600`}>{day.lead}</td>
-                    <td className={`${td} ${TONE[material.tone].cell}`}>{material.node}</td>
+                    <td className={`${td} text-zinc-600`}>{day.lead}</td>
+                    {/* The cell keeps the build's tint and wording — an open PR
+                        doesn't make a worksheet exist. The chip sits beside
+                        them, saying where the work actually is. */}
+                    <td className={`${td} ${TONE[material.tone].cell}`}>
+                      {material.node}
+                      <InFlightCell code={day.code} />
+                    </td>
                     <td className={`${td} ${TONE[slides.tone].cell}`}>{slides.node}</td>
                     <td className={td}>
                       <Chip href={day.doc} external>tab&nbsp;↗</Chip>
@@ -326,7 +366,15 @@ export default async function StatusPage() {
             <dd className="inline opacity-80">{meaning}</dd>
           </span>
         ))}
+        {/* The sixth tone is the live one, so it is described in the same
+            breath as the five the build derives. */}
+        <span className={`rounded px-2 py-1 ${FLIGHT.cell}`}>
+          <dt className="inline font-medium" aria-hidden>{FLIGHT.glyph}</dt>{" "}
+          <dd className="inline opacity-80">in flight — an open PR claims this day</dd>
+        </span>
       </dl>
+
+      <InFlightRest />
 
       <footer className="mt-12 border-t border-zinc-200 pt-4 font-sans text-xs leading-relaxed text-zinc-500">
         <p>
@@ -341,5 +389,6 @@ export default async function StatusPage() {
         </p>
       </footer>
     </main>
+    </InFlightProvider>
   );
 }
