@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useNav } from "./NavContext";
 import type { IndexEntry } from "@/lib/content";
-import { clusterLabel, pagePath, type Cluster } from "@/lib/clusters";
+import { clusterLabel, dayCode, pagePath, type Cluster } from "@/lib/clusters";
 
 const CLUSTER_ORDER = ["0", "A", "B", "C", "D", "E", "Other"];
 
@@ -75,6 +75,15 @@ export function SidebarNav({
                           : "text-zinc-700 hover:bg-zinc-100 hover:text-black")
                       }
                     >
+                      {/* The part code as a chip rather than a nesting level:
+                          this list already nests cluster → page → headings, and
+                          a fourth tier for the few multi-part days would cost
+                          more than it explains. "D.3.1" inline says it. */}
+                      {dayCode(p.day, p.part, p.parts) && (
+                        <span className="mr-1.5 text-[0.7rem] tracking-[0.06em] text-zinc-400">
+                          {dayCode(p.day, p.part, p.parts)}
+                        </span>
+                      )}
                       {p.title}
                     </Link>
                     {headings.length > 0 && (

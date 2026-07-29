@@ -30,5 +30,15 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    // Dev worktrees live INSIDE the checkout (new-worktree.sh puts them in
+    // ./worktrees/, /config puts them in .claude/worktrees/), and `include`
+    // above is a bare **/*.tsx — so without these two lines `next build` type
+    // checks every other branch's copy of the site against this branch's types,
+    // and one stale worktree fails the build for a change that never touched
+    // src/. Gitignored directories are not automatically excluded.
+    "worktrees",
+    ".claude/worktrees"
+  ]
 }

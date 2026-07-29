@@ -11,7 +11,11 @@
 % ---------- Fonts & encoding ----------
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{lmodern}
+% No \usepackage{lmodern}: no other deck here uses it, and the apt package is
+% only a texlive *Recommends*, so CI's --no-install-recommends box lacks
+% lmodern.sty and the deck build fails outright. Dropping it types this deck in
+% the same cm-super faces as every other deck instead of adding 9.5 MB to the
+% CI TeX download for one outlier.
 \usepackage{microtype}
 
 % ---------- Math ----------

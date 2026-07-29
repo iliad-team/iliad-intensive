@@ -27,3 +27,33 @@ export async function listClusters(): Promise<Cluster[]> {
   }
   return DEFAULT_CLUSTERS;
 }
+
+export type Day = {
+  /** Canonical, undotted code — "D.4". */
+  code: string;
+  cluster: string;
+  title: string;
+};
+
+/**
+ * The teaching days from schedule.yaml, in the order it lists them — the same
+ * source, and the same server-only rule, as listClusters(). A day's title is
+ * curriculum data, so it is read from the committed schedule rather than
+ * duplicated into content/index.json. Empty list if the file is unreadable: a
+ * listing that loses its day headings is better than a page that fails to build.
+ */
+export async function listDays(): Promise<Day[]> {
+  try {
+    const doc = YAML.parse(await readFile(SCHEDULE_FILE, "utf8")) as
+      { clusters?: { id: string; days?: { code: string; title: string }[] }[] } | null;
+    const days: Day[] = [];
+    for (const c of doc?.clusters ?? []) {
+      for (const d of c.days ?? []) {
+        days.push({ code: String(d.code), cluster: String(c.id), title: String(d.title) });
+      }
+    }
+    return days;
+  } catch {
+    return [];
+  }
+}

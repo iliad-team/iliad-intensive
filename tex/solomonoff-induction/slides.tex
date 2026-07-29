@@ -14,32 +14,10 @@
 
 \ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
 \documentclass[10pt,aspectratio=169]{beamer}
-\usepackage[utf8]{inputenc}
-\usepackage{amsmath}
-\usepackage{amsfonts}
-\usepackage{amssymb}
-\usepackage{graphicx}
-\usetheme{Madrid}
-% stmaryrd supplied only \llbracket/\rrbracket here, and on Debian it arrives via
-% texlive-science, which hard-depends on texlive-lang-greek -- ~79 MB of CI
-% download for two glyphs. Built from kernel pieces instead. \mathopen/\mathclose
-% keep delimiter spacing correct. The web is unaffected: KaTeX has \llbracket
-% natively, and the converter skips these two (scripts/tex2mdx/shims.mjs).
-\newcommand{\llbracket}{\mathopen{[\![}}
-\newcommand{\rrbracket}{\mathclose{]\!]}}
-\usepackage{xcolor}
-\usepackage{tikz}
-\usetikzlibrary{calc, positioning, arrows.meta, shapes.geometric}
-
-\hypersetup{
-    colorlinks=true,
-    linkcolor=white,   % white so the Madrid headline/footline nav links read on the dark bars
-    urlcolor=cyan,
-}
-% Beamer colors \cite via linkcolor (white => invisible on body slides), and
-% citecolor is ignored. Override the link color locally just for citations.
-\newcommand{\citev}[1]{\begingroup\hypersetup{linkcolor=cyan}\cite{#1}\endgroup}
-\urlstyle{same}
+% Theme, packages, link colours and \citev: the shared deck style (optional —
+% see tex/iliad-slides.sty). Local copy first, so this folder still compiles
+% when it is copied out of the repo.
+\IfFileExists{iliad-slides.sty}{\usepackage{iliad-slides}}{\usepackage{../iliad-slides}}
 
 %====================== macros shared with the worksheets ======================
 \newcommand{\cA}{\mathcal{A}}
