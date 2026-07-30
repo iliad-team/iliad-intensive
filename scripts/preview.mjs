@@ -18,11 +18,12 @@
  * the homepage); links to other, unbuilt modules 404 until you preview them.
  */
 import { spawn } from "node:child_process";
-import { watch, existsSync, statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { watchWorksheets } from "./watch-lib.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEX = path.join(ROOT, "tex");
@@ -151,36 +152,9 @@ server.listen(PORT, () => {
   console.log(`  editing a worksheet rebuilds it and the browser reloads itself\n`);
 });
 
-const ARTIFACT = /\.(aux|log|out|pdf|bbl|blg|brf|toc|fls|synctex(\.gz)?|fdb_latexmk)$|main-nosol\./;
-let timer = null;
-const pending = new Set();
-const watcher = watch(TEX, { recursive: true }, (_event, file) => {
-  if (!file || ARTIFACT.test(file)) return;
-  const top = file.split(path.sep)[0];
-  const isWorksheet = existsSync(path.join(TEX, top, "main.tex")) ||
-                      existsSync(path.join(TEX, top, "main.mdx"));
-  if (isWorksheet) {
-    if (slugArg && top !== slugArg) return;
-    pending.add(top);
-  } else if (!file.includes(path.sep)) {
-    pending.add(slugArg);                                      // shared file (iliad.sty)
-  } else {
-    return;
-  }
-  clearTimeout(timer);
-  timer = setTimeout(() => {
-    const jobs = [...pending];
-    pending.clear();
-    for (const s of jobs) trigger(s);
-  }, 300);
-});
-// Editors that save atomically (write a temp file, then rename it over the
-// original) make the recursive watcher stat a file that has already vanished —
-// a transient ENOENT. Without this handler the 'error' event is unhandled and
-// crashes the whole preview on the first save.
-watcher.on("error", (err) => {
-  if (err && err.code !== "ENOENT") console.error(`watch error: ${err.message}`);
-});
+// Rebuild+re-export the changed worksheet(s) on save; a shared-file change
+// rebuilds the watched scope. Artifact writes are filtered by the shared watcher.
+watchWorksheets(TEX, slugArg, (slugs) => { for (const s of slugs) trigger(s); });
 
 for (const sig of ["SIGINT", "SIGTERM"]) {
   process.on(sig, () => { server.close(); process.exit(0); });

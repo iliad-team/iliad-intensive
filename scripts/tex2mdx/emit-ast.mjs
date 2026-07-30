@@ -13,7 +13,7 @@ import { printRaw } from "@unified-latex/unified-latex-util-print-raw";
 import { listNewcommands } from "@unified-latex/unified-latex-util-macros";
 import { warn, advise, snippetOf, warnings, advisories } from "./state.mjs";
 import { isAutoLabel } from "./autolabel.mjs";
-import { applyMathShims } from "./shims.mjs";
+import { applyMathShims, THM_FAMILY } from "./shims.mjs";
 import { slug, ghSlug, readGroup, readOpt, readArg } from "./util.mjs";
 import { registerTikz } from "./tikz.mjs";
 
@@ -93,7 +93,6 @@ const CONTRACT_MACROS = {
   // signature or the three brace groups survive as literal text
   crefname: { signature: "m m m" }, Crefname: { signature: "m m m" },
 };
-const THM_COUNTED = new Set(["theorem", "lemma", "proposition", "corollary", "fact", "definition", "example"]);
 
 // ------------------------------------------------------------- run state ---
 let ctx = null;                 // caller-supplied context
@@ -409,7 +408,7 @@ function emitEnv(n) {
   // auto-label — see displayNum); the counter is kept only as its fallback
   let thmNum = null;
   const declared = ctx.declaredThms[env];
-  if (THM_COUNTED.has(env) || (env === "remark" && ctx.remarkNumbered) || (declared && !BUILTIN_ENVS.has(env))) {
+  if (THM_FAMILY.has(env) || (env === "remark" && ctx.remarkNumbered) || (declared && !BUILTIN_ENVS.has(env))) {
     counters.thm[secNum()] = (counters.thm[secNum()] || 0) + 1;
     thmNum = displayNum(n.content, label, `${secNum()}.${counters.thm[secNum()]}`, env);
   }

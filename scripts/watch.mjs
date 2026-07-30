@@ -13,9 +13,10 @@
  * being watched.
  */
 import { spawn, spawnSync } from "node:child_process";
-import { watch, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { watchWorksheets } from "./watch-lib.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEX = path.join(ROOT, "tex");
@@ -46,36 +47,8 @@ for (const sig of ["SIGINT", "SIGTERM"]) {
   process.on(sig, () => { dev.kill("SIGTERM"); process.exit(0); });
 }
 
-// LaTeX runs write artifacts next to the sources — never rebuild on
-// those, or the watcher would loop forever.
-const ARTIFACT = /\.(aux|log|out|pdf|bbl|blg|brf|toc|fls|synctex(\.gz)?|fdb_latexmk)$|main-nosol\.|main\.autolabel\./;
-
-let timer = null;
-const pending = new Set();
-const watcher = watch(TEX, { recursive: true }, (_event, file) => {
-  if (!file || ARTIFACT.test(file)) return;
-  const top = file.split(path.sep)[0];
-  const isWorksheet = existsSync(path.join(TEX, top, "main.tex")) || existsSync(path.join(TEX, top, "main.mdx"));
-  if (isWorksheet) {
-    if (slugArg && top !== slugArg) return;
-    pending.add(top);
-  } else if (!file.includes(path.sep)) {
-    pending.add(null); // shared file (e.g. iliad.sty): rebuild the watched scope
-  } else {
-    return;
-  }
-  clearTimeout(timer);
-  timer = setTimeout(() => {
-    const jobs = pending.has(null) ? [slugArg] : [...pending];
-    pending.clear();
-    for (const s of jobs) build(s);
-  }, 300);
-});
-// Atomic-save editors (write temp + rename) make the recursive watcher stat a
-// file that has already vanished — a transient ENOENT. Without this handler the
-// unhandled 'error' event crashes the watcher on the first such save.
-watcher.on("error", (err) => {
-  if (err && err.code !== "ENOENT") console.error(`watch error: ${err.message}`);
-});
+// Rebuild the changed worksheet(s) on save; a shared-file change rebuilds the
+// watched scope. Artifact writes are filtered out by the shared watcher.
+watchWorksheets(TEX, slugArg, (slugs) => { for (const s of slugs) build(s); });
 
 console.log(`watching tex/${slugArg ?? ""} — edit, save, refresh`);
