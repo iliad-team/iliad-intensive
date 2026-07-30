@@ -2,6 +2,7 @@
  * util.mjs — tokenizer primitives shared by every pipeline stage.
  * Pure functions, no state.
  */
+import { slug as ghSlugger } from "github-slugger";
 
 // s[i] must be the opening delimiter. Returns {content, end} (end past close).
 export function readGroup(s, i, open = "{", close = "}") {
@@ -44,9 +45,15 @@ export function stripComments(tex) {
 export const slug = (label) =>
   label.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
 
-// github-slugger-compatible for plain ASCII heading text (matches rehype-slug)
-export const ghSlug = (text) => text.toLowerCase().trim()
-  .replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+// Heading-anchor slug for cross-references and the sidebar TOC. Uses the very
+// same github-slugger the site's rehype-slug uses to render heading ids, so a
+// generated anchor always lands on the real heading — the old hand-rolled
+// approximation dropped every non-ASCII character (á/ö/ž, Greek, …) and so
+// produced dead links on any heading that had one. Stateless: rehype-slug's
+// per-document duplicate suffixing (-1, -2) is not reproduced here, so two
+// identically-named headings still resolve to the first — a pre-existing
+// corner, not something this changes.
+export const ghSlug = (text) => ghSlugger(text);
 
 // Dedent every line, trim trailing spaces, collapse 3+ newlines. LaTeX source
 // indentation is cosmetic, but in Markdown leading spaces are semantic.
