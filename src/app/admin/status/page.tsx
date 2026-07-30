@@ -51,11 +51,11 @@ export const metadata = {
  *   gone     nothing to build from
  */
 const TONE = {
-  good: { cell: "bg-emerald-600 text-white", chip: "border-emerald-200", glyph: "✓" },
-  ok: { cell: "bg-sky-600 text-white", chip: "border-sky-200", glyph: "→" },
-  wait: { cell: "bg-amber-600 text-white", chip: "border-amber-200", glyph: "!" },
-  none: { cell: "bg-zinc-600 text-white", chip: "border-zinc-200", glyph: "·" },
-  gone: { cell: "bg-rose-600 text-white", chip: "border-rose-200", glyph: "✕" },
+  good: { cell: "bg-emerald-200 text-emerald-900", chip: "border-emerald-300", glyph: "✓" },
+  ok: { cell: "bg-sky-200 text-sky-900", chip: "border-sky-300", glyph: "→" },
+  wait: { cell: "bg-amber-200 text-amber-900", chip: "border-amber-300", glyph: "!" },
+  none: { cell: "bg-zinc-200 text-zinc-900", chip: "border-zinc-300", glyph: "·" },
+  gone: { cell: "bg-rose-200 text-rose-900", chip: "border-rose-300", glyph: "✕" },
 } as const;
 type Tone = keyof typeof TONE;
 
