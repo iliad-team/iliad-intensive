@@ -79,6 +79,9 @@ type Ctx = {
   error: string | null;
   /** Open PRs that claim at least one day on the roster. */
   byDay: Map<string, LivePr[]>;
+  /** Each PR that claims at least one roster day, once, with the days it claims
+   *  — the source for both the tally and the list at the foot of the page. */
+  matched: Array<{ pr: LivePr; days: string[] }>;
   /** Claims a day code no day uses — a typo worth seeing, not swallowing. */
   stray: LivePr[];
   /** No day code at all: infrastructure, docs, tooling. */
@@ -97,12 +100,29 @@ export function useInFlight(): Ctx {
   return v;
 }
 
-/** Day codes are cluster id + "." + number (schedule.yaml: a cluster id is a
- *  single letter or digit), so "[B.4]" and "[D.10]" both parse. */
-const DAY_CODE = /\[([A-Z0-9]\.\d+)\]/g;
+/** A day code is a cluster id + "." + number (schedule.yaml: a cluster id is a
+ *  single letter or digit), so "B.4" and "D.10" both parse.
+ *
+ *  Codes ride inside square brackets in a PR title, by convention — but a code
+ *  is a *substring* of the bracketed run, not the whole of it. All of these
+ *  claim two days: "[D.1] [D.2] …", "[D.1, D.2] …", "[D.1 Bayesian] [D.2
+ *  Decision]". So we take every bracketed run and pull every code out of it,
+ *  rather than only matching a bracket that is exactly "[X.Y]". Requiring the
+ *  brackets still keeps an unbracketed version number ("bump next 15.2") from
+ *  reading as a day; the leading boundary below keeps "[v2.0]" from doing the
+ *  same. (A consumed boundary group, not a lookbehind — lookbehind is a parse
+ *  error on Safari before 16.4, and that would take the whole feature down.) */
+const BRACKETED = /\[([^\]]*)\]/g;
+const DAY_CODE = /(?:^|[^A-Za-z0-9.])([A-Z0-9]\.\d+)/g;
 
 export function dayCodesIn(title: string): string[] {
-  return [...title.matchAll(DAY_CODE)].map((m) => m[1]);
+  const out: string[] = [];
+  for (const [, inner] of title.matchAll(BRACKETED)) {
+    for (const m of inner.matchAll(DAY_CODE)) out.push(m[1]);
+  }
+  // Dedupe, preserving first appearance: "[D.1] again [D.1]" is one claim, and
+  // a day must never show the same PR chip twice.
+  return [...new Set(out)];
 }
 
 export function InFlightProvider({
@@ -199,18 +219,18 @@ export function InFlightProvider({
 
   const value = useMemo<Ctx>(() => {
     const byDay = new Map<string, LivePr[]>();
+    const matched: Array<{ pr: LivePr; days: string[] }> = [];
     const stray: LivePr[] = [];
     const other: LivePr[] = [];
-    let matchedCount = 0;
     for (const pr of prs) {
       const known = pr.codes.filter((c) => roster.has(c));
       if (known.length) {
-        matchedCount += 1;
+        matched.push({ pr, days: known });
         for (const c of known) byDay.set(c, [...(byDay.get(c) ?? []), pr]);
       } else if (pr.codes.length) stray.push(pr);
       else other.push(pr);
     }
-    return { phase, error, byDay, stray, other, matchedCount, fetchedAt, drift, refresh };
+    return { phase, error, byDay, matched, stray, other, matchedCount: matched.length, fetchedAt, drift, refresh };
   }, [prs, roster, phase, error, fetchedAt, drift, refresh]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
@@ -362,19 +382,42 @@ export function StatusFreshness({ builtAt }: { builtAt: string }) {
 }
 
 /**
- * Open PRs the table can't place. Listed rather than dropped, for the same
- * reason build-status.mjs makes an unscheduled worksheet fatal: a page that
- * quietly loses work is worse than one that says it has some it can't file.
+ * Every open PR the fetch turned up, listed at the foot of the page: the ones
+ * linked to a day first, then the two kinds the table can't place. The
+ * unplaceable ones are listed rather than dropped for the same reason
+ * build-status.mjs makes an unscheduled worksheet fatal: a page that quietly
+ * loses work is worse than one that says it has some it can't file.
  */
 export function InFlightRest() {
-  const { phase, stray, other } = useInFlight();
-  if (phase !== "ready" || (!stray.length && !other.length)) return null;
+  const { phase, matched, stray, other } = useInFlight();
+  if (phase !== "ready" || (!matched.length && !stray.length && !other.length)) return null;
   const li = "flex flex-wrap items-baseline gap-x-2 gap-y-1";
   return (
     <section className="mt-8 font-sans text-[0.78rem] text-zinc-600">
+      {matched.length > 0 && (
+        <>
+          <h2 className="font-medium uppercase tracking-[0.12em] text-[0.68rem] text-violet-800">
+            Open PRs linked to a day
+          </h2>
+          <p className="mt-1 max-w-[70ch] opacity-80">
+            Every open PR whose title claims a day on the roster, with the day (or
+            days) it claims. One PR can carry several days, and one day can have
+            several PRs — the same links shown against each day&apos;s row above.
+          </p>
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {matched.map(({ pr, days }) => (
+              <li key={pr.number} className={li}>
+                <PrChip pr={pr} />
+                <span className="font-medium text-violet-800">{days.join(" · ")}</span>
+                <span className="opacity-80">{pr.title}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
       {stray.length > 0 && (
         <>
-          <h2 className="font-medium uppercase tracking-[0.12em] text-[0.68rem] text-amber-800">
+          <h2 className={`${matched.length ? "mt-5 " : ""}font-medium uppercase tracking-[0.12em] text-[0.68rem] text-amber-800`}>
             Open PRs claiming a day that isn&apos;t on the roster
           </h2>
           <p className="mt-1 max-w-[70ch] opacity-80">
@@ -393,7 +436,7 @@ export function InFlightRest() {
       )}
       {other.length > 0 && (
         <>
-          <h2 className={`${stray.length ? "mt-5 " : ""}font-medium uppercase tracking-[0.12em] text-[0.68rem] text-zinc-500`}>
+          <h2 className={`${matched.length || stray.length ? "mt-5 " : ""}font-medium uppercase tracking-[0.12em] text-[0.68rem] text-zinc-500`}>
             Other open PRs
           </h2>
           <p className="mt-1 max-w-[70ch] opacity-80">
