@@ -158,6 +158,8 @@ clusters:
         source: ready
         sourceUrl: https://github.com/wusche1/Illiad_ML_Engineering
         note: notebooks + LaTeX; a track-B variant lives in a second repo
+        worksheets:
+          - intro-to-ml-engineering
 
       - code: C.2
         title: Mechanistic Interpretability
