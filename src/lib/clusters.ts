@@ -12,13 +12,16 @@ export type Cluster = {
   urlSlug: string;
 };
 
+// Fallback used only when schedule.yaml can't be read. Kept in step with the
+// labels the schedule actually declares (no "Cluster " prefix), so a degraded
+// render doesn't silently reword every cluster heading.
 export const DEFAULT_CLUSTERS: Cluster[] = [
   { id: "0", label: "Foundations", urlSlug: "foundations" },
-  { id: "A", label: "Cluster A — Alignment", urlSlug: "alignment" },
-  { id: "B", label: "Cluster B — Learning", urlSlug: "learning" },
-  { id: "C", label: "Cluster C — Abstractions, Representations, and Interpretability", urlSlug: "interpretability" },
-  { id: "D", label: "Cluster D — Agency", urlSlug: "agency" },
-  { id: "E", label: "Cluster E — Safety Guarantees and their Limits", urlSlug: "safety" },
+  { id: "A", label: "A — Alignment", urlSlug: "alignment" },
+  { id: "B", label: "B — Learning", urlSlug: "learning" },
+  { id: "C", label: "C — Abstractions, Representations, and Interpretability", urlSlug: "interpretability" },
+  { id: "D", label: "D — Agency", urlSlug: "agency" },
+  { id: "E", label: "E — Safety Guarantees and their Limits", urlSlug: "safety" },
 ];
 
 export function clusterUrlSlug(

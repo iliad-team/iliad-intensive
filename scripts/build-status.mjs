@@ -39,6 +39,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import YAML from "yaml";
 import { loadSchedule, ScheduleError } from "./schedule.mjs";
+import { splitFrontmatter } from "./frontmatter.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEX = path.join(ROOT, "tex");
@@ -51,11 +52,10 @@ const bad = (msg) => { throw new DataError(msg); };
 
 /** Frontmatter of a built module (content/modules/<slug>.mdx). */
 function frontmatterOf(slug) {
-  const raw = readFileSync(path.join(MODULES, `${slug}.mdx`), "utf8");
-  const m = raw.match(/^---\n([\s\S]*?)\n---\n/);
-  if (!m) return null;
+  const { fm } = splitFrontmatter(readFileSync(path.join(MODULES, `${slug}.mdx`), "utf8"));
+  if (fm === null) return null;
   try {
-    return YAML.parse(m[1]) ?? {};
+    return YAML.parse(fm) ?? {};
   } catch {
     return null;   // frontmatter validity is the render gate's problem
   }
