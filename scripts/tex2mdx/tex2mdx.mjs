@@ -21,10 +21,10 @@ import { parseArgs } from "node:util";
 import { pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { readGroup, readOpt, readArg, stripComments, slug, ghSlug, tidy } from "./util.mjs";
-import { SRC_FILES, lineOf, warnings, warn, advisories, advise, fmtIssue, snippetOf } from "./state.mjs";
-import { MACRO_OVERRIDE, MACRO_SKIP, applyShims, applyMathShims, trimMacroBody,
-         CREF_NAME_DEFAULTS, THM_FAMILY, CONTRACT_NAMES, KNOWN_FRONT_KEYS } from "./shims.mjs";
+import { readGroup, stripComments, tidy } from "./util.mjs";
+import { SRC_FILES, warnings, warn, advisories, advise, fmtIssue } from "./state.mjs";
+import { MACRO_OVERRIDE, MACRO_SKIP, applyShims, trimMacroBody,
+         CREF_NAME_DEFAULTS, CONTRACT_NAMES, KNOWN_FRONT_KEYS } from "./shims.mjs";
 import { initTikz, renderTikzSnippets, tikzCount } from "./tikz.mjs";
 import { injectAutoLabels } from "./autolabel.mjs";
 import { emitDocument, texToPlain } from "./emit-ast.mjs";
@@ -288,8 +288,6 @@ if (usesExerciseEnv) {
   }
 }
 
-const PROSE_MACROS = {};   // retained for buildGdef bookkeeping only
-
 // --------------------------- preamble → gdef ------------------------------
 function buildGdef(pre) {
   const parts = [];
@@ -316,9 +314,6 @@ function buildGdef(pre) {
     if (hasOpt && !MACRO_OVERRIDE[name]) { warn(`macro ${name} has an optional arg; not auto-translated (override or expand manually)`, name); }
     if (MACRO_SKIP.has(name)) { nc.lastIndex = g.end; continue; }
     add(name, arity, applyShims(trimMacroBody(g.content)));
-    // also register for PROSE expansion (usage outside math): unknown prose
-    // commands matching an author macro get expanded and re-processed
-    if (!hasOpt && !(name.slice(1) in PROSE_MACROS)) PROSE_MACROS[name.slice(1)] = { arity, body: g.content };
     nc.lastIndex = g.end;
   }
   // simple \def\name{body} (parameterless) — common toggle idiom
@@ -326,7 +321,6 @@ function buildGdef(pre) {
   while ((m = df.exec(pre))) {
     const g = readGroup(pre, m.index + m[0].length - 1);
     if (!g) continue;
-    if (!(m[1] in PROSE_MACROS)) PROSE_MACROS[m[1]] = { arity: 0, body: g.content };
     df.lastIndex = g.end;
   }
   // \DeclareMathOperator*{\name}{body} — body read with readGroup (it may
