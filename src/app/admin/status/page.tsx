@@ -40,15 +40,17 @@ export const metadata = {
 // ---------------------------------------------------------------- atoms ----
 
 /**
- * Five status tones, each a tinted cell background — scannable down a column
+ * Four status tones, each a tinted cell background — scannable down a column
  * without reading a word. Reserved for state, and never the whole story: every
  * tinted cell also carries a glyph and the status in words, so the colour is
- * the third encoding rather than the only one. Light tints with dark ink
- * (large blocks, so no saturated fills), and there's a legend under the table.
+ * the third encoding rather than the only one. Bold tints with dark ink (large
+ * blocks, no saturated fills), and there's a legend under the table.
  *
  *   good     done, here, working        ok    in hand elsewhere / not ours
- *   wait     a gap worth seeing         none  not applicable, by design
- *   gone     nothing to build from
+ *   wait     a gap worth seeing         gone  nothing to build from
+ *
+ * `none` is not a status — it is the neutral tint for a chip that carries no
+ * state (the Doc-tab link), and the fallback border for Chip.
  */
 const TONE = {
   good: { cell: "bg-emerald-200 text-emerald-900", chip: "border-emerald-300", glyph: "✓" },
@@ -99,18 +101,15 @@ type Cell = { tone: Tone; node: ReactNode };
 const SOURCE_LABEL: Record<SourceKind, { text: string; tone: Tone }> = {
   "in-repo": { text: "in repo", tone: "good" },
   ready: { text: "ready to port", tone: "ok" },
-  readings: { text: "reading day", tone: "none" },
   partial: { text: "partial", tone: "wait" },
   missing: { text: "no source", tone: "gone" },
 };
 
 function materialCell(day: Day, clusters: Cluster[], basePath: string): Cell {
+  // No worksheet built for this day — every day needs one, so this is work
+  // outstanding, the same for a reading day as for any other.
   if (!day.modules.length) {
-    // A reading day has no worksheet by design — grey, not a gap. Any other
-    // day without one is work outstanding.
-    return day.source.declared === "readings"
-      ? { tone: "none", node: <State tone="none">no worksheet — by design</State> }
-      : { tone: "wait", node: <State tone="wait">not ported</State> };
+    return { tone: "wait", node: <State tone="wait">not ported</State> };
   }
   const tone: Tone = day.modules.every((m) => m.unlisted) ? "wait" : "good";
   return {
@@ -178,11 +177,6 @@ function sourceCell(day: Day): Cell {
           <State tone={tone}>{text}</State>
           {day.source.url && <Chip tone={tone} href={day.source.url} external>upstream&nbsp;↗</Chip>}
         </span>
-        {/* A ported reading day is still a reading day — say so, or the row
-            looks like a worksheet day that only shipped an overview page. */}
-        {day.source.kind !== "readings" && day.source.declared === "readings" && (
-          <Muted>reading day</Muted>
-        )}
         {day.source.note && <span className="text-[0.7rem] font-normal leading-snug opacity-75">{day.source.note}</span>}
       </div>
     ),
@@ -250,7 +244,6 @@ export default async function StatusPage() {
             [`${counts.live} of ${counts.days}`, "days live", "good"],
             [counts.decksBuilt, `deck${counts.decksBuilt === 1 ? "" : "s"} built here`, "good"],
             [counts.decksHosted, `deck${counts.decksHosted === 1 ? "" : "s"} hosted elsewhere`, "ok"],
-            [counts.readingDays, `reading day${counts.readingDays === 1 ? "" : "s"}`, "none"],
             [counts.awaitingSource, "awaiting source", "gone"],
           ] as [string | number, string, Tone][]).map(([n, label, tone]) => (
             <span
@@ -359,15 +352,14 @@ export default async function StatusPage() {
           ["ok", "in hand, but not ours to build — upstream source, deck hosted elsewhere"],
           ["wait", "outstanding — not ported yet, or no deck"],
           ["gone", "nothing buildable exists — only compiled PDFs"],
-          ["none", "not applicable by design — a reading day"],
         ] as [Tone, string][]).map(([tone, meaning]) => (
           <span key={tone} className={`rounded px-2 py-1 ${TONE[tone].cell}`}>
             <dt className="inline font-medium" aria-hidden>{TONE[tone].glyph}</dt>{" "}
             <dd className="inline opacity-80">{meaning}</dd>
           </span>
         ))}
-        {/* The sixth tone is the live one, so it is described in the same
-            breath as the five the build derives. */}
+        {/* The live tone, described in the same breath as the four the build
+            derives — it comes from the in-browser fetch, not the build. */}
         <span className={`rounded px-2 py-1 ${FLIGHT.cell}`}>
           <dt className="inline font-medium" aria-hidden>{FLIGHT.glyph}</dt>{" "}
           <dd className="inline opacity-80">in flight — an open PR claims this day</dd>
