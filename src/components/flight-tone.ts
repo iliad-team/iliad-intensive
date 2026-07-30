@@ -13,7 +13,7 @@
  * That compiles and type-checks cleanly, so it is only visible in the output.
  */
 export const FLIGHT = {
-  cell: "bg-violet-50 text-violet-900",
+  cell: "bg-violet-600 text-white",
   chip: "border-violet-300",
   glyph: "⇡",
 } as const;
