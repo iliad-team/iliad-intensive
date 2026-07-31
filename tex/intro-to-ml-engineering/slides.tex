@@ -1,0 +1,1490 @@
+\documentclass[aspectratio=169]{beamer}
+
+% ---------------------------------------------------------------------------
+% Self-contained preamble. Upstream this was \input{../../lib/preamble}
+% (packages + settings + metadata) with biblatex/biber. For this repo's deck
+% build (bibtex ladder, no biber) the citation machinery is swapped to the
+% house style used by the other decks: \bibliographystyle{alphaurl} +
+% \bibliography{biblo} (alphaurl.bst is vendored at tex/alphaurl.bst and found
+% via BSTINPUTS). Everything else is Julian's preamble verbatim.
+% ---------------------------------------------------------------------------
+
+% Fonts
+\usepackage{lmodern}
+\usepackage[english]{babel}
+
+% Math and symbols
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+% Graphics and figures
+\usepackage{graphicx}
+
+% TikZ for diagrams
+\usepackage{tikz}
+\usetikzlibrary{positioning,shapes,arrows,decorations.markings,decorations.pathreplacing,calc,fit,backgrounds,matrix}
+
+% Tables
+\usepackage{booktabs}
+\usepackage{array}
+
+% Code listings
+\usepackage{minted}
+\usemintedstyle{default}
+\setminted{
+  bgcolor=black!5,
+  fontsize=\small,
+  breaklines,
+  frame=none,
+}
+
+% QR codes
+\usepackage{qrcode}
+
+% Appendix frame numbering
+\usepackage{appendixnumberbeamer}
+
+% Beamer theme
+\usetheme{moloch}
+
+% Clean navigation: just frame numbers
+\setbeamertemplate{navigation symbols}{}
+
+% Numbered sections in table of contents
+\setbeamertemplate{section in toc}{\inserttocsectionnumber.~\inserttocsection}
+
+% Metadata macros
+\newcommand{\coursetitle}{Iliad Intensive}
+\newcommand{\instructor}{Julian Schulz}
+\newcommand{\institution}{University}
+
+\title{ML Foundations}
+\subtitle{\coursetitle}
+\author{\instructor}
+\date{\today}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Outline}
+\tableofcontents
+\end{frame}
+
+% ============================================================
+\section{The Training Loop}
+% ============================================================
+
+\begin{frame}{Concepts in Machine Learning}
+\begin{center}
+\begin{tikzpicture}[
+  box/.style={rectangle, draw, thick, rounded corners=3pt, minimum width=2cm, minimum height=0.7cm, font=\small},
+  arr/.style={->, very thick, gray!70},
+]
+  \node[box, fill=blue!15] (data) at (0, 0) {Data};
+  \node[box, fill=green!15] (model) at (3.5, 0) {Model};
+  \node[box, fill=red!15] (loss) at (7, 0) {Loss};
+  \node[box, fill=orange!15] (opt) at (3.5, -1.8) {Optimizer};
+
+  \draw[arr] (data) -- (model) node[midway, above, font=\scriptsize] {input};
+  \draw[arr] (model) -- (loss) node[midway, above, font=\scriptsize] {prediction};
+  \draw[arr] (loss) -- (opt) node[midway, right, font=\scriptsize] {gradient};
+  \draw[arr] (opt) -- (model) node[midway, left, font=\scriptsize] {update};
+\end{tikzpicture}
+\end{center}
+\vspace{-0.3em}
+\begin{description}
+\item[Data] input to a task we want an AI to do
+\item[Model] gets data, outputs a prediction
+\item[Loss function] quantifies how well the model did
+\item[Optimizer] updates the model to do better
+\end{description}
+\end{frame}
+
+\begin{frame}[fragile]{The Training Loop in PyTorch}
+\begin{minted}{python}
+for x, y in dataloader:
+    optimizer.zero_grad()
+    prediction = model(x)         # forward pass
+    loss = loss_fn(prediction, y) # compute loss
+    loss.backward()               # backward pass
+    optimizer.step()              # update parameters
+\end{minted}
+\vspace{1em}
+This is \emph{the} loop.
+Everything else in ML is about making each piece better.
+\end{frame}
+
+\begin{frame}{Terminology}
+\begin{description}
+\item[Parameters / weights] the numbers that represent the model itself, updated by the optimizer ($\theta$)
+\item[Activations] the numbers created as we feed data through the network
+\item[Hyperparameters] choices made \emph{before} training: learning rate, batch size, architecture
+\end{description}
+\end{frame}
+
+\begin{frame}{Stochasticity and Batching}
+We want to minimize the true loss over the full data distribution:
+$$\mathcal{L}(\theta) = \mathbb{E}_{x \sim \mathcal{D}} \left[ \ell(f_\theta(x), y) \right]$$
+But we only ever see a finite \textbf{batch} $\mathcal{B} \subset \mathcal{D}$ at each step:
+$$\hat{\mathcal{L}}(\theta) = \frac{1}{|\mathcal{B}|} \sum_{(x,y) \in \mathcal{B}} \ell(f_\theta(x), y)$$
+\begin{itemize}
+\item Every gradient is a noisy estimate of the true gradient
+\item Batch size controls the noise level
+\end{itemize}
+\end{frame}
+
+% ============================================================
+\section{Tensors and PyTorch}
+% ============================================================
+
+\begin{frame}[fragile]{Tensors}
+The central object in PyTorch: multidimensional arrays of numbers.
+\vspace{0.5em}
+
+We use tensors to represent: data, parameters, activations, outputs, losses.
+\vspace{0.5em}
+
+\begin{minted}{python}
+x = torch.tensor([1.0, 2.0, 3.0])
+M = torch.zeros(3, 4)
+\end{minted}
+\vspace{0.5em}
+
+By convention, everything except parameters has the \textbf{batch dimension first}, so we can process many samples at once.
+\end{frame}
+
+\begin{frame}[fragile]{Tensor Operations}
+\begin{minted}{python}
+torch.exp(x)           # elementwise exponential
+A @ B                  # matrix multiply
+x.unsqueeze(0)         # add a dimension
+\end{minted}
+\vspace{1em}
+
+Einstein notation makes index operations explicit:
+$$C_{ij} = \sum_k A_{ik} B_{kj}$$
+\begin{minted}{python}
+torch.einsum('ik,kj->ij', A, B)
+\end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Einops}
+Readable notation for tensor reshaping:
+\begin{minted}{python}
+# PyTorch (what does this do?)
+x.reshape(B, S, n_heads, d_head).permute(0, 2, 1, 3)
+
+# Einops (self-documenting)
+rearrange(x, 'b s (h d) -> b h s d', h=n_heads)
+\end{minted}
+\vspace{0.5em}
+\begin{itemize}
+\item \texttt{rearrange}: reshape, permute, split, merge
+\item \texttt{reduce}: pool over dimensions
+\item \texttt{repeat}: tile/broadcast
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Autograd and the Computation Graph}
+\begin{columns}[c]
+\begin{column}{0.55\textwidth}
+\begin{enumerate}
+\item Build expressions from tensors with \texttt{requires\_grad=True}
+\item Call \texttt{.backward()} on a scalar
+\item Access gradients via \texttt{.grad}
+\end{enumerate}
+\vspace{0.5em}
+You never write derivatives by hand.
+The graph is rebuilt every forward pass.
+\end{column}
+\begin{column}{0.45\textwidth}
+\begin{center}
+\begin{tikzpicture}[
+  node distance=0.8cm,
+  op/.style={circle, draw, thick, fill=orange!20, minimum size=7mm, font=\scriptsize},
+  var/.style={rectangle, draw, thick, fill=blue!10, rounded corners=2pt, minimum width=1cm, minimum height=5mm, font=\scriptsize},
+  arr/.style={->, thick},
+]
+  % Forward pass (bottom to top)
+  \node[var] (x) at (0, 0) {$x$};
+  \node[var] (w) at (2, 0) {$W$};
+  \node[op] (mul) at (1, 1.2) {$\times$};
+  \node[var] (b) at (2.5, 1.2) {$b$};
+  \node[op] (add) at (1.8, 2.4) {$+$};
+  \node[op] (relu) at (1.8, 3.5) {ReLU};
+  \node[var] (L) at (1.8, 4.6) {$\mathcal{L}$};
+
+  \draw[arr] (x) -- (mul);
+  \draw[arr] (w) -- (mul);
+  \draw[arr] (mul) -- (add);
+  \draw[arr] (b) -- (add);
+  \draw[arr] (add) -- (relu);
+  \draw[arr] (relu) -- (L);
+
+  % Backward arrows (faint red, right side)
+  \draw[->, thick, red!50, dashed] (L.east) -- ++(0.3,0) |- (relu.east);
+  \draw[->, thick, red!50, dashed] (relu.east) -- ++(0.5,0) |- (add.east);
+  \draw[->, thick, red!50, dashed] (add.west) -- ++(-0.5,0) |- (mul.west);
+
+  % Labels
+  \node[font=\tiny, blue!60!black, left] at (-0.2, 2.3) {forward $\uparrow$};
+  \node[font=\tiny, red!60!black, right] at (2.8, 2.3) {$\downarrow$ backward};
+\end{tikzpicture}
+\end{center}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}[fragile]{Devices}
+\begin{itemize}
+\item Tensors live on a \textbf{device}: CPU or GPU (\texttt{cuda:0})
+\item Move with \texttt{x.to('cuda')}
+\item All tensors in an operation must be on the same device
+\item GPU memory is the main bottleneck for model size and batch size
+\end{itemize}
+\end{frame}
+
+\begin{frame}{}
+\centering
+\Large \href{https://colab.research.google.com/github/wusche1/Illiad_ML_Engineering/blob/main/lectures/01_a_ml_foundations/exercises/01_pytorch_basics/notebook.ipynb}{\textbf{Exercise 1: PyTorch Basics}} \\[1em]
+\normalsize 25 minutes \\[1em]
+\qrcode[height=3cm]{https://colab.research.google.com/github/wusche1/Illiad_ML_Engineering/blob/main/lectures/01_a_ml_foundations/exercises/01_pytorch_basics/notebook.ipynb}
+\end{frame}
+
+% ============================================================
+\section{Loss Functions}
+% ============================================================
+
+\begin{frame}{Loss Functions: Supervised Learning}
+The loss function defines \emph{what} we are optimizing.
+\vspace{0.5em}
+
+When we can directly verify the output:
+\begin{itemize}
+\item Predict something continuous (position of a ball) $\Rightarrow$ MSE
+\item Predict something discrete (class, next word) $\Rightarrow$ \textbf{cross-entropy loss}
+$$\mathcal{L} = -\sum_i y_i \log \hat{y}_i$$
+\end{itemize}
+\vspace{0.5em}
+Minimizing cross-entropy makes the model \textbf{well-calibrated}: its output numbers can be interpreted as probabilities.
+\end{frame}
+
+\begin{frame}{Loss Functions: Human Preferences}
+We do not always have the ``correct label.''
+Sometimes we only know a pattern outputs should have.
+\vspace{0.5em}
+
+Example: rating text quality, given only pairwise human preferences (``I prefer A over B'').
+\vspace{0.5em}
+
+The preferred text should be rated higher:
+$$\mathcal{L} = -\log \sigma(r_\theta(x_w) - r_\theta(x_l))$$
+\hfill{\tiny \cite{christiano2017}}\quad
+\end{frame}
+
+\begin{frame}{Loss Functions: Reinforcement Learning}
+Sometimes we cannot say what the correct output looks like, but we can identify one when we see it (e.g.\ winning at chess).
+\vspace{0.5em}
+
+\begin{itemize}
+\item RL loss functions are more complex
+\item Often involve a learned reward model (from the previous slide) combined with a policy objective
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Train Loss vs.\ Test Loss}
+\begin{center}
+\begin{tikzpicture}[xscale=1.4, yscale=1.2]
+  \draw[->] (0, 0) -- (7.5, 0) node[right, font=\small] {Training time};
+  \draw[->] (0, 0) -- (0, 3.5) node[above, font=\small] {Loss};
+
+  % Train loss (always decreasing)
+  \draw[very thick, blue!70!black, domain=0.3:7, samples=80]
+    plot (\x, {2.8*exp(-0.5*\x) + 0.15});
+  \node[blue!70!black, font=\small, right] at (7.1, 0.2) {train};
+
+  % Test loss (U-shaped)
+  \draw[very thick, red!70!black, domain=0.3:7, samples=80]
+    plot (\x, {2.8*exp(-0.5*\x) + 0.08*(\x-1)*(\x-1) + 0.3});
+  \node[red!70!black, font=\small, right] at (7.1, 2.8) {test};
+
+  % Regions
+  \draw[dashed, gray] (2.2, 0) -- (2.2, 3.3);
+  \draw[dashed, gray] (4.5, 0) -- (4.5, 3.3);
+
+  \node[font=\scriptsize, gray, align=center] at (1.1, 3.2) {underfit};
+  \node[font=\scriptsize, green!50!black, align=center] at (3.35, 3.2) {good fit};
+  \node[font=\scriptsize, red!60!black, align=center] at (5.8, 3.2) {overfit};
+\end{tikzpicture}
+\end{center}
+\vspace{-0.5em}
+\begin{itemize}
+\item \textbf{Underfitting}: both losses high (model too simple or undertrained)
+\item \textbf{Overfitting}: train loss low, test loss rises (model memorizes)
+\item Regularization (L2, dropout) constrains the model to delay overfitting
+\end{itemize}
+\hfill{\tiny Dropout \cite{srivastava2014}}\quad
+\end{frame}
+
+% ============================================================
+\section{Optimizers}
+% ============================================================
+
+\begin{frame}{Optimizers}
+We have a gradient.
+Which direction do we step?
+\end{frame}
+
+\begin{frame}{Stochastic Gradient Descent}
+$$\theta_{t+1} = \theta_t - \alpha \, \nabla_\theta \mathcal{L}$$
+\begin{itemize}
+\item $\alpha$: learning rate (hyperparameter)
+\item Simple and robust
+\item Can be slow: oscillates across narrow valleys, crawls along them
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Learning Rate}
+\begin{center}
+\begin{tikzpicture}[xscale=1.8, yscale=1.4]
+  % Loss landscape
+  \draw[thick, blue!60!black, domain=-3.2:3.2, samples=100]
+    plot (\x, {0.3*\x*\x + 0.15*sin(3*\x r)});
+  \node[below] at (0, -0.3) {$\theta^*$};
+  \node[left, font=\small] at (-3.2, 2.5) {$\mathcal{L}$};
+
+  % Too-small learning rate (left side)
+  \foreach \x/\xn in {-2.8/-2.5, -2.5/-2.25, -2.25/-2.05, -2.05/-1.9} {
+    \fill[red!70!black] (\x, {0.3*\x*\x + 0.15*sin(3*\x r)}) circle (1.5pt);
+    \draw[->, red!70!black, thick]
+      (\x, {0.3*\x*\x + 0.15*sin(3*\x r)}) --
+      (\xn, {0.3*\xn*\xn + 0.15*sin(3*\xn r)});
+  }
+  \fill[red!70!black] (-1.9, {0.3*1.9*1.9 + 0.15*sin(-3*1.9 r)}) circle (1.5pt);
+  \node[red!70!black, above, font=\small] at (-2.4, {0.3*2.8*2.8 + 0.15*sin(-3*2.8 r) + 0.1})
+    {$\alpha$ too small: slow};
+
+  % Too-large learning rate (right side)
+  \fill[orange!80!black] (2.0, {0.3*4.0 + 0.15*sin(6.0 r)}) circle (1.5pt);
+  \draw[->, orange!80!black, thick, dashed]
+    (2.0, {0.3*4.0 + 0.15*sin(6.0 r)}) to[bend left=15]
+    (-1.8, {0.3*3.24 + 0.15*sin(-5.4 r)});
+  \fill[orange!80!black] (-1.8, {0.3*3.24 + 0.15*sin(-5.4 r)}) circle (1.5pt);
+  \draw[->, orange!80!black, thick, dashed]
+    (-1.8, {0.3*3.24 + 0.15*sin(-5.4 r)}) to[bend left=15]
+    (2.5, {0.3*6.25 + 0.15*sin(7.5 r)});
+  \fill[orange!80!black] (2.5, {0.3*6.25 + 0.15*sin(7.5 r)}) circle (1.5pt);
+  \node[orange!80!black, above, font=\small] at (2.3, {0.3*6.25 + 0.15*sin(7.5 r) + 0.1})
+    {$\alpha$ too large: diverges};
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{Momentum \cite{sutskever2013}}
+$$v_{t+1} = \beta \, v_t + (1 - \beta) \, \nabla_\theta \mathcal{L}$$
+$$\theta_{t+1} = \theta_t - \alpha \, v_{t+1}$$
+\begin{itemize}
+\item Keeps a running velocity, like a ball rolling downhill
+\item Accelerates through flat regions
+\item Dampens oscillations in steep directions
+\item Can roll over small local minima
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Momentum Escapes Local Minima}
+\begin{center}
+\begin{tikzpicture}[x=1.2cm, y=0.55cm]
+  % Loss landscape: one continuous left-to-right curve, no branches
+  % left wall -> global min -> barrier -> local min -> right slope
+  \draw[very thick, blue!60!black]
+    (-4.5, 7)                          % far left, high
+    to[out=-20, in=170] (-3, -1)       % descend to global min
+    to[out=-10, in=190] (-2, 0)        % right wall of global min
+    to[out=10, in=220] (-0.5, 4)       % up to barrier
+    to[out=40, in=170] (0.5, 4.2)      % barrier plateau
+    to[out=-10, in=150] (1, 3)         % descending from barrier
+    to[out=-30, in=170] (2, 1)         % into local min
+    to[out=-10, in=200] (3, 2)         % right wall of local min
+    to[out=20, in=195] (5.5, 7);       % ascending right slope
+
+  \node[left, font=\small] at (-4.5, 7.5) {$\mathcal{L}$};
+
+  % Labels
+  \node[below, font=\small, blue!60!black] at (2, 0.3) {local min};
+  \node[below, font=\small, blue!60!black] at (-3, -1.7) {global min};
+  \node[above, font=\scriptsize, gray] at (0, 4.7) {barrier};
+
+  % === SGD (red): rolls into local min, gets stuck ===
+  \fill[red!70!black] (4.5, 4.8) circle (2.5pt);
+  \draw[->, red!70!black, very thick] (4.5, 4.8) -- (3.5, 2.5);
+  \fill[red!70!black] (3.5, 2.5) circle (2.5pt);
+  \draw[->, red!70!black, very thick] (3.5, 2.5) -- (2.7, 1.5);
+  \fill[red!70!black] (2.7, 1.5) circle (2.5pt);
+  \draw[->, red!70!black, very thick] (2.7, 1.5) -- (2.2, 1.15);
+  \fill[red!70!black] (2.2, 1.15) circle (2.5pt);
+  \node[red!70!black, right, font=\small\bfseries] at (5, 4.8) {SGD};
+  \node[red!70!black, font=\scriptsize] at (2.8, 0.5) {stuck};
+
+  % === Momentum (green): descends, passes through local min, climbs barrier, reaches global min ===
+  \fill[green!50!black] (4.5, 5.6) circle (2.5pt);
+  \node[green!50!black, right, font=\small\bfseries] at (5, 5.6) {Momentum};
+
+  % Step 1: descend into local min
+  \draw[->, green!50!black, very thick]
+    (4.5, 5.6) to[out=200, in=20] (2, 1.8);
+  \fill[green!50!black] (2, 1.8) circle (2.5pt);
+  % Step 2: past minimum, climbing uphill against gradient
+  \draw[->, green!50!black, very thick]
+    (2, 1.8) to[out=200, in=-30] (1, 3.5);
+  \fill[green!50!black] (1, 3.5) circle (2.5pt);
+  % Step 3: cresting the barrier
+  \draw[->, green!50!black, very thick]
+    (1, 3.5) to[out=150, in=-30] (0, 5.0);
+  \fill[green!50!black] (0, 5.0) circle (2.5pt);
+  % Step 4: over the top
+  \draw[->, green!50!black, very thick]
+    (0, 5.0) to[out=210, in=50] (-1, 4.2);
+  \fill[green!50!black] (-1, 4.2) circle (2.5pt);
+  % Step 5: descending toward global min
+  \draw[->, green!50!black, very thick]
+    (-1, 4.2) to[out=230, in=50] (-2, 0.8);
+  \fill[green!50!black] (-2, 0.8) circle (2.5pt);
+  % Step 6: into global min
+  \draw[->, green!50!black, very thick]
+    (-2, 0.8) to[out=230, in=60] (-3, -0.3);
+  \fill[green!50!black] (-3, -0.3) circle (2.5pt);
+
+  % Annotation arrow pointing at the uphill segment
+  \draw[green!50!black, thick, ->] (2.5, 7.5) to[out=230, in=60] (0.7, 4);
+  \node[green!50!black, above, font=\scriptsize, align=center] at (2.5, 7.5) {accumulated velocity\\carries it uphill};
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{Adam = Momentum + RMSProp \cite{kingma2014}}
+$$m_{t+1} = \beta_1 m_t + (1-\beta_1) g_t \qquad v_{t+1} = \beta_2 v_t + (1-\beta_2) g_t^2$$
+$$\hat{m} = \frac{m_{t+1}}{1-\beta_1^{t+1}} \qquad \hat{v} = \frac{v_{t+1}}{1-\beta_2^{t+1}}$$
+$$\theta_{t+1} = \theta_t - \alpha \frac{\hat{m}}{\sqrt{\hat{v}} + \epsilon}$$
+\begin{itemize}
+\item Adaptive per-parameter learning rates + momentum
+\item Default choice for most deep learning
+\item Typical: $\beta_1=0.9$, $\beta_2=0.999$, $\epsilon=10^{-8}$
+\end{itemize}
+\end{frame}
+
+\begin{frame}{}
+\centering
+\Large \href{https://colab.research.google.com/github/wusche1/Illiad_ML_Engineering/blob/main/lectures/01_a_ml_foundations/exercises/02_optimizers/notebook.ipynb}{\textbf{Exercise 2: Implement Optimizers}} \\[1em]
+\normalsize 25 minutes \\[1em]
+\qrcode[height=3cm]{https://colab.research.google.com/github/wusche1/Illiad_ML_Engineering/blob/main/lectures/01_a_ml_foundations/exercises/02_optimizers/notebook.ipynb}
+\end{frame}
+
+% ============================================================
+\section{Architectures}
+% ============================================================
+
+\begin{frame}{The MLP}
+\begin{center}
+\begin{tikzpicture}[
+  node distance=1.6cm and 2.2cm,
+  neuron/.style={circle, draw, thick, minimum size=8mm, inner sep=0pt},
+  input/.style={neuron, fill=blue!15},
+  hidden/.style={neuron, fill=orange!20},
+  output/.style={neuron, fill=green!20},
+  conn/.style={->, thick, gray!60},
+  annot/.style={font=\small\bfseries, text=black!70},
+]
+  % Input layer
+  \foreach \i in {1,2,3} {
+    \node[input] (i\i) at (0, -\i*1.2+2.4) {$x_{\i}$};
+  }
+  % Hidden layer
+  \foreach \j in {1,2,3,4} {
+    \node[hidden] (h\j) at (3, -\j*1.1+2.75) {$h_{\j}$};
+  }
+  % Output layer
+  \foreach \k in {1,2} {
+    \node[output] (o\k) at (6, -\k*1.2+1.8) {$y_{\k}$};
+  }
+  % Connections: input -> hidden
+  \foreach \i in {1,2,3}
+    \foreach \j in {1,2,3,4}
+      \draw[conn] (i\i) -- (h\j);
+  % Connections: hidden -> output
+  \foreach \j in {1,2,3,4}
+    \foreach \k in {1,2}
+      \draw[conn] (h\j) -- (o\k);
+  % Labels
+  \node[annot, above=3mm] at (0, 1.2) {Input};
+  \node[annot, above=3mm] at (3, 1.65) {Hidden};
+  \node[annot, above=3mm] at (6, 0.6) {Output};
+  % Activation annotation
+  \draw[thick, red!70!black, ->, >=stealth] (3, -2.2) -- ++(0.6, 0)
+    node[right, font=\scriptsize, red!70!black] {$\sigma(\cdot)$};
+  \node[font=\scriptsize, red!70!black, below] at (3.3, -2.2) {nonlinearity};
+\end{tikzpicture}
+\end{center}
+\vspace{-0.5em}
+\begin{itemize}
+\item Without a hidden layer, we can only represent linear functions
+\item The hidden layer with a nonlinearity lets us express richer functions
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{The MLP in PyTorch}
+\begin{minted}{python}
+import torch.nn as nn
+
+mlp = nn.Sequential(
+    nn.Linear(3, 128),   # input -> hidden (weights + bias)
+    nn.ReLU(),           # nonlinearity
+    nn.Linear(128, 2),   # hidden -> output
+)
+
+y = mlp(x)  # x: (batch, 3) -> y: (batch, 2)
+\end{minted}
+\vspace{0.5em}
+\begin{itemize}
+\item \texttt{nn.Linear}: $y = Wx + b$ (learnable $W$, $b$)
+\item \texttt{nn.Sequential}: chain layers into a pipeline
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Activation Functions}
+Without nonlinearities, stacking linear layers just gives another linear layer.
+\vspace{0.3em}
+\begin{center}
+\begin{tikzpicture}[xscale=0.7, yscale=0.9]
+  % ReLU
+  \begin{scope}[shift={(0,0)}]
+    \draw[->] (-2.2, 0) -- (2.4, 0) node[right, font=\tiny] {$x$};
+    \draw[->] (0, -0.5) -- (0, 2.2);
+    \draw[very thick, blue!70!black] (-2, 0) -- (0, 0);
+    \draw[very thick, blue!70!black] (0, 0) -- (2, 2);
+    \node[above, font=\small\bfseries, blue!70!black] at (0, 2.2) {ReLU};
+    \node[below, font=\scriptsize] at (0, -0.7) {$\max(0, x)$};
+  \end{scope}
+  % GELU
+  \begin{scope}[shift={(5.5,0)}]
+    \draw[->] (-2.2, 0) -- (2.4, 0) node[right, font=\tiny] {$x$};
+    \draw[->] (0, -0.5) -- (0, 2.2);
+    % GELU ≈ x * sigmoid(1.702 * x)
+    \draw[very thick, red!70!black, domain=-2:2, samples=80]
+      plot (\x, {\x / (1 + exp(-1.702*\x))});
+    \node[above, font=\small\bfseries, red!70!black] at (0, 2.2) {GELU};
+    \node[below, font=\scriptsize] at (0, -0.7) {$x \cdot \Phi(x)$};
+  \end{scope}
+  % Sigmoid
+  \begin{scope}[shift={(11,0)}]
+    \draw[->] (-2.2, 0) -- (2.4, 0) node[right, font=\tiny] {$x$};
+    \draw[->] (0, -0.5) -- (0, 2.2);
+    \draw[very thick, green!50!black, domain=-2:2, samples=60]
+      plot (\x, {2/(1 + exp(-3*\x))});
+    \draw[dashed, gray, thin] (-2.2, 2) -- (2.4, 2);
+    \node[above, font=\small\bfseries, green!50!black] at (0, 2.2) {Sigmoid};
+    \node[below, font=\scriptsize] at (0, -0.7) {$\frac{1}{1+e^{-x}}$};
+  \end{scope}
+\end{tikzpicture}
+\end{center}
+\vspace{-0.3em}
+\begin{itemize}
+\item \textbf{ReLU}: simple, effective, standard for MLPs
+\item \textbf{GELU}: smooth, used in transformers
+\item \textbf{Sigmoid}: saturates at extremes, mostly historical
+\end{itemize}
+\hfill{\tiny GELU \cite{hendrycks2016}}\quad
+\end{frame}
+
+\begin{frame}{Universal Approximation}
+\textbf{Theorem} (Cybenko, Hornik et al.):
+A single hidden layer can approximate any continuous function on a compact set.
+\begin{center}
+\begin{tikzpicture}[xscale=1.0, yscale=0.8]
+  \draw[->] (-0.3, 0) -- (7.5, 0) node[right, font=\tiny] {$x$};
+  \draw[->] (0, -0.3) -- (0, 3.5);
+  % Target function (smooth curve)
+  \draw[very thick, blue!60!black, domain=0.2:7, samples=100]
+    plot (\x, {1.5 + 1.2*sin(\x*60) + 0.4*cos(\x*120)});
+  \node[blue!60!black, font=\small, right] at (7.1, 2.5) {target $f$};
+  % ReLU piecewise-linear approximation: coarse (6 hinges) to show it's approximate
+  % Sampled from target at wide intervals
+  \draw[very thick, red!70!black, dashed]
+    (0.3, 1.76) -- (1.5, 2.30) -- (3.0, 1.90) -- (4.5, -0.10) --
+    (6.0, 1.90) -- (7.0, 2.34);
+  \node[red!70!black, font=\small, right] at (7.1, 1.5) {ReLU sum};
+  \node[red!70!black, font=\scriptsize, right] at (7.1, 1.0) {(6 neurons)};
+  % Hinge points
+  \foreach \px/\py in {0.3/1.76, 1.5/2.30, 3.0/1.90, 4.5/-0.10, 6.0/1.90, 7.0/2.34} {
+    \fill[red!60!black] (\px, \py) circle (2pt);
+  }
+\end{tikzpicture}
+\end{center}
+\vspace{-0.5em}
+\begin{itemize}
+\item Each ReLU neuron contributes a ``hinge''; their weighted sum approximates $f$
+\item Existence result, not a recipe: says nothing about how many neurons you need
+\item In practice, deeper is much more efficient than wider
+\end{itemize}
+\hfill{\tiny \cite{cybenko1989, hornik1989}}\quad
+\end{frame}
+
+\begin{frame}{Depth: Stacking Layers}
+\begin{center}
+\begin{tikzpicture}[
+  layer/.style={rectangle, draw, thick, minimum width=2.8cm, minimum height=0.5cm, font=\scriptsize},
+  arr/.style={->, thick, gray},
+]
+  \node[layer, fill=blue!10] (l1) at (0, 0) {Layer 1: edges};
+  \node[layer, fill=blue!15] (l2) at (0, 1) {Layer 2: textures};
+  \node[layer, fill=blue!20] (l3) at (0, 2) {Layer 3: parts};
+  \node[layer, fill=blue!25] (l4) at (0, 3) {Layer 4: objects};
+
+  \draw[arr] (l1) -- (l2);
+  \draw[arr] (l2) -- (l3);
+  \draw[arr] (l3) -- (l4);
+
+  \node[font=\scriptsize, left, gray] at (-1.8, 0) {pixels};
+  \node[font=\scriptsize, left, gray] at (-1.8, 3) {``dog''};
+
+  % Brace
+  \draw[decorate, decoration={brace, amplitude=4pt}, thick, gray]
+    (1.7, -0.25) -- (1.7, 3.25);
+  \node[font=\scriptsize, gray, right] at (2, 1.5) {same structure,};
+  \node[font=\scriptsize, gray, right] at (2, 1.05) {different features};
+\end{tikzpicture}
+\end{center}
+\vspace{-0.3em}
+\begin{itemize}
+\item Each layer builds on the previous one's representations
+\item The deep learning recipe: repeat a simple block many times
+\end{itemize}
+\vspace{0.3em}
+Over/underparameterization:
+\begin{itemize}
+\item Too few parameters $\Rightarrow$ cannot represent the function
+\item Too many $\Rightarrow$ can memorize, but modern networks often still generalize
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Residual Connections}
+Deep networks suffer from \textbf{vanishing gradients}: gradients shrink to zero through many layers.
+\vspace{0.3em}
+\begin{center}
+\begin{tikzpicture}[
+  block/.style={rectangle, draw, thick, fill=orange!15, minimum width=1.8cm, minimum height=0.8cm, font=\small},
+  stream/.style={->, very thick, blue!60!black},
+  skip/.style={->, thick, blue!60!black},
+  plus/.style={circle, draw, thick, fill=blue!10, inner sep=1.5pt, font=\small\bfseries},
+]
+  % Residual stream (horizontal)
+  \node[font=\small] (x0) at (0, 0) {$x_l$};
+  \node[plus] (p1) at (3.5, 0) {$+$};
+  \node[plus] (p2) at (7, 0) {$+$};
+  \node[plus] (p3) at (10.5, 0) {$+$};
+  \node[font=\small] (xn) at (12.5, 0) {$x_{l+3}$};
+
+  % Stream arrows
+  \draw[stream] (x0) -- (p1);
+  \draw[stream] (p1) -- (p2);
+  \draw[stream] (p2) -- (p3);
+  \draw[stream] (p3) -- (xn);
+
+  % Blocks branching off
+  \node[block] (f1) at (1.75, -1.3) {$f_1$};
+  \node[block] (f2) at (5.25, -1.3) {$f_2$};
+  \node[block] (f3) at (8.75, -1.3) {$f_3$};
+
+  % Connections down and back up
+  \draw[thick, gray] (0.8, 0) |- (f1.west);
+  \draw[->, thick, gray] (f1.east) -| (p1);
+  \draw[thick, gray] (4.3, 0) |- (f2.west);
+  \draw[->, thick, gray] (f2.east) -| (p2);
+  \draw[thick, gray] (7.8, 0) |- (f3.west);
+  \draw[->, thick, gray] (f3.east) -| (p3);
+
+  % Label
+  \node[blue!60!black, font=\scriptsize, above] at (5.25, 0.25) {residual stream (gradient = 1)};
+\end{tikzpicture}
+\end{center}
+\vspace{-0.3em}
+$$x_{l+1} = x_l + f(x_l)$$
+\begin{itemize}
+\item Gradient flows unimpeded through the skip path (identity)
+\item Each block only needs to learn the \emph{residual} correction $f(x_l)$
+\end{itemize}
+\hfill{\tiny \cite{he2015}}\quad
+\end{frame}
+
+\begin{frame}[fragile]{Residual Connections in PyTorch}
+\begin{minted}{python}
+class ResidualBlock(nn.Module):
+    def __init__(self, d_model):
+        super().__init__()
+        self.layers = nn.Sequential(
+            nn.Linear(d_model, d_model),
+            nn.ReLU(),
+            nn.Linear(d_model, d_model),
+        )
+
+    def forward(self, x):
+        return x + self.layers(x)  # skip connection!
+\end{minted}
+\vspace{0.5em}
+\begin{itemize}
+\item The \texttt{x +} is the entire trick
+\item Stack many of these: \texttt{nn.Sequential(*[ResidualBlock(d) for \_ in range(n)])}
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Architecture Encodes Symmetry}
+The right architecture exploits structure in the data.
+\begin{columns}[c]
+\begin{column}{0.35\textwidth}
+\begin{center}
+\begin{tikzpicture}
+  \node[inner sep=0pt] (img) at (0, 0) {\includegraphics[height=3.2cm]{figures/dog.jpg}};
+\end{tikzpicture}
+\end{center}
+\end{column}
+\begin{column}{0.65\textwidth}
+\begin{center}
+\begin{tikzpicture}[
+  det/.style={rectangle, draw, thick, rounded corners=2pt, minimum width=1.6cm, minimum height=0.7cm, font=\scriptsize},
+]
+  % Good: one shared detector
+  \node[font=\small\bfseries, green!50!black] at (0, 2) {CNN: one detector};
+  \node[det, fill=red!15] (d1) at (0, 1.2) {ear detector};
+  \draw[->, thick, gray] (-1.5, 0.5) -- (d1.south west);
+  \draw[->, thick, gray] (1.5, 0.5) -- (d1.south east);
+  \node[font=\scriptsize, gray] at (-1.5, 0.2) {pos.\ 1};
+  \node[font=\scriptsize, gray] at (1.5, 0.2) {pos.\ 2};
+
+  % Bad: separate detectors
+  \node[font=\small\bfseries, red!60!black] at (0, -0.5) {MLP: one detector per position};
+  \node[det, fill=gray!15] (d2) at (-1.2, -1.3) {ear @ pos.\ 1};
+  \node[det, fill=gray!15] (d3) at (1.2, -1.3) {ear @ pos.\ 2};
+  \node[font=\scriptsize, gray] at (0, -2) {$\ldots$ (one for every pixel)};
+\end{tikzpicture}
+\end{center}
+\end{column}
+\end{columns}
+\vspace{0.3em}
+An architecture that respects a symmetry needs \textbf{fewer parameters} and \textbf{less data}.
+\end{frame}
+
+\begin{frame}{Convolutional Neural Networks}
+\begin{center}
+\begin{tikzpicture}[scale=0.5]
+  % Input grid 5x5
+  \foreach \i in {0,...,4} {
+    \foreach \j in {0,...,4} {
+      \fill[blue!8] (\i, \j) rectangle ++(1, 1);
+      \draw[gray!50] (\i, \j) rectangle ++(1, 1);
+    }
+  }
+  % Some values in the input
+  \foreach \i/\j/\v in {0/4/1, 1/4/0, 2/4/1, 3/4/0, 4/4/2,
+                         0/3/0, 1/3/1, 2/3/2, 3/3/1, 4/3/0,
+                         0/2/1, 1/2/0, 2/2/1, 3/2/0, 4/2/1,
+                         0/1/2, 1/1/1, 2/1/0, 3/1/2, 4/1/1,
+                         0/0/0, 1/0/1, 2/0/1, 3/0/0, 4/0/2} {
+    \node[font=\tiny] at (\i+0.5, \j+0.5) {\v};
+  }
+  % Highlight the 3x3 kernel position
+  \fill[red!25, opacity=0.6] (1, 2) rectangle ++(3, 3);
+  \draw[red!70!black, very thick] (1, 2) rectangle ++(3, 3);
+  \node[font=\scriptsize, below] at (2.5, -0.3) {Input};
+
+  % Kernel 3x3
+  \begin{scope}[shift={(7, 1.5)}]
+    \foreach \i in {0,...,2} {
+      \foreach \j in {0,...,2} {
+        \fill[red!15] (\i, \j) rectangle ++(1, 1);
+        \draw[red!40] (\i, \j) rectangle ++(1, 1);
+      }
+    }
+    \foreach \i/\j/\v in {0/2/1, 1/2/0, 2/2/-1,
+                           0/1/1, 1/1/0, 2/1/-1,
+                           0/0/1, 1/0/0, 2/0/-1} {
+      \node[font=\tiny] at (\i+0.5, \j+0.5) {\v};
+    }
+    \node[font=\scriptsize, below] at (1.5, -0.3) {Kernel};
+  \end{scope}
+
+  % Multiply symbol
+  \node[font=\Large] at (6.2, 2.5) {$*$};
+
+  % Equals
+  \node[font=\Large] at (11.2, 2.5) {$=$};
+
+  % Output grid 3x3
+  \begin{scope}[shift={(12.5, 1)}]
+    \foreach \i in {0,...,2} {
+      \foreach \j in {0,...,2} {
+        \fill[green!10] (\i, \j) rectangle ++(1, 1);
+        \draw[gray!50] (\i, \j) rectangle ++(1, 1);
+      }
+    }
+    % Highlight the corresponding output cell
+    \fill[green!30] (1, 1) rectangle ++(1, 1);
+    \draw[green!60!black, very thick] (1, 1) rectangle ++(1, 1);
+    \node[font=\tiny\bfseries] at (1.5, 1.5) {$\Sigma$};
+    \node[font=\scriptsize, below] at (1.5, -0.3) {Output};
+  \end{scope}
+\end{tikzpicture}
+\end{center}
+\vspace{-0.3em}
+\begin{itemize}
+\item \textbf{Same kernel} slides across every position (weight sharing)
+\item Same features detected regardless of location $\Rightarrow$ translation invariance
+\item Hierarchy: edges $\rightarrow$ textures $\rightarrow$ parts $\rightarrow$ objects
+\end{itemize}
+\hfill{\tiny \cite{lecun1998}}\quad
+\end{frame}
+
+\begin{frame}[fragile]{CNNs in PyTorch}
+\begin{minted}{python}
+cnn = nn.Sequential(
+    nn.Conv2d(1, 16, kernel_size=3, padding=1),  # 1 channel -> 16
+    nn.ReLU(),
+    nn.MaxPool2d(2),                    # downsample 2x
+    nn.Conv2d(16, 32, kernel_size=3, padding=1),
+    nn.ReLU(),
+    nn.MaxPool2d(2),
+    nn.Flatten(),                       # spatial -> vector
+    nn.Linear(32 * 7 * 7, 10),         # classify into 10 classes
+)
+\end{minted}
+\vspace{0.5em}
+\begin{itemize}
+\item \texttt{Conv2d}: the sliding kernel (learnable weights)
+\item \texttt{MaxPool2d}: downsample by taking the max in each region
+\item Parameters: only the kernel values, shared across all positions
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Transformers (Preview)}
+\begin{center}
+\begin{tikzpicture}[
+  tok/.style={rectangle, draw, thick, fill=blue!10, minimum width=0.9cm, minimum height=0.55cm, font=\scriptsize},
+  ffn/.style={rectangle, draw, thick, fill=orange!15, minimum width=0.9cm, minimum height=0.45cm, font=\scriptsize},
+  attn/.style={rectangle, draw, thick, fill=red!12, rounded corners=2pt, minimum height=0.45cm, font=\scriptsize},
+  arr/.style={->, thick, gray!60},
+]
+  % Token positions (using integer names)
+  \node[tok] (tA) at (0, 0) {The};
+  \node[tok] (tB) at (1.8, 0) {cat};
+  \node[tok] (tC) at (3.6, 0) {sat};
+  \node[tok] (tD) at (5.4, 0) {on};
+  \node[tok] (tE) at (7.2, 0) {the};
+  \node[tok] (tF) at (9, 0) {mat};
+
+  % === Layer 1 ===
+  \node[attn, minimum width=10.2cm] (a1) at (4.5, 1.2) {Attention: each token reads from all others};
+
+  \foreach \x in {0, 1.8, 3.6, 5.4, 7.2, 9}
+    \draw[arr] (\x, 0.28) -- (\x, 0.95);
+
+  % FFN blocks (per token, independent)
+  \node[ffn] (fA1) at (0, 2.2) {MLP};
+  \node[ffn] (fB1) at (1.8, 2.2) {MLP};
+  \node[ffn] (fC1) at (3.6, 2.2) {MLP};
+  \node[ffn] (fD1) at (5.4, 2.2) {MLP};
+  \node[ffn] (fE1) at (7.2, 2.2) {MLP};
+  \node[ffn] (fF1) at (9, 2.2) {MLP};
+
+  \foreach \x in {0, 1.8, 3.6, 5.4, 7.2, 9}
+    \draw[arr] (\x, 1.45) -- (\x, 1.97);
+
+  % === Layer 2 ===
+  \node[attn, minimum width=10.2cm] (a2) at (4.5, 3.2) {Attention: each token reads from all others};
+
+  \draw[arr] (fA1.north) -- (0, 2.95);
+  \draw[arr] (fB1.north) -- (1.8, 2.95);
+  \draw[arr] (fC1.north) -- (3.6, 2.95);
+  \draw[arr] (fD1.north) -- (5.4, 2.95);
+  \draw[arr] (fE1.north) -- (7.2, 2.95);
+  \draw[arr] (fF1.north) -- (9, 2.95);
+
+  \node[ffn] (fA2) at (0, 4.2) {MLP};
+  \node[ffn] (fB2) at (1.8, 4.2) {MLP};
+  \node[ffn] (fC2) at (3.6, 4.2) {MLP};
+  \node[ffn] (fD2) at (5.4, 4.2) {MLP};
+  \node[ffn] (fE2) at (7.2, 4.2) {MLP};
+  \node[ffn] (fF2) at (9, 4.2) {MLP};
+
+  \foreach \x in {0, 1.8, 3.6, 5.4, 7.2, 9}
+    \draw[arr] (\x, 3.45) -- (\x, 3.97);
+
+  % Dots and output
+  \foreach \x in {0, 1.8, 3.6, 5.4, 7.2, 9} {
+    \node[gray, font=\small] at (\x, 4.9) {$\vdots$};
+  }
+
+  % Annotations
+  \draw[decorate, decoration={brace, amplitude=4pt}, thick, gray]
+    (-0.8, 1.9) -- (-0.8, 1.0);
+  \node[font=\tiny, gray, left, align=right] at (-1, 1.45) {tokens\\talk};
+
+  \draw[decorate, decoration={brace, amplitude=4pt}, thick, gray]
+    (-0.8, 2.55) -- (-0.8, 1.95);
+  \node[font=\tiny, gray, left, align=right] at (-1, 2.25) {tokens\\independent};
+\end{tikzpicture}
+\end{center}
+\vspace{-0.5em}
+\begin{itemize}
+\item \textbf{Attention}: tokens mix information (the only place they interact)
+\item \textbf{MLP}: each token processed independently (same weights, different data)
+\item We will go much deeper in the afternoon session
+\end{itemize}
+\hfill{\tiny \cite{vaswani2017}}\quad
+\end{frame}
+
+\begin{frame}{}
+\centering
+\Large \href{https://colab.research.google.com/github/wusche1/Illiad_ML_Engineering/blob/main/lectures/01_a_ml_foundations/exercises/03_architectures/notebook.ipynb}{\textbf{Exercise 3: Build Simple Architectures}} \\[1em]
+\normalsize 15 minutes \\[1em]
+\qrcode[height=3cm]{https://colab.research.google.com/github/wusche1/Illiad_ML_Engineering/blob/main/lectures/01_a_ml_foundations/exercises/03_architectures/notebook.ipynb}
+\end{frame}
+
+% ============================================================
+\section{Hyperparameter Optimization}
+% ============================================================
+
+\begin{frame}{Hyperparameters}
+Any property not set by gradient descent is set by the experimenter:
+\begin{itemize}
+\item Model architecture (depth, width, \ldots)
+\item Batch size, number of epochs
+\item Learning rate, momentum, and other optimizer settings
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Finding Good Hyperparameters}
+\begin{itemize}
+\item Some we have figured out once and reuse (e.g.\ $\beta_1 = 0.9$)
+\item Some we sweep over: run many times, pick the best (typically learning rate)
+\item Some follow \textbf{scaling laws}: cheap small experiments predict large-scale performance
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Scaling Laws}
+\begin{center}
+\includegraphics[width=\textwidth]{figures/scaling_laws.png}
+\end{center}
+\vspace{0.5em}
+Performance follows smooth power laws across $>6$ orders of magnitude in compute, data, and parameters.
+Cheap small experiments predict large-scale performance.
+\hfill{\tiny \cite{kaplan2020, hoffmann2022}}\quad
+\end{frame}
+
+\begin{frame}{}
+\centering
+\Large \textbf{Exercise 4: Hyperparameter Tuning} \\[1em]
+\normalsize Until lunch \\[1em]
+\url{https://playground.tensorflow.org/}
+\end{frame}
+
+% ============================================================
+\section{Transformer Architecture}
+% ============================================================
+
+\begin{frame}{A Top-Down View}
+\begin{center}
+\begin{tikzpicture}[
+  box/.style={rectangle, draw, thick, rounded corners=3pt, minimum width=2.2cm, minimum height=0.9cm, font=\small},
+  io/.style={font=\small\ttfamily},
+  arr/.style={->, very thick, gray!70},
+]
+  \node[io] (in) {"The cat sat on the"};
+  \node[box, fill=blue!15, below=0.85cm of in] (tok) {Tokenizer};
+  \node[box, fill=green!15, below=0.85cm of tok] (tf) {Transformer};
+  \node[box, fill=orange!15, below=0.85cm of tf] (samp) {Sampler};
+  \node[io, below=0.85cm of samp] (out) {" mat"};
+  \draw[arr] (in) -- (tok);
+  \draw[arr] (tok) -- (tf) node[midway, right, font=\scriptsize] {token ids};
+  \draw[arr] (tf) -- (samp) node[midway, right, font=\scriptsize] {logits};
+  \draw[arr] (samp) -- (out);
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{Tokenizer}
+\begin{center}
+\begin{tikzpicture}[font=\small\ttfamily, node distance=0.15cm]
+  \node (s) {"The cat sat on the"};
+  \node[below=1.0cm of s] (a) {[\,"The", " cat", " sat", " on", " the"\,]};
+  \node[below=0.8cm of a] (b) {[\,976,\ \ 9059,\ \ 10139,\ \ 402,\ \ 290\,]};
+  \draw[->, thick, gray!70] (s) -- (a) node[midway, right, font=\scriptsize\rmfamily] {split into subwords};
+  \draw[->, thick, gray!70] (a) -- (b) node[midway, right, font=\scriptsize\rmfamily] {look up in vocabulary};
+\end{tikzpicture}
+\end{center}
+\end{frame}
+
+\begin{frame}{Building the Tokenizer: Byte Pair Encoding}
+Start with the vocabulary as all single characters, then \textbf{repeat}:
+\begin{enumerate}
+\item Find the most frequent adjacent pair.
+\item Merge it into a new symbol; add it to the vocabulary.
+\end{enumerate}
+\medskip
+Stop at the target vocabulary size.
+\end{frame}
+
+\begin{frame}{Sampler}
+The transformer outputs one \textbf{logit} per vocabulary token: $z \in \mathbb{R}^{|V|}$.
+\[
+p_i = \frac{e^{z_i / T}}{\sum_j e^{z_j / T}}
+\]
+\textbf{Temperature} $T$: as $T \to 0$ this recovers greedy ($\arg\max$); $T < 1$ sharpens the distribution, $T > 1$ flattens it.
+\begin{itemize}
+\item \textbf{Top-$k$}: keep the $k$ highest-probability tokens, renormalize, then sample.
+\item \textbf{Top-$p$} (nucleus): keep the smallest set of tokens whose probabilities sum to at least $p$, renormalize, then sample.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Inside the Transformer}
+\begin{center}
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  blk/.style={rectangle, draw, thick, rounded corners=2pt, minimum width=1.9cm, minimum height=0.75cm, font=\small},
+  add/.style={circle, draw, thick, inner sep=1.6pt, font=\small},
+  dot/.style={circle, fill=gray!75, inner sep=1.3pt},
+  arr/.style={->, thick, gray!75},
+]
+  % the residual stream: one line straight through
+  \node[blk, fill=blue!15] (emb) at (0,0) {Embed};
+  \node[add] (a1) at (2.9,0) {$+$};
+  \node[add] (a2) at (5.8,0) {$+$};
+  \node[blk, fill=green!15] (un) at (8.7,0) {Unembed};
+  \node[font=\small] (lg) at (10.8,0) {logits};
+  \draw[arr] (emb) -- (a1);
+  \draw[arr] (a1) -- (a2);
+  \draw[arr] (a2) -- (un);
+  \draw[arr] (un) -- (lg);
+  % branch points
+  \node[dot] at (1.45,0) {};
+  \node[dot] at (4.35,0) {};
+  % attention and MLP branch off and write back
+  \node[blk, fill=red!15] (attn) at (1.45,-2.0) {Attention};
+  \node[blk, fill=orange!15] (mlp) at (4.35,-2.0) {MLP};
+  \draw[arr] (1.45,0) -- (attn);
+  \draw[arr] (attn) -| (a1);
+  \draw[arr] (4.35,0) -- (mlp);
+  \draw[arr] (mlp) -| (a2);
+  % brace: this block repeats
+  \draw[decorate, decoration={brace, mirror, amplitude=6pt}, thick, gray]
+    (0.3,-2.95) -- (5.5,-2.95);
+  \node[gray, font=\scriptsize, below] at (2.9,-3.15) {one transformer block, repeated $\times N$};
+\end{tikzpicture}}
+\end{center}
+\vspace{0.6em}
+\begin{itemize}
+\item \textbf{Attention head}: moves information between token positions.
+\item \textbf{MLP}: stores / computes information.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Embedding}
+A lookup table $W_E \in \mathbb{R}^{|V| \times d}$: each token id selects one row, a learned vector carrying its meaning.
+\[
+\text{token id } t \;\longmapsto\; x_t = (W_E)_t \in \mathbb{R}^{d}
+\]
+The vectors are \textbf{learned}, so directions in this space come to encode semantic relationships.
+\end{frame}
+
+\begin{frame}{Positional Encoding}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+\centering\textbf{Learned (absolute)}
+\smallskip
+
+A second lookup table, one learned vector per position:
+\[
+P \in \mathbb{R}^{L \times d}, \qquad \text{pos} \mapsto P_{\text{pos}}
+\]
+\[
+x_{\text{pos}} = \text{embed}(\text{token}) + P_{\text{pos}}
+\]
+The obvious default; capped at a maximum length $L$, and position is \textbf{absolute}.
+\end{column}
+\begin{column}{0.5\textwidth}
+\centering\textbf{Rotary (RoPE)}
+\smallskip
+
+Rotate each 2D pair of query/key dims by an angle $\propto$ position:
+\[
+\tilde{q}_m = R(m\theta)\, q, \qquad \tilde{k}_n = R(n\theta)\, k
+\]
+\[
+R(\alpha) = \begin{pmatrix} \cos\alpha & -\sin\alpha \\ \sin\alpha & \cos\alpha \end{pmatrix}
+\]
+\[
+\langle \tilde{q}_m, \tilde{k}_n \rangle = g(q, k,\, m - n)
+\]
+Score depends only on the \textbf{relative} offset $m-n$; applied every layer.
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Unembedding}
+\textbf{Not} the inverse of embedding.
+\[
+z = W_U\, x, \qquad W_U \in \mathbb{R}^{|V| \times d}
+\]
+\begin{itemize}
+\item Reads the final residual stream and projects it back to vocabulary size.
+\item Produces one logit per token, ready for the sampler.
+\item Uses its own learned weights $W_U$, separate from $W_E$.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Anatomy of an Attention Head}
+\centering
+\resizebox{!}{0.80\textheight}{%
+\begin{tikzpicture}[
+  d/.style={rectangle, draw, thick, rounded corners=2pt, minimum width=1.4cm, minimum height=0.75cm, font=\small},
+  op/.style={font=\scriptsize, gray!75, align=center},
+  w/.style={font=\normalsize, black},
+  dim/.style={font=\small, black!85},
+  a/.style={->, thick, gray!75},
+]
+  % residual stream
+  \node[d, fill=black!8] (x) at (4, 0) {$x$};
+  \node[dim, right=2pt of x] {$(s,d)$};
+
+  % Q, K, V projections
+  \node[d, fill=red!20]   (k) at (1.2, 2.2) {$K$};
+  \node[d, fill=cyan!25]  (q) at (4, 2.2)   {$Q$};
+  \node[d, fill=green!22] (v) at (7.4, 2.2) {$V$};
+  \node[dim, below=1pt of k] {$(s,a)$};
+  \node[dim, below=1pt of q] {$(s,a)$};
+  \node[dim, below=1pt of v] {$(s,a)$};
+
+  % scores and probabilities
+  \node[d, fill=orange!25] (sc) at (2.6, 4.4) {$QK^\top$};
+  \node[dim, right=2pt of sc] {$(s,s)$};
+  \node[d, fill=orange!40] (pr) at (2.6, 6.2) {$A$};
+  \node[dim, right=2pt of pr] {$(s,s)$};
+
+  % weighted values and output
+  \node[d, fill=green!30] (z) at (5.6, 7.2) {$z$};
+  \node[dim, right=2pt of z] {$(s,a)$};
+  \node[d, fill=black!8] (xo) at (5.6, 9.0) {$x'$};
+  \node[dim, right=2pt of xo] {$(s,d)$};
+
+  % projection arrows
+  \draw[a] (x) -- (k) node[w, midway, above left=-1pt] {$W_K$};
+  \draw[a] (x) -- (q) node[w, midway, right] {$W_Q$};
+  \draw[a] (x) -- (v) node[w, midway, above right=-1pt] {$W_V$};
+
+  % attention computation
+  \draw[a] (k) -- (sc);
+  \draw[a] (q) -- (sc);
+  \node[op] at (0.3, 3.5) {query--key\\dot products};
+  \draw[a] (sc) -- (pr) node[op, midway, right] {scale, mask,\\softmax};
+  \draw[a] (pr) -- (z) node[op, midway, above left=-1pt] {weighted avg\\of values};
+  \draw[a] (v) to[out=90, in=-15] (z);
+  \draw[a] (z) -- (xo) node[w, midway, right] {$W_O$};
+  % causal mask applied at the A (probabilities) step
+  \begin{scope}[shift={(-2.0,6.9)}]
+    \foreach \r in {0,1,2,3}
+      \foreach \c in {0,1,2,3} {
+        \ifnum\c>\r
+          \fill[gray!15] (\c*0.26,-\r*0.26) rectangle ++(0.26,0.26);
+        \else
+          \fill[orange!45] (\c*0.26,-\r*0.26) rectangle ++(0.26,0.26);
+        \fi
+        \draw[gray!55, very thin] (\c*0.26,-\r*0.26) rectangle ++(0.26,0.26);
+      }
+    \node[op, below, align=center] at (0.52,-1.15) {causal mask:\\query sees only\\earlier keys};
+  \end{scope}
+  \draw[a, dashed, gray!55] (-0.85,6.38) -- (pr.west);
+\end{tikzpicture}}
+
+\smallskip
+{\scriptsize $\mathrm{Attention}(Q,K,V)=\mathrm{softmax}\!\big(\tfrac{QK^\top}{\sqrt{d_k}}\big)V$ \quad\textbar\quad $s$: seq length, \ $d$: model dim, \ $a$: head dim}
+\end{frame}
+
+\begin{frame}{Exercises}
+\begin{columns}[c]
+\begin{column}{0.5\textwidth}
+\centering
+\Large \href{https://colab.research.google.com/github/wusche1/Illiad_ML_Engineering/blob/main/lectures/01_a_ml_foundations/exercises/04_mlp/notebook.ipynb}{\textbf{MLP}} \\[1em]
+\qrcode[height=2.7cm]{https://colab.research.google.com/github/wusche1/Illiad_ML_Engineering/blob/main/lectures/01_a_ml_foundations/exercises/04_mlp/notebook.ipynb}
+\end{column}
+\begin{column}{0.5\textwidth}
+\centering
+\Large \href{https://colab.research.google.com/github/wusche1/Illiad_ML_Engineering/blob/main/lectures/01_a_ml_foundations/exercises/05_attention/notebook.ipynb}{\textbf{Attention}} \\[1em]
+\qrcode[height=2.7cm]{https://colab.research.google.com/github/wusche1/Illiad_ML_Engineering/blob/main/lectures/01_a_ml_foundations/exercises/05_attention/notebook.ipynb}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ============================================================
+\section{Reinforcement Learning and RLHF}
+% ============================================================
+
+\begin{frame}{The Model Lifecycle}
+\begin{center}
+\begin{tikzpicture}[
+  box/.style={rectangle, draw, thick, rounded corners=3pt, minimum width=2.4cm, minimum height=1.0cm, font=\small, align=center},
+  arr/.style={->, very thick, gray!70},
+]
+  \node[box, fill=blue!15] (pt) {Pretraining};
+  \node[box, fill=green!15, right=1.2cm of pt] (sft) {Supervised\\Fine-Tuning};
+  \node[box, fill=orange!18, above right=0.25cm and 1.4cm of sft] (rlhf) {RLHF};
+  \node[box, fill=red!15, below right=0.25cm and 1.4cm of sft] (rlvr) {RLVR};
+  \draw[arr] (pt) -- (sft);
+  \draw[arr] (sft.east) -- (rlhf.west);
+  \draw[arr] (sft.east) -- (rlvr.west);
+  \node[below=0.12cm of pt, font=\scriptsize, gray, align=center] {next-token\\on the internet};
+  \node[below=0.12cm of sft, font=\scriptsize, gray, align=center] {chat format,\\assistant persona};
+  \node[right=0.25cm of rlhf, font=\scriptsize, gray, align=left] {human preference\\feedback};
+  \node[right=0.25cm of rlvr, font=\scriptsize, gray, align=left] {verifiable reward\\(math, code)};
+\end{tikzpicture}
+\end{center}
+\vspace{0.3em}
+\begin{itemize}
+\item \textbf{Pretraining}: next-token prediction, negative log-likelihood, on trillions of tokens. Most of the compute.
+\item \textbf{SFT}: a little high-quality \texttt{\textless human\textgreater} / \texttt{\textless assistant\textgreater} data instills the chat format.
+\item \textbf{RLHF}: align to human preference judgments.
+\item \textbf{RLVR}: reinforcement learning on verifiable rewards (math, code).
+\end{itemize}
+\end{frame}
+
+\begin{frame}{What is Reinforcement Learning?}
+\begin{center}
+\begin{tikzpicture}[
+  box/.style={rectangle, draw, thick, rounded corners=3pt, minimum width=2.8cm, minimum height=1cm, font=\small},
+  arr/.style={->, very thick, gray!70},
+]
+  \node[box, fill=blue!15, minimum height=1.5cm] (ag) at (0,0) {Agent};
+  \node[box, fill=green!15] (env) at (5.5,0.95) {Environment};
+  \node[box, fill=red!15] (rew) at (5.5,-0.95) {Reward};
+  \draw[arr] (ag.north) to[bend left=18] node[midway, above, font=\scriptsize] {action $a_t$} (env.west);
+  \draw[arr] (env.west) to[bend left=18] node[midway, below, font=\scriptsize, pos=0.55] {state $s_{t+1}$} (ag.east);
+  \draw[arr] (env.south) -- node[midway, right, font=\scriptsize] {state} (rew.north);
+  \draw[arr] (rew.west) to[bend left=25] node[midway, below, font=\scriptsize] {reward $r_{t+1}$} (ag.south);
+\end{tikzpicture}
+\end{center}
+\begin{itemize}
+\item The agent \textbf{chooses actions}; the environment returns a new state.
+\item A \textbf{reward} process assigns a score to the state.
+\item The agent's goal is to \textbf{maximize long-term reward}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The Markov Decision Process}
+\[
+\mathcal{M} = (\mathcal{S}, \mathcal{A}, P, R, \gamma)
+\]
+\begin{itemize}
+\item $\mathcal{S}$: states
+\item $\mathcal{A}$: actions
+\item $P(s' \mid s, a)$: transition probabilities
+\item $R(s, a)$: reward
+\item $\gamma \in [0,1)$: discount factor
+\end{itemize}
+\vspace{0.5em}
+\textbf{Markov property}: the future depends only on the present state, not the full history.
+\end{frame}
+
+\begin{frame}{Return and Discounting}
+The agent maximizes the \textbf{expected return}: total reward extending into the future.
+\[
+G_t = \sum_{k=0}^{\infty} \gamma^k R_{t+k+1}
+\]
+\begin{itemize}
+\item Small $\gamma$: myopic, values immediate reward.
+\item Large $\gamma$: farsighted, values future reward almost as much as present.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Policies}
+A \textbf{policy} $\pi(a \mid s)$ gives the probability of each action in a state.
+\vspace{0.5em}
+\begin{columns}[T]
+\begin{column}{0.46\textwidth}
+\textbf{Simple}: a lookup table.
+\[
+\begin{array}{c|cc}
+ & a_1 & a_2 \\ \hline
+s_1 & 0.5 & 0.5 \\
+s_2 & 0.9 & 0.1 \\
+s_3 & 0.2 & 0.8
+\end{array}
+\]
+\end{column}
+\begin{column}{0.5\textwidth}
+\textbf{Deep}: a network's weights.
+\[
+\pi_\theta(a \mid s) = \mathrm{softmax}\big(f_\theta(s)\big)
+\]
+For an LLM, the state $s$ is the context and the action is the next token.
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Value Functions}
+How good is a state, or a state-action pair, under policy $\pi$?
+\[
+V^\pi(s) = \mathbb{E}_\pi\!\left[ G_t \mid S_t = s \right]
+\qquad\text{(state value)}
+\]
+\[
+Q^\pi(s, a) = \mathbb{E}_\pi\!\left[ G_t \mid S_t = s,\, A_t = a \right]
+\qquad\text{(action value)}
+\]
+Value functions estimate expected return, which is what most RL algorithms learn to predict.
+\end{frame}
+
+\begin{frame}{The Core Problem}
+We want to maximize the expected return:
+\[
+J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\!\left[ R(\tau) \right]
+\]
+\begin{center}
+\emph{But no gradient can flow from the reward back to the model.}
+\end{center}
+\vspace{0.3em}
+The reward depends on the model's output, but the path is not differentiable:
+\begin{itemize}
+\item the environment's transition dynamics,
+\item the reward-generating process,
+\item the discrete action sampler.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Solution 1: Q-Learning}
+Learn to predict total reward, then act greedily.
+\[
+Q(s,a) \;\leftarrow\; \underbrace{r}_{\text{this step}} + \underbrace{\gamma \max_{a'} Q(s', a')}_{\text{best future}}
+\]
+\begin{itemize}
+\item Trained by \textbf{supervised consistency}: the temporal-difference error.
+\item Then pick the action with the highest predicted reward.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Solution 2: Policy Gradients}
+\[
+J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\!\left[ R(\tau) \right] = \int p_\theta(\tau)\, R(\tau)\, d\tau
+\]
+The parameter $\theta$ sits inside the distribution we sample from, not inside an expression we can evaluate and differentiate.
+\vspace{0.5em}
+
+Optimize the policy network \emph{directly} to maximize expected reward.
+\begin{itemize}
+\item We cannot differentiate the environment or the reward process.
+\item The \textbf{policy gradient theorem} estimates the gradient from samples alone.
+\item Idea: push up the log-probability of actions that led to high return.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Policy Gradient: The Objective}
+\textbf{Expected return} over trajectories $\tau$:
+\[
+J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\!\left[ R(\tau) \right] = \int p_\theta(\tau)\, R(\tau)\, d\tau
+\]
+\textbf{Trajectory distribution}:
+\[
+p_\theta(\tau) = p(s_0) \prod_{t=0}^{T-1} \pi_\theta(a_t \mid s_t)\, p(s_{t+1} \mid s_t, a_t)
+\]
+The middle term, the environment dynamics, is unknown and non-differentiable.
+\end{frame}
+
+\begin{frame}{Policy Gradient: The Log-Derivative Trick}
+\textbf{Identity}:
+\[
+\nabla_\theta\, p_\theta(\tau) = p_\theta(\tau)\, \nabla_\theta \log p_\theta(\tau)
+\]
+\textbf{Applied to the objective}:
+\[
+\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\!\left[ \nabla_\theta \log p_\theta(\tau) \cdot R(\tau) \right]
+\]
+The gradient of an integral becomes an expectation of a gradient: estimable by sampling.
+\end{frame}
+
+\begin{frame}{Policy Gradient: The Environment Drops Out}
+\textbf{Log of the trajectory distribution}:
+\[
+\log p_\theta(\tau) = \log p(s_0) + \sum_t \log \pi_\theta(a_t \mid s_t) + \sum_t \log p(s_{t+1} \mid s_t, a_t)
+\]
+\textbf{Only the policy depends on $\theta$}:
+\[
+\nabla_\theta \log p_\theta(\tau) = \sum_{t=0}^{T-1} \nabla_\theta \log \pi_\theta(a_t \mid s_t)
+\]
+The environment terms vanish, since they do not depend on $\theta$.
+\end{frame}
+
+\begin{frame}{Policy Gradient Theorem}
+\textbf{Final result}:
+\[
+\boxed{\;\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta}\!\left[ \sum_{t=0}^{T-1} \nabla_\theta \log \pi_\theta(a_t \mid s_t) \cdot R(\tau) \right]\;}
+\]
+\textbf{Per-step form with advantage} $A^\pi(s, a) = Q^\pi(s, a) - V^\pi(s)$:
+\[
+\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\!\left[ \sum_t \nabla_\theta \log \pi_\theta(a_t \mid s_t) \cdot A^\pi(s_t, a_t) \right]
+\]
+Same gradient in expectation, far lower variance: weight each action by how much it beat the average for its state, not by the whole episode's return.
+\end{frame}
+
+\begin{frame}{Reward Model from Human Preferences}
+\begin{center}
+\includegraphics[height=0.52\textheight]{figures/llm/image34.png}
+\end{center}
+Humans rank model outputs; a \textbf{reward model} $r_\theta$ learns to predict the preferred one:
+\[
+\mathcal{L} = -\log \sigma\big( r_\theta(x_w) - r_\theta(x_l) \big)
+\]
+\hfill{\tiny From \cite{lambert2022}}\quad
+\end{frame}
+
+\begin{frame}{RLHF: Reinforcement Learning from Human Feedback}
+\begin{center}
+\includegraphics[height=0.82\textheight]{figures/llm/image40.png}
+\end{center}
+\hfill{\tiny From \cite{lambert2022}}\quad
+\end{frame}
+
+\begin{frame}{Proximal Policy Optimization}
+\vfill
+\resizebox{\textwidth}{!}{%
+$\displaystyle
+L(s, a, \theta_k, \theta) = \min\!\left( \frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)}\, \widehat{A}^{\,\pi_{\theta_k}}(s, a),\;\; \mathrm{clip}\!\left( \frac{\pi_\theta(a \mid s)}{\pi_{\theta_k}(a \mid s)},\, 1 - \epsilon,\, 1 + \epsilon \right) \widehat{A}^{\,\pi_{\theta_k}}(s, a) \right)
+$}
+\vfill
+\[
+\widehat{A}_t = -V(s_t) + r_t + \gamma r_{t+1} + \cdots + \gamma^{T-t+1} r_{T-1} + \gamma^{T-t} V(s_T)
+\]
+\vfill
+\end{frame}
+
+\begin{frame}{Constitutional AI}
+Replace much of the human feedback with feedback from the model itself, guided by a written \textbf{constitution}: the model \textbf{critiques} and \textbf{revises} its own responses (RLAIF).
+\begin{center}
+\includegraphics[width=\textwidth]{figures/llm/image50.png}
+\end{center}
+\hfill{\tiny From \cite{bai2022a}}\quad
+\end{frame}
+
+\begin{frame}{}
+\centering
+\Large \href{https://colab.research.google.com/github/wusche1/Illiad_ML_Engineering/blob/main/lectures/01_a_ml_foundations/exercises/06_rlhf/notebook.ipynb}{\textbf{Exercise 6: RLHF}} \\[1em]
+\normalsize Fine-tune a policy from a reward signal \\[1em]
+\qrcode[height=3cm]{https://colab.research.google.com/github/wusche1/Illiad_ML_Engineering/blob/main/lectures/01_a_ml_foundations/exercises/06_rlhf/notebook.ipynb}
+\end{frame}
+
+% ============================================================
+
+\begin{frame}[allowframebreaks]{References}
+\bibliographystyle{alphaurl}
+\bibliography{biblo}
+\end{frame}
+
+\end{document}

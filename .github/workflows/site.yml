@@ -97,8 +97,13 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
             texlive-latex-extra texlive-pictures \
-            texlive-fonts-recommended cm-super poppler-utils
-          # contributor LaTeX is untrusted: never enable shell-escape
+            texlive-fonts-recommended cm-super poppler-utils \
+            python3-pygments
+          # python3-pygments (small): provides pygmentize, which minted shells
+          # out to for syntax-highlighted code in slide decks. The slides ladder
+          # runs pdflatex -shell-escape (scoped to decks only, see
+          # scripts/build-content.mjs); worksheets keep the no-shell-escape
+          # sandbox.
 
       - uses: actions/setup-node@v4
         with:

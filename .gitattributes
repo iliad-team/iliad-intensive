@@ -1,1 +1,4 @@
 tex/**/fig/*.png filter=lfs diff=lfs merge=lfs -text
+tex/**/figures/*.png filter=lfs diff=lfs merge=lfs -text
+tex/**/figures/*.jpg filter=lfs diff=lfs merge=lfs -text
+tex/**/figures/llm/*.png filter=lfs diff=lfs merge=lfs -text

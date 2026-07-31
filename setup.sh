@@ -20,6 +20,9 @@ need=()
 command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-fonts-recommended cm-super)
 command -v pdftocairo >/dev/null || need+=(poppler-utils)
 command -v git-lfs    >/dev/null || need+=(git-lfs)
+# pygmentize: minted shells out to it for highlighted code in slide decks
+# (the slides ladder runs pdflatex -shell-escape; see build-content.mjs).
+command -v pygmentize >/dev/null || need+=(python3-pygments)
 if [ ${#need[@]} -gt 0 ]; then
   echo "installing: ${need[*]}"
   sudo apt-get update -q

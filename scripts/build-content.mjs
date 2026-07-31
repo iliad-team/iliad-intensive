@@ -116,6 +116,13 @@ const exec = (cmd, argv, opts = {}) =>
 // pdflatex invocation, shared by the worksheet and slides compile ladders.
 const PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
 
+// Slides may use minted (syntax-highlighted code), which shells out to Pygments
+// and so needs -shell-escape. This is scoped to the slides ladder ONLY:
+// worksheets keep the no-shell-escape sandbox. A deck is still contributor
+// LaTeX, so enabling it here is a deliberate trust decision — CI must have
+// Pygments installed (see .github/workflows/site.yml and setup.sh).
+const PDFLATEX_SLIDES = [...PDFLATEX, "-shell-escape"];
+
 // "No solutions" variants of every download format are derived by stripping
 // solution blocks from the source — so a handout (or an LLM prompt) can be
 // guaranteed spoiler-free. Solution environments never nest.
@@ -478,10 +485,10 @@ async function buildSlug(slug) {
     if (hasHandout) variants.push(["slides-handout", "\\def\\HANDOUT{}\\input{slides}"]);
     for (const [job, src] of variants) {
       try {
-        await tex(...PDFLATEX, `-jobname=${job}`, src);
+        await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
         await bibtex(job);
-        await tex(...PDFLATEX, `-jobname=${job}`, src);
-        await tex(...PDFLATEX, `-jobname=${job}`, src);
+        await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
+        await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
       } catch (e) {
         if (e?.bibtex) return done(false, e.message);
         const log = path.join(dir, `${job}.log`);
