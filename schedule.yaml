@@ -176,6 +176,8 @@ clusters:
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.649vumndszu5
         source: ready
         sourceUrl: https://github.com/14xp/iliad-comp-mech-materials
+        worksheets:
+          - computational-mechanics
 
       - code: C.4
         title: Abstractions and Latents
