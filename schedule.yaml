@@ -165,6 +165,8 @@ clusters:
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.alpz10jgotvn
         source: ready
         sourceUrl: https://github.com/wusche1/Illiad_Mech_Interp
+        worksheets:
+          - mechanistic-interpretability
 
       - code: C.3
         title: Computational Mechanics
