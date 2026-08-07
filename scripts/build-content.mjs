@@ -41,6 +41,7 @@ import YAML from "yaml";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { injectAutoLabels } from "./tex2mdx/autolabel.mjs";
+import { ghSlug } from "./tex2mdx/util.mjs";
 import { buildStatus } from "./build-status.mjs";
 import { loadSchedule, ScheduleError } from "./schedule.mjs";
 
@@ -592,7 +593,6 @@ await Promise.all(Array.from({ length: Math.min(JOBS, slugs.length) }, worker));
 
 // ---------------------------- index.json -----------------------------------
 if (!failed) {
-  const ghSlug = (t) => t.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
   const entries = [];
   // index reflects every built module, not just the ones this run touched
   const allSlugs = readdirSync(MODULES).filter((f) => f.endsWith(".mdx")).map((f) => f.replace(/\.mdx$/, ""));
