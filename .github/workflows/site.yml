@@ -225,7 +225,8 @@ jobs:
             ! -name .git ! -name pr-preview -exec rm -rf {} +
           cp -a out/. .deploy/
       - name: Publish
-        run: .github/publish-gh-pages.sh "Deploy ${{ github.sha }}"
+        run: |
+          .github/publish-gh-pages.sh "Deploy ${{ github.sha }}"
 
   # Preview: publish the built site to gh-pages/pr-preview/pr-<N>/ and comment
   # the URL on the PR. Only runs after `build` succeeds — i.e. the PR passed the
@@ -262,8 +263,11 @@ jobs:
           rm -rf "$DIR"
           mkdir -p "$DIR"
           cp -a out/. "$DIR"/
+      # Block scalar, not a plain one: in an unquoted YAML scalar " #" opens a
+      # comment and would truncate the message mid-quote.
       - name: Publish
-        run: .github/publish-gh-pages.sh "Preview for PR #${{ github.event.number }}"
+        run: |
+          .github/publish-gh-pages.sh "Preview for PR #${{ github.event.number }}"
       # Best-effort comment with the URL. continue-on-error so a GitHub API
       # blip can't fail an otherwise-successful deploy (the URL is deterministic
       # anyway). Upserts a single marked comment rather than spamming.
