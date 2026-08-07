@@ -831,7 +831,12 @@ export function texToPlain(texStr) {
   return out.replace(/"/g, "'");
 }
 function walkFragment(p, texStr) {
-  try { return walk(p.parse(texStr).content); } catch { return texStr; }
+  try { return walk(p.parse(texStr).content); } catch {
+    // Was a silent fallback to raw LaTeX; a title/author that doesn't parse is
+    // worth one advisory line rather than quietly shipping its source markup.
+    advise(`could not parse the fragment "${texStr.slice(0, 60)}" — shipping its raw text; check the title/author markup`, snippetOf(texStr));
+    return texStr;
+  }
 }
 
 let _parser = null;

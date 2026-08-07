@@ -44,6 +44,7 @@ import { injectAutoLabels } from "./tex2mdx/autolabel.mjs";
 import { ghSlug } from "./tex2mdx/util.mjs";
 import { buildStatus } from "./build-status.mjs";
 import { loadSchedule, ScheduleError } from "./schedule.mjs";
+import { splitFrontmatter } from "./frontmatter.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEX = path.join(ROOT, "tex");
@@ -420,13 +421,13 @@ async function buildSlug(slug) {
     // MDX-authored worksheet: no conversion — main.mdx IS the page. It must
     // open with a YAML frontmatter block (the index builder reads it).
     const raw = readFileSync(path.join(dir, "main.mdx"), "utf8");
-    if (!/^---\n[\s\S]*?\n---\n/.test(raw)) {
+    const { fm: front } = splitFrontmatter(raw);
+    if (front === null) {
       return done(false, "main.mdx must start with a `---` YAML frontmatter block (title/summary/contributors)");
     }
     // Place in the course belongs to schedule.yaml, not to the sheet. (The
     // converter's unknown-key warning covers the LaTeX dialect; this is the
     // same rule for an MDX-authored sheet, which has no such check.)
-    const front = raw.match(/^---\n([\s\S]*?)\n---\n/)[1];
     const owned = ["cluster", "day"].filter((k) => new RegExp(`^${k}:`, "m").test(front));
     if (owned.length) {
       return done(false, `main.mdx frontmatter sets \`${owned.join("`, `")}\` — ` +
@@ -501,8 +502,8 @@ async function buildSlug(slug) {
   if (!CHECK_ONLY && !hasSlidesTex) {
     let slidesUrl = null;
     try {
-      const fm = readFileSync(mdxOut, "utf8").match(/^---\n([\s\S]*?)\n---/);
-      if (fm) slidesUrl = (YAML.parse(fm[1]) ?? {}).slides ?? null;
+      const { fm } = splitFrontmatter(readFileSync(mdxOut, "utf8"));
+      if (fm !== null) slidesUrl = (YAML.parse(fm) ?? {}).slides ?? null;
     } catch { /* frontmatter validity is the render gate's problem */ }
     notes.push(slidesUrl
       ? "⚠ advisory: slides only in PDF form (external `slides:` link, no LaTeX source to build)"
@@ -597,10 +598,9 @@ if (!failed) {
   // index reflects every built module, not just the ones this run touched
   const allSlugs = readdirSync(MODULES).filter((f) => f.endsWith(".mdx")).map((f) => f.replace(/\.mdx$/, ""));
   for (const slug of allSlugs) {
-    const raw = readFileSync(path.join(MODULES, `${slug}.mdx`), "utf8");
-    const m = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-    if (!m) continue;
-    const fm = YAML.parse(m[1]);
+    const { fm: fmText, body } = splitFrontmatter(readFileSync(path.join(MODULES, `${slug}.mdx`), "utf8"));
+    if (fmText === null) continue;
+    const fm = YAML.parse(fmText);
     if (fm.unlisted) continue; // built + reachable by URL, but never listed
     // Unscheduled and not unlisted is an error — but build-status.mjs owns that
     // message (it knows every built module and every day), so here it is only
@@ -608,7 +608,7 @@ if (!failed) {
     const sc = SCHEDULE.bySlug.get(slug);
     if (!sc) continue;
     const headings = [];
-    for (const hm of m[2].matchAll(/^(#{2,3}) (.+)$/gm)) {
+    for (const hm of body.matchAll(/^(#{2,3}) (.+)$/gm)) {
       const text = hm[2].replace(/\*\*|\*/g, "").trim();
       headings.push({ level: hm[1].length, text, slug: ghSlug(text) });
     }
