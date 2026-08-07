@@ -58,7 +58,8 @@ const CHECKER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx-check.mjs");
 const args = process.argv.slice(2);
 const CHECK_ONLY = args.includes("--check");
 // --no-gate skips the KaTeX render gate. The preview loop passes this: `next
-// build` renders the same math right after (via rehype-katex), so the gate is
+// build` renders the same math right after (via src/lib/remark-katex-html —
+// the gate here still uses rehype-katex, same KaTeX underneath), so the gate is
 // redundant there — a bad equation shows as a visible error in the browser
 // instead of failing the build. The full build / CI never pass it.
 const NO_GATE = args.includes("--no-gate");
