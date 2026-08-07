@@ -95,6 +95,11 @@ export default async function Home() {
                         <li key={p.slug}>
                           <Link
                             href={pagePath(p.cluster, p.slug, clusterList)}
+                            // Same reason as SidebarNav: the whole curriculum is
+                            // listed here, and prefetching every worksheet's RSC
+                            // payload on viewport entry is tens of MB for links
+                            // the reader has not chosen yet.
+                            prefetch={false}
                             className="block font-serif text-[1.25rem] leading-snug hover:text-[var(--link)]"
                             style={{ fontWeight: 500 }}
                           >
