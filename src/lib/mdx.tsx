@@ -7,7 +7,7 @@
 import { compileMDX } from "next-mdx-remote/rsc";
 import { createHash } from "node:crypto";
 import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
+import { remarkMathClient } from "./remark-math-client";
 import rehypeSlug from "rehype-slug";
 import "katex/dist/katex.min.css";
 import type { ReactNode } from "react";
@@ -18,6 +18,21 @@ import type { ReactNode } from "react";
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 const components = {
+  /**
+   * MathClient — a placeholder holding a formula's TeX for the client to
+   * typeset (see src/lib/remark-math-client.ts and components/MathRenderer).
+   *
+   * Not authored by hand; the plugin emits it for every `$…$` and `$$…$$`.
+   * Empty on arrival, which is the point and also the cost: the math is not
+   * there until JS runs.
+   */
+  MathClient: ({ tex, display }: { tex: string; display?: boolean }) => (
+    <span
+      data-tex={tex}
+      data-display={display ? "1" : undefined}
+      className={display ? "katex-display" : undefined}
+    />
+  ),
   /**
    * Callout — coloured side-note for an important remark, warning, or tip.
    * Usage: <Callout type="note|warning|tip">body</Callout>
@@ -194,11 +209,11 @@ export async function MdxBody({ source }: { source: string }) {
       components,
       options: {
         mdxOptions: {
-          remarkPlugins: [remarkMath],
-          // rehypeSlug before rehypeKatex so slugs come from plain heading text.
-          // `macros: {}` is a fresh per-compile object: a page's own `\gdef`
-          // macros persist across its math blocks but never leak between pages.
-          rehypePlugins: [rehypeSlug, [rehypeKatex, { strict: false, macros: {} }]],
+          // Nothing is typeset at build time — remarkMathClient leaves a
+          // placeholder carrying the TeX, and MathRenderer fills it in on the
+          // client. `\gdef` scoping moves with it, into MathRenderer.
+          remarkPlugins: [remarkMath, remarkMathClient],
+          rehypePlugins: [rehypeSlug],
         },
       },
     });

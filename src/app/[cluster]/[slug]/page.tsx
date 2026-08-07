@@ -8,6 +8,7 @@ import { ModulePageShell } from "@/components/ModulePageShell";
 import { SidebarNav } from "@/components/SidebarNav";
 import { DownloadsRow } from "@/components/DownloadsRow";
 import { BUILT_AT, COMMIT_SHA, CommitLink } from "@/components/BuildStamp";
+import { MathRenderer } from "@/components/MathRenderer";
 
 // Static export: every .mdx in content/modules is prerendered at build time.
 // content/index.json only controls the homepage/sidebar listing, so a module
@@ -62,6 +63,9 @@ export default async function ModulePage({
 
   return (
     <ModulePageShell sidebar={<SidebarNav modules={modules} activeSlug={slug} clusters={clusterList} />}>
+      {/* Typesets the formulas the build left as placeholders. Renders nothing
+          itself; it exists for its effect on mount. */}
+      <MathRenderer />
       <article>
         <header className="not-prose mb-6 border-b border-zinc-200 pb-4">
           <h1
