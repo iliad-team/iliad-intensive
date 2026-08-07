@@ -97,10 +97,28 @@ to the site root to disable that — no action needed, but don't remove it.
 - **Third-party actions.** Publishing no longer uses one. Earlier revisions used
   `rossjrw/pr-preview-action` (dropped: a post-deploy REST call for the commit
   SHA failed the check on a GitHub API blip even though the deploy succeeded)
-  and then `JamesIves/github-pages-deploy-action` (dropped for the force-push
-  model: its `single-commit` option checks out an *orphan*, so the worktree
-  starts empty and `clean-exclude: pr-preview/**` protects nothing — enabling it
-  naively would have unpublished every open PR's preview).
+  and then `JamesIves/github-pages-deploy-action`, dropped when publishing moved
+  to an explicit script.
+
+  **That action's `single-commit: true` would also have worked** — a claim in the
+  PR that made this change, and in its commit message, says otherwise and is
+  wrong. The reasoning was that `single-commit` checks out an orphan, leaving an
+  empty worktree that `clean-exclude: pr-preview/**` cannot protect. But the
+  action runs `git checkout --orphan <branch> origin/<branch>`, and `--orphan`
+  *with a start-point* populates the index and working tree exactly as a normal
+  checkout would — only the resulting commit is parentless:
+
+  ```console
+  $ git worktree add --no-checkout --detach wt     # 0 files
+  $ cd wt && git checkout --orphan gh-pages origin/gh-pages
+  $ find . -type f
+  ./index.html
+  ./pr-preview/pr-25/index.html                    # previews are present
+  ```
+
+  So the explicit script is a preference — no third-party action in the publish
+  path, staging visible in the workflow — not a necessity. Swapping back to the
+  flag is a legitimate simplification if anyone wants it.
 - **Branch size.** One commit deep, but the *tip* is still large: a full site
   build is ~100 MB and each live preview is another copy. Closing stale PRs is
   what keeps it down.
