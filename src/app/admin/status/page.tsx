@@ -4,6 +4,12 @@ import { readStatus, type Day, type Deck, type SourceKind } from "@/lib/status";
 import { listClusters } from "@/lib/cluster-store";
 import { clusterLabel, pagePath } from "@/lib/clusters";
 import { BUILT_AT, COMMIT_SHA, CommitLink } from "@/components/BuildStamp";
+import {
+  InFlightProvider, InFlightCell, InFlightCount, InFlightRest, StatusFreshness,
+} from "@/components/InFlight";
+// From its own module, not from InFlight.tsx: a server component importing a
+// value out of a "use client" file gets undefined. See flight-tone.ts.
+import { FLIGHT } from "@/components/flight-tone";
 import type { Cluster } from "@/lib/clusters";
 
 /**
@@ -17,6 +23,14 @@ import type { Cluster } from "@/lib/clusters";
  *
  * "admin" is a naming convention, not access control: this is a static page on
  * a public site. Keep schedule.yaml free of anything you wouldn't publish.
+ *
+ * One exception to "observed by the build", and it is marked as one: open pull
+ * requests, and whether this page's own commit is still main's tip, are fetched
+ * from GitHub in the reader's browser (components/InFlight.tsx). A branch that
+ * hasn't merged is not a property of a build from main, so no build could
+ * observe it. Everything from that source is additive — it never overrides a
+ * build-derived cell, and if the fetch fails the page is exactly what the build
+ * produced.
  */
 export const metadata = {
   title: "Material status — Iliad Intensive",
@@ -26,22 +40,24 @@ export const metadata = {
 // ---------------------------------------------------------------- atoms ----
 
 /**
- * Five status tones, each a tinted cell background — scannable down a column
+ * Four status tones, each a tinted cell background — scannable down a column
  * without reading a word. Reserved for state, and never the whole story: every
  * tinted cell also carries a glyph and the status in words, so the colour is
- * the third encoding rather than the only one. Light tints with dark ink
- * (large blocks, so no saturated fills), and there's a legend under the table.
+ * the third encoding rather than the only one. Bold tints with dark ink (large
+ * blocks, no saturated fills), and there's a legend under the table.
  *
  *   good     done, here, working        ok    in hand elsewhere / not ours
- *   wait     a gap worth seeing         none  not applicable, by design
- *   gone     nothing to build from
+ *   wait     a gap worth seeing         gone  nothing to build from
+ *
+ * `none` is not a status — it is the neutral tint for a chip that carries no
+ * state (the Doc-tab link), and the fallback border for Chip.
  */
 const TONE = {
-  good: { cell: "bg-emerald-50 text-emerald-900", chip: "border-emerald-200", glyph: "✓" },
-  ok: { cell: "bg-sky-50 text-sky-900", chip: "border-sky-200", glyph: "→" },
-  wait: { cell: "bg-amber-50 text-amber-900", chip: "border-amber-200", glyph: "!" },
-  none: { cell: "bg-zinc-50 text-zinc-500", chip: "border-zinc-200", glyph: "·" },
-  gone: { cell: "bg-rose-50 text-rose-900", chip: "border-rose-200", glyph: "✕" },
+  good: { cell: "bg-emerald-200 text-emerald-900", chip: "border-emerald-300", glyph: "✓" },
+  ok: { cell: "bg-sky-200 text-sky-900", chip: "border-sky-300", glyph: "→" },
+  wait: { cell: "bg-amber-200 text-amber-900", chip: "border-amber-300", glyph: "!" },
+  none: { cell: "bg-zinc-200 text-zinc-900", chip: "border-zinc-300", glyph: "·" },
+  gone: { cell: "bg-rose-200 text-rose-900", chip: "border-rose-300", glyph: "✕" },
 } as const;
 type Tone = keyof typeof TONE;
 
@@ -85,18 +101,15 @@ type Cell = { tone: Tone; node: ReactNode };
 const SOURCE_LABEL: Record<SourceKind, { text: string; tone: Tone }> = {
   "in-repo": { text: "in repo", tone: "good" },
   ready: { text: "ready to port", tone: "ok" },
-  readings: { text: "reading day", tone: "none" },
   partial: { text: "partial", tone: "wait" },
   missing: { text: "no source", tone: "gone" },
 };
 
 function materialCell(day: Day, clusters: Cluster[], basePath: string): Cell {
+  // No worksheet built for this day — every day needs one, so this is work
+  // outstanding, the same for a reading day as for any other.
   if (!day.modules.length) {
-    // A reading day has no worksheet by design — grey, not a gap. Any other
-    // day without one is work outstanding.
-    return day.source.declared === "readings"
-      ? { tone: "none", node: <State tone="none">no worksheet — by design</State> }
-      : { tone: "wait", node: <State tone="wait">not ported</State> };
+    return { tone: "wait", node: <State tone="wait">not ported</State> };
   }
   const tone: Tone = day.modules.every((m) => m.unlisted) ? "wait" : "good";
   return {
@@ -164,11 +177,6 @@ function sourceCell(day: Day): Cell {
           <State tone={tone}>{text}</State>
           {day.source.url && <Chip tone={tone} href={day.source.url} external>upstream&nbsp;↗</Chip>}
         </span>
-        {/* A ported reading day is still a reading day — say so, or the row
-            looks like a worksheet day that only shipped an overview page. */}
-        {day.source.kind !== "readings" && day.source.declared === "readings" && (
-          <Muted>reading day</Muted>
-        )}
         {day.source.note && <span className="text-[0.7rem] font-normal leading-snug opacity-75">{day.source.note}</span>}
       </div>
     ),
@@ -211,6 +219,11 @@ export default async function StatusPage() {
     .concat([...byCluster.keys()].filter((id) => !clusters.some((c) => c.id === id)));
 
   return (
+    // The provider is a client component wrapping server-rendered children:
+    // the table below is still built and rendered on the server, and the
+    // client leaves inside it (InFlightCell &c.) read the fetched PRs from
+    // context once they arrive.
+    <InFlightProvider dayCodes={status.days.map((d) => d.code)} deployedSha={COMMIT_SHA}>
     <main className="mx-auto w-full max-w-[1100px] px-6 py-10">
       <header className="mb-8">
         <h1 className="font-serif text-[2.1rem] leading-[1.15] tracking-tight" style={{ fontWeight: 600 }}>
@@ -222,6 +235,8 @@ export default async function StatusPage() {
           table can&apos;t drift from what the site actually serves. The day roster, which
           worksheets are each day&apos;s material, the Doc tabs, and where the source lives for
           a day nobody has ported yet are the hand-kept part, in <code>schedule.yaml</code>.
+          Open pull requests are the one live column, read from GitHub when you load the
+          page rather than baked in by the build.
         </p>
         {/* Tallies in the same tones as the column they summarise. */}
         <dl className="mt-5 flex flex-wrap gap-2 font-sans text-[0.8rem]">
@@ -229,7 +244,6 @@ export default async function StatusPage() {
             [`${counts.live} of ${counts.days}`, "days live", "good"],
             [counts.decksBuilt, `deck${counts.decksBuilt === 1 ? "" : "s"} built here`, "good"],
             [counts.decksHosted, `deck${counts.decksHosted === 1 ? "" : "s"} hosted elsewhere`, "ok"],
-            [counts.readingDays, `reading day${counts.readingDays === 1 ? "" : "s"}`, "none"],
             [counts.awaitingSource, "awaiting source", "gone"],
           ] as [string | number, string, Tone][]).map(([n, label, tone]) => (
             <span
@@ -240,8 +254,12 @@ export default async function StatusPage() {
               <dd className="inline opacity-80">{label}</dd>
             </span>
           ))}
+          {/* Appears only once the fetch lands — the build can't count these. */}
+          <InFlightCount />
         </dl>
       </header>
+
+      <StatusFreshness builtAt={BUILT_AT} />
 
       {status.checkOnly && (
         <p className="mb-6 border-l-2 border-amber-400 bg-amber-50/60 px-3 py-2 font-sans text-[0.8rem] leading-relaxed text-zinc-700">
@@ -254,6 +272,15 @@ export default async function StatusPage() {
       {/* Wide table: scrolls inside its own box so the page body never does. */}
       <div className="overflow-x-auto">
         <table className="w-full min-w-[860px] border-collapse">
+          {/* Day and Lead are labels, not content: left to size themselves they
+              held a whole line each ("Decision Theory and Reinforcement
+              Learning", "Kai + Matthew Farrugia-Roberts") and starved the four
+              columns that actually carry status. Pinned narrow here and allowed
+              to wrap instead — the slack goes to Material and Source. */}
+          <colgroup>
+            <col className="w-[9.5rem]" />
+            <col className="w-[7rem]" />
+          </colgroup>
           <thead>
             <tr className="border-b border-zinc-300">
               <th className={th}>Day</th>
@@ -292,12 +319,18 @@ export default async function StatusPage() {
                 const source = sourceCell(day);
                 return (
                   <tr key={day.code} className="border-b border-zinc-200">
-                    <td className={`${td} whitespace-nowrap`}>
+                    <td className={td}>
                       <span className="text-zinc-400">{day.code}</span>{" "}
-                      <span className="font-serif text-[0.95rem]">{dayTitle}</span>
+                      {dayTitle}
                     </td>
-                    <td className={`${td} whitespace-nowrap text-zinc-600`}>{day.lead}</td>
-                    <td className={`${td} ${TONE[material.tone].cell}`}>{material.node}</td>
+                    <td className={`${td} text-zinc-600`}>{day.lead}</td>
+                    {/* The cell keeps the build's tint and wording — an open PR
+                        doesn't make a worksheet exist. The chip sits beside
+                        them, saying where the work actually is. */}
+                    <td className={`${td} ${TONE[material.tone].cell}`}>
+                      {material.node}
+                      <InFlightCell code={day.code} />
+                    </td>
                     <td className={`${td} ${TONE[slides.tone].cell}`}>{slides.node}</td>
                     <td className={td}>
                       <Chip href={day.doc} external>tab&nbsp;↗</Chip>
@@ -319,14 +352,21 @@ export default async function StatusPage() {
           ["ok", "in hand, but not ours to build — upstream source, deck hosted elsewhere"],
           ["wait", "outstanding — not ported yet, or no deck"],
           ["gone", "nothing buildable exists — only compiled PDFs"],
-          ["none", "not applicable by design — a reading day"],
         ] as [Tone, string][]).map(([tone, meaning]) => (
           <span key={tone} className={`rounded px-2 py-1 ${TONE[tone].cell}`}>
             <dt className="inline font-medium" aria-hidden>{TONE[tone].glyph}</dt>{" "}
             <dd className="inline opacity-80">{meaning}</dd>
           </span>
         ))}
+        {/* The live tone, described in the same breath as the four the build
+            derives — it comes from the in-browser fetch, not the build. */}
+        <span className={`rounded px-2 py-1 ${FLIGHT.cell}`}>
+          <dt className="inline font-medium" aria-hidden>{FLIGHT.glyph}</dt>{" "}
+          <dd className="inline opacity-80">in flight — an open PR claims this day</dd>
+        </span>
       </dl>
+
+      <InFlightRest />
 
       <footer className="mt-12 border-t border-zinc-200 pt-4 font-sans text-xs leading-relaxed text-zinc-500">
         <p>
@@ -341,5 +381,6 @@ export default async function StatusPage() {
         </p>
       </footer>
     </main>
+    </InFlightProvider>
   );
 }

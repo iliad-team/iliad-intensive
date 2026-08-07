@@ -23,21 +23,38 @@ gh-pages/
     pr-14/  index.html, ...       ← preview for PR #14
 ```
 
-`.github/workflows/site.yml` builds the site once per event and then, using
-`JamesIves/github-pages-deploy-action`:
+`.github/workflows/site.yml` builds the site once per event, then stages the
+result and publishes it with `.github/publish-gh-pages.sh`:
 
-- **push to `main`** → publishes `out/` to the **root** of `gh-pages`
-  (`clean: true` + `clean-exclude: pr-preview/**`, so it refreshes production but
-  never wipes an active preview).
-- **pull request opened/updated** → after the check ladder passes, publishes
-  `out/` into `pr-preview/pr-<N>/` (`target-folder`, `clean: false` — it only
-  ever touches its own subfolder) and upserts a comment with the URL.
-- **pull request closed** → a git step deletes `pr-preview/pr-<N>/`.
+- **push to `main`** → wipes the root, keeps `pr-preview/`, copies `out/` in.
+- **pull request opened/updated** → after the check ladder passes, replaces
+  `pr-preview/pr-<N>/` with `out/` and upserts a comment with the URL.
+- **pull request closed** → deletes `pr-preview/pr-<N>/`.
 
 All three write to the same branch, so they share a `gh-pages-write` concurrency
 group (`cancel-in-progress: false`): simultaneous deploys **queue** instead of
-racing. The URL comment is `continue-on-error` — a GitHub API hiccup can't fail
-an otherwise-successful deploy (the URL is deterministic regardless).
+racing — which force-pushing needs even more than appending did. The URL comment
+is `continue-on-error` — a GitHub API hiccup can't fail an otherwise-successful
+deploy (the URL is deterministic regardless).
+
+### The branch keeps no history
+
+Every publish **force-pushes one orphan commit**. `gh-pages` is always exactly
+one commit deep, because nothing on it is source — it is regenerable from `tex/`
+plus the build.
+
+This is not a tidiness preference. Appending grew the branch to **5.4 GB across
+90 commits — 99.8% of the repository**, and every contributor's `git pull` paid
+for it, since git's default refspec fetches all branches. A single worksheet page
+is ~10 MB, so each rebuild added another copy.
+
+The consequence for anyone editing the workflow: **each job stages the complete
+tree** in `.deploy/` (check out `gh-pages`, edit only the subtree it owns) and
+lets the script replace the branch with it. A force-push has no previous state to
+merge against, so a path missing from `.deploy/` is a path unpublished. This is
+why the production job carries `pr-preview/` forward instead of deleting it, and
+why `clean-exclude`-style filtering cannot work here: the tree you push *is* the
+site. The script refuses to push a tree with no root `index.html`.
 
 ### Base path
 
@@ -77,10 +94,15 @@ to the site root to disable that — no action needed, but don't remove it.
   work around this — it would run untrusted PR code with a write token.
 - **Concurrent deploys.** All `gh-pages` writes share the `gh-pages-write`
   concurrency group, so a `main` push and a PR deploy queue rather than race.
-- **Third-party actions.** `JamesIves/github-pages-deploy-action` is pinned by
-  major version; pin to a commit SHA if you want stricter supply-chain
-  guarantees. (An earlier revision used `rossjrw/pr-preview-action`; it was
-  dropped because its post-deploy REST call for the commit SHA failed the check
-  on a GitHub API blip even though the deploy had succeeded.)
+- **Third-party actions.** Publishing no longer uses one. Earlier revisions used
+  `rossjrw/pr-preview-action` (dropped: a post-deploy REST call for the commit
+  SHA failed the check on a GitHub API blip even though the deploy succeeded)
+  and then `JamesIves/github-pages-deploy-action` (dropped for the force-push
+  model: its `single-commit` option checks out an *orphan*, so the worktree
+  starts empty and `clean-exclude: pr-preview/**` protects nothing — enabling it
+  naively would have unpublished every open PR's preview).
+- **Branch size.** One commit deep, but the *tip* is still large: a full site
+  build is ~100 MB and each live preview is another copy. Closing stale PRs is
+  what keeps it down.
 - **Prototype.** This is a first cut (branch `pr-website-serve`). Validate on a
   throwaway PR before relying on it.

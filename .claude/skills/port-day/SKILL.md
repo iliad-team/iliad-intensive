@@ -10,7 +10,8 @@ Two paths, same mandate:
 - **LaTeX day** — buildable source exists (a clone under `repos/`, gitignored).
   Target `tex/<slug>/main.tex` under the `iliad.sty` contract.
 - **Reading day** — no worksheet source; the curated reading list *is* the
-  material. Target `tex/<slug>/main.mdx`, served as-is (PDF via pandoc).
+  material. Target `tex/<slug>/main.mdx`, served as-is — a web page only, never
+  a PDF.
 
 `schedule.yaml` says which a day is (`source: ready` vs `source: readings`);
 `scratch/MATERIAL.md` is the running status of what's ported vs. missing.
@@ -107,9 +108,8 @@ build. Validate with `node scripts/schedule.mjs`. `/admin/status` then shows
 ## Reading day → `main.mdx`
 
 `docs/commands.md` §"Writing in MDX instead" is the authoring contract for the
-file itself: heading levels (`##` is the top, never `#`), `{/* … */}` comments
-and how they leak into the pandoc PDF, frontmatter rules, and the check
-commands. Read it before writing the file.
+file itself: heading levels (`##` is the top, never `#`), `{/* … */}` comments,
+frontmatter rules, and the check commands. Read it before writing the file.
 
 ```mdx
 ---

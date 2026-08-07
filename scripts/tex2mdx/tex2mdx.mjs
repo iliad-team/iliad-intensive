@@ -21,10 +21,10 @@ import { parseArgs } from "node:util";
 import { pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { readGroup, readOpt, readArg, stripComments, slug, ghSlug, tidy } from "./util.mjs";
-import { SRC_FILES, lineOf, warnings, warn, advisories, advise, fmtIssue, snippetOf } from "./state.mjs";
-import { MACRO_OVERRIDE, MACRO_SKIP, applyShims, applyMathShims, trimMacroBody,
-         CREF_NAME_DEFAULTS, THM_FAMILY, CONTRACT_NAMES, KNOWN_FRONT_KEYS } from "./shims.mjs";
+import { readGroup, stripComments, tidy } from "./util.mjs";
+import { SRC_FILES, warnings, warn, advisories, advise, fmtIssue } from "./state.mjs";
+import { MACRO_OVERRIDE, MACRO_SKIP, applyShims, trimMacroBody,
+         CREF_NAME_DEFAULTS, CONTRACT_NAMES, KNOWN_FRONT_KEYS } from "./shims.mjs";
 import { initTikz, renderTikzSnippets, tikzCount } from "./tikz.mjs";
 import { injectAutoLabels } from "./autolabel.mjs";
 import { emitDocument, texToPlain } from "./emit-ast.mjs";
@@ -235,11 +235,15 @@ function parseIliadBlock(raw) {
 const iliadBlock = parseIliadBlock(rawTex);
 // A present-but-misspecified block is a hard failure (WARN => exit 2);
 // a missing block only draws an advisory (TODO placeholders are emitted).
+// The parsed frontmatter block, kept for the summary checks further down (a
+// `summary: >-` block scalar is only readable through the YAML parser).
+let frontBlock = null;
 if (iliadBlock) {
   const text = iliadBlock.join("\n");
   if (YAMLLIB) {
     try {
       const parsed = YAMLLIB.parse(text);
+      frontBlock = parsed;
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         warn("frontmatter block is not a YAML mapping (expected `key: value` lines)");
       } else {
@@ -284,8 +288,6 @@ if (usesExerciseEnv) {
   }
 }
 
-const PROSE_MACROS = {};   // retained for buildGdef bookkeeping only
-
 // --------------------------- preamble → gdef ------------------------------
 function buildGdef(pre) {
   const parts = [];
@@ -312,9 +314,6 @@ function buildGdef(pre) {
     if (hasOpt && !MACRO_OVERRIDE[name]) { warn(`macro ${name} has an optional arg; not auto-translated (override or expand manually)`, name); }
     if (MACRO_SKIP.has(name)) { nc.lastIndex = g.end; continue; }
     add(name, arity, applyShims(trimMacroBody(g.content)));
-    // also register for PROSE expansion (usage outside math): unknown prose
-    // commands matching an author macro get expanded and re-processed
-    if (!hasOpt && !(name.slice(1) in PROSE_MACROS)) PROSE_MACROS[name.slice(1)] = { arity, body: g.content };
     nc.lastIndex = g.end;
   }
   // simple \def\name{body} (parameterless) — common toggle idiom
@@ -322,7 +321,6 @@ function buildGdef(pre) {
   while ((m = df.exec(pre))) {
     const g = readGroup(pre, m.index + m[0].length - 1);
     if (!g) continue;
-    if (!(m[1] in PROSE_MACROS)) PROSE_MACROS[m[1]] = { arity: 0, body: g.content };
     df.lastIndex = g.end;
   }
   // \DeclareMathOperator*{\name}{body} — body read with readGroup (it may
@@ -444,6 +442,20 @@ if (!blockKeys.has("title") && title === "TODO")
   advise("no title: in the frontmatter block and no \\title{} — the page falls back to its slug");
 if (!blockKeys.has("contributors") && !contributors.length)
   advise("no contributors: in the frontmatter block and no \\author{} — the page shows no authors");
+// A summary is optional but load-bearing: it is the page's lede AND its blurb in
+// the homepage/sidebar index, so a sheet that ships without one reads as
+// unfinished. `summary: TODO` is what a port writes when the source has no
+// summary to transcribe (nobody may invent one), which makes it easy to forget.
+if (iliadBlock) {
+  const declared = typeof frontBlock?.summary === "string" ? frontBlock.summary.trim() : null;
+  const missing = !blockKeys.has("summary") && !bodySummary;
+  if (missing)
+    advise("no summary: in the frontmatter block — the page and its index entry show no lede");
+  else if (blockKeys.has("summary") && !declared)
+    advise("summary: in the frontmatter block is empty — the page and its index entry show no lede");
+  else if (declared && /^todo\b/i.test(declared))
+    advise(`summary: is still a placeholder ("${declared.slice(0, 40)}") — the page ships it verbatim as its lede`);
+}
 
 // ------------------------------ run ---------------------------------------
 // AST emit (two passes handled inside emit-ast)
@@ -460,7 +472,13 @@ const bodyMdx = tidy(emitDocument(body, {
   warnSnapshot: () => [warnings.length, advisories.length],
   warnRestore: ([w, a]) => { warnings.length = w; advisories.length = a; },
 }));
-const result = `${front}\n\n$${gdef}$\n\n${bodyMdx}\n`;
+// The page's macros ride in a leading inline-math span, where KaTeX picks up the
+// \gdef's. A sheet that defines none must not get an empty one: `$$` on its own
+// line is a display-math OPENER to remark-math, which then swallows the rest of
+// the page into one unclosed span (and every worksheet in the repo happened to
+// define at least one macro, so nothing hit this until a ported reading guide
+// did).
+const result = `${front}\n\n${gdef.trim() ? `$${gdef}$\n\n` : ""}${bodyMdx}\n`;
 writeFileSync(output, result);
 
 // render extracted diagrams (content-addressed: unchanged ones are skipped,

@@ -96,6 +96,14 @@ the URL of an externally hosted deck (rendered as an outbound link; a compiled
 Missing title/cluster/contributors draw build **advisories** (never
 failures) with `file.tex:line` locations.
 
+So does a summary that isn't one: **missing, empty, or still `TODO`**. The
+summary is the page's lede *and* its blurb in the homepage and sidebar index, so
+a sheet without one looks unfinished in two places — and `TODO` is exactly what
+a port leaves behind when the source had no summary to transcribe (an author's
+words are ported, never invented), which makes it the easiest thing in the file
+to forget. An MDX-authored sheet gets the same advisory from
+`build-content.mjs`, since it never passes through the converter.
+
 ## Labels and cross-references
 
 `\label` anything you want to reference — exercises, theorems, callouts,

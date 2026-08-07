@@ -7,6 +7,8 @@
  *   content/index.json                   homepage/sidebar listing
  *   public/uploads/<slug>/tikz-*.svg     diagrams (content-addressed)
  *   public/downloads/<slug>/…            pdf/tex/mdx, each ± solutions
+ *                                        (MDX-authored sheets: mdx only — a
+ *                                        reading day is a web page, not a PDF)
  *
  * Where each page sits in the course — its cluster, its teaching day, and the
  * order it is listed in — comes from schedule.yaml (see scripts/schedule.mjs),
@@ -26,10 +28,14 @@
  * Flags:
  *   --check        converter + render gate only (fast; no PDFs/downloads) —
  *                  what the pre-push hook runs
- *   --jobs N       parallel worksheet builds (default 4)
+ *   --jobs N       parallel worksheet builds (default: CPU core count)
+ *   --no-cache     rebuild every worksheet, ignoring the per-worksheet input
+ *                  hash that normally skips unchanged ones
  */
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { availableParallelism } from "node:os";
+import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, copyFileSync } from "node:fs";
 import YAML from "yaml";
 import path from "node:path";
@@ -56,18 +62,26 @@ const CHECK_ONLY = args.includes("--check");
 // redundant there — a bad equation shows as a visible error in the browser
 // instead of failing the build. The full build / CI never pass it.
 const NO_GATE = args.includes("--no-gate");
-const JOBS = Math.max(1, parseInt(args.includes("--jobs") ? args[args.indexOf("--jobs") + 1] : "4", 10) || 4);
+// Default to the machine's core count rather than a fixed 4. Measured effect
+// today: none — with 7 worksheets a cold build is bounded by the slowest single
+// sheet (aixi, ~26s), not by how many run alongside it, so 4 vs 12 workers came
+// out identical (40.8s vs 40.7s, interleaved best-of-4). Kept because it costs
+// nothing and stops under-using a big machine as the course grows toward 19
+// days, when the worker count starts to bind. CI runners have 4 cores and land
+// on the old value regardless.
+const DEFAULT_JOBS = availableParallelism?.() ?? 4;
+const JOBS = Math.max(1, parseInt(args.includes("--jobs") ? args[args.indexOf("--jobs") + 1] : String(DEFAULT_JOBS), 10) || DEFAULT_JOBS);
 // positional args are worksheet slugs; none = build everything
 const wanted = [];
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === "--check" || args[i] === "--no-gate") continue;
+  if (args[i] === "--check" || args[i] === "--no-gate" || args[i] === "--no-cache") continue;
   if (args[i] === "--jobs") { i++; continue; }
-  if (args[i].startsWith("-")) { console.error(`unknown flag ${args[i]} — usage: build-content.mjs [--check] [--no-gate] [--jobs N] [slug ...]`); process.exit(1); }
+  if (args[i].startsWith("-")) { console.error(`unknown flag ${args[i]} — usage: build-content.mjs [--check] [--no-gate] [--no-cache] [--jobs N] [slug ...]`); process.exit(1); }
   wanted.push(args[i]);
 }
 
 // A worksheet is authored either in LaTeX (main.tex — converted to MDX) or
-// directly in MDX (main.mdx — served as-is, PDF via pandoc). tex wins if
+// directly in MDX (main.mdx — served as-is; a web page only, never a PDF). tex wins if
 // a folder somehow has both.
 const allWorksheets = readdirSync(TEX, { withFileTypes: true })
   .filter((d) => d.isDirectory()
@@ -98,6 +112,9 @@ try {
 const pexec = promisify(execFile);
 const exec = (cmd, argv, opts = {}) =>
   pexec(cmd, argv, { maxBuffer: 64 * 1024 * 1024, ...opts });
+
+// pdflatex invocation, shared by the worksheet and slides compile ladders.
+const PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
 
 // "No solutions" variants of every download format are derived by stripping
 // solution blocks from the source — so a handout (or an LLM prompt) can be
@@ -175,6 +192,82 @@ const stampSchedule = (mdxOut, slug) => {
   writeFileSync(mdxOut, `---\ncluster: ${sc.cluster}\nday: ${sc.day}\n${raw.slice(4)}`);
 };
 
+// ---------------------- per-worksheet build cache ---------------------------
+// Compiling one worksheet is ~6 pdflatex passes, and most builds change a single
+// sheet yet recompile all of them. So each worksheet records a hash of every
+// input that can affect its output; a rebuild is skipped when the hash still
+// matches AND every artifact it would have produced is still on disk. CI keeps
+// those artifacts in actions/cache, so an untouched day costs nothing there too.
+//
+// The hash has to cover everything, or a stale PDF ships silently. Miss an input
+// and the failure mode is invisible — so this errs toward over-hashing: the
+// whole scripts/ tree counts, not just the converter, and schedule.yaml counts
+// because it is stamped into the MDX. `--no-cache` forces a full rebuild.
+const NO_CACHE = args.includes("--no-cache");
+
+// Artifacts share tex/<slug>/ with sources, so top-level generated files are
+// excluded by extension (fig/ is all source, including its .pdf figures, and is
+// hashed whole). Anything not listed here counts as an input by default.
+const ARTIFACT_EXT = /\.(pdf|aux|log|out|toc|nav|snm|bbl|blg|fls|fdb_latexmk|synctex\.gz)$/i;
+const ARTIFACT_NAME = new Set(["main.autolabel.tex", "main-nosol.tex", "main-nosol.mdx", ".build-hash"]);
+
+const hashPath = (h, p) => {
+  if (!existsSync(p)) return;
+  h.update(path.basename(p));
+  h.update(readFileSync(p));
+};
+function hashDir(h, root, all = false) {
+  if (!existsSync(root)) return;
+  for (const e of readdirSync(root, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+    // node_modules is a symlink in every worktree (new-worktree.sh) and is
+    // pinned by the lockfiles anyway — never walk it.
+    if (e.name === "node_modules" || e.isSymbolicLink()) continue;
+    if (!all && (ARTIFACT_NAME.has(e.name) || ARTIFACT_EXT.test(e.name))) continue;
+    const p = path.join(root, e.name);
+    h.update(e.name);
+    if (e.isDirectory()) hashDir(h, p, true);
+    else h.update(readFileSync(p));
+  }
+}
+
+const worksheetHash = (slug) => {
+  const h = createHash("sha256");
+  hashDir(h, path.join(TEX, slug));                    // the sheet's own sources
+  hashPath(h, path.join(TEX, "iliad.sty"));            // shared worksheet contract
+  hashPath(h, path.join(TEX, "alphaurl.bst"));         // vendored bibliography style
+  hashDir(h, path.join(ROOT, "scripts"), true);        // converter + this build script
+  hashPath(h, path.join(ROOT, "schedule.yaml"));       // stamped into the frontmatter
+  return h.digest("hex");
+};
+
+// A skip is only safe if everything downstream is already present. That includes
+// the figures: public/uploads belongs to the separate diagram cache, so if that
+// one missed while this one hit, a skipped worksheet would ship broken images.
+// Checking the uploads the cached MDX actually references closes that gap.
+const outputsPresent = (slug) => {
+  const dl = path.join(DOWNLOADS, slug);
+  const mdx = path.join(MODULES, `${slug}.mdx`);
+  // Mirror exactly what step 5 stages, or a sheet becomes permanently
+  // uncacheable. An MDX-authored sheet is a web page and builds no PDF or .tex
+  // at all, so only the two .mdx downloads are guaranteed for it.
+  const need = [mdx, path.join(dl, `${slug}.mdx`), path.join(dl, `${slug}-nosol.mdx`)];
+  if (existsSync(path.join(TEX, slug, "main.tex"))) {
+    need.push(path.join(dl, `${slug}.pdf`), path.join(dl, `${slug}-nosol.pdf`),
+              path.join(dl, `${slug}.tex`), path.join(dl, `${slug}-nosol.tex`));
+  }
+  if (existsSync(path.join(TEX, slug, "slides.tex"))) need.push(path.join(dl, `${slug}-slides.pdf`));
+  if (!need.every(existsSync)) return false;
+  // Anchored on the slug, because this build only ever writes figures to
+  // public/uploads/<slug>/. A bare /uploads/ match would also hit external URLs
+  // that happen to contain that segment (ai-alignment-intro cites one), and the
+  // worksheet would then never be cacheable.
+  const refs = new RegExp(`/uploads/${slug}/([^\\s"')]+)`, "g");
+  for (const m of readFileSync(mdx, "utf8").matchAll(refs)) {
+    if (!existsSync(path.join(UPLOADS, slug, decodeURIComponent(m[1])))) return false;
+  }
+  return true;
+};
+
 /** Build one worksheet. Returns { ok, text } — text is the complete,
  *  atomically printable log block for this slug. */
 async function buildSlug(slug) {
@@ -182,21 +275,44 @@ async function buildSlug(slug) {
   const mdxOut = path.join(MODULES, `${slug}.mdx`);
   const t0 = Date.now();
   const notes = [];
-  const done = (ok, headline = "") => ({
-    ok,
-    text: (ok
-      ? `▸ ${slug} ✓ (${((Date.now() - t0) / 1000).toFixed(1)}s)\n`
-      : `✗ ${slug}: ${headline}\n`) + notes.map((n) => n.replace(/\s*$/, "") + "\n").join(""),
-  });
+  const stamp = path.join(dir, ".build-hash");
+  const done = (ok, headline = "") => {
+    // Record the stamp only on a clean full build: a --check run produces no
+    // artifacts, and a failed one must not look cached on the next attempt.
+    if (ok && !CHECK_ONLY) { try { writeFileSync(stamp, inputHash); } catch { /* non-fatal */ } }
+    return {
+      ok,
+      text: (ok
+        ? `▸ ${slug} ✓ (${((Date.now() - t0) / 1000).toFixed(1)}s)\n`
+        : `✗ ${slug}: ${headline}\n`) + notes.map((n) => n.replace(/\s*$/, "") + "\n").join(""),
+    };
+  };
+  // Cache check. Only for full builds — --check is converter + gate only, cheap
+  // already, and produces none of the artifacts outputsPresent() looks for.
+  const inputHash = CHECK_ONLY ? null : worksheetHash(slug);
+  if (inputHash && !NO_CACHE && existsSync(stamp)
+      && readFileSync(stamp, "utf8").trim() === inputHash
+      && outputsPresent(slug)) {
+    return { ok: true, text: `↷ ${slug} cached (inputs unchanged)\n` };
+  }
+  // Every TeX tool runs with the worksheet folder as cwd. BSTINPUTS adds the
+  // shared tex/ dir to bibtex's style search path so tex/alphaurl.bst — vendored
+  // verbatim from urlbst 0.9.1, 36 KB — satisfies \bibliographystyle{alphaurl}
+  // without the 75 MB texlive-bibtex-extra package. The trailing colon means
+  // "then the normal search path", so a system copy still wins where present.
+  // (tex/singular-learning-theory/far.bst already relies on bibtex finding a
+  // repo-local style; this just hoists the trick to a shared location.)
   const tex = (...argv) =>
-    exec(argv[0], argv.slice(1), { cwd: dir });
+    exec(argv[0], argv.slice(1), {
+      cwd: dir,
+      env: { ...process.env, BSTINPUTS: `${TEX}:${process.env.BSTINPUTS ?? ""}` },
+    });
   // bibtex, staying quiet about the ONE failure that is genuinely fine: a
-  // document with no bibliography at all. Every other failure — a missing
-  // style file (alphaurl.bst lives in urlbst / texlive-bibtex-extra, which is
-  // easy to omit from a minimal TeX Live), an unreadable .bib — leaves no
-  // .bbl behind, and pdflatex then degrades every \cite in the finished PDF
-  // to "[?]" without erroring. Swallowing that shipped three worksheets with
-  // no citations at all while the build stayed green, so it is fatal now.
+  // document with no bibliography at all. Every other failure — a style file
+  // that cannot be opened, an unreadable .bib — leaves no .bbl behind, and
+  // pdflatex then degrades every \cite in the finished PDF to "[?]" without
+  // erroring. Swallowing that shipped three worksheets with no citations at
+  // all while the build stayed green, so it is fatal now.
   const bibtex = async (base) => {
     try {
       await tex("bibtex", base);
@@ -234,7 +350,6 @@ async function buildSlug(slug) {
     // 1. PDF FIRST: the converter resolves \cref/\ref through LaTeX's .aux, so
     //    the compile must happen before conversion — a fresh CI checkout has no
     //    .aux, and converting without one reports every \cref as unresolved.
-    const PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
     const compile = async (base, src = `${base}.tex`) => {
       await tex(...PDFLATEX, `-jobname=${base}`, src);
       await bibtex(base);
@@ -310,54 +425,35 @@ async function buildSlug(slug) {
     // Place in the course belongs to schedule.yaml, not to the sheet. (The
     // converter's unknown-key warning covers the LaTeX dialect; this is the
     // same rule for an MDX-authored sheet, which has no such check.)
-    const owned = ["cluster", "day"].filter((k) => new RegExp(`^${k}:`, "m").test(raw.match(/^---\n([\s\S]*?)\n---\n/)[1]));
+    const front = raw.match(/^---\n([\s\S]*?)\n---\n/)[1];
+    const owned = ["cluster", "day"].filter((k) => new RegExp(`^${k}:`, "m").test(front));
     if (owned.length) {
       return done(false, `main.mdx frontmatter sets \`${owned.join("`, `")}\` — ` +
         "that lives in schedule.yaml (list the slug under its day) and is stamped in at build time");
     }
+    // Same summary advisory the converter emits for a LaTeX sheet (see
+    // tex2mdx.mjs) — an MDX sheet never reaches the converter, so it needs its
+    // own. Advisory, never fatal: the summary is the page's lede and its index
+    // blurb, and `summary: TODO` is what a port leaves behind when the source
+    // had no summary to transcribe.
+    const declared = YAML.parse(front)?.summary;
+    const summary = typeof declared === "string" ? declared.trim() : null;
+    if (declared === undefined)
+      notes.push("⚠ advisory: no `summary:` in main.mdx frontmatter — the page and its index entry show no lede");
+    else if (!summary)
+      notes.push("⚠ advisory: `summary:` in main.mdx frontmatter is empty — the page and its index entry show no lede");
+    else if (/^todo\b/i.test(summary))
+      notes.push(`⚠ advisory: \`summary:\` is still a placeholder ("${summary.slice(0, 40)}") — the page ships it verbatim as its lede`);
     copyFileSync(path.join(dir, "main.mdx"), mdxOut);
 
-    // PDF via pandoc (markdown source, KaTeX-style math; JSX component tags
-    // are raw HTML to pandoc and are dropped from the PDF — their contents
-    // survive). The frontmatter title becomes a normal \maketitle title;
-    // contributors map to \author. No .tex is generated for MDX sheets.
-    if (!CHECK_ONLY) {
-      writeFileSync(path.join(dir, "main-nosol.mdx"), stripMdxSolutions(raw));
-      let authors = [];
-      try {
-        const fm = YAML.parse(raw.match(/^---\n([\s\S]*?)\n---\n/)[1]) ?? {};
-        if (Array.isArray(fm.contributors)) authors = fm.contributors.map(String);
-      } catch { /* frontmatter validity is the render gate's problem */ }
-      const pandocArgs = (src, out) => [src, "--from", "markdown+tex_math_dollars",
-        "-V", "geometry:margin=1in",
-        ...authors.flatMap((a) => ["--metadata", `author=${a}`]),
-        "-o", out];
-      // Preflight the one non-obvious dependency of pandoc's default PDF
-      // template: lmodern.sty. The `lmodern` apt package is only a Recommends,
-      // so `apt-get install --no-install-recommends` (both CI and setup.sh)
-      // skips it — yet a full local TeX Live ships it, so a broken build sails
-      // through locally and fails only on CI with an opaque "Error producing
-      // PDF". Fail here instead, everywhere, with the actual fix. (This exact
-      // gap broke the first MDX-authored sheet's CI run.)
-      try {
-        await exec("kpsewhich", ["lmodern.sty"]);
-      } catch {
-        return done(false,
-          "pandoc PDF needs lmodern.sty, which is not installed. Install the " +
-          "`lmodern` apt package (a Recommends, so --no-install-recommends skips " +
-          "it) and keep setup.sh and .github/workflows/site.yml in sync.");
-      }
-      try {
-        await tex("pandoc", ...pandocArgs("main.mdx", "main.pdf"));
-        await tex("pandoc", ...pandocArgs("main-nosol.mdx", "main-nosol.pdf"));
-      } catch (e) {
-        // Surface the REAL error: pandoc's first stderr line is a useless
-        // "Error producing PDF."; the cause (missing .sty, bad glyph, …) is in
-        // the lines that follow. Keep the tail so CI logs actually say why.
-        const detail = String(e.stderr || e.stdout || e.message).trim();
-        return done(false, `pandoc PDF build failed:\n${detail.split("\n").slice(-40).join("\n")}`);
-      }
-    }
+    // No PDF, by design. LaTeX is the format that becomes a PDF; MDX is the
+    // format that becomes a web page. An MDX-authored sheet (a reading day —
+    // a list of links) has nothing a print artifact adds, and a pandoc PDF
+    // alongside it was actively wrong: pandoc drops the JSX component tags but
+    // keeps their contents, so <Solution> answers printed inline, and an MDX
+    // {/* … */} expression has no tag to drop and leaked as literal source.
+    // So: no pandoc, no .pdf and no .tex download for these sheets — the page
+    // and its .mdx (± solutions) are the whole output.
   }
 
   // 2.4 stamp the schedule's answer for cluster + day into the generated page,
@@ -376,17 +472,16 @@ async function buildSlug(slug) {
   const hasHandout = hasSlidesTex
     && /\\HANDOUT\b/.test(readFileSync(path.join(dir, "slides.tex"), "utf8"));
   if (!CHECK_ONLY && hasSlidesTex) {
-    const SLIDES_PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
     // exec() passes argv straight through (no shell), so the \def wrapper needs
     // no quoting beyond JS's own backslash escapes.
     const variants = [["slides", "slides.tex"]];
     if (hasHandout) variants.push(["slides-handout", "\\def\\HANDOUT{}\\input{slides}"]);
     for (const [job, src] of variants) {
       try {
-        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
+        await tex(...PDFLATEX, `-jobname=${job}`, src);
         await bibtex(job);
-        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
-        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
+        await tex(...PDFLATEX, `-jobname=${job}`, src);
+        await tex(...PDFLATEX, `-jobname=${job}`, src);
       } catch (e) {
         if (e?.bibtex) return done(false, e.message);
         const log = path.join(dir, `${job}.log`);
@@ -448,16 +543,17 @@ async function buildSlug(slug) {
   }
 
   // 5. downloads (PDFs were already built in step 1). Every format ships a
-  //    with-solutions file and a -nosol variant; MDX-authored sheets have no
-  //    .tex to serve.
+  //    with-solutions file and a -nosol variant. MDX-authored sheets ship
+  //    Markdown only: they have no .tex, and by design no .pdf either — see
+  //    the MDX branch in step 2.
   if (!CHECK_ONLY) {
     const dl = path.join(DOWNLOADS, slug);
     mkdirSync(dl, { recursive: true });
-    copyFileSync(path.join(dir, "main.pdf"), path.join(dl, `${slug}.pdf`));
-    copyFileSync(path.join(dir, "main-nosol.pdf"), path.join(dl, `${slug}-nosol.pdf`));
     copyFileSync(mdxOut, path.join(dl, `${slug}.mdx`));
     writeFileSync(path.join(dl, `${slug}-nosol.mdx`), stripMdxSolutions(readFileSync(mdxOut, "utf8")));
     if (isTex) {
+      copyFileSync(path.join(dir, "main.pdf"), path.join(dl, `${slug}.pdf`));
+      copyFileSync(path.join(dir, "main-nosol.pdf"), path.join(dl, `${slug}-nosol.pdf`));
       copyFileSync(path.join(dir, "main.tex"), path.join(dl, `${slug}.tex`));
       copyFileSync(path.join(dir, "main-nosol.tex"), path.join(dl, `${slug}-nosol.tex`));
     }
@@ -516,7 +612,14 @@ if (!failed) {
       const text = hm[2].replace(/\*\*|\*/g, "").trim();
       headings.push({ level: hm[1].length, text, slug: ghSlug(text) });
     }
-    entries.push({ slug, title: fm.title ?? slug, cluster: sc.cluster, day: sc.day, frontmatter: fm, position: sc.position, headings });
+    entries.push({
+      slug, title: fm.title ?? slug, cluster: sc.cluster, day: sc.day,
+      // Where the sheet sits inside its own day, so a listing can say D.3.1
+      // instead of two entries both labelled D.3. Display only: `day` stays the
+      // canonical code, which is what issues and /admin/status speak.
+      part: sc.part, parts: sc.parts,
+      frontmatter: fm, position: sc.position, headings,
+    });
   }
   // Ordering is schedule.yaml's, start to finish: cluster order, then day
   // order, then a day's own worksheet order. Titles never enter into it — an

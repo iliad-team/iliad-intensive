@@ -9,6 +9,12 @@
 # so a preview can coexist with production. REQUIRES a one-time repo setting:
 # Settings -> Pages -> Source = "Deploy from a branch" -> gh-pages / (root).
 # See docs/PR-PREVIEWS.md.
+#
+# History: gh-pages keeps NONE. Every publish force-pushes a single orphan
+# commit via .github/publish-gh-pages.sh, so the branch is always exactly one
+# commit deep. Because production and previews share the branch, each job stages
+# the COMPLETE tree in .deploy/ (checkout gh-pages, edit only its own subtree)
+# and lets the script replace the branch with it.
 name: site
 
 on:
@@ -18,8 +24,24 @@ on:
     branches: [main]
 
 concurrency:
-  group: site-${{ github.ref }}
-  cancel-in-progress: true
+  # Key PR runs on the PR NUMBER, not github.ref. Merging a PR fires two runs in
+  # the same second — the push to main, and pull_request/closed (which runs only
+  # preview-cleanup) — and on a merged PR the refs/pull/<N>/merge ref is already
+  # deleted, so the closed event's github.ref falls back to the BASE branch.
+  # Under `site-${{ github.ref }}` that put the cleanup run in main's own group,
+  # where cancel-in-progress is true for it (it is a pull_request event), so a
+  # 49-second `git rm` of a preview directory evicted the production build ~2s
+  # in: "Canceling since a higher priority waiting request for
+  # site-refs/heads/main exists". Whichever of the two runs claimed the slot
+  # first won, so it read as flaky — main lost 7 of 11 merges, leaving the live
+  # site commits behind while every PR check showed green.
+  #
+  # A PR event can no longer name main's group, so the race cannot be entered.
+  # The useful superseding survives: pushes to PR N still cancel N's stale
+  # preview build, and closing N cancels a build for a preview about to be
+  # deleted. Both are the same `site-<N>` group.
+  group: site-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Default read-only; the deploy/preview jobs opt into write explicitly.
 permissions:
@@ -31,6 +53,12 @@ jobs:
     # removes the old preview. Every other event builds.
     if: github.event_name != 'pull_request' || github.event.action != 'closed'
     runs-on: ubuntu-latest
+    # A healthy run is ~3 minutes. The one unbounded step is the TeX download,
+    # which a degraded Ubuntu mirror has stalled past 15 minutes while still
+    # *looking* like progress. Fail at 8 instead: a run that slow has already
+    # missed the point, and a clear timeout beats a job that appears busy.
+    # Re-running is the fix; the mirror is usually fine on the next attempt.
+    timeout-minutes: 8
     steps:
       # lfs: true — figures under tex/**/fig/*.png are stored in Git LFS
       # (.gitattributes). Without this the working tree gets pointer files, and
@@ -56,22 +84,26 @@ jobs:
             echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: TeX Live + poppler + pandoc
+      - name: TeX Live + poppler
         # Keep this list in sync with ./setup.sh — it is the reference package
         # set. cm-super: scalable CM fonts, needed by microtype's font
-        # expansion under [T1]{fontenc}. lmodern: pandoc's default PDF template
-        # (used for MDX-authored worksheets) loads lmodern.sty unconditionally;
-        # it is only a Recommends of texlive, so --no-install-recommends drops
-        # it — name it explicitly. texlive-bibtex-extra: ships urlbst, whose
-        # alphaurl.bst several worksheets and every deck select; without it
-        # bibtex cannot open the style, writes no .bbl, and every \cite in the
-        # PDF silently becomes "[?]".
+        # expansion under [T1]{fontenc}.
+        #
+        # This download is the job's biggest single cost and a slow Ubuntu
+        # mirror can stall it for 15+ minutes, so keep it lean. Two packages are
+        # deliberately absent rather than forgotten:
+        #   texlive-bibtex-extra (75 MB) — was installed for one 36 KB file,
+        #     alphaurl.bst; that is vendored at tex/alphaurl.bst and found via
+        #     BSTINPUTS (see scripts/build-content.mjs).
+        #   texlive-science (4 MB) — hard-depends on texlive-lang-greek (75 MB)
+        #     and its only user here was stmaryrd, for two bracket glyphs now
+        #     built from kernel pieces.
+        # Together ~154 MB, roughly half what this step used to fetch.
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y --no-install-recommends \
-            texlive-latex-extra texlive-pictures texlive-science \
-            texlive-bibtex-extra \
-            texlive-fonts-recommended cm-super lmodern poppler-utils pandoc
+          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
+            texlive-latex-extra texlive-pictures \
+            texlive-fonts-recommended cm-super poppler-utils
           # contributor LaTeX is untrusted: never enable shell-escape
 
       - uses: actions/setup-node@v4
@@ -95,6 +127,31 @@ jobs:
           path: public/uploads
           key: tikz-${{ hashFiles('tex/**') }}
           restore-keys: tikz-
+
+      # Worksheet artifacts, so a day nobody touched is not recompiled. Each
+      # worksheet stores a hash of its inputs in tex/<slug>/.build-hash and the
+      # build skips it when that hash matches AND its artifacts are all still
+      # here (scripts/build-content.mjs) — restoring them is what makes the skip
+      # possible. Deliberately NOT caching public/uploads: the diagram cache
+      # above owns that path, and two cache actions on one path fight. The skip
+      # check verifies every /uploads/ path its MDX references, so a diagram-cache
+      # miss forces a rebuild rather than shipping a figure-less page.
+      #
+      # The key intentionally never hits (it carries the commit sha), so the
+      # cache is rewritten every run and restore-keys pulls the newest one —
+      # per-worksheet granularity lives in the hashes, not in the cache key.
+      - name: Restore worksheet build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            tex/*/.build-hash
+            tex/*/*.pdf
+            tex/*/*.aux
+            tex/*/*.bbl
+            content/modules
+            public/downloads
+          key: worksheets-${{ github.sha }}
+          restore-keys: worksheets-
 
       # The SAME command developers and the pre-push hook run locally
       # (./run.sh ci) — one definition in package.json, no drift. The base path
@@ -146,19 +203,30 @@ jobs:
         with:
           name: site
           path: out
-      # clean:true below would wipe the live root; never let it run against an
-      # empty/failed artifact download (e.g. during a GitHub incident).
+      # The force-push below replaces gh-pages outright; never let it run
+      # against an empty/failed artifact download (e.g. during a GitHub
+      # incident), which would publish an empty site.
       - name: Guard against an empty artifact
         run: test -f out/index.html || { echo "::error::empty artifact — refusing to deploy (would wipe the live site)"; exit 1; }
-      - name: Deploy to gh-pages (root)
-        uses: JamesIves/github-pages-deploy-action@v4
+      - uses: actions/checkout@v4
         with:
-          branch: gh-pages
-          folder: out
-          # Refresh the root but never delete the preview subtrees.
-          clean: true
-          clean-exclude: |
-            pr-preview/**
+          ref: gh-pages
+          path: .deploy
+      # gh-pages is disposable build output, so every publish force-pushes ONE
+      # orphan commit instead of appending (see "History" in the header). That
+      # makes the commit we push the entire site — there is no previous state to
+      # merge with — so the live previews must be carried into it explicitly.
+      # Deleting them here is what "keep the root fresh" used to mean when the
+      # branch had history; now it would unpublish 12 open PRs' previews.
+      - name: Stage the site (fresh root + live previews)
+        run: |
+          set -euo pipefail
+          find .deploy -mindepth 1 -maxdepth 1 \
+            ! -name .git ! -name pr-preview -exec rm -rf {} +
+          cp -a out/. .deploy/
+      - name: Publish
+        run: |
+          .github/publish-gh-pages.sh "Deploy ${{ github.sha }}"
 
   # Preview: publish the built site to gh-pages/pr-preview/pr-<N>/ and comment
   # the URL on the PR. Only runs after `build` succeeds — i.e. the PR passed the
@@ -179,17 +247,27 @@ jobs:
         with:
           name: site
           path: out
-      # Deploy INTO the PR's own subfolder. clean: false means the action only
-      # ever adds/updates files under target-folder — it cannot touch production
-      # or another PR's preview (the docs are ambiguous on whether `clean` is
-      # scoped to target-folder, so we don't rely on it).
-      - name: Deploy PR preview
-        uses: JamesIves/github-pages-deploy-action@v4
+      - uses: actions/checkout@v4
         with:
-          branch: gh-pages
-          folder: out
-          target-folder: pr-preview/pr-${{ github.event.number }}
-          clean: false
+          ref: gh-pages
+          path: .deploy
+      # Swap in THIS PR's subfolder and leave everything else — production root
+      # and the other previews — exactly as checked out. The force-push
+      # publishes the whole tree, so anything missing here is anything
+      # unpublished; touching only our own directory is what keeps the blast
+      # radius to this PR.
+      - name: Stage this PR's preview
+        run: |
+          set -euo pipefail
+          DIR=".deploy/pr-preview/pr-${{ github.event.number }}"
+          rm -rf "$DIR"
+          mkdir -p "$DIR"
+          cp -a out/. "$DIR"/
+      # Block scalar, not a plain one: in an unquoted YAML scalar " #" opens a
+      # comment and would truncate the message mid-quote.
+      - name: Publish
+        run: |
+          .github/publish-gh-pages.sh "Preview for PR #${{ github.event.number }}"
       # Best-effort comment with the URL. continue-on-error so a GitHub API
       # blip can't fail an otherwise-successful deploy (the URL is deterministic
       # anyway). Upserts a single marked comment rather than spamming.
@@ -224,19 +302,23 @@ jobs:
       group: gh-pages-write
       cancel-in-progress: false
     steps:
+      # Pin to main for the publish script. The default checkout would resolve
+      # refs/pull/<N>/merge, which is already deleted by the time a MERGED PR
+      # fires its closed event (see the concurrency note at the top).
+      - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/checkout@v4
         with:
           ref: gh-pages
+          path: .deploy
       - name: Remove PR preview
         run: |
-          set -e
-          DIR="pr-preview/pr-${{ github.event.number }}"
+          set -euo pipefail
+          DIR=".deploy/pr-preview/pr-${{ github.event.number }}"
           if [ ! -d "$DIR" ]; then echo "no preview at $DIR — nothing to remove"; exit 0; fi
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm -r --quiet "$DIR"
-          git commit -m "Remove preview for PR #${{ github.event.number }}"
-          git push origin gh-pages
+          rm -rf "$DIR"
+          .github/publish-gh-pages.sh "Remove preview for PR #${{ github.event.number }}"
       - name: Update comment (preview removed)
         continue-on-error: true
         uses: actions/github-script@v7

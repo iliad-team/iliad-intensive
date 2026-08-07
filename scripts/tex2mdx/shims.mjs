@@ -27,6 +27,12 @@ export const MACRO_SKIP = new Set([
   "\\crefrangeconjunction", "\\thesubsection",
   "\\section", "\\subsection", "\\subsubsection", "\\paragraph",
   "\\headrulewidth", "\\footrulewidth", "\\solutionlistskip",
+  // KaTeX has \llbracket/\rrbracket natively and renders them properly. The
+  // worksheets define them from kernel pieces ([\![ … ]\!]) only because
+  // stmaryrd costs ~79 MB of CI download for those two glyphs — a PDF-side
+  // workaround the web has no reason to inherit. Skipping the export leaves
+  // KaTeX's real glyphs in force; exporting would also \gdef them recursively.
+  "\\llbracket", "\\rrbracket",
 ]);
 
 // Package commands with no KaTeX implementation but an exact synonym.
@@ -34,6 +40,14 @@ export const MACRO_SKIP = new Set([
 export const KATEX_SHIMS = [
   [/\\mathds\b/g, "\\mathbb"],      // dsfont
   [/\\bm\b/g, "\\boldsymbol"],      // bm
+  // \ensuremath{X} is "X, in math mode either way" — the standard way to write a
+  // macro that works in a sentence and in an equation alike (amsthm's \qed is
+  // \ensuremath{\square}). Inside math it is already redundant, so drop the
+  // command and keep its braces: {X} is the same group to KaTeX. It matters here
+  // rather than only in MATH_TRANSFORMS because a \gdef body reaches KaTeX
+  // through this table, and that is where such a macro is defined.
+  // Prose usage is a real inline-math span — see emit-ast.mjs.
+  [/\\ensuremath\s*(?=\{)/g, ""],
 ];
 export const applyShims = (s) =>
   KATEX_SHIMS.reduce((acc, [re, to]) => acc.replace(re, to), s);

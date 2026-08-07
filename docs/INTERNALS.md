@@ -50,9 +50,9 @@ runtime inputs. If it's not in this table, the site doesn't depend on it.
 | Input | Read by | Used for |
 |---|---|---|
 | `content/modules/*.mdx` | `src/lib/content.ts` | page bodies + frontmatter; **every** file here becomes a page, listed or not |
-| `content/index.json` | `src/lib/content.ts` | homepage/sidebar listing + ordering + heading TOCs (absence ⇒ page is unlisted, still built) |
+| `content/index.json` | `src/lib/content.ts` | homepage/sidebar listing + ordering + heading TOCs + each sheet's `part`/`parts` within its day (absence ⇒ page is unlisted, still built) |
 | `content/status.json` | `src/lib/status.ts` | the `/admin/status` table (absence ⇒ the page renders a "run the content build" hint) |
-| `schedule.yaml` | `src/lib/cluster-store.ts` | cluster labels and the first URL segment (`/learning/<slug>/`), in the order the file lists them; falls back to `DEFAULT_CLUSTERS` in `src/lib/clusters.ts` |
+| `schedule.yaml` | `src/lib/cluster-store.ts` | cluster labels and the first URL segment (`/learning/<slug>/`) via `listClusters`, and the teaching days' codes + titles via `listDays`, both in the order the file lists them; clusters fall back to `DEFAULT_CLUSTERS` in `src/lib/clusters.ts` |
 | `public/downloads/<slug>/` | `src/lib/content.ts` (`listDownloads`) | which download buttons a page offers (dir listing at build time) |
 | `public/uploads/<slug>/*.svg` | the browser, not the build | figure `<img>` targets referenced from the MDX |
 | `NEXT_PUBLIC_BASE_PATH` env | `next.config.ts`, `src/lib/mdx.tsx`, module page | sub-path hosting (GitHub Pages project site); applied at render time, never baked into generated MDX |
@@ -66,8 +66,8 @@ Routes (`src/app/`):
 | File | Role |
 |---|---|
 | `layout.tsx` | HTML shell: fonts, `globals.css`, `Navbar` |
-| `page.tsx` | homepage: hero paragraph + modules grouped by cluster from `index.json` |
-| `[cluster]/[slug]/page.tsx` | the module page. `generateStaticParams` enumerates every MDX module; renders header (title/cluster/summary/contributors), `DownloadsRow`, the MDX body, and a "Built <date> from <source>" footer. `dynamicParams = false` — anything not prerendered 404s |
+| `page.tsx` | homepage: hero paragraph + modules grouped by cluster from `index.json`, then by teaching day within a cluster — a day taught in several parts gets a heading (code + title, an anchor a part page links back to) and nests its parts; a one-worksheet day stays a flat row |
+| `[cluster]/[slug]/page.tsx` | the module page. `generateStaticParams` enumerates every MDX module; renders header (title/cluster/day/summary/contributors), `DownloadsRow`, the MDX body, and a "Built <date> from <source>" footer. `dynamicParams = false` — anything not prerendered 404s |
 | `globals.css` | Tailwind 4 + `prose` typography tweaks |
 | `icon.svg` | favicon |
 
@@ -77,8 +77,8 @@ Libraries (`src/lib/`):
 |---|---|
 | `content.ts` | fs readers: module MDX + frontmatter, `index.json`, downloads dir |
 | `mdx.tsx` | **the renderer.** `next-mdx-remote` + remark-math/rehype-katex/rehype-slug, plus the component catalogue the converter emits: `Callout`, `Exercise`, `Solution` (a `<details>`), `LearningOutcomes`, `Definition`, `Theorem`, `Figure`. Component *names* are the contract with `scripts/tex2mdx/`; the styling is this site's own. Content-hash cache so `next dev` doesn't re-render unchanged pages |
-| `clusters.ts` | pure cluster helpers (client-safe, no fs) |
-| `cluster-store.ts` | server-only loader for `schedule.yaml`'s cluster table (`server-only` import enforces the split) |
+| `clusters.ts` | pure cluster helpers (client-safe, no fs), plus `dayCode()` — the one place a day's *display* code is composed, so "D.3.1" exists only at render time and never as stored data |
+| `cluster-store.ts` | server-only loaders for `schedule.yaml`: `listClusters()` (the cluster table) and `listDays()` (day codes + titles). `server-only` enforces the split, so a client component like `SidebarNav` takes what it needs as props |
 
 Components (`src/components/`): `ModulePageShell` (sidebar + content grid),
 `SidebarNav` (cluster-grouped module list with per-page heading TOC),
@@ -89,7 +89,7 @@ Components (`src/components/`): `ModulePageShell` (sidebar + content grid),
 
 | File | Role |
 |---|---|
-| `build-content.mjs` | per-worksheet ladder, parallel across worksheets (default 4 workers, buffered logs): shared-`iliad.sty` shadow guard → PDF first (3× `pdflatex` + `bibtex` over the auto-labeled `main.autolabel.tex`, `-jobname=main`; the converter needs the `.aux` for `\cref` and for every displayed number — see `tex2mdx/autolabel.mjs`) → solution-stripped `-nosol` PDF → tex2mdx conversion → optional `slides.tex`→`slides.pdf` (+ `slides-handout.pdf` when the deck mentions `\HANDOUT`; + no-slides advisory) → `fig/*.pdf`→SVG (`pdftocairo`) → KaTeX render gate → stamp `cluster:`/`day:` from `schedule.yaml` → stage downloads (incl. `<slug>-slides.pdf/.tex/-slides-handout.pdf`). Then `index.json`, ordered by the schedule. MDX-authored sheets skip conversion (PDF via `pandoc`). A bibtex failure other than "no bibliography at all" is fatal — a missing `.bst` writes no `.bbl` and silently turns every `\cite` into `[?]`. `--check` = converter + render gate only (no PDFs, no slides, no advisory) |
+| `build-content.mjs` | per-worksheet ladder, parallel across worksheets (one worker per CPU core, buffered logs; `--jobs N` overrides). A worksheet whose inputs hash unchanged **and** whose artifacts are all still present is skipped (`↷ cached`) — the hash spans its own sources, `tex/iliad.sty`, `tex/alphaurl.bst`, all of `scripts/`, and `schedule.yaml`; `--no-cache` forces a rebuild. Otherwise: shared-`iliad.sty` shadow guard → PDF first (3× `pdflatex` + `bibtex` over the auto-labeled `main.autolabel.tex`, `-jobname=main`; the converter needs the `.aux` for `\cref` and for every displayed number — see `tex2mdx/autolabel.mjs`) → solution-stripped `-nosol` PDF → tex2mdx conversion → optional `slides.tex`→`slides.pdf` (+ `slides-handout.pdf` when the deck mentions `\HANDOUT`; + no-slides advisory) → `fig/*.pdf`→SVG (`pdftocairo`) → KaTeX render gate → stamp `cluster:`/`day:` from `schedule.yaml` → stage downloads (incl. `<slug>-slides.pdf/.tex/-slides-handout.pdf`). Then `index.json`, ordered by the schedule. MDX-authored sheets skip conversion and build no PDF at all — the page plus its `.mdx` download is the whole output. A bibtex failure other than "no bibliography at all" is fatal — a missing `.bst` writes no `.bbl` and silently turns every `\cite` into `[?]`. `--check` = converter + render gate only (no PDFs, no slides, no advisory) |
 | `tex2mdx/tex2mdx.mjs` | converter CLI: source registry, `.aux` cross-refs, frontmatter + `\title`/`\author` extraction, `\gdef` macro block, bibliography |
 | `tex2mdx/autolabel.mjs` | injects `\label{iliad-auto-N}` into every numbered construct (comment/verbatim-aware, same-line, deterministic); the build compiles the injected `main.autolabel.tex` (`-jobname=main`) so the `.aux` carries every displayed number, and the converter reads them back by label name — web numbering is PDF-true, never simulated |
 | `tex2mdx/emit-ast.mjs` | unified-latex typed AST → MDX emitter (no regex parsing of LaTeX) |
@@ -104,7 +104,7 @@ Two `package.json`s: the site's (root) and `scripts/tex2mdx/`'s (unified-latex,
 bibtex-parse, its own KaTeX) — both need `npm ci`, and CI installs both.
 
 External binaries: `pdflatex` (TeX Live; shell-escape stays OFF — contributor
-LaTeX is untrusted), `bibtex`, `pdftocairo` (poppler-utils), `pandoc`
+LaTeX is untrusted), `bibtex`, `pdftocairo` (poppler-utils)
 (MDX-authored sheets only). Node ≥ 20.9 for Next 16 (`./run.sh` selects nvm's
 Node 22; system Node 18 won't build the site).
 
