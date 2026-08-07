@@ -118,8 +118,20 @@ nav,
   margin-bottom: 0.2em;
 }
 
+/* Math is MathML rendered by the browser (see src/lib/remark-katex-html.ts), so
+   these replace the handful of katex.min.css rules that still apply once its
+   positioned <span> tree is gone. Display math is a block of its own; inline
+   math sits in the run of text and needs nothing. */
 .katex-display {
+  display: block;
+  text-align: center;
   margin: 0.9em 0 !important;
+}
+
+.katex-display > math {
+  /* MathML's own display="block" already centres in most engines; this keeps
+     Chrome consistent with Firefox/Safari. */
+  margin-inline: auto;
 }
 
 .prose a {

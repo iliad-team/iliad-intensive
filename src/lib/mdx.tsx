@@ -9,7 +9,12 @@ import { createHash } from "node:crypto";
 import remarkMath from "remark-math";
 import { remarkKatexHtml } from "./remark-katex-html";
 import rehypeSlug from "rehype-slug";
-import "katex/dist/katex.min.css";
+// No katex.min.css: it styles the positioned <span> tree that `output: "mathml"`
+// never emits, and its `.katex{font: 1.21em KaTeX_Main}` rule would force the
+// MathML to render in a font with no OpenType MATH table — which is what
+// browsers use to size stretchy brackets, radicals and integrals. Dropping it
+// also drops 23 KB of CSS and the ~1.05 MB of KaTeX .ttf/.woff/.woff2 webfonts
+// it pulled into the build. `.katex-display` lives in globals.css instead.
 import type { ReactNode } from "react";
 
 // basePath is applied automatically to <Link>/CSS/fonts but NOT to raw
@@ -19,13 +24,15 @@ const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 const components = {
   /**
-   * KatexHtml — a formula already rendered to markup by remarkKatexHtml.
+   * KatexHtml — a formula already rendered to MathML by remarkKatexHtml.
    *
    * Not authored by hand; the plugin emits it in place of every `$…$` and
-   * `$$…$$`. It re-creates KaTeX's own outer wrapper (`katex` inline,
-   * `katex-display` for block) and injects the rest, so the DOM matches what
-   * rehype-katex used to produce while the RSC payload carries one string per
-   * formula instead of ~50 serialized React elements.
+   * `$$…$$`, so the RSC payload carries one string per formula rather than ~50
+   * serialized React elements.
+   *
+   * KaTeX's mathml output wraps both inline and display math in
+   * `<span class="katex">` and marks display via `display="block"` on <math>,
+   * so the block wrapper is ours: `.katex-display` in globals.css centres it.
    *
    * The `html` is KaTeX's output, not user input: it is generated at build time
    * from the worksheet's own TeX, which is already trusted enough to run

@@ -12,16 +12,26 @@ import katex from "katex";
  * bytes the same span costs as markup. singular-learning-theory has 1,908
  * formulas and ~96,700 such tuples.
  *
- * KaTeX's own `renderToString` already returns the finished HTML. Handing that
- * string to `dangerouslySetInnerHTML` gives the browser identical DOM while
- * the payload carries one opaque string per formula instead of a tree.
+ * KaTeX's own `renderToString` already returns finished markup. Handing that
+ * string to `dangerouslySetInnerHTML` means the payload carries one opaque
+ * string per formula instead of a tree.
+ *
+ * It also renders in `output: "mathml"`, so the browser lays the math out
+ * natively and KaTeX's positioned <span> tree is never generated at all. On
+ * singular-learning-theory's 1,908 formulas, measured by re-rendering every one:
+ *
+ *   htmlAndMathml (KaTeX's default)  3.32 MB of math markup
+ *   html          (visual only)      2.61 MB
+ *   mathml        (this)             0.70 MB
+ *
+ * MathML Core is supported by every browser Next itself targets
+ * (node_modules/next/dist/shared/lib/modern-browserslist-target.js:
+ * chrome 111, edge 111, firefox 111, safari 16.4). The trade is typography:
+ * KaTeX's HTML output reproduces TeX metrics faithfully, while native MathML
+ * rendering varies between browsers.
  *
  * This runs on the mdast `math` / `inlineMath` nodes that remark-math produces,
  * so it REPLACES rehype-katex rather than running alongside it.
- *
- * Accessibility is unchanged: KaTeX still emits both halves of its output, the
- * hidden `katex-mathml` tree for screen readers and the visual `katex-html`
- * tree. Nothing is dropped — only the encoding of the same markup changes.
  */
 
 type MdastNode = {
@@ -31,9 +41,16 @@ type MdastNode = {
   [key: string]: unknown;
 };
 
-const OPEN_INLINE = '<span class="katex">';
-const OPEN_DISPLAY = '<span class="katex-display">';
+const OPEN = '<span class="katex">';
 const CLOSE = "</span>";
+
+/**
+ * KaTeX embeds the formula's original TeX in an <annotation> inside every
+ * <semantics>. We ship the LaTeX source as a download already, so the per-
+ * formula copy is redundant — 1,908 of them cost ~0.14 MB a page before the
+ * payload multiplies it. <semantics> is still valid with just its first child.
+ */
+const ANNOTATION = /<annotation encoding="application\/x-tex">[\s\S]*?<\/annotation>/g;
 
 /**
  * The rendered markup rides as a plain string attribute on <KatexHtml>, which
@@ -65,25 +82,28 @@ export function remarkKatexHtml() {
         }
 
         const rendered = katex.renderToString(child.value ?? "", {
+          // MathML only: the browser renders the math itself, so KaTeX's
+          // hand-positioned <span> tree — 2.6 MB of the 3.3 MB of math markup
+          // on singular-learning-theory — is never generated.
+          output: "mathml",
           displayMode: display,
           strict: false,
           throwOnError: false,
           macros,
         });
 
-        // Re-create KaTeX's own outer wrapper as the JSX element and inject the
-        // rest, so the element tree matches what rehype-katex produced. (Not
-        // byte-identical: React used to re-serialize KaTeX's inline styles and
-        // drop their trailing ";", where the raw string keeps it. Same computed
-        // style, ~180 bytes a page.) If KaTeX ever changes that wrapper the
-        // assumption is wrong, and a build that fails loudly beats one that
-        // silently ships different markup.
-        const open = display ? OPEN_DISPLAY : OPEN_INLINE;
-        if (!rendered.startsWith(open) || !rendered.endsWith(CLOSE)) {
+        // In mathml mode BOTH inline and display come back wrapped in
+        // <span class="katex">; display is carried by display="block" on the
+        // <math> element, not by a katex-display wrapper (that wrapper only
+        // exists in html mode). Re-create the wrapper as the JSX element and
+        // inject the rest. If KaTeX ever changes this shape the assumption is
+        // wrong, and a build that fails loudly beats one that silently ships
+        // different markup.
+        if (!rendered.startsWith(OPEN) || !rendered.endsWith(CLOSE)) {
           throw new Error(
             `remark-katex-html: unexpected KaTeX output shape for ${
               display ? "display" : "inline"
-            } math — expected it to start with ${open} and end with ${CLOSE}. ` +
+            } math — expected it to start with ${OPEN} and end with ${CLOSE}. ` +
               `Got: ${rendered.slice(0, 120)}…`,
           );
         }
@@ -92,7 +112,9 @@ export function remarkKatexHtml() {
           {
             type: "mdxJsxAttribute",
             name: "html",
-            value: rendered.slice(open.length, -CLOSE.length),
+            value: rendered
+              .slice(OPEN.length, -CLOSE.length)
+              .replace(ANNOTATION, ""),
           },
         ];
         // Boolean shorthand: `value: null` is how mdast-jsx spells `<X display />`.
