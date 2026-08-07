@@ -20,17 +20,15 @@
  * the pristine main.tex).
  */
 import { readOpt, readArg } from "./util.mjs";
+import { THM_FAMILY } from "./shims.mjs";
 
 export const AUTO_PREFIX = "iliad-auto-";
 export const isAutoLabel = (l) => typeof l === "string" && l.startsWith(AUTO_PREFIX);
 
-// built-in constructs whose number the web displays (THM_COUNTED in
-// emit-ast.mjs, plus exercise; remark is included — harmless when a sheet
-// leaves remarks unnumbered, its label just goes unread)
-const BUILTIN_NUMBERED = [
-  "theorem", "lemma", "proposition", "corollary", "fact", "definition", "example",
-  "exercise", "remark",
-];
+// built-in constructs whose number the web displays: the shared theorem family
+// (THM_FAMILY), plus exercise; remark is included — harmless when a sheet leaves
+// remarks unnumbered, its label just goes unread.
+const BUILTIN_NUMBERED = [...THM_FAMILY, "exercise", "remark"];
 const HEADING = /^\\(section|subsection|subsubsection)(?=[[{\s])/;
 // regions where "\begin{theorem}" is literal text, not a construct
 const VERBATIM = new Set(["verbatim", "Verbatim", "lstlisting", "alltt", "minted", "comment"]);
