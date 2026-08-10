@@ -171,7 +171,7 @@ clusters:
         # material (see that worksheet).
         note: three lectures across four repos; 1a and 1b are parallel tracks
         worksheets:
-          - ml-foundations
+          - intro-to-ml-engineering
           - practical-ml
           - claude-code-for-research
 
