@@ -7,6 +7,7 @@
 import { compileMDX } from "next-mdx-remote/rsc";
 import { createHash } from "node:crypto";
 import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
 import { remarkKatexHtml } from "./remark-katex-html";
 import rehypeSlug from "rehype-slug";
 import "katex/dist/katex.min.css";
@@ -216,7 +217,16 @@ export async function MdxBody({ source }: { source: string }) {
           // remarkKatexHtml renders the math remarkMath found, straight to an
           // HTML string (see its header for why it replaces rehype-katex). It
           // owns the per-page `\gdef` macro scope that `macros: {}` used to.
-          remarkPlugins: [remarkMath, remarkKatexHtml],
+          //
+          // remarkGfm is here for FOOTNOTES: `[^1]` references and their
+          // `[^1]: …` definitions, which the converter emits for LaTeX
+          // `\footnote{…}` and MDX authors can write directly. It also brings
+          // the rest of GFM, of which tables matter — the converter has always
+          // emitted `tabular` as a pipe table, and without this plugin those
+          // rendered as literal rows of `|`. It cannot disturb the math: a
+          // `$…$` span tokenizes as one math node whose body no other text
+          // construct is allowed to look inside.
+          remarkPlugins: [remarkMath, remarkGfm, remarkKatexHtml],
           // Math is already a string by the time hast exists, so rehypeSlug no
           // longer has to be ordered against it — headings only ever contain
           // plain text or an opaque span.
