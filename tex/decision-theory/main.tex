@@ -1,11 +1,9 @@
 %--- iliad ---
-% title: Decision Theory
+% title: Preferences to Rewards
 % summary: >-
-%   From preferences over trajectories to expected utility, reward, and
-%   discount. Completeness and transitivity give ordinal utility; the vNM axioms
-%   give cardinal utility over lotteries; a fifth temporal axiom recovers
-%   RL-style reward and discounting -- and reward is a coordinate system, not
-%   a primitive.
+%   Building from preferences and a minimal set of axioms
+%   to a utility function expressible as a sum of discounted rewards:
+%   the familiar framing in reinforcement learning.
 %--- end ---
 \documentclass[11pt]{article}
 
@@ -42,7 +40,7 @@
 \newcommand{\Lot}{\Delta}
 \newcommand{\emptytraj}{\varepsilon}
 
-\title{From preferences to rewards: A brief introduction}
+\title{Preferences to Rewards}
 \author{Fernando E. Rosas}
 \date{\today}
 
@@ -51,12 +49,22 @@
 
 \maketitle
 
-\paragraph*{What you'll learn.}
-\begin{itemize}
-  \item Explain when preference relations over trajectories admit ordinal utility representations, and what fails without completeness or transitivity.
-  \item State and prove the von Neumann--Morgenstern theorem, and distinguish ordinal from cardinal utility.
-  \item Derive the Markov reward representation from the temporal gamma-indifference axiom, and explain reward non-uniqueness and potential-based shaping.
-\end{itemize}
+% Fernando's own three, transcribed from the D.1 Doc tab ("idealised agency"
+% dump) and confirmed against it by David Q. The bullets these replaced were
+% machine-written by the original port -- notes_vNM/main.tex has no outcomes
+% list at all -- and were TODO'd out in 460e3d0.
+% https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.uqpqtto4ldg0
+\begin{learningoutcomes}
+  \begin{itemize}
+    \item Understand the difference between preferences, utility, and reward:
+      preferences being a primary, largely uncontroversial notion, and utility
+      and rewards being derived notions resting on specific assumptions.
+    \item Be able to derive the relationship between various preference
+      structures and rationality axioms.
+    \item Critically assess alternative notions of rationality, and the
+      consequences of dropping various classical decision theory assumptions.
+  \end{itemize}
+\end{learningoutcomes}
 
 \begin{abstract}
 \noindent
@@ -387,6 +395,7 @@ from one global ranking, whereas cycles are the leftover pattern that cannot be
 explained by any single scalar potential.
 
 \section{Lotteries and the von Neumann--Morgenstern axioms}
+\label{sec:lotteries-vnm}
 
 Up to this point, we have just considered preferences over a countable set
 $\Hcal^*$ without considering stochasticity.
@@ -607,6 +616,57 @@ So $u'$ is a positive affine transformation of $u$.
 
 \end{proof}
 
+\begin{exercise}[Guided proof of the von Neumann--Morgenstern theorem]
+\label{ex:vnm-theorem}
+Assume $X\subseteq \Hcal^*$ is finite and that $\pref$ on $\Lot(X)$ satisfies
+completeness, transitivity, continuity, and independence.
+\begin{enumerate}[label=(\alph*)]
+\item Show that there exist trajectories $b,w\in X$ such that
+$b\pref h \pref w$ for every $h\in X$.
+\item Using continuity, show that for every $h\in X$ there exists
+$u(h)\in[0,1]$ such that
+\[
+h \indiff u(h)b+(1-u(h))w.
+\]
+\item Use transitivity to show that if
+\[
+h \indiff u(h)b+(1-u(h))w
+\quad\text{and}\quad
+h' \indiff u(h')b+(1-u(h'))w,
+\]
+then
+\[
+h\pref h' \quad\Longleftrightarrow\quad u(h)\geq u(h').
+\]
+\item Let
+\[
+\mu=\sum_i p_i h_i.
+\]
+Use independence repeatedly to replace each $h_i$ by the equivalent lottery
+$u(h_i)b+(1-u(h_i))w$ and show that
+\[
+\mu \indiff \sum_i p_i\bigl(u(h_i)b+(1-u(h_i))w\bigr).
+\]
+\item Reduce the compound lottery in part (d) to a simple lottery and prove
+that
+\[
+\mu \indiff U(\mu)b+(1-U(\mu))w,
+\qquad
+U(\mu)\coloneqq \sum_i p_i u(h_i).
+\]
+\item Show that
+\[
+\mu\pref\nu \quad\Longleftrightarrow\quad U(\mu)\geq U(\nu).
+\]
+This gives the expected-utility representation.
+\item Prove affine uniqueness: if $u'$ also represents the same preference
+relation in expected-utility form, then $u'=a+bu$ for some $a\in\R$ and $b>0$.
+\item Prove the converse direction: if preferences admit an expected-utility
+representation, then they satisfy completeness, transitivity, continuity, and
+independence.
+\end{enumerate}
+\end{exercise}
+
 
 In contrast to our previous result, vNM utility is \emph{cardinal} up to
 positive affine transformations, not merely ordinal. A general
@@ -652,6 +712,22 @@ agent's attitudes toward risk and gambling structure
 \medskip
 
 
+\begin{exercise}[Ordinal versus vNM utility]
+\label{ex:ordinal-vs-vnm}
+Let $x,y,z\in\Hcal^*$ satisfy $x\strictpref y\strictpref z$.
+\begin{enumerate}[label=(\alph*)]
+\item Give two different ordinal utility functions $u_1,u_2\colon\Hcal^*\to\R$
+that represent the same ranking of $x,y,z$.
+\item Explain why these two functions are equally good as ordinal
+representations.
+\item Suppose in addition that
+\[
+y \indiff \tfrac12 x + \tfrac12 z.
+\]
+Show that not every strictly increasing transformation of a vNM utility can
+preserve this indifference.
+\end{enumerate}
+\end{exercise}
 
 \subsection*{If continuity or independence fails}
 
@@ -664,10 +740,6 @@ If completeness or transitivity fail, as discussed in the previous section, we
 lose hope of describing the preference by a single scalar quantity.
 If continuity or independence fails, the preference will generally no longer
 admit the linear expectation form.
-
-
-
-
 
 
 \paragraph{Failure of continuity.}
@@ -741,7 +813,19 @@ From the perspective of sequential choice, independence also matters because it 
 So the two failures have different meanings. Failure of continuity says that some priorities are infinitely sharp, leading naturally to lexicographic or infinitesimal utility scales. Failure of independence says that uncertainty is evaluated holistically rather than by linear averaging, leading to models in which background risk, certainty, or reference dependence affect choice.
 
 
-
+\begin{exercise}[Failures of the vNM axioms]
+\label{ex:vnm-failures}
+Here we will study the consequences of different axioms.
+\begin{enumerate}[label=(\alph*)]
+\item Construct a simple incomplete preference relation on three trajectories.
+Why can it not be represented by a single real-valued ordinal utility?
+\item Construct a three-cycle and explain how it gives rise to a money pump.
+\item Give an example of a lexicographic preference over three outcomes and show
+that it violates continuity.
+\item Write down the Allais pattern from \cref{sec:lotteries-vnm} and explain which axiom it
+violates.
+\end{enumerate}
+\end{exercise}
 
 \section{A fifth axiom: reward and discount}
 
@@ -869,7 +953,6 @@ reward representation becomes available \citep{bowling2023settling}.
 \end{remark}
 
 
-
 \begin{callout}
 \textbf{Utility is not reward.}
 
@@ -921,7 +1004,56 @@ section \citep{bowling2023settling}.
 \end{callout}
 
 
-
+\begin{exercise}[Guided proof of the Markov reward representation theorem]
+\label{ex:markov-reward}
+Assume the hypotheses of \cref{ex:vnm-theorem} together with temporal
+$\gamma$-indifference, and let $u$ be a vNM utility representation over
+trajectories.
+\begin{enumerate}[label=(\alph*)]
+\item Apply expected utility to temporal $\gamma$-indifference and show that for
+all lotteries $\mu,\nu\in\Lot(\Hcal^*)$ and all transitions $t\in T$,
+\[
+u(t\cdot \mu)+\gamma(t)u(\nu)=u(t\cdot \nu)+\gamma(t)u(\mu).
+\]
+\item Rearrange part (a) to prove that
+\[
+u(t\cdot \mu)-\gamma(t)u(\mu)
+\]
+is independent of the choice of $\mu$.
+\item Define
+\[
+r(t)\coloneqq u(t\cdot \mu)-\gamma(t)u(\mu)
+\]
+for any $\mu$. Deduce that for every deterministic trajectory $h$,
+\[
+u(t\cdot h)=r(t)+\gamma(t)u(h).
+\]
+\item Show that this recursion extends to lotteries by linearity:
+\[
+u(t\cdot \mu)=r(t)+\gamma(t)u(\mu).
+\]
+\item Prove the converse direction: if $u$, $r$, and $\gamma$ satisfy
+\[
+u(t\cdot h)=r(t)+\gamma(t)u(h)
+\]
+for all $t$ and $h$, and if $u$ extends linearly to lotteries, then temporal
+$\gamma$-indifference holds.
+\item Unroll the recursion along a finite trajectory
+$h=(t_1,\dots,t_n)$ and derive
+\[
+u(h)=r(t_1)+\gamma(t_1)r(t_2)+\gamma(t_1)\gamma(t_2)r(t_3)+\cdots+
+\Bigg(\prod_{i=1}^{n-1}\gamma(t_i)\Bigg)r(t_n).
+\]
+\item Show that when $\gamma(t)\equiv \gamma$ is constant, the previous formula
+reduces to standard discounted return, and when $\gamma(t)\equiv 1$ it reduces
+to additive cumulative reward.
+\item Show that if $u' = a+bu$, then the corresponding reward must be
+\[
+r'(t)=br(t)+(1-\gamma(t))a.
+\]
+Interpret this as a source of reward non-uniqueness.
+\end{enumerate}
+\end{exercise}
 
 \section{Reward equivalence and shaping}
 
@@ -1022,6 +1154,23 @@ the overall preference over complete trajectories unchanged. This is why reward
 design is often underdetermined: what matters behaviorally is not a raw reward
 function in isolation, but the utility and preference structure it induces.
 
+\begin{exercise}[Reward shaping]
+\label{ex:reward-shaping}
+Assume additive reward with $\gamma\equiv 1$ and define
+\[
+r_\Phi(s,a,s')=r(s,a,s')+\Phi(s')-\Phi(s).
+\]
+\begin{enumerate}[label=(\alph*)]
+\item Show that along any finite trajectory $(t_1,\dots,t_n)$ the total shaped
+reward differs from the original total reward by the boundary term
+$\Phi(s_n)-\Phi(s_0)$.
+\item Under what condition on the admissible trajectories does this shaping
+leave utility exactly unchanged?
+\item Under what weaker condition does it leave only the induced preference
+ordering unchanged?
+\end{enumerate}
+\end{exercise}
+
 \section{Conclusion}
 
 The main lesson of this note is that, in sequential settings, the primitive
@@ -1061,183 +1210,49 @@ structured preferences over trajectories can be represented by rewards.
 \bibliography{biblo}
 
 
+% The exercises that used to be collected here now sit inline, each after the
+% material it exercises; the solutions are collected in the appendix instead.
+% Fernando's lead-in to the old section is parked verbatim below: its second
+% sentence describes an ordering that no longer exists, and rewording it would
+% be editing his words. Reinstate or drop it -- don't paraphrase it.
+% \newpage
+% \section*{Exercises}
+%
+% The following exercises are meant to help students reconstruct the main results
+% of the note for themselves. The last two are guided proof exercises for the two
+% central representation theorems.
 
-\newpage
-\section*{Exercises}
+\section*{Open-ended questions}
 
-The following exercises are meant to help students reconstruct the main results
-of the note for themselves. The last two are guided proof exercises for the two
-central representation theorems.
-
-\begin{exercise}[Ordinal versus vNM utility]
-\label{ex:ordinal-vs-vnm}
-Let $x,y,z\in\Hcal^*$ satisfy $x\strictpref y\strictpref z$.
-\begin{enumerate}[label=(\alph*)]
-\item Give two different ordinal utility functions $u_1,u_2\colon\Hcal^*\to\R$
-that represent the same ranking of $x,y,z$.
-\item Explain why these two functions are equally good as ordinal
-representations.
-\item Suppose in addition that
-\[
-y \indiff \tfrac12 x + \tfrac12 z.
-\]
-Show that not every strictly increasing transformation of a vNM utility can
-preserve this indifference.
-\end{enumerate}
+\begin{exercise}
+\label{ex:open-implications}
+Do the results have any prescriptive or descriptive implications? What kinds of agents, with what kinds of preferences should we design? By default, what kind of agents should we expect to obtain via typical training processes?
 \end{exercise}
-\begin{solution}[ex:ordinal-vs-vnm]
-\begin{enumerate}[label=(\alph*)]
-\item For instance $u_1(x,y,z)=(2,1,0)$ and $u_2(x,y,z)=(100,5,-3)$.
-\item An ordinal representation encodes only the ranking: $u$ represents
-$\pref$ iff $u(h)\geq u(h')\iff h\pref h'$, and both functions induce
-$x\strictpref y\strictpref z$. Composing with any strictly increasing map
-preserves exactly this information, so no ordinal criterion can distinguish
-$u_1$ from $u_2$.
-\item Under expected utility the indifference forces
-$u(y)=\tfrac12 u(x)+\tfrac12 u(z)$. Take the vNM utility
-$u(x,y,z)=(1,\tfrac12,0)$ and the strictly increasing map $f(s)=s^3$. Then
-$(f\circ u)(x,y,z)=(1,\tfrac18,0)$, while the lottery
-$\tfrac12 x+\tfrac12 z$ has expected value $\tfrac12$. Since
-$\tfrac18\neq\tfrac12$, the relation represented by $f\circ u$ strictly
-prefers the lottery to $y$: the indifference is destroyed. Only positive
-affine transformations preserve all such midpoint identities, which is the
-uniqueness part of the vNM theorem.
-\end{enumerate}
-\end{solution}
 
-
-\begin{exercise}[Failures of the vNM axioms]
-\label{ex:vnm-failures}
-Here we will study the consequences of different axioms.
-\begin{enumerate}[label=(\alph*)]
-\item Construct a simple incomplete preference relation on three trajectories.
-Why can it not be represented by a single real-valued ordinal utility?
-\item Construct a three-cycle and explain how it gives rise to a money pump.
-\item Give an example of a lexicographic preference over three outcomes and show
-that it violates continuity.
-\item Write down the Allais pattern from section 5 and explain which axiom it
-violates.
-\end{enumerate}
+\begin{exercise}
+\label{ex:open-weaker-axioms}
+Let's assume a superintelligence has preferences over trajectories. Are there weaker versions of the axioms that make it more plausible that these preferences are "safe for us" compared to preferences that lead to utilities or even rewards?
 \end{exercise}
-\begin{solution}[ex:vnm-failures]
-\begin{enumerate}[label=(\alph*)]
-\item Let $x\strictpref y$, $x\strictpref z$, with $y$ and $z$ incomparable
-(neither $y\pref z$ nor $z\pref y$). Any $u\colon\{x,y,z\}\to\R$ satisfies
-$u(y)\geq u(z)$ or $u(z)\geq u(y)$ because the reals are totally ordered, so
-the relation it represents is complete; incomparability cannot be encoded by
-a single real-valued function.
-\item Take $x\strictpref y\strictpref z\strictpref x$. Suppose you hold $x$
-and are willing to pay some small $\varepsilon>0$ to exchange an item for one
-you strictly prefer. Since $z\strictpref x$ you pay to swap $x\to z$; since
-$y\strictpref z$ you pay to swap $z\to y$; since $x\strictpref y$ you pay to
-swap $y\to x$. You are back where you started, $3\varepsilon$ poorer, and the
-cycle can be run forever.
-\item Give outcomes two attributes and compare lexicographically (the first
-attribute decides unless tied): $A=(1,0)$, $B=(0,1)$, $C=(0,0)$, so
-$A\strictpref B\strictpref C$. Extend to lotteries by comparing expected
-attribute vectors lexicographically. Continuity would require some
-$p\in[0,1]$ with $B\indiff pA+(1-p)C$. But that mixture has attribute vector
-$(p,0)$: for every $p>0$ it beats $B$ on the first attribute, and for $p=0$
-it is $C\strictpref$-below $B$. No mixing weight produces indifference.
-\item In the Allais pattern one prefers the sure prize in the first
-comparison but the long-shot in the second, even though the two comparisons
-differ only in a \emph{common consequence} added to both lotteries.
-Independence says a ranking is unchanged when the same consequence is mixed
-into both sides with the same weight, so the pattern violates independence
-(completeness, transitivity, and continuity are all consistent with it).
-\end{enumerate}
-\end{solution}
 
-
-\begin{exercise}[Reward shaping]
-\label{ex:reward-shaping}
-Assume additive reward with $\gamma\equiv 1$ and define
-\[
-r_\Phi(s,a,s')=r(s,a,s')+\Phi(s')-\Phi(s).
-\]
-\begin{enumerate}[label=(\alph*)]
-\item Show that along any finite trajectory $(t_1,\dots,t_n)$ the total shaped
-reward differs from the original total reward by the boundary term
-$\Phi(s_n)-\Phi(s_0)$.
-\item Under what condition on the admissible trajectories does this shaping
-leave utility exactly unchanged?
-\item Under what weaker condition does it leave only the induced preference
-ordering unchanged?
-\end{enumerate}
+\begin{exercise}
+\label{ex:open-examples}
+More generally, are there interesting examples of preferences over trajectories that the students could analyse, that do or do not satisfy some of the axioms?
 \end{exercise}
-\begin{solution}[ex:reward-shaping]
-\begin{enumerate}[label=(\alph*)]
-\item Writing $t_i=(s_{i-1},a_i,s_i)$, the shaped total is
-\[
-\sum_{i=1}^{n} r_\Phi(t_i)
-=\sum_{i=1}^{n} r(t_i)+\sum_{i=1}^{n}\bigl(\Phi(s_i)-\Phi(s_{i-1})\bigr)
-=\sum_{i=1}^{n} r(t_i)+\Phi(s_n)-\Phi(s_0),
-\]
-since the middle sum telescopes.
-\item Utility is exactly unchanged iff the boundary term vanishes on every
-admissible trajectory, i.e.\ $\Phi(s_n)=\Phi(s_0)$ throughout — for example
-when all trajectories start in a fixed $s_0$ and $\Phi$ takes the value
-$\Phi(s_0)$ on every reachable terminal state.
-\item Only the ordering is at stake if the boundary term is the \emph{same
-constant} $c$ for all compared trajectories: then every utility shifts by
-$c$ and the induced ranking is untouched. A fixed start state together with
-$\Phi$ constant on the reachable terminal states suffices, whatever that
-constant is.
-\end{enumerate}
-\end{solution}
 
 
+% Solutions live here, each bound to its exercise by the label in its optional
+% argument -- which is what lets them sit anywhere at all.
+% The header is wrapped so it appears only in the with-solutions PDF: the web
+% relocates each solution under its own exercise, and the -nosol PDF has none.
+\begin{pdfonly}
+\begin{solutionsonly}
+\clearpage
+\appendix
+\section{Solutions}
+\label{apx:solutions}
+\end{solutionsonly}
+\end{pdfonly}
 
-\begin{exercise}[Guided proof of the von Neumann--Morgenstern theorem]
-\label{ex:vnm-theorem}
-Assume $X\subseteq \Hcal^*$ is finite and that $\pref$ on $\Lot(X)$ satisfies
-completeness, transitivity, continuity, and independence.
-\begin{enumerate}[label=(\alph*)]
-\item Show that there exist trajectories $b,w\in X$ such that
-$b\pref h \pref w$ for every $h\in X$.
-\item Using continuity, show that for every $h\in X$ there exists
-$u(h)\in[0,1]$ such that
-\[
-h \indiff u(h)b+(1-u(h))w.
-\]
-\item Use transitivity to show that if
-\[
-h \indiff u(h)b+(1-u(h))w
-\quad\text{and}\quad
-h' \indiff u(h')b+(1-u(h'))w,
-\]
-then
-\[
-h\pref h' \quad\Longleftrightarrow\quad u(h)\geq u(h').
-\]
-\item Let
-\[
-\mu=\sum_i p_i h_i.
-\]
-Use independence repeatedly to replace each $h_i$ by the equivalent lottery
-$u(h_i)b+(1-u(h_i))w$ and show that
-\[
-\mu \indiff \sum_i p_i\bigl(u(h_i)b+(1-u(h_i))w\bigr).
-\]
-\item Reduce the compound lottery in part (d) to a simple lottery and prove
-that
-\[
-\mu \indiff U(\mu)b+(1-U(\mu))w,
-\qquad
-U(\mu)\coloneqq \sum_i p_i u(h_i).
-\]
-\item Show that
-\[
-\mu\pref\nu \quad\Longleftrightarrow\quad U(\mu)\geq U(\nu).
-\]
-This gives the expected-utility representation.
-\item Prove affine uniqueness: if $u'$ also represents the same preference
-relation in expected-utility form, then $u'=a+bu$ for some $a\in\R$ and $b>0$.
-\item Prove the converse direction: if preferences admit an expected-utility
-representation, then they satisfy completeness, transitivity, continuity, and
-independence.
-\end{enumerate}
-\end{exercise}
 \begin{solution}[ex:vnm-theorem]
 \begin{enumerate}[label=(\alph*)]
 \item Induction on $|X|$. A single trajectory is its own best and worst
@@ -1245,13 +1260,13 @@ element. Given a maximal $b'$ and minimal $w'$ for $X\setminus\{h\}$,
 completeness compares $h$ with each of them and transitivity makes the
 better of $\{h,b'\}$ maximal and the worse of $\{h,w'\}$ minimal for $X$.
 \item If $b\indiff w$ then every $h$ is indifferent to both and any constant
-$u$ works. Otherwise $b\strictpref w$. Independence implies mixtures
-$\alpha b+(1-\alpha)w$ are strictly increasing in $\alpha$. By continuity
-the sets $\{\alpha: \alpha b+(1-\alpha)w \pref h\}$ and
-$\{\alpha: h \pref \alpha b+(1-\alpha)w\}$ are closed; they are nonempty
-($\alpha=1$, resp.\ $\alpha=0$, using (a)) and their union is $[0,1]$ by
-completeness, so they intersect: some $u(h)$ lies in both, giving
-$h\indiff u(h)b+(1-u(h))w$. Monotonicity makes $u(h)$ unique.
+$u$ works. Otherwise $b\strictpref w$. By (a) we have $b\pref h\pref w$, so
+continuity applied to the triple $(b,h,w)$ gives directly some
+$\lambda\in[0,1]$ with $h\indiff \lambda b+(1-\lambda)w$; set
+$u(h)\coloneqq\lambda$. For uniqueness, independence implies the mixtures
+$\alpha b+(1-\alpha)w$ are strictly increasing in $\alpha$ when
+$b\strictpref w$, so two different weights cannot both be indifferent to
+$h$.
 \item Suppose $u(h)\geq u(h')$. Mixture monotonicity gives
 $u(h)b+(1-u(h))w \pref u(h')b+(1-u(h'))w$, and chaining the two calibrating
 indifferences through transitivity yields $h\pref h'$. If $u(h)<u(h')$ the
@@ -1274,10 +1289,13 @@ transitivity, $\mu\pref\nu\iff U(\mu)\geq U(\nu)$.
 \item Apply the $u'$-representation to the calibration of $h$:
 \[
 u'(h)=U'\bigl(u(h)b+(1-u(h))w\bigr)=u(h)\,u'(b)+(1-u(h))\,u'(w)
-=a+b\,u(h),
+=u'(w)+\bigl(u'(b)-u'(w)\bigr)u(h).
 \]
-with $a=u'(w)$ and $b=u'(b)-u'(w)>0$ (positive because $b\strictpref w$ and
-$u'$ represents $\pref$).
+This is the required form $u'=a+b\,u$, with intercept $u'(w)$ and slope
+$u'(b)-u'(w)$, the latter strictly positive because $b\strictpref w$ and
+$u'$ represents $\pref$. (Note the statement's scalars $a,b$ are unrelated
+to the trajectories $b,w$ of part~(a); the letter $b$ does double duty here,
+so read $u'(b)$ as the utility of the best trajectory throughout.)
 \item Let $\mu\pref\nu\iff \mathbb{E}_\mu[u]\geq\mathbb{E}_\nu[u]$.
 Completeness and transitivity are inherited from the total order on $\R$.
 Continuity: $p\mapsto \mathbb{E}_{p\mu+(1-p)\lambda}[u]
@@ -1288,58 +1306,67 @@ difference by $p>0$, leaving the comparison unchanged.
 \end{enumerate}
 \end{solution}
 
-
-
-\begin{exercise}[Guided proof of the Markov reward representation theorem]
-\label{ex:markov-reward}
-Assume the hypotheses of the previous exercise together with temporal
-$\gamma$-indifference, and let $u$ be a vNM utility representation over
-trajectories.
+\begin{solution}[ex:ordinal-vs-vnm]
 \begin{enumerate}[label=(\alph*)]
-\item Apply expected utility to temporal $\gamma$-indifference and show that for
-all lotteries $\mu,\nu\in\Lot(\Hcal^*)$ and all transitions $t\in T$,
-\[
-u(t\cdot \mu)+\gamma(t)u(\nu)=u(t\cdot \nu)+\gamma(t)u(\mu).
-\]
-\item Rearrange part (a) to prove that
-\[
-u(t\cdot \mu)-\gamma(t)u(\mu)
-\]
-is independent of the choice of $\mu$.
-\item Define
-\[
-r(t)\coloneqq u(t\cdot \mu)-\gamma(t)u(\mu)
-\]
-for any $\mu$. Deduce that for every deterministic trajectory $h$,
-\[
-u(t\cdot h)=r(t)+\gamma(t)u(h).
-\]
-\item Show that this recursion extends to lotteries by linearity:
-\[
-u(t\cdot \mu)=r(t)+\gamma(t)u(\mu).
-\]
-\item Prove the converse direction: if $u$, $r$, and $\gamma$ satisfy
-\[
-u(t\cdot h)=r(t)+\gamma(t)u(h)
-\]
-for all $t$ and $h$, and if $u$ extends linearly to lotteries, then temporal
-$\gamma$-indifference holds.
-\item Unroll the recursion along a finite trajectory
-$h=(t_1,\dots,t_n)$ and derive
-\[
-u(h)=r(t_1)+\gamma(t_1)r(t_2)+\gamma(t_1)\gamma(t_2)r(t_3)+\cdots+
-\Bigg(\prod_{i=1}^{n-1}\gamma(t_i)\Bigg)r(t_n).
-\]
-\item Show that when $\gamma(t)\equiv \gamma$ is constant, the previous formula
-reduces to standard discounted return, and when $\gamma(t)\equiv 1$ it reduces
-to additive cumulative reward.
-\item Show that if $u' = a+bu$, then the corresponding reward must be
-\[
-r'(t)=br(t)+(1-\gamma(t))a.
-\]
-Interpret this as a source of reward non-uniqueness.
+\item For instance $u_1(x,y,z)=(2,1,0)$ and $u_2(x,y,z)=(100,5,-3)$.
+\item An ordinal representation encodes only the ranking: $u$ represents
+$\pref$ iff $u(h)\geq u(h')\iff h\pref h'$, and both functions induce
+$x\strictpref y\strictpref z$. Composing with any strictly increasing map
+preserves exactly this information, so no ordinal criterion can distinguish
+$u_1$ from $u_2$.
+\item Under expected utility the indifference forces
+$u(y)=\tfrac12 u(x)+\tfrac12 u(z)$. Take the vNM utility
+$u(x,y,z)=(1,\tfrac12,0)$ and the strictly increasing map $f(s)=s^3$. Then
+$(f\circ u)(x,y,z)=(1,\tfrac18,0)$, while the lottery
+$\tfrac12 x+\tfrac12 z$ has expected value $\tfrac12$. Since
+$\tfrac18\neq\tfrac12$, the relation represented by $f\circ u$ strictly
+prefers the lottery to $y$: the indifference is destroyed. Only positive
+affine transformations preserve all such midpoint identities, which is the
+uniqueness part of the vNM theorem.
 \end{enumerate}
-\end{exercise}
+\end{solution}
+
+\begin{solution}[ex:vnm-failures]
+\begin{enumerate}[label=(\alph*)]
+\item Let $x\strictpref y$, $x\strictpref z$, with $y$ and $z$ incomparable
+(neither $y\pref z$ nor $z\pref y$). Any $u\colon\{x,y,z\}\to\R$ satisfies
+$u(y)\geq u(z)$ or $u(z)\geq u(y)$ because the reals are totally ordered, so
+the relation it represents is complete; incomparability cannot be encoded by
+a single real-valued function.
+\item Take $x\strictpref y\strictpref z\strictpref x$. Suppose you hold $x$
+and are willing to pay some small $\varepsilon>0$ to exchange an item for one
+you strictly prefer. Since $z\strictpref x$ you pay to swap $x\to z$; since
+$y\strictpref z$ you pay to swap $z\to y$; since $x\strictpref y$ you pay to
+swap $y\to x$. You are back where you started, $3\varepsilon$ poorer, and the
+cycle can be run forever.
+\item Give outcomes two attributes and compare lexicographically (the first
+attribute decides unless tied): $A=(1,0)$, $B=(0,1)$, $C=(0,0)$, so
+$A\strictpref B\strictpref C$. Extend to lotteries by comparing expected
+attribute vectors lexicographically. Continuity would require some
+$p\in[0,1]$ with $B\indiff pA+(1-p)C$. But that mixture has attribute vector
+$(p,0)$: for every $p>0$ it beats $B$ on the first attribute, and for $p=0$
+it is $C\strictpref$-below $B$. No mixing weight produces indifference.
+\item With $h_5\strictpref h_1\strictpref h_0$ paying $5$, $1$ and $0$
+million, the pattern of \cref{sec:lotteries-vnm} is
+\[
+A = 1\cdot h_1,
+\qquad
+B = 0.89\,h_1+0.10\,h_5+0.01\,h_0,
+\]
+\[
+C = 0.11\,h_1+0.89\,h_0,
+\qquad
+D = 0.10\,h_5+0.90\,h_0,
+\]
+with $A\strictpref B$ but $D\strictpref C$. Both pairs differ only by a
+\emph{common consequence}: replacing $0.89$ of $h_1$ by $0.89$ of $h_0$
+turns $A$ into $C$ and $B$ into $D$.
+Independence says a ranking is unchanged when the same consequence is mixed
+into both sides with the same weight, so the pattern violates independence
+(completeness, transitivity, and continuity are all consistent with it).
+\end{enumerate}
+\end{solution}
+
 \begin{solution}[ex:markov-reward]
 \begin{enumerate}[label=(\alph*)]
 \item Apply $u$ (in expected-utility form) to both sides of the axiom's
@@ -1383,14 +1410,27 @@ coordinate system for utility, not a primitive of the preference.
 \end{enumerate}
 \end{solution}
 
+\begin{solution}[ex:reward-shaping]
+\begin{enumerate}[label=(\alph*)]
+\item Writing $t_i=(s_{i-1},a_i,s_i)$, the shaped total is
+\[
+\sum_{i=1}^{n} r_\Phi(t_i)
+=\sum_{i=1}^{n} r(t_i)+\sum_{i=1}^{n}\bigl(\Phi(s_i)-\Phi(s_{i-1})\bigr)
+=\sum_{i=1}^{n} r(t_i)+\Phi(s_n)-\Phi(s_0),
+\]
+since the middle sum telescopes.
+\item Utility is exactly unchanged iff the boundary term vanishes on every
+admissible trajectory, i.e.\ $\Phi(s_n)=\Phi(s_0)$ throughout — for example
+when all trajectories start in a fixed $s_0$ and $\Phi$ takes the value
+$\Phi(s_0)$ on every reachable terminal state.
+\item Only the ordering is at stake if the boundary term is the \emph{same
+constant} $c$ for all compared trajectories: then every utility shifts by
+$c$ and the induced ranking is untouched. A fixed start state together with
+$\Phi$ constant on the reachable terminal states suffices, whatever that
+constant is.
+\end{enumerate}
+\end{solution}
 
-
-\section*{Open-ended questions}
-
-\begin{exercise}
-\label{ex:open-implications}
-Do the results have any prescriptive or descriptive implications? What kinds of agents, with what kinds of preferences should we design? By default, what kind of agents should we expect to obtain via typical training processes?
-\end{exercise}
 \begin{solution}[ex:open-implications]
 Discussion notes, not a unique answer. Prescriptively, the money-pump and
 dominance arguments say that an agent which cares about a fungible resource
@@ -1408,12 +1448,6 @@ goal-directed resource acquisition, at the cost of being harder to reason
 about.
 \end{solution}
 
-
-
-\begin{exercise}
-\label{ex:open-weaker-axioms}
-Let's assume a superintelligence has preferences over trajectories. Are there weaker versions of the axioms that make it more plausible that these preferences are "safe for us" compared to preferences that lead to utilities or even rewards?
-\end{exercise}
 \begin{solution}[ex:open-weaker-axioms]
 Discussion notes. The natural candidates weaken one axiom at a time.
 Dropping \emph{completeness} is the most studied: an agent with incomplete
@@ -1433,15 +1467,9 @@ blocks a coherence-based failure mode while making the agent's behaviour
 less analysable.
 \end{solution}
 
-
-
-\begin{exercise}
-\label{ex:open-examples}
-More generally, are there interesting examples of preferences over trajectories that the students could analyse, that do or do not satisfy some of the axioms?
-\end{exercise}
 \begin{solution}[ex:open-examples]
 Discussion notes; instructive examples include: (i) lexicographic
-safety-first preferences — violate continuity (see the earlier exercise);
+safety-first preferences — violate continuity (see \cref{ex:vnm-failures});
 (ii) Pareto/multi-objective preferences, undominated but unaggregated —
 violate completeness; (iii) hyperbolic discounting — satisfies the vNM
 axioms at a single decision time yet violates temporal
@@ -1455,6 +1483,5 @@ states as possible'' — can satisfy all four vNM axioms (a utility exists)
 while violating the temporal axiom, illustrating exactly the gap between
 utility and reward.
 \end{solution}
-
 
 \end{document}
