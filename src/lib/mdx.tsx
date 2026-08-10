@@ -7,7 +7,7 @@
 import { compileMDX } from "next-mdx-remote/rsc";
 import { createHash } from "node:crypto";
 import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
+import { remarkKatexHtml } from "./remark-katex-html";
 import rehypeSlug from "rehype-slug";
 import "katex/dist/katex.min.css";
 import type { ReactNode } from "react";
@@ -18,6 +18,25 @@ import type { ReactNode } from "react";
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 const components = {
+  /**
+   * KatexHtml — a formula already rendered to markup by remarkKatexHtml.
+   *
+   * Not authored by hand; the plugin emits it in place of every `$…$` and
+   * `$$…$$`. It re-creates KaTeX's own outer wrapper (`katex` inline,
+   * `katex-display` for block) and injects the rest, so the DOM matches what
+   * rehype-katex used to produce while the RSC payload carries one string per
+   * formula instead of ~50 serialized React elements.
+   *
+   * The `html` is KaTeX's output, not user input: it is generated at build time
+   * from the worksheet's own TeX, which is already trusted enough to run
+   * through the LaTeX toolchain.
+   */
+  KatexHtml: ({ html, display }: { html: string; display?: boolean }) => (
+    <span
+      className={display ? "katex-display" : "katex"}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  ),
   /**
    * Callout — coloured side-note for an important remark, warning, or tip.
    * Usage: <Callout type="note|warning|tip">body</Callout>
@@ -194,11 +213,14 @@ export async function MdxBody({ source }: { source: string }) {
       components,
       options: {
         mdxOptions: {
-          remarkPlugins: [remarkMath],
-          // rehypeSlug before rehypeKatex so slugs come from plain heading text.
-          // `macros: {}` is a fresh per-compile object: a page's own `\gdef`
-          // macros persist across its math blocks but never leak between pages.
-          rehypePlugins: [rehypeSlug, [rehypeKatex, { strict: false, macros: {} }]],
+          // remarkKatexHtml renders the math remarkMath found, straight to an
+          // HTML string (see its header for why it replaces rehype-katex). It
+          // owns the per-page `\gdef` macro scope that `macros: {}` used to.
+          remarkPlugins: [remarkMath, remarkKatexHtml],
+          // Math is already a string by the time hast exists, so rehypeSlug no
+          // longer has to be ordered against it — headings only ever contain
+          // plain text or an opaque span.
+          rehypePlugins: [rehypeSlug],
         },
       },
     });

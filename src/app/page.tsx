@@ -2,10 +2,29 @@ import Link from "next/link";
 import { listIndex } from "@/lib/content";
 import { clusterLabel, dayCode, pagePath } from "@/lib/clusters";
 import { listClusters, listDays } from "@/lib/cluster-store";
-import { BuildStamp } from "@/components/BuildStamp";
+import { BuildStamp, REPO_URL } from "@/components/BuildStamp";
 
-const HERO_SUMMARY =
-  "The Iliad Intensive is a month-long, full-time AI alignment course for students with strong mathematics, physics, or theoretical-CS backgrounds. These are the materials from the April 2026 cohort — mathematical exercises, self-contained lecture notes on topics from singular learning theory to debate, and pointers for further study. About 20 contributors developed them. We share them to invite feedback and enable independent study.";
+// JSX, not a string: the closing sentence carries a link. This paragraph sits
+// outside `.prose`, so the anchor styles itself rather than inheriting the
+// global `.prose a` rule in globals.css.
+const HERO_SUMMARY = (
+  <>
+    The Iliad Intensive is a month-long, full-time AI alignment course for students
+    with strong mathematics, physics, or theoretical-CS backgrounds. The materials
+    are self-contained lecture notes and worksheets on various topics, and pointers
+    for further study. About 20 contributors developed them. We welcome feedback via
+    issues on{" "}
+    <a
+      href={`${REPO_URL}/issues`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-[var(--link)] underline decoration-1 underline-offset-2 hover:text-[var(--link-hover)]"
+    >
+      GitHub
+    </a>
+    .
+  </>
+);
 
 /**
  * Curriculum order, not alphabetical: `position` comes from schedule.yaml (see
@@ -95,6 +114,11 @@ export default async function Home() {
                         <li key={p.slug}>
                           <Link
                             href={pagePath(p.cluster, p.slug, clusterList)}
+                            // Same reason as SidebarNav: the whole curriculum is
+                            // listed here, and prefetching every worksheet's RSC
+                            // payload on viewport entry is tens of MB for links
+                            // the reader has not chosen yet.
+                            prefetch={false}
                             className="block font-serif text-[1.25rem] leading-snug hover:text-[var(--link)]"
                             style={{ fontWeight: 500 }}
                           >
@@ -130,10 +154,10 @@ export default async function Home() {
         </a>
         {" · "}Contact:{" "}
         <a
-          href="mailto:feedback@iliad.ac"
+          href="mailto:contact@iliad.ac"
           className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800"
         >
-          feedback@iliad.ac
+          contact@iliad.ac
         </a>
         <br />
         <BuildStamp />
