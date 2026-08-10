@@ -154,10 +154,10 @@ export default async function Home() {
         </a>
         {" · "}Contact:{" "}
         <a
-          href="mailto:feedback@iliad.ac"
+          href="mailto:contact@iliad.ac"
           className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800"
         >
-          feedback@iliad.ac
+          contact@iliad.ac
         </a>
         <br />
         <BuildStamp />
