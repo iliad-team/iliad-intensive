@@ -105,17 +105,17 @@
 
 \begin{document}
 
-\title[Reinforcement Learning Basics Any\% Speedrun] %optional
-{Reinforcement Learning Basics Any\% Speedrun }
+\title[Introduction to Reinforcement Learning] %optional
+{Introduction to Reinforcement Learning }
 
  
 \author[David Quarel] % (optional, for multiple authors)
 {David Quarel}
  
-\institute[ARENA] % (optional)
-{
-  ARENA
-}
+% \institute[ARENA] % (optional)
+% {
+%   ARENA
+% }
  
 \date[\today] % (optional)
 {\today}
@@ -125,8 +125,7 @@
 \begin{frame}
 \frametitle{What is Reinforcement Learning?}
 \begin{itemize}
-	\item Up to this point we've been mostly within the regime of 
-	supervised learning
+	\item Deep learning is usually presented in the supervised learning setting:
 	\begin{enumerate} 
 		\item We have access to labelled training data
 		\item  Agent only sees ``real world'' once it's already performing well 
@@ -894,158 +893,158 @@ Q-learning guaranteed to converge to $Q_*$.
 \end{frame}
 
 
-\begin{frame}
+% \begin{frame}
 	
-	\begin{figure}
-		\centering
-		\includegraphics[height=0.5\textheight]{fig/sarsa.png}
-	\end{figure}
-	\vspace{-0.45cm}
-	\begin{figure}
-		\centering
-		\includegraphics[height=0.5\textheight]{fig/qlearn.png}
-	\end{figure}
-\end{frame}
+% 	\begin{figure}
+% 		\centering
+% 		\includegraphics[height=0.5\textheight]{fig/sarsa.png}
+% 	\end{figure}
+% 	\vspace{-0.45cm}
+% 	\begin{figure}
+% 		\centering
+% 		\includegraphics[height=0.5\textheight]{fig/qlearn.png}
+% 	\end{figure}
+% \end{frame}
 
 
-\begin{frame}
-	\frametitle{Beyond Tabular Learning}
+% \begin{frame}
+% 	\frametitle{Beyond Tabular Learning}
 	
-\begin{itemize}
-	\item All the methods up to this point assume sweeping through 
-	all state-action pairs is tractable
-	\pause
-	\item What about large/continuous state spaces?
-	%\pause
-	\begin{itemize}
-		\item State aggregation?
-		%\pause
-		\item Parameterised policy $\pi_\theta$, learn best $\theta$?
-		%\pause
-		\item Craft a heuristic by hand?
-	\end{itemize}
-%\pause
-	\item In general, would like the agent to learn useful features for us
-	\pause
-	\begin{itemize}
-		\item Something deep learning excels at!
-	\end{itemize}
-\end{itemize}
-\end{frame}
+% \begin{itemize}
+% 	\item All the methods up to this point assume sweeping through 
+% 	all state-action pairs is tractable
+% 	\pause
+% 	\item What about large/continuous state spaces?
+% 	%\pause
+% 	\begin{itemize}
+% 		\item State aggregation?
+% 		%\pause
+% 		\item Parameterised policy $\pi_\theta$, learn best $\theta$?
+% 		%\pause
+% 		\item Craft a heuristic by hand?
+% 	\end{itemize}
+% %\pause
+% 	\item In general, would like the agent to learn useful features for us
+% 	\pause
+% 	\begin{itemize}
+% 		\item Something deep learning excels at!
+% 	\end{itemize}
+% \end{itemize}
+% \end{frame}
 
-\begin{frame}
-	\centering
-		\includegraphics[height=\textheight]{fig/drake}
-\end{frame}
+% \begin{frame}
+% 	\centering
+% 		\includegraphics[height=\textheight]{fig/drake}
+% \end{frame}
 
-\begin{frame}
-	\frametitle{Difficulties with using Neural Networks for RL}
-	
-	
-		Neural networks expect to be trained in a supervised learning fashion,
-		with batches of data fed in, loss computed, and gradients backpropagated.  
+% \begin{frame}
+% 	\frametitle{Difficulties with using Neural Networks for RL}
 	
 	
-	\textbf{Idea:} Reduce the reinforcement learning problem
-	to a supervised learning problem?
-		\pause
-		\begin{itemize}
-		\item Interaction with environment is \textit{NOT} i.i.d
-		\begin{itemize}
-			\pause
-			\item Collect many trajectories, dump into a buffer and shuffle
-		\end{itemize}
-		\pause
-		\item Rewards are sparse
-		\begin{itemize}
-			\pause
-			\item $\varepsilon$-greedy explore, hope for the best
-                % \item (Advanced: Add a critic to learn a guess of reward to help the actor)
-		\end{itemize}
-		\pause
-		\item No ground truth to compare against
-		\begin{itemize}
-			\pause
-			\item Bootstrap from current estimates (i.e. Q-Learning)
-		\end{itemize}
-	\end{itemize}
-\end{frame}
+% 		Neural networks expect to be trained in a supervised learning fashion,
+% 		with batches of data fed in, loss computed, and gradients backpropagated.  
+	
+	
+% 	\textbf{Idea:} Reduce the reinforcement learning problem
+% 	to a supervised learning problem?
+% 		\pause
+% 		\begin{itemize}
+% 		\item Interaction with environment is \textit{NOT} i.i.d
+% 		\begin{itemize}
+% 			\pause
+% 			\item Collect many trajectories, dump into a buffer and shuffle
+% 		\end{itemize}
+% 		\pause
+% 		\item Rewards are sparse
+% 		\begin{itemize}
+% 			\pause
+% 			\item $\varepsilon$-greedy explore, hope for the best
+%                 % \item (Advanced: Add a critic to learn a guess of reward to help the actor)
+% 		\end{itemize}
+% 		\pause
+% 		\item No ground truth to compare against
+% 		\begin{itemize}
+% 			\pause
+% 			\item Bootstrap from current estimates (i.e. Q-Learning)
+% 		\end{itemize}
+% 	\end{itemize}
+% \end{frame}
 
 
 
-\begin{frame}{Deep Q-Networks (DQN)}
-	\begin{itemize}
-		\item The Q-Value estimate $\hat{Q}_*(s,a;\theta)$ 
-		is now stored as a network, with parameters $\theta$.
-		Recall the TD-error for Q-Learning
-		$$
-		\delta_t = r_{t+1} + \gamma \max_{a'} Q_{*}(s_{t+1}, a'; \theta) 
-		- Q_{*}(s_t, a_t;\theta)
-		$$
-		\pause
-		\item \textbf{Idea:} Accumulate experience 
-		$(s^i,a^i,r^i,s_{\text{new}}^i)$ via interaction, optimise
-		$\theta$ to minimise loss $L(\theta)$ = average TD-error
-		\pause
-		\begin{itemize}
-			\item In practice, experience is accumulated in a buffer, and batches
-			are sampled at random to make data ``more i.i.d''
-			\pause
-			\item Also use seperate set of parameters $\theta_{\text{target}}$ 
-			for the target network, copy weights every so often for stability
-		\end{itemize}
-		\pause
-		\begin{align*}
-		L(\theta) &=  \mathbb{E} \left[
-		\left( r_{t+1} + \gamma \max_{a'} Q_{*}(s_{t+1}, a'; \theta_{\text{target}} ) -  Q_{*}(s_t, a_t; \theta)
-		\right)^2 \right] \\
-        & = \frac{1}{N}\sum_{i=1}^{N} 
-		\left(
-		r^i + \gamma \max_{a'} Q_{*}(s^i_\text{new}, a'; \theta_{\text{target}} ) -  Q_{*}(s^i, a^i; \theta)
-		\right)^2
-		\end{align*}
-		\pause
-		Gradient descent to minimize $L(\theta)$
-	\end{itemize}
-\end{frame}
+% \begin{frame}{Deep Q-Networks (DQN)}
+% 	\begin{itemize}
+% 		\item The Q-Value estimate $\hat{Q}_*(s,a;\theta)$ 
+% 		is now stored as a network, with parameters $\theta$.
+% 		Recall the TD-error for Q-Learning
+% 		$$
+% 		\delta_t = r_{t+1} + \gamma \max_{a'} Q_{*}(s_{t+1}, a'; \theta) 
+% 		- Q_{*}(s_t, a_t;\theta)
+% 		$$
+% 		\pause
+% 		\item \textbf{Idea:} Accumulate experience 
+% 		$(s^i,a^i,r^i,s_{\text{new}}^i)$ via interaction, optimise
+% 		$\theta$ to minimise loss $L(\theta)$ = average TD-error
+% 		\pause
+% 		\begin{itemize}
+% 			\item In practice, experience is accumulated in a buffer, and batches
+% 			are sampled at random to make data ``more i.i.d''
+% 			\pause
+% 			\item Also use seperate set of parameters $\theta_{\text{target}}$ 
+% 			for the target network, copy weights every so often for stability
+% 		\end{itemize}
+% 		\pause
+% 		\begin{align*}
+% 		L(\theta) &=  \mathbb{E} \left[
+% 		\left( r_{t+1} + \gamma \max_{a'} Q_{*}(s_{t+1}, a'; \theta_{\text{target}} ) -  Q_{*}(s_t, a_t; \theta)
+% 		\right)^2 \right] \\
+%         & = \frac{1}{N}\sum_{i=1}^{N} 
+% 		\left(
+% 		r^i + \gamma \max_{a'} Q_{*}(s^i_\text{new}, a'; \theta_{\text{target}} ) -  Q_{*}(s^i, a^i; \theta)
+% 		\right)^2
+% 		\end{align*}
+% 		\pause
+% 		Gradient descent to minimize $L(\theta)$
+% 	\end{itemize}
+% \end{frame}
 
-\begin{frame}
-    \centering
-    \includegraphics[width=\textwidth]{fig/dqn_block.png}
-\end{frame}
+% \begin{frame}
+%     \centering
+%     \includegraphics[width=\textwidth]{fig/dqn_block.png}
+% \end{frame}
 
-\begin{frame}{Deep Q-Networks (DQN) for Episodic Environments}
-	\begin{itemize}
-		\item Annoying caveat for episodic environments: Need to modify the TD-error, depending if $s_{t+1}$ 
-		is a terminal state.
-		\item Assume environment samples $(s_{t+1}, r_{t+1}, d_{t+1})$ given $(s_t, a_t)$,
-		where $d_{t+1}$ (done) indicates if the episode ended on timestep $t+1$ ($s_{t+1}$ is arbitrary in such cases).
-		\begin{align*}
-			\delta_t &= y_t - Q_{*}(s_t, a_t;\theta) \\
-		y_t &= \begin{cases}
-			r_{t+1} & d_{t+1} = True \\
-			r_{t+1} + \gamma \max_{a'} Q_{*}(s_{t+1}, a'; \theta_{\text{target}}) & d_{t+1} = False 
-		\end{cases} \\
-		&= r_{t+1} + \gamma \max_{a'} Q_{*}(s_{t+1}, a'; \theta_{\text{target}}) \llbracket \text{not } d_{t+1} \rrbracket
-		\end{align*}
-		Loss function is now
-		$$
-		L(\theta) = \frac{1}{N} \sum_{i=1}^N \left(y_t - Q_*(s_t,a_t; \theta )\right)^2
-		$$
-		\end{itemize}
-\end{frame}
-
-
-\begin{frame}[fragile]
-\begin{figure}
-	\centering
-	\includegraphics[width=0.7\linewidth]{fig/dqn_algo}
-        % generated from algo.tex
-        \label{fig:dqnalgo}
-\end{figure}
+% \begin{frame}{Deep Q-Networks (DQN) for Episodic Environments}
+% 	\begin{itemize}
+% 		\item Annoying caveat for episodic environments: Need to modify the TD-error, depending if $s_{t+1}$ 
+% 		is a terminal state.
+% 		\item Assume environment samples $(s_{t+1}, r_{t+1}, d_{t+1})$ given $(s_t, a_t)$,
+% 		where $d_{t+1}$ (done) indicates if the episode ended on timestep $t+1$ ($s_{t+1}$ is arbitrary in such cases).
+% 		\begin{align*}
+% 			\delta_t &= y_t - Q_{*}(s_t, a_t;\theta) \\
+% 		y_t &= \begin{cases}
+% 			r_{t+1} & d_{t+1} = True \\
+% 			r_{t+1} + \gamma \max_{a'} Q_{*}(s_{t+1}, a'; \theta_{\text{target}}) & d_{t+1} = False 
+% 		\end{cases} \\
+% 		&= r_{t+1} + \gamma \max_{a'} Q_{*}(s_{t+1}, a'; \theta_{\text{target}}) \llbracket \text{not } d_{t+1} \rrbracket
+% 		\end{align*}
+% 		Loss function is now
+% 		$$
+% 		L(\theta) = \frac{1}{N} \sum_{i=1}^N \left(y_t - Q_*(s_t,a_t; \theta )\right)^2
+% 		$$
+% 		\end{itemize}
+% \end{frame}
 
 
-\end{frame}
+% \begin{frame}[fragile]
+% \begin{figure}
+% 	\centering
+% 	\includegraphics[width=0.7\linewidth]{fig/dqn_algo}
+%         % generated from algo.tex
+%         \label{fig:dqnalgo}
+% \end{figure}
+
+
+% \end{frame}
 
 
 %\begin{frame}
