@@ -140,7 +140,14 @@ export function buildStatus({ check = false, schedule } = {}) {
     : [];
   for (const slug of builtSlugs) {
     if (scheduled.has(slug)) continue;
-    if (!existsSync(path.join(TEX, slug))) continue;   // stale artifact of a removed worksheet
+    // Stale artifact of a removed (or renamed) worksheet. Test for the SOURCE,
+    // not the directory: CI restores tex/*/.build-hash and tex/*/*.pdf from the
+    // worksheet cache, so a slug that git no longer has still comes back as a
+    // directory of leftovers and would trip the check below. main.tex/main.mdx
+    // only ever arrive from the checkout, and are what defines a worksheet
+    // everywhere else (schedule.mjs, build-content.mjs).
+    if (!existsSync(path.join(TEX, slug, "main.tex"))
+        && !existsSync(path.join(TEX, slug, "main.mdx"))) continue;
     if (frontmatterOf(slug)?.unlisted === true) continue;
     bad(`tex/${slug}/ is not listed by any day in schedule.yaml — add the slug under its ` +
         "day's `worksheets:` (or set `unlisted: true` in its frontmatter to keep it off the course)");
