@@ -1260,13 +1260,13 @@ element. Given a maximal $b'$ and minimal $w'$ for $X\setminus\{h\}$,
 completeness compares $h$ with each of them and transitivity makes the
 better of $\{h,b'\}$ maximal and the worse of $\{h,w'\}$ minimal for $X$.
 \item If $b\indiff w$ then every $h$ is indifferent to both and any constant
-$u$ works. Otherwise $b\strictpref w$. Independence implies mixtures
-$\alpha b+(1-\alpha)w$ are strictly increasing in $\alpha$. By continuity
-the sets $\{\alpha: \alpha b+(1-\alpha)w \pref h\}$ and
-$\{\alpha: h \pref \alpha b+(1-\alpha)w\}$ are closed; they are nonempty
-($\alpha=1$, resp.\ $\alpha=0$, using (a)) and their union is $[0,1]$ by
-completeness, so they intersect: some $u(h)$ lies in both, giving
-$h\indiff u(h)b+(1-u(h))w$. Monotonicity makes $u(h)$ unique.
+$u$ works. Otherwise $b\strictpref w$. By (a) we have $b\pref h\pref w$, so
+continuity applied to the triple $(b,h,w)$ gives directly some
+$\lambda\in[0,1]$ with $h\indiff \lambda b+(1-\lambda)w$; set
+$u(h)\coloneqq\lambda$. For uniqueness, independence implies the mixtures
+$\alpha b+(1-\alpha)w$ are strictly increasing in $\alpha$ when
+$b\strictpref w$, so two different weights cannot both be indifferent to
+$h$.
 \item Suppose $u(h)\geq u(h')$. Mixture monotonicity gives
 $u(h)b+(1-u(h))w \pref u(h')b+(1-u(h'))w$, and chaining the two calibrating
 indifferences through transitivity yields $h\pref h'$. If $u(h)<u(h')$ the
@@ -1289,10 +1289,13 @@ transitivity, $\mu\pref\nu\iff U(\mu)\geq U(\nu)$.
 \item Apply the $u'$-representation to the calibration of $h$:
 \[
 u'(h)=U'\bigl(u(h)b+(1-u(h))w\bigr)=u(h)\,u'(b)+(1-u(h))\,u'(w)
-=a+b\,u(h),
+=u'(w)+\bigl(u'(b)-u'(w)\bigr)u(h).
 \]
-with $a=u'(w)$ and $b=u'(b)-u'(w)>0$ (positive because $b\strictpref w$ and
-$u'$ represents $\pref$).
+This is the required form $u'=a+b\,u$, with intercept $u'(w)$ and slope
+$u'(b)-u'(w)$, the latter strictly positive because $b\strictpref w$ and
+$u'$ represents $\pref$. (Note the statement's scalars $a,b$ are unrelated
+to the trajectories $b,w$ of part~(a); the letter $b$ does double duty here,
+so read $u'(b)$ as the utility of the best trajectory throughout.)
 \item Let $\mu\pref\nu\iff \mathbb{E}_\mu[u]\geq\mathbb{E}_\nu[u]$.
 Completeness and transitivity are inherited from the total order on $\R$.
 Continuity: $p\mapsto \mathbb{E}_{p\mu+(1-p)\lambda}[u]
@@ -1343,9 +1346,21 @@ attribute vectors lexicographically. Continuity would require some
 $p\in[0,1]$ with $B\indiff pA+(1-p)C$. But that mixture has attribute vector
 $(p,0)$: for every $p>0$ it beats $B$ on the first attribute, and for $p=0$
 it is $C\strictpref$-below $B$. No mixing weight produces indifference.
-\item In the Allais pattern one prefers the sure prize in the first
-comparison but the long-shot in the second, even though the two comparisons
-differ only in a \emph{common consequence} added to both lotteries.
+\item With $h_5\strictpref h_1\strictpref h_0$ paying $5$, $1$ and $0$
+million, the pattern of \cref{sec:lotteries-vnm} is
+\[
+A = 1\cdot h_1,
+\qquad
+B = 0.89\,h_1+0.10\,h_5+0.01\,h_0,
+\]
+\[
+C = 0.11\,h_1+0.89\,h_0,
+\qquad
+D = 0.10\,h_5+0.90\,h_0,
+\]
+with $A\strictpref B$ but $D\strictpref C$. Both pairs differ only by a
+\emph{common consequence}: replacing $0.89$ of $h_1$ by $0.89$ of $h_0$
+turns $A$ into $C$ and $B$ into $D$.
 Independence says a ranking is unchanged when the same consequence is mixed
 into both sides with the same weight, so the pattern violates independence
 (completeness, transitivity, and continuity are all consistent with it).
