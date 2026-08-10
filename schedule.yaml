@@ -192,7 +192,7 @@ clusters:
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.uqpqtto4ldg0
         source: ready
         worksheets:
-          - decision-theory
+          - preferences-to-rewards
           - reinforcement-learning
 
       - code: D.2
