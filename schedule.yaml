@@ -157,9 +157,18 @@ clusters:
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.u7odobssyqur
         source: ready
         sourceUrl: https://github.com/wusche1/Illiad_ML_Engineering
-        note: notebooks + LaTeX; a track-B variant lives in a second repo
+        # One day, three lectures, four upstream repos. Lectures 1a and 1b run
+        # in PARALLEL in the morning — a quiz streams each student into one or
+        # the other — and lecture 2 fills the afternoon. So the three read as
+        # siblings, not as a sequence. `sourceUrl` above holds 1a's repo only,
+        # because the field takes a single string; the other three are
+        # BorisTheBrave/illiad-ml-eng-track-b (1b), wusche1/ml-research-template
+        # and wusche1/dotfiles (both lecture 2).
+        note: three lectures across four repos; 1a and 1b are parallel tracks
         worksheets:
-          - intro-to-ml-engineering
+          - ml-foundations
+          - practical-ml
+          - claude-code-for-research
 
       - code: C.2
         title: Mechanistic Interpretability

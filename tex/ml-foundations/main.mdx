@@ -1,10 +1,8 @@
 ---
-title: Intro to ML Engineering
+title: ML Foundations
 summary: TODO
 contributors:
   - Julian Schulz (Meridian Research)
-  - Adam Newgas (Timaeus)
-slides: https://docs.google.com/viewer?url=https://raw.githubusercontent.com/wusche1/Illiad_ML_Engineering/main/lectures/01_a_ml_foundations/output/slides.pdf
 ---
 
 <LearningOutcomes>
@@ -46,18 +44,14 @@ Lecture notes and materials for Lecture 1a self-contained within this repository
 * You should have the Claude Code CLI running on your laptop
 * You should know linear algebra, understand gradient descent
 
-## Content
-
-### Fast track
+## Fast track
 
 * Go over the slides of Lecture 1 a. Skip the section you are familiar with. Read the ones you are not familiar with. If you have time do one of the exercises
 * Download the Claude Code CLI, and play around with it, to get familiar with its basic features
 
-### Main content
+## Main content
 
 [Familiarity Check](https://docs.google.com/forms/d/1CvgWSIoz2WBtyMsEMVShmmad2UhIhmY_RV_j1N0V6yo/edit) to see who should go into Lecture 1a or 1b.
-
-#### Lecture 1a
 
 Exercises:
 
@@ -84,53 +78,3 @@ Content:
 * Architectures — activation functions, universal approximation, over/underparameterization, symmetries in architecture design, CNNs, transformers, residual streams
 * Hyperparameter optimization — sweeps, scaling laws
 * LLM lifecycle - Pretraining, SFT fine tuning, RLHF, RLVRd
-
-#### Lecture 1b
-
-Short opener about the changing dividing lines of research, engineering, and agents.
-Modular selection of self study/exercise topics:
-
-* [Runpod + VSCode Remote Extension](https://github.com/BorisTheBrave/illiad-ml-eng-track-b/blob/main/docs/runpod_remote.md)
-* [Weights and Biases](https://github.com/BorisTheBrave/illiad-ml-eng-track-b/blob/main/docs/wandb.md)
-* [Distributed Computing](https://github.com/BorisTheBrave/illiad-ml-eng-track-b/blob/main/docs/distributed_computing.md)
-* [Concurrent Computing](https://github.com/BorisTheBrave/illiad-ml-eng-track-b/blob/main/docs/concurrent_computing.md)
-* [The Python and ML Ecosystem](https://github.com/BorisTheBrave/illiad-ml-eng-track-b/blob/main/docs/python_ml_ecosystem.md)
-* [Publishing Your Project](https://github.com/BorisTheBrave/illiad-ml-eng-track-b/blob/main/docs/publishing_your_project.md)
-
-#### Lecture 2
-
-Material:
-
-[Claude Code cheat sheet](https://www.alignment-hive.com/cheatsheet)
-
-\[optionally\] get a good [Terminal Claude Code setup](https://github.com/wusche1/dotfiles)
-
-Clone [this repository](https://github.com/wusche1/ml-research-template/tree/main) for the exercises
-
-Do [Exercise 1](https://github.com/wusche1/ml-research-template/blob/claude_code_exercise/01/EXERCISE.md) using plan mode
-
-Do [Exercise 2](https://github.com/wusche1/ml-research-template/blob/claude_code_exercise/02/EXERCISE.md) using subagents
-
-Do [Exercise 3](https://github.com/wusche1/ml-research-template/blob/claude_code_exercise/03/EXERCISE.md) using the git worktree and goals
-
-Final project: replicate a version of Figure 1 from one of these papers:
-
-* [Inference only, no GPU needed](https://www-cdn.anthropic.com/b9ca6db27f02a9ddf0d4fdb51b26432c99a27be0.pdf)
-* [On a GPU](https://arxiv.org/pdf/2406.11717)
-
-Intent:
-
-* Make everyone comfortable using Claude Code in research code bases
-* Get most people familiar with basic Claude Code features
-* Give the participants who are comfortable working in a terminal a good basic setup to make use of multiple Claude Code instances across different branches and projects
-
-Content:
-
-* Installing Claude code
-* \[optionally\] installing a good terminal Claude Code setup
-* Using a research template with good claude.md integration
-* Using multiple agents at the same time
-* Plan mode
-* Subagents
-* Worktrees
-* Goals/loops
