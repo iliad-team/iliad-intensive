@@ -25,8 +25,20 @@ const TEXT_MACROS = {
   quad: " ", qquad: " ", enspace: " ", thinspace: " ", ",": " ", " ": " ",
   ";": " ", "!": "", ":": " ", "\n": " ", "'": "", "@": "", "`": "", "^": "",
   '"': "", "~": "",
-  "\\": "\n", "%": "%", "&": "&", "#": "#", _: "_", $: "$",
+  "\\": "\n", "%": "%", "&": "&", "#": "#", _: "_",
+  // A literal dollar in prose: \$1,000 in the source. It must NOT reach the page
+  // as a bare $, which remark-math reads as a math delimiter — two prices in a
+  // paragraph ("wins \$1,000,000 … and wins \$1,000") then become one bogus math
+  // span. Nor as \$: that escape exists in LaTeX and in KaTeX but not at the
+  // markdown layer, which is the same trap shims.mjs documents for math bodies.
+  // A character reference is the one spelling micromark leaves alone.
+  $: "&#36;",
   "{": "\\{", "}": "\\}",
+  // The text-mode names for characters LaTeX reserves. An author reaches for
+  // these whenever a sentence contains a pipe or an angle bracket, and pandoc
+  // emits them for every such character when a Markdown document is converted.
+  textbar: "|", textgreater: ">", textless: "<", textbackslash: "\\",
+  textasciitilde: "~", textasciicircum: "^", textquotesingle: "'",
 };
 // macros dropped with NO arguments consumed
 const NOOP_MACROS = new Set([
@@ -81,7 +93,6 @@ const CONTRACT_MACROS = {
   // signature or the three brace groups survive as literal text
   crefname: { signature: "m m m" }, Crefname: { signature: "m m m" },
 };
-const THM_KINDS = new Set(["theorem", "lemma", "proposition", "corollary"]);
 const THM_COUNTED = new Set(["theorem", "lemma", "proposition", "corollary", "fact", "definition", "example"]);
 
 // ------------------------------------------------------------- run state ---
@@ -95,7 +106,6 @@ let inExercise = false;
 let citedKeys = new Set();      // bib keys cited anywhere on the page
 
 const secNum = () => (counters.appendix ? String.fromCharCode(64 + counters.section) : String(counters.section));
-const bucket = (dd) => { const n = +dd; return n <= 5 ? 1 : n <= 10 ? 2 : n <= 17 ? 3 : n <= 25 ? 4 : 5; };
 
 // ------------------------------------------------------------ math paths ---
 function mathClean(m) {
@@ -108,7 +118,7 @@ function mathClean(m) {
       const g3 = readArg(m, j); j = g3 ? g3.end : j;
       out += (g3 ? g3.content : "").replace(/\\displaystyle/g, "").replace(/\$/g, ""); i = j; continue;
     }
-    const cr = m.startsWith("\\Cref", i) ? 5 : m.startsWith("\\cref", i) ? 5 : (m.startsWith("\\ref", i) && m[i + 4] === "{") ? 4 : 0;
+    const cr = (m.startsWith("\\Cref", i) || m.startsWith("\\cref", i)) ? 5 : (m.startsWith("\\ref", i) && m[i + 4] === "{") ? 4 : 0;
     if (cr) { const g = readArg(m, i + cr); if (g) { out += g.content.split(",").map((l) => resolveRef(l.trim()).text).join(" and "); i = g.end; continue; } }
     if (m.startsWith("\\cite", i)) { let j = i + 5; const o = readOpt(m, j); if (o) j = o.end; const g = readArg(m, j); if (g) { const e = ctx.BIB[g.content.trim()]; if (e) citedKeys.add(g.content.trim()); out += e ? e.disp : g.content.trim(); i = g.end; continue; } }
     out += m[i]; i++;
@@ -217,22 +227,29 @@ const bracketArg = (n) => {
 };
 
 // plain text for JSX attributes. A JSX attribute is an inert string: KaTeX
-// never sees it, so math cannot survive here. Dropping it silently turned
-// "point A ($h_A \approx 0.03$)" into "point A ()" on the page, so say so.
-function mdToPlain(md) {
+// never sees it, so math cannot survive here — dropping it silently turned
+// "point A ($h_A \approx 0.03$)" into "point A ()" on the page. Where the
+// attribute is the only option (a box title, an <img alt>) that is worth an
+// advisory; `quiet` suppresses it for alt text, whose caption is emitted
+// separately as renderable children.
+function mdToPlain(md, quiet = false) {
   const s = md.replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  const hadMath = /\$\$?[^$]*\$\$?/.test(s);
   const out = s
     .replace(/\$\$?[^$]*\$\$?/g, "")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/[*`]/g, "")
     .replace(/\s+/g, " ").trim();
-  if (/\$\$?[^$]*\$\$?/.test(s)) {
-    advise(`math is dropped from "${out.slice(0, 70)}" — it becomes a plain attribute (figure caption, alt text or box title), which cannot render math; reword it in words`, snippetOf(s));
+  if (!quiet && hadMath) {
+    advise(`math is dropped from "${out.slice(0, 70)}" — it becomes a plain attribute (a box title, or the page title), which cannot render math; reword it in words`, snippetOf(s));
   }
   return out;
 }
-const attr = (nodesOrStr) =>
-  mdToPlain(typeof nodesOrStr === "string" ? walkStr(nodesOrStr) : walk(nodesOrStr)).replace(/"/g, "'");
+const toPlain = (nodesOrStr, quiet) =>
+  mdToPlain(typeof nodesOrStr === "string" ? walkStr(nodesOrStr) : walk(nodesOrStr), quiet)
+    .replace(/"/g, "'");
+const attr = (nodesOrStr) => toPlain(nodesOrStr, false);
+const attrQuiet = (nodesOrStr) => toPlain(nodesOrStr, true);
 
 function walkStr(texStr) {           // parse a raw string fragment and walk it
   return walk(parser().parse(texStr).content);
@@ -550,10 +567,38 @@ function emitFigure(n) {
     const tEnd = raw.indexOf(`\\end{${tEnv}}`);
     src = registerTikz(raw.slice(tm.index, tEnd + `\\end{${tEnv}}`.length), tEnv === "tikzcd").src;
   }
-  const capMd = caption ? attr(caption) : "";
-  const fig = `<Figure src="${src}" alt="${capMd || "figure"}"${capMd ? ` caption="${capMd}"` : ""} />`;
+  // The caption is emitted as CHILDREN so it goes through the MDX pipeline and
+  // its math renders; only `alt` stays flattened, because HTML alt text cannot
+  // hold math at all (attrQuiet, so that inherent loss draws no advisory).
+  const capMd = caption ? walkStr(caption).trim() : "";
+  const altMd = caption ? attrQuiet(caption) : "";
+  const fig = capMd
+    ? `<Figure src="${src}" alt="${altMd || "figure"}">\n\n${capMd}\n\n</Figure>`
+    : `<Figure src="${src}" alt="figure" />`;
   return `\n${figLabel ? `<div id="${slug(figLabel)}">\n${fig}\n</div>` : fig}\n`;
 }
+
+// A \texttt{} body is code, so it lands in a Markdown code span verbatim — but
+// "verbatim" is the *characters the author meant*, not the LaTeX that spells
+// them. Inside \texttt one still has to write \_ for an underscore, {[} for a
+// bracket that would otherwise start an optional argument, \textbar{} for a
+// pipe; pandoc emits all of these when it converts a Markdown code span. Passing
+// the raw source through put that spelling on the page: a formula written
+// `a* = argmax_a E[U | do(A=a)]` in the source displayed as
+// a*\ =\ argmax\_a\ E{[}U\ \textbar{}\ do(A=a){]}.
+const TEXTTT_UNESCAPE = [
+  [/\\textbackslash\{\}|\\textbackslash\b/g, "\\"],   // first: it introduces no others
+  [/\\textbar\{\}|\\textbar\b/g, "|"],
+  [/\\textgreater\{\}|\\textgreater\b/g, ">"],
+  [/\\textless\{\}|\\textless\b/g, "<"],
+  [/\\textasciitilde\{\}|\\textasciitilde\b/g, "~"],
+  [/\\textasciicircum\{\}|\\textasciicircum\b/g, "^"],
+  [/\\textquotesingle\{\}|\\textquotesingle\b/g, "'"],
+  [/\{\[\}/g, "["], [/\{\]\}/g, "]"],
+  [/\\([_${}&#%~^])/g, "$1"],
+  [/\\ /g, " "],                                       // pandoc's escaped space
+];
+const texttt = (s) => TEXTTT_UNESCAPE.reduce((acc, [re, to]) => acc.replace(re, to), s);
 
 // ---------------------------------------------------------------- macros ---
 function emitMacro(n) {
@@ -566,7 +611,7 @@ function emitMacro(n) {
   switch (name) {
     case "textbf": return `**${walkArg(n, 0)}**`;
     case "emph": case "textit": case "textsl": return `*${walkArg(n, 0)}*`;
-    case "texttt": return "`" + (lastArgRaw(n) ?? "") + "`";
+    case "texttt": return "`" + texttt(lastArgRaw(n) ?? "") + "`";
     case "textnormal": case "textrm": case "textup": case "textsf": case "textsc": case "textmd":
       return walkArg(n, 0);
     case "textcolor": return walkArg(n, 1);
@@ -635,6 +680,14 @@ function emitMacro(n) {
     }
     case "item": return "";   // stray \item outside a list
     case "section": case "subsection": case "subsubsection": return emitHeading(n);
+    // \ensuremath{X} in prose: X typeset as math. This is how a macro is made
+    // usable in both modes (amsthm's \qed is \ensuremath{\square}), so a ported
+    // document reaches for it whenever one macro has to work in a sentence and
+    // in an equation. Inside math it is redundant and shims.mjs drops it.
+    case "ensuremath": {
+      const inner = mathClean(argRaw(n, 0) ?? "").replace(/\s+/g, " ").trim();
+      return inner ? `$${inner}$` : "";
+    }
   }
 
   // author-defined macro: expand and re-walk

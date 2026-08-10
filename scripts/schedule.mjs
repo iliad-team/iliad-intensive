@@ -29,7 +29,7 @@ const TEX = path.join(ROOT, "tex");
 export const SCHEDULE_FILE = path.join(ROOT, "schedule.yaml");
 
 /** Where a day's buildable source is, for a day with no worksheet yet. */
-export const SOURCE_KINDS = new Set(["ready", "readings", "partial", "missing"]);
+export const SOURCE_KINDS = new Set(["ready", "partial", "missing"]);
 
 export class ScheduleError extends Error {}
 const bad = (msg) => { throw new ScheduleError(msg); };
@@ -49,12 +49,16 @@ function worksheetsOnDisk() {
  *   days: {code: string, cluster: string, title: string, lead: string,
  *          doc: string, source: {kind: string, url: string|null, note: string|null},
  *          slidesUrl: string|null, worksheets: string[]}[],
- *   bySlug: Map<string, {slug: string, cluster: string, day: string, position: number}>,
+ *   bySlug: Map<string, {slug: string, cluster: string, day: string,
+ *          position: number, part: number, parts: number}>,
  *   order: string[],
  * }}
  *   `days` is in schedule order (cluster order, then within a cluster), and
  *   `order` is every scheduled slug in curriculum order. `bySlug.position` is
- *   1-based, and is what content/index.json sorts by.
+ *   1-based, and is what content/index.json sorts by. `part` is a worksheet's
+ *   1-based place within its own day and `parts` is how many worksheets that day
+ *   has, which is what lets a multi-part day read as D.3.1, D.3.2 on the site
+ *   (see dayCode() in src/lib/clusters.ts). The day code itself stays plain.
  */
 export function loadSchedule() {
   if (!existsSync(SCHEDULE_FILE)) {
@@ -124,7 +128,7 @@ export function loadSchedule() {
         if (!Array.isArray(d.worksheets)) bad(`${dWhere}: \`worksheets\` must be a list of slugs`);
         sheets = d.worksheets.map(String);
       }
-      for (const slug of sheets) {
+      for (const [i, slug] of sheets.entries()) {
         if (!onDisk.has(slug)) {
           bad(`${dWhere}: worksheet "${slug}" has no tex/${slug}/main.tex or main.mdx — ` +
               `fix the slug, or drop it until the material is ported (worksheets present: ${[...onDisk].sort().join(", ")})`);
@@ -134,7 +138,10 @@ export function loadSchedule() {
           bad(`${dWhere}: worksheet "${slug}" is already listed under day ${already.day} — ` +
               "a worksheet belongs to exactly one day");
         }
-        bySlug.set(slug, { slug, cluster: id, day: code, position: order.length + 1 });
+        bySlug.set(slug, {
+          slug, cluster: id, day: code, position: order.length + 1,
+          part: i + 1, parts: sheets.length,
+        });
         order.push(slug);
       }
       days.push({
@@ -160,7 +167,14 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
     for (const c of s.clusters) {
       console.log(`${c.label}  (/${c.urlSlug}/)`);
       for (const d of s.days.filter((d) => d.cluster === c.id)) {
-        const sheets = d.worksheets.length ? d.worksheets.join(", ") : `— not ported (${d.source.kind})`;
+        // A day taught in several parts prints each with the code the site
+        // displays (D.3.1, D.3.2), so the numbering is checkable here rather
+        // than only in a built page.
+        const sheets = d.worksheets.length
+          ? d.worksheets
+              .map((w) => (d.worksheets.length > 1 ? `${d.code}.${s.bySlug.get(w).part} ${w}` : w))
+              .join(d.worksheets.length > 1 ? "\n       " : ", ")
+          : `— not ported (${d.source.kind})`;
         console.log(`  ${d.code.padEnd(4)} ${d.title}\n       ${sheets}`);
       }
     }

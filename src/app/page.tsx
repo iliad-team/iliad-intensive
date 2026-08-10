@@ -1,11 +1,30 @@
 import Link from "next/link";
 import { listIndex } from "@/lib/content";
-import { clusterLabel, pagePath } from "@/lib/clusters";
-import { listClusters } from "@/lib/cluster-store";
-import { BuildStamp } from "@/components/BuildStamp";
+import { clusterLabel, dayCode, pagePath } from "@/lib/clusters";
+import { listClusters, listDays } from "@/lib/cluster-store";
+import { BuildStamp, REPO_URL } from "@/components/BuildStamp";
 
-const HERO_SUMMARY =
-  "The Iliad Intensive is a month-long, full-time AI alignment course for students with strong mathematics, physics, or theoretical-CS backgrounds. These are the materials from the April 2026 cohort — mathematical exercises, self-contained lecture notes on topics from singular learning theory to debate, and pointers for further study. About 20 contributors developed them. We share them to invite feedback and enable independent study.";
+// JSX, not a string: the closing sentence carries a link. This paragraph sits
+// outside `.prose`, so the anchor styles itself rather than inheriting the
+// global `.prose a` rule in globals.css.
+const HERO_SUMMARY = (
+  <>
+    The Iliad Intensive is a month-long, full-time AI alignment course for students
+    with strong mathematics, physics, or theoretical-CS backgrounds. The materials
+    are self-contained lecture notes and worksheets on various topics, and pointers
+    for further study. About 20 contributors developed them. We welcome feedback via
+    issues on{" "}
+    <a
+      href={`${REPO_URL}/issues`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-[var(--link)] underline decoration-1 underline-offset-2 hover:text-[var(--link-hover)]"
+    >
+      GitHub
+    </a>
+    .
+  </>
+);
 
 /**
  * Curriculum order, not alphabetical: `position` comes from schedule.yaml (see
@@ -22,8 +41,25 @@ function sortedItems<T extends { slug: string; position?: number }>(items: T[]):
   );
 }
 
+/**
+ * Consecutive worksheets of the same teaching day, in curriculum order. A day
+ * with one worksheet stays a bare row; only a day taught in several parts grows
+ * a heading, so the ~15 single-sheet days don't each pay for a subheading and a
+ * single child.
+ */
+function byDay<T extends { day?: string }>(items: T[]): { day?: string; items: T[] }[] {
+  const groups: { day?: string; items: T[] }[] = [];
+  for (const p of items) {
+    const last = groups[groups.length - 1];
+    if (last && last.day === p.day && p.day) last.items.push(p);
+    else groups.push({ day: p.day, items: [p] });
+  }
+  return groups;
+}
+
 export default async function Home() {
-  const [items, clusterList] = await Promise.all([listIndex(), listClusters()]);
+  const [items, clusterList, days] = await Promise.all([listIndex(), listClusters(), listDays()]);
+  const dayTitle = (code?: string) => days.find((d) => d.code === code)?.title;
   const byCluster = new Map<string, typeof items>();
   for (const p of items) {
     const k = p.cluster ?? "Other";
@@ -60,28 +96,47 @@ export default async function Home() {
                 {clusterLabel(cluster, clusterList)}
               </h2>
               <ul className="divide-y divide-zinc-200 border-y border-zinc-200">
-                {sortedItems(byCluster.get(cluster)!).map((p) => (
-                  <li key={p.slug} className="py-3">
-                    <Link
-                      href={pagePath(p.cluster, p.slug, clusterList)}
-                      className="block font-serif text-[1.25rem] leading-snug hover:text-[var(--link)]"
-                      style={{ fontWeight: 500 }}
-                    >
-                      {/* The teaching day, so the list reads as the schedule it
-                          is. Two worksheets may share a day (D.3 is Solomonoff
-                          Induction then AIXI) — both show its code. */}
-                      {p.day && (
-                        <span className="mr-2 align-[0.1em] font-sans text-[0.72rem] tracking-[0.08em] text-zinc-400">
-                          {p.day}
-                        </span>
-                      )}
-                      {p.title}
-                    </Link>
-                    {p.frontmatter?.summary && (
-                      <p className="mt-1 font-serif text-[1rem] text-zinc-600 leading-relaxed">
-                        {p.frontmatter.summary}
-                      </p>
+                {byDay(sortedItems(byCluster.get(cluster)!)).map((group) => (
+                  <li key={group.items[0].slug} className="py-3">
+                    {/* A day taught in several parts announces itself once, then
+                        lists its parts — so two worksheets read as one day's
+                        material rather than as neighbours that happen to share a
+                        code. A one-worksheet day skips the heading entirely. */}
+                    {group.items.length > 1 && (
+                      // The id is what a part page's day breadcrumb links back to.
+                      <h3 id={group.day} className="mb-2 scroll-mt-24 font-sans text-[0.78rem] tracking-[0.06em] text-zinc-500">
+                        <span className="text-zinc-400">{group.day}</span>
+                        {dayTitle(group.day) && <span className="ml-2">{dayTitle(group.day)}</span>}
+                      </h3>
                     )}
+                    <ul className={group.items.length > 1 ? "space-y-3 border-l border-zinc-200 pl-4" : ""}>
+                      {group.items.map((p) => (
+                        <li key={p.slug}>
+                          <Link
+                            href={pagePath(p.cluster, p.slug, clusterList)}
+                            // Same reason as SidebarNav: the whole curriculum is
+                            // listed here, and prefetching every worksheet's RSC
+                            // payload on viewport entry is tens of MB for links
+                            // the reader has not chosen yet.
+                            prefetch={false}
+                            className="block font-serif text-[1.25rem] leading-snug hover:text-[var(--link)]"
+                            style={{ fontWeight: 500 }}
+                          >
+                            {dayCode(p.day, p.part, p.parts) && (
+                              <span className="mr-2 align-[0.1em] font-sans text-[0.72rem] tracking-[0.08em] text-zinc-400">
+                                {dayCode(p.day, p.part, p.parts)}
+                              </span>
+                            )}
+                            {p.title}
+                          </Link>
+                          {p.frontmatter?.summary && (
+                            <p className="mt-1 font-serif text-[1rem] text-zinc-600 leading-relaxed">
+                              {p.frontmatter.summary}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
                   </li>
                 ))}
               </ul>
@@ -99,10 +154,10 @@ export default async function Home() {
         </a>
         {" · "}Contact:{" "}
         <a
-          href="mailto:feedback@iliad.ac"
+          href="mailto:contact@iliad.ac"
           className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800"
         >
-          feedback@iliad.ac
+          contact@iliad.ac
         </a>
         <br />
         <BuildStamp />

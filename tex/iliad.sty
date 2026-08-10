@@ -326,4 +326,14 @@
 % ----------------------------------------------------------- conveniences ---
 \providecommand{\note}[1]{[\emph{Note:} #1]}
 
+% Iverson brackets. stmaryrd would supply these, but on Debian it arrives via
+% texlive-science, which hard-depends on texlive-lang-greek -- ~79 MB of CI
+% download for two glyphs, so they are built from kernel pieces instead.
+% \mathopen/\mathclose keep delimiter spacing correct. \providecommand, so a
+% sheet that does load stmaryrd keeps stmaryrd's real glyphs.
+% The web is unaffected either way: KaTeX has \llbracket natively, and the
+% converter never exports these (scripts/tex2mdx/shims.mjs, MACRO_SKIP).
+\providecommand{\llbracket}{\mathopen{[\![}}
+\providecommand{\rrbracket}{\mathclose{]\!]}}
+
 \endinput

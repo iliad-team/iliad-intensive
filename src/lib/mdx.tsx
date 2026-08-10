@@ -7,7 +7,7 @@
 import { compileMDX } from "next-mdx-remote/rsc";
 import { createHash } from "node:crypto";
 import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
+import { remarkKatexHtml } from "./remark-katex-html";
 import rehypeSlug from "rehype-slug";
 import "katex/dist/katex.min.css";
 import type { ReactNode } from "react";
@@ -18,6 +18,25 @@ import type { ReactNode } from "react";
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 const components = {
+  /**
+   * KatexHtml — a formula already rendered to markup by remarkKatexHtml.
+   *
+   * Not authored by hand; the plugin emits it in place of every `$…$` and
+   * `$$…$$`. It re-creates KaTeX's own outer wrapper (`katex` inline,
+   * `katex-display` for block) and injects the rest, so the DOM matches what
+   * rehype-katex used to produce while the RSC payload carries one string per
+   * formula instead of ~50 serialized React elements.
+   *
+   * The `html` is KaTeX's output, not user input: it is generated at build time
+   * from the worksheet's own TeX, which is already trusted enough to run
+   * through the LaTeX toolchain.
+   */
+  KatexHtml: ({ html, display }: { html: string; display?: boolean }) => (
+    <span
+      className={display ? "katex-display" : "katex"}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  ),
   /**
    * Callout — coloured side-note for an important remark, warning, or tip.
    * Usage: <Callout type="note|warning|tip">body</Callout>
@@ -146,9 +165,17 @@ const components = {
 
   /**
    * Figure — image with caption.
-   * Usage: <Figure src="/uploads/<slug>/file.png" alt="..." caption="..." />
+   * Usage: <Figure src="/uploads/<slug>/file.png" alt="...">Caption $math$.</Figure>
+   *
+   * The caption is CHILDREN, not a prop: a JSX attribute is an inert string that
+   * KaTeX never sees, so `caption="... $h_A \approx 0.03$ ..."` silently
+   * published as "... ()". As children it goes through the MDX pipeline and its
+   * math renders like any other. `caption` is still accepted for captions with
+   * no markup, and `alt` stays a plain string — HTML alt text cannot hold math.
    */
-  Figure: ({ src, alt, caption }: { src: string; alt?: string; caption?: string }) => (
+  Figure: ({ src, alt, caption, children }: {
+    src: string; alt?: string; caption?: string; children?: ReactNode;
+  }) => (
     <figure className="my-6 text-center" data-component="figure">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       {/* w-full: TikZ SVGs carry their natural TeX size in pt as intrinsic
@@ -161,8 +188,10 @@ const components = {
         decoding="async"
         className="mx-auto h-auto w-full rounded"
       />
-      {caption ? (
-        <figcaption className="mt-2 text-sm text-zinc-600">{caption}</figcaption>
+      {children ?? caption ? (
+        <figcaption className="mt-2 text-sm text-zinc-600 [&>p]:m-0">
+          {children ?? caption}
+        </figcaption>
       ) : null}
     </figure>
   ),
@@ -184,11 +213,14 @@ export async function MdxBody({ source }: { source: string }) {
       components,
       options: {
         mdxOptions: {
-          remarkPlugins: [remarkMath],
-          // rehypeSlug before rehypeKatex so slugs come from plain heading text.
-          // `macros: {}` is a fresh per-compile object: a page's own `\gdef`
-          // macros persist across its math blocks but never leak between pages.
-          rehypePlugins: [rehypeSlug, [rehypeKatex, { strict: false, macros: {} }]],
+          // remarkKatexHtml renders the math remarkMath found, straight to an
+          // HTML string (see its header for why it replaces rehype-katex). It
+          // owns the per-page `\gdef` macro scope that `macros: {}` used to.
+          remarkPlugins: [remarkMath, remarkKatexHtml],
+          // Math is already a string by the time hast exists, so rehypeSlug no
+          // longer has to be ordered against it — headings only ever contain
+          // plain text or an opaque span.
+          rehypePlugins: [rehypeSlug],
         },
       },
     });

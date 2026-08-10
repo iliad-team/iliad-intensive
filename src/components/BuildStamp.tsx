@@ -5,7 +5,7 @@
 // - NEXT_PUBLIC_COMMIT_SHA: injected by the build (CI sets it to the deployed
 //   commit; local `npm run ci` defaults it to `git rev-parse HEAD`). Absent →
 //   the commit link is simply omitted.
-const REPO_URL = "https://github.com/iliad-team/iliad-intensive";
+export const REPO_URL = "https://github.com/iliad-team/iliad-intensive";
 export const COMMIT_SHA = process.env.NEXT_PUBLIC_COMMIT_SHA?.trim() || undefined;
 const SHA = COMMIT_SHA;
 
