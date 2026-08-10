@@ -101,10 +101,7 @@ export function buildStatus({ check = false, schedule } = {}) {
       title: d.title,
       lead: d.lead,
       doc: d.doc,
-      // `declared` is what the schedule says the source situation is; `kind` is
-      // what's true now (the two differ once the day has a worksheet). Keeping
-      // both means porting a reading day doesn't erase that it IS a reading day.
-      source: { ...d.source, declared: d.source.kind },
+      source: { ...d.source },
       slidesUrl: d.slidesUrl,
       modules: [],
     });
@@ -172,8 +169,6 @@ export function buildStatus({ check = false, schedule } = {}) {
       live: list.filter((d) => d.live).length,
       decksBuilt: list.filter((d) => d.slides.kind === "built").length,
       decksHosted: list.filter((d) => d.slides.kind === "external").length,
-      // by what the day IS, not by whether it happens to be ported
-      readingDays: list.filter((d) => d.source.declared === "readings").length,
       awaitingSource: list.filter((d) => d.source.kind === "missing" || d.source.kind === "partial").length,
     },
   };

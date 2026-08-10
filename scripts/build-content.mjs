@@ -58,7 +58,8 @@ const CHECKER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx-check.mjs");
 const args = process.argv.slice(2);
 const CHECK_ONLY = args.includes("--check");
 // --no-gate skips the KaTeX render gate. The preview loop passes this: `next
-// build` renders the same math right after (via rehype-katex), so the gate is
+// build` renders the same math right after (via src/lib/remark-katex-html —
+// the gate here still uses rehype-katex, same KaTeX underneath), so the gate is
 // redundant there — a bad equation shows as a visible error in the browser
 // instead of failing the build. The full build / CI never pass it.
 const NO_GATE = args.includes("--no-gate");
@@ -112,6 +113,9 @@ try {
 const pexec = promisify(execFile);
 const exec = (cmd, argv, opts = {}) =>
   pexec(cmd, argv, { maxBuffer: 64 * 1024 * 1024, ...opts });
+
+// pdflatex invocation, shared by the worksheet and slides compile ladders.
+const PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
 
 // "No solutions" variants of every download format are derived by stripping
 // solution blocks from the source — so a handout (or an LLM prompt) can be
@@ -347,7 +351,6 @@ async function buildSlug(slug) {
     // 1. PDF FIRST: the converter resolves \cref/\ref through LaTeX's .aux, so
     //    the compile must happen before conversion — a fresh CI checkout has no
     //    .aux, and converting without one reports every \cref as unresolved.
-    const PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
     const compile = async (base, src = `${base}.tex`) => {
       await tex(...PDFLATEX, `-jobname=${base}`, src);
       await bibtex(base);
@@ -470,17 +473,16 @@ async function buildSlug(slug) {
   const hasHandout = hasSlidesTex
     && /\\HANDOUT\b/.test(readFileSync(path.join(dir, "slides.tex"), "utf8"));
   if (!CHECK_ONLY && hasSlidesTex) {
-    const SLIDES_PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
     // exec() passes argv straight through (no shell), so the \def wrapper needs
     // no quoting beyond JS's own backslash escapes.
     const variants = [["slides", "slides.tex"]];
     if (hasHandout) variants.push(["slides-handout", "\\def\\HANDOUT{}\\input{slides}"]);
     for (const [job, src] of variants) {
       try {
-        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
+        await tex(...PDFLATEX, `-jobname=${job}`, src);
         await bibtex(job);
-        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
-        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
+        await tex(...PDFLATEX, `-jobname=${job}`, src);
+        await tex(...PDFLATEX, `-jobname=${job}`, src);
       } catch (e) {
         if (e?.bibtex) return done(false, e.message);
         const log = path.join(dir, `${job}.log`);

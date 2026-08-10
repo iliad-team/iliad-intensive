@@ -93,7 +93,6 @@ const CONTRACT_MACROS = {
   // signature or the three brace groups survive as literal text
   crefname: { signature: "m m m" }, Crefname: { signature: "m m m" },
 };
-const THM_KINDS = new Set(["theorem", "lemma", "proposition", "corollary"]);
 const THM_COUNTED = new Set(["theorem", "lemma", "proposition", "corollary", "fact", "definition", "example"]);
 
 // ------------------------------------------------------------- run state ---
@@ -107,7 +106,6 @@ let inExercise = false;
 let citedKeys = new Set();      // bib keys cited anywhere on the page
 
 const secNum = () => (counters.appendix ? String.fromCharCode(64 + counters.section) : String(counters.section));
-const bucket = (dd) => { const n = +dd; return n <= 5 ? 1 : n <= 10 ? 2 : n <= 17 ? 3 : n <= 25 ? 4 : 5; };
 
 // ------------------------------------------------------------ math paths ---
 function mathClean(m) {
@@ -120,7 +118,7 @@ function mathClean(m) {
       const g3 = readArg(m, j); j = g3 ? g3.end : j;
       out += (g3 ? g3.content : "").replace(/\\displaystyle/g, "").replace(/\$/g, ""); i = j; continue;
     }
-    const cr = m.startsWith("\\Cref", i) ? 5 : m.startsWith("\\cref", i) ? 5 : (m.startsWith("\\ref", i) && m[i + 4] === "{") ? 4 : 0;
+    const cr = (m.startsWith("\\Cref", i) || m.startsWith("\\cref", i)) ? 5 : (m.startsWith("\\ref", i) && m[i + 4] === "{") ? 4 : 0;
     if (cr) { const g = readArg(m, i + cr); if (g) { out += g.content.split(",").map((l) => resolveRef(l.trim()).text).join(" and "); i = g.end; continue; } }
     if (m.startsWith("\\cite", i)) { let j = i + 5; const o = readOpt(m, j); if (o) j = o.end; const g = readArg(m, j); if (g) { const e = ctx.BIB[g.content.trim()]; if (e) citedKeys.add(g.content.trim()); out += e ? e.disp : g.content.trim(); i = g.end; continue; } }
     out += m[i]; i++;
@@ -236,12 +234,13 @@ const bracketArg = (n) => {
 // separately as renderable children.
 function mdToPlain(md, quiet = false) {
   const s = md.replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  const hadMath = /\$\$?[^$]*\$\$?/.test(s);
   const out = s
     .replace(/\$\$?[^$]*\$\$?/g, "")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/[*`]/g, "")
     .replace(/\s+/g, " ").trim();
-  if (!quiet && /\$\$?[^$]*\$\$?/.test(s)) {
+  if (!quiet && hadMath) {
     advise(`math is dropped from "${out.slice(0, 70)}" — it becomes a plain attribute (a box title, or the page title), which cannot render math; reword it in words`, snippetOf(s));
   }
   return out;

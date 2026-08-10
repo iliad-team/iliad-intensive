@@ -29,7 +29,7 @@ const TEX = path.join(ROOT, "tex");
 export const SCHEDULE_FILE = path.join(ROOT, "schedule.yaml");
 
 /** Where a day's buildable source is, for a day with no worksheet yet. */
-export const SOURCE_KINDS = new Set(["ready", "readings", "partial", "missing"]);
+export const SOURCE_KINDS = new Set(["ready", "partial", "missing"]);
 
 export class ScheduleError extends Error {}
 const bad = (msg) => { throw new ScheduleError(msg); };
