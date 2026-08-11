@@ -136,7 +136,7 @@ export default async function IntensivePage({
                             // linked worksheet's RSC payload is tens of MB for
                             // pages the reader has not chosen yet.
                             prefetch={false}
-                            className="font-serif text-[1.05rem] leading-snug hover:text-[var(--link)]"
+                            className="font-serif text-[1.05rem] leading-snug text-[var(--link)] underline decoration-1 underline-offset-2 hover:text-[var(--link-hover)]"
                           >
                             {m.title}
                           </Link>
@@ -144,16 +144,14 @@ export default async function IntensivePage({
                       ))}
                     </ul>
                   ) : (
-                    // Either a day with no curriculum material (arrival,
-                    // wrap-up) or a teaching day nobody has ported yet. Both
-                    // read as plain text; only the second admits to a gap.
+                    // Grey and unlinked, because there is no page to go to.
+                    // 🚧 marks the ones that SHOULD have material — a teaching
+                    // day whose worksheets aren't ported yet — so it never
+                    // lands on "No teaching" or "Launch Day", which are grey
+                    // simply because nothing is missing.
                     <span className="font-serif text-[1.05rem] text-zinc-500">
                       {d.title ?? dayTitle(d.code!) ?? d.code}
-                      {d.code && (
-                        <span className="ml-2 font-sans text-[0.78rem] text-zinc-400">
-                          not yet published
-                        </span>
-                      )}
+                      {d.code && <span className="ml-2" title="material not published yet">🚧</span>}
                     </span>
                   )}
                 </td>
