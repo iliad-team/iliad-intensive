@@ -1,0 +1,1 @@
+Figure 1: The emergent world models of OthelloGPT are linearly represented (Nanda et al., 2023).

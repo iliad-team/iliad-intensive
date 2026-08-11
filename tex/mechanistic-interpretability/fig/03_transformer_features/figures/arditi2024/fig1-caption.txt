@@ -1,0 +1,1 @@
+Figure 2: Adding the refusal direction induces refusal on harmless instructions (Arditi et al., 2024).

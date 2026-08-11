@@ -1,0 +1,1 @@
+Figure 3: A sketch of the computation on the last token of a transformer with inference-time intervention (ITI) highlighted.

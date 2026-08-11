@@ -19,6 +19,9 @@ echo "== system packages (TeX Live, poppler) =="
 need=()
 command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-fonts-recommended cm-super)
 command -v pdftocairo >/dev/null || need+=(poppler-utils)
+# biber: bibliography backend for biblatex decks (C.2's). Not part of any
+# texlive metapackage above, so it has to be named on its own.
+command -v biber      >/dev/null || need+=(biber)
 command -v git-lfs    >/dev/null || need+=(git-lfs)
 if [ ${#need[@]} -gt 0 ]; then
   echo "installing: ${need[*]}"

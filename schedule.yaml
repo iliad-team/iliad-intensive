@@ -164,7 +164,7 @@ clusters:
         lead: Julian
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.alpz10jgotvn
         source: ready
-        sourceUrl: https://github.com/wusche1/Illiad_Mech_Interp
+        sourceUrl: https://github.com/iliad-team/iliad-intensive-C.2
         worksheets:
           - mechanistic-interpretability
 

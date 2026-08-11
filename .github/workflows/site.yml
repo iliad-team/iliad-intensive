@@ -97,7 +97,12 @@ jobs:
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
             texlive-latex-extra texlive-pictures \
-            texlive-fonts-recommended cm-super poppler-utils
+            texlive-fonts-recommended cm-super poppler-utils biber
+          # biber (555 KB): the bibliography backend biblatex decks require —
+          # bibtex cannot read the .bcf they emit. C.2's deck is carried over
+          # from its author verbatim rather than being rewritten to our bibtex
+          # house style, and the slides ladder picks the pass from the source
+          # (see scripts/build-content.mjs). Cheap next to the rest of this step.
           # contributor LaTeX is untrusted: never enable shell-escape
 
       - uses: actions/setup-node@v4
