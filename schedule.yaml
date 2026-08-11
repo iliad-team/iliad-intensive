@@ -232,9 +232,11 @@ clusters:
         lead: Leon
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.pefcteqoku51
         source: ready
+        # The exercise sheet is the day's main event (3h15 of it, against 45min
+        # reading) and nothing in it depends on the readings, so it reads first.
         worksheets:
-          - instrumental-convergence
           - power-seeking
+          - instrumental-convergence
         note: >-
           Leon handed the source over as a zip, not a repo. The deck is his Marp
           deck (`slides/power-seeking.md`) exported to PDF — the build cannot
