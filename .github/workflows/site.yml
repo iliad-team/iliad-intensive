@@ -90,20 +90,37 @@ jobs:
         # expansion under [T1]{fontenc}.
         #
         # This download is the job's biggest single cost and a slow Ubuntu
-        # mirror can stall it for 15+ minutes, so keep it lean. Two packages are
-        # deliberately absent rather than forgotten:
-        #   texlive-bibtex-extra (75 MB) — was installed for one 36 KB file,
-        #     alphaurl.bst; that is vendored at tex/alphaurl.bst and found via
-        #     BSTINPUTS (see scripts/build-content.mjs).
-        #   texlive-science (4 MB) — hard-depends on texlive-lang-greek (75 MB)
-        #     and its only user here was stmaryrd, for two bracket glyphs now
-        #     built from kernel pieces.
-        # Together ~154 MB, roughly half what this step used to fetch.
+        # mirror can stall it for 15+ minutes, so keep it lean.
+        #
+        # texlive-bibtex-extra (79 MB) WAS absent, when the only thing wanted
+        # from it was a 36 KB style file — alphaurl.bst, since vendored at
+        # tex/alphaurl.bst and found via BSTINPUTS. It is back, for a bigger
+        # reason: it is the only Ubuntu package shipping biblatex.sty, and C.2's
+        # deck is a biblatex document. Its 97 \source{} slide attributions are
+        # built on \DeclareCiteCommand, which has no plain-bibtex equivalent, so
+        # the alternative was rewriting a deck we did not author. Vendoring
+        # biblatex alone does not work: biber enforces an exact control-file
+        # version, so a pinned copy that satisfies CI's biber 2.19 breaks every
+        # local build against TeX Live 2024's biber 2.20. The distro package is
+        # what keeps style and backend in step.
+        #
+        # texlive-science (4 MB) stays absent: it hard-depends on
+        # texlive-lang-greek (75 MB) and its only user here was stmaryrd, for
+        # two bracket glyphs now built from kernel pieces.
         run: |
           sudo apt-get update -q
           sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
             texlive-latex-extra texlive-pictures \
-            texlive-fonts-recommended cm-super poppler-utils
+            texlive-fonts-recommended cm-super poppler-utils \
+            biber texlive-bibtex-extra lmodern
+          # lmodern (4 MB): decks \usepackage{lmodern}. It is only a *Recommends*
+          # of texlive-latex-recommended, so --no-install-recommends drops it and
+          # the deck build dies on a missing lmodern.sty. Name it explicitly.
+          # biber (555 KB) + texlive-bibtex-extra: the two halves a biblatex
+          # document needs — the backend binary that reads the .bib and writes
+          # the .bbl, and biblatex.sty itself. Installing biber alone is not
+          # enough; see the note above. The slides ladder picks bibtex or biber
+          # from the deck's own source (scripts/build-content.mjs).
           # contributor LaTeX is untrusted: never enable shell-escape
 
       - uses: actions/setup-node@v4

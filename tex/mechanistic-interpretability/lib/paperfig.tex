@@ -1,0 +1,16 @@
+% \paperfig{image.png}{caption.txt}
+% Shows a centered image with caption text read from file below it.
+% If the caption file does not exist, no caption is shown.
+\usepackage{catchfile}
+
+\newcommand{\paperfig}[2]{%
+  \begin{center}
+  \includegraphics[width=0.85\textwidth,height=0.6\textheight,keepaspectratio]{#1}%
+  \end{center}%
+  \ifx\relax#2\relax\else
+    \IfFileExists{#2}{%
+      \CatchFileDef{\captiontext}{#2}{\endlinechar=-1}%
+      {\tiny\captiontext}%
+    }{}%
+  \fi
+}

@@ -1,0 +1,58 @@
+\documentclass[aspectratio=169]{beamer}
+
+\input{lib/packages}
+\input{lib/settings}
+\input{lib/metadata}
+\input{lib/paperfig}
+\input{lib/navtheme}
+\addbibresource{bib/refs.bib}
+\addbibresource{bib/manual.bib}
+
+\graphicspath{
+  {fig/01_intro/}
+  {fig/02_early_cnn_mechinterp/}
+  {fig/03_transformer_features/}
+  {fig/03_transformer_features/figures/elhage2022/}
+  {fig/03_transformer_features/figures/engels2025/}
+  {fig/03_transformer_features/figures/bricken2023/}
+  {fig/03_transformer_features/figures/chanin2024/}
+  {fig/03_transformer_features/figures/rajamanoharan2024/}
+  {fig/03_transformer_features/figures/bussmann2025/}
+  {fig/03_transformer_features/figures/fillingham2025/}
+  {fig/03_transformer_features/figures/templeton2024/}
+  {fig/03_transformer_features/figures/}
+  {fig/04_transformer_circuits/}
+  {fig/05_fuzzy_interp/}
+  {fig/06_discussion/}
+}
+
+\title{Mechanistic Interpretability}
+\subtitle{\coursetitle}
+\author{\instructor}
+\date{\today}
+
+\AtBeginSection[]{\navsection}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\navoverview
+
+\input{01_intro/slides}
+
+\input{02_early_cnn_mechinterp/slides}
+\input{03_transformer_features/slides}
+\input{04_transformer_circuits/slides}
+\input{05_fuzzy_interp/slides}
+\input{06_discussion/slides}
+
+% Future chapters:
+
+\begin{frame}[allowframebreaks]{References}
+\printbibliography[heading=none]
+\end{frame}
+
+\end{document}

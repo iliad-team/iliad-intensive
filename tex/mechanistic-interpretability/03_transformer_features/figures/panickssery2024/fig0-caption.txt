@@ -1,0 +1,1 @@
+(a) Diagram of steering vector generation for CAA.
