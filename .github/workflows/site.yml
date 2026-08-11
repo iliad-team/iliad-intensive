@@ -9,6 +9,12 @@
 # so a preview can coexist with production. REQUIRES a one-time repo setting:
 # Settings -> Pages -> Source = "Deploy from a branch" -> gh-pages / (root).
 # See docs/PR-PREVIEWS.md.
+#
+# History: gh-pages keeps NONE. Every publish force-pushes a single orphan
+# commit via .github/publish-gh-pages.sh, so the branch is always exactly one
+# commit deep. Because production and previews share the branch, each job stages
+# the COMPLETE tree in .deploy/ (checkout gh-pages, edit only its own subtree)
+# and lets the script replace the branch with it.
 name: site
 
 on:
@@ -202,19 +208,30 @@ jobs:
         with:
           name: site
           path: out
-      # clean:true below would wipe the live root; never let it run against an
-      # empty/failed artifact download (e.g. during a GitHub incident).
+      # The force-push below replaces gh-pages outright; never let it run
+      # against an empty/failed artifact download (e.g. during a GitHub
+      # incident), which would publish an empty site.
       - name: Guard against an empty artifact
         run: test -f out/index.html || { echo "::error::empty artifact — refusing to deploy (would wipe the live site)"; exit 1; }
-      - name: Deploy to gh-pages (root)
-        uses: JamesIves/github-pages-deploy-action@v4
+      - uses: actions/checkout@v4
         with:
-          branch: gh-pages
-          folder: out
-          # Refresh the root but never delete the preview subtrees.
-          clean: true
-          clean-exclude: |
-            pr-preview/**
+          ref: gh-pages
+          path: .deploy
+      # gh-pages is disposable build output, so every publish force-pushes ONE
+      # orphan commit instead of appending (see "History" in the header). That
+      # makes the commit we push the entire site — there is no previous state to
+      # merge with — so the live previews must be carried into it explicitly.
+      # Deleting them here is what "keep the root fresh" used to mean when the
+      # branch had history; now it would unpublish 12 open PRs' previews.
+      - name: Stage the site (fresh root + live previews)
+        run: |
+          set -euo pipefail
+          find .deploy -mindepth 1 -maxdepth 1 \
+            ! -name .git ! -name pr-preview -exec rm -rf {} +
+          cp -a out/. .deploy/
+      - name: Publish
+        run: |
+          .github/publish-gh-pages.sh "Deploy ${{ github.sha }}"
 
   # Preview: publish the built site to gh-pages/pr-preview/pr-<N>/ and comment
   # the URL on the PR. Only runs after `build` succeeds — i.e. the PR passed the
@@ -235,17 +252,27 @@ jobs:
         with:
           name: site
           path: out
-      # Deploy INTO the PR's own subfolder. clean: false means the action only
-      # ever adds/updates files under target-folder — it cannot touch production
-      # or another PR's preview (the docs are ambiguous on whether `clean` is
-      # scoped to target-folder, so we don't rely on it).
-      - name: Deploy PR preview
-        uses: JamesIves/github-pages-deploy-action@v4
+      - uses: actions/checkout@v4
         with:
-          branch: gh-pages
-          folder: out
-          target-folder: pr-preview/pr-${{ github.event.number }}
-          clean: false
+          ref: gh-pages
+          path: .deploy
+      # Swap in THIS PR's subfolder and leave everything else — production root
+      # and the other previews — exactly as checked out. The force-push
+      # publishes the whole tree, so anything missing here is anything
+      # unpublished; touching only our own directory is what keeps the blast
+      # radius to this PR.
+      - name: Stage this PR's preview
+        run: |
+          set -euo pipefail
+          DIR=".deploy/pr-preview/pr-${{ github.event.number }}"
+          rm -rf "$DIR"
+          mkdir -p "$DIR"
+          cp -a out/. "$DIR"/
+      # Block scalar, not a plain one: in an unquoted YAML scalar " #" opens a
+      # comment and would truncate the message mid-quote.
+      - name: Publish
+        run: |
+          .github/publish-gh-pages.sh "Preview for PR #${{ github.event.number }}"
       # Best-effort comment with the URL. continue-on-error so a GitHub API
       # blip can't fail an otherwise-successful deploy (the URL is deterministic
       # anyway). Upserts a single marked comment rather than spamming.
@@ -280,19 +307,23 @@ jobs:
       group: gh-pages-write
       cancel-in-progress: false
     steps:
+      # Pin to main for the publish script. The default checkout would resolve
+      # refs/pull/<N>/merge, which is already deleted by the time a MERGED PR
+      # fires its closed event (see the concurrency note at the top).
+      - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/checkout@v4
         with:
           ref: gh-pages
+          path: .deploy
       - name: Remove PR preview
         run: |
-          set -e
-          DIR="pr-preview/pr-${{ github.event.number }}"
+          set -euo pipefail
+          DIR=".deploy/pr-preview/pr-${{ github.event.number }}"
           if [ ! -d "$DIR" ]; then echo "no preview at $DIR — nothing to remove"; exit 0; fi
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm -r --quiet "$DIR"
-          git commit -m "Remove preview for PR #${{ github.event.number }}"
-          git push origin gh-pages
+          rm -rf "$DIR"
+          .github/publish-gh-pages.sh "Remove preview for PR #${{ github.event.number }}"
       - name: Update comment (preview removed)
         continue-on-error: true
         uses: actions/github-script@v7

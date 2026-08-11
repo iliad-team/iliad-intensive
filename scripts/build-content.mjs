@@ -58,7 +58,8 @@ const CHECKER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx-check.mjs");
 const args = process.argv.slice(2);
 const CHECK_ONLY = args.includes("--check");
 // --no-gate skips the KaTeX render gate. The preview loop passes this: `next
-// build` renders the same math right after (via rehype-katex), so the gate is
+// build` renders the same math right after (via src/lib/remark-katex-html —
+// the gate here still uses rehype-katex, same KaTeX underneath), so the gate is
 // redundant there — a bad equation shows as a visible error in the browser
 // instead of failing the build. The full build / CI never pass it.
 const NO_GATE = args.includes("--no-gate");
@@ -152,11 +153,38 @@ const stripTexSolutions = (tex) =>
   cutSpans(
     cutSpans(tex, /[ \t]*\\begin\{solution\}[\s\S]*?\\end\{solution\}[ \t]*\n?/g),
     /[ \t]*\\begin\{solutionsonly\}[\s\S]*?\\end\{solutionsonly\}[ \t]*\n?/g);
+// A footnote taken inside an answer leaves its definition behind when the
+// answer goes: the `[^3]` reference left with the <Solution>, but `[^3]: …`
+// still sits at the foot of the file. A renderer drops a definition nothing
+// references, so the PAGE is fine — the leak is the -nosol markdown download,
+// where a reader would find the answer's aside sitting there in full.
+const pruneOrphanFootnotes = (mdx) => {
+  const referenced = new Set(
+    [...mdx.matchAll(/\[\^([^\]\s]+)\](?!:)/g)].map((m) => m[1]));
+  const out = [];
+  let dropping = false;
+  for (const line of mdx.split("\n")) {
+    const def = /^\[\^([^\]\s]+)\]:/.exec(line);
+    if (def) {
+      dropping = !referenced.has(def[1]);
+      if (dropping) continue;
+    } else if (dropping) {
+      // An indented line continues the definition we are dropping. A blank one
+      // is kept either way: it may be the separator the next block needs.
+      if (/^[ \t]+\S/.test(line)) continue;
+      if (line.trim() !== "") dropping = false;
+    }
+    out.push(line);
+  }
+  return out.join("\n");
+};
+
 // MDX: strip only bare <Solution> answer blocks — titled ones
 // (<Solution title="Hint">, ...title="Proof">) stay, matching what
 // stripTexSolutions keeps in the .tex. Depth-aware because an answer may
 // itself contain a titled proof block. Also strip solutionsonly spans, which
 // the converter brackets with invisible {/* iliad:solutionsonly:* */} markers.
+// Whatever is left goes through pruneOrphanFootnotes on the way out.
 const stripMdxSolutions = (mdx) => {
   mdx = mdx.replace(
     /\n?\{\/\* iliad:solutionsonly:start \*\/\}[\s\S]*?\{\/\* iliad:solutionsonly:end \*\/\}[ \t]*\n?/g,
@@ -164,7 +192,7 @@ const stripMdxSolutions = (mdx) => {
   let out = "", i = 0;
   for (;;) {
     const s = mdx.indexOf("<Solution>", i);
-    if (s === -1) return out + mdx.slice(i);
+    if (s === -1) return pruneOrphanFootnotes(out + mdx.slice(i));
     let depth = 0, j = s;
     for (;;) {
       const o = mdx.indexOf("<Solution", j), c = mdx.indexOf("</Solution>", j);
@@ -172,7 +200,7 @@ const stripMdxSolutions = (mdx) => {
       if (o !== -1 && o < c) { depth++; j = o + "<Solution".length; }
       else { depth--; j = c + "</Solution>".length; if (depth === 0) break; }
     }
-    if (j === -1) return out + mdx.slice(i);   // unbalanced — leave untouched
+    if (j === -1) return pruneOrphanFootnotes(out + mdx.slice(i));   // unbalanced — leave untouched
     out += mdx.slice(i, s).replace(/[ \t]+$/, "");
     i = j + (mdx[j] === "\n" ? 1 : 0);
   }

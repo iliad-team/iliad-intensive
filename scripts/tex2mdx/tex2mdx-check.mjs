@@ -24,6 +24,7 @@ const req = createRequire(path.join(repo, "package.json"));
 const imp = async (name) => (await import(pathToFileURL(req.resolve(name)).href));
 const { compile } = await imp("@mdx-js/mdx");
 const remarkMath = (await imp("remark-math")).default;
+const remarkGfm = (await imp("remark-gfm")).default;
 const rehypeKatex = (await imp("rehype-katex")).default;
 const katex = (await imp("katex")).default;
 
@@ -32,7 +33,10 @@ if (!file) { console.error("usage: node tex2mdx-check.mjs <file.mdx>"); process.
 const body = readFileSync(file, "utf8").replace(/^---\n[\s\S]*?\n---\n/, "");
 
 try {
-  await compile(body, { remarkPlugins: [remarkMath], rehypePlugins: [[rehypeKatex, { strict: false, macros: {} }]] });
+  // remarkGfm because the site loads it (footnotes, tables): a footnote
+  // reference with no definition is a *compile* success but a rendering bug,
+  // and the gate should see the same tree the page does.
+  await compile(body, { remarkPlugins: [remarkMath, remarkGfm], rehypePlugins: [[rehypeKatex, { strict: false, macros: {} }]] });
   console.log("MDX compile: OK");
 } catch (e) { console.log("MDX compile: FAIL ::", String(e.message).split("\n")[0]); process.exit(1); }
 

@@ -55,6 +55,7 @@ around it (CI also rejects redefinitions of contract names).
 | `\important` | mark | ★ after an exercise's label: one of the sheet's key exercises |
 | `\authorname{}` `\affiliation{}` | cmds | structured `\author{}` entries (byline extraction) |
 | `\hint{}` `\note{}` | cmds | inline `[Hint: …]` / `[Note: …]` (don't use inline `\hint{}` at the top level of a `hint` environment) |
+| `\llbracket` `\rrbracket` | cmds | Iverson brackets, from kernel pieces — don't load `stmaryrd` for them (on Debian it drags in ~79 MB of CI download for two glyphs). `\providecommand`, so a sheet that does load stmaryrd keeps its glyphs; a **slide deck** doesn't load `iliad.sty`, so it still defines its own |
 | `\ifsolutions` | toggle | `\solutionsfalse` hides every solution from the PDF |
 | `\skippable`, `\difficulty{}`, `summary` env | legacy | still compile but are not part of the contract; the page summary belongs in the `%--- iliad ---` metadata block |
 
