@@ -5,7 +5,7 @@ import { listClusters } from "@/lib/cluster-store";
 import { clusterLabel, pagePath } from "@/lib/clusters";
 import { BUILT_AT, COMMIT_SHA, CommitLink } from "@/components/BuildStamp";
 import {
-  InFlightProvider, InFlightCell, InFlightCount, InFlightRest, StatusFreshness,
+  InFlightProvider, InFlightCell, InFlightCount, InFlightRest, InFlightTd, StatusFreshness,
 } from "@/components/InFlight";
 // From its own module, not from InFlight.tsx: a server component importing a
 // value out of a "use client" file gets undefined. See flight-tone.ts.
@@ -28,8 +28,10 @@ import type { Cluster } from "@/lib/clusters";
  * requests, and whether this page's own commit is still main's tip, are fetched
  * from GitHub in the reader's browser (components/InFlight.tsx). A branch that
  * hasn't merged is not a property of a build from main, so no build could
- * observe it. Everything from that source is additive — it never overrides a
- * build-derived cell, and if the fetch fails the page is exactly what the build
+ * observe it. That source never contradicts the build: it adds the PR chips and
+ * the tally, and it splits the outstanding tint in two (amber for a day nobody
+ * has picked up, violet for one an open PR claims) without touching a cell's
+ * glyph or wording. If the fetch fails the page is exactly what the build
  * produced.
  */
 export const metadata = {
@@ -235,8 +237,9 @@ export default async function StatusPage() {
           table can&apos;t drift from what the site actually serves. The day roster, which
           worksheets are each day&apos;s material, the Doc tabs, and where the source lives for
           a day nobody has ported yet are the hand-kept part, in <code>schedule.yaml</code>.
-          Open pull requests are the one live column, read from GitHub when you load the
-          page rather than baked in by the build.
+          Open pull requests are the one live input, read from GitHub when you load the
+          page rather than baked in by the build: they add the PR links, and they turn an
+          outstanding cell violet where a branch is already claiming the day.
         </p>
         {/* Tallies in the same tones as the column they summarise. */}
         <dl className="mt-5 flex flex-wrap gap-2 font-sans text-[0.8rem]">
@@ -324,14 +327,29 @@ export default async function StatusPage() {
                       {dayTitle}
                     </td>
                     <td className={`${td} text-zinc-600`}>{day.lead}</td>
-                    {/* The cell keeps the build's tint and wording — an open PR
-                        doesn't make a worksheet exist. The chip sits beside
-                        them, saying where the work actually is. */}
-                    <td className={`${td} ${TONE[material.tone].cell}`}>
+                    {/* Both cells keep the build's wording — an open PR doesn't
+                        make a worksheet or a deck exist. The tint is the one
+                        thing the live fetch may change, and only in one
+                        direction: outstanding + an open PR claims the day goes
+                        violet instead of amber, so what stays amber is what
+                        nobody is on. */}
+                    <InFlightTd
+                      code={day.code}
+                      className={td}
+                      tint={TONE[material.tone].cell}
+                      flightable={material.tone === "wait"}
+                    >
                       {material.node}
                       <InFlightCell code={day.code} />
-                    </td>
-                    <td className={`${td} ${TONE[slides.tone].cell}`}>{slides.node}</td>
+                    </InFlightTd>
+                    <InFlightTd
+                      code={day.code}
+                      className={td}
+                      tint={TONE[slides.tone].cell}
+                      flightable={slides.tone === "wait"}
+                    >
+                      {slides.node}
+                    </InFlightTd>
                     <td className={td}>
                       <Chip href={day.doc} external>tab&nbsp;↗</Chip>
                     </td>
@@ -350,7 +368,7 @@ export default async function StatusPage() {
         {([
           ["good", "here and working — worksheet live, deck compiled, source in repo"],
           ["ok", "in hand, but not ours to build — upstream source, deck hosted elsewhere"],
-          ["wait", "outstanding — not ported yet, or no deck"],
+          ["wait", "outstanding, and nobody is on it — not ported yet, or no deck"],
           ["gone", "nothing buildable exists — only compiled PDFs"],
         ] as [Tone, string][]).map(([tone, meaning]) => (
           <span key={tone} className={`rounded px-2 py-1 ${TONE[tone].cell}`}>
@@ -362,7 +380,11 @@ export default async function StatusPage() {
             derives — it comes from the in-browser fetch, not the build. */}
         <span className={`rounded px-2 py-1 ${FLIGHT.cell}`}>
           <dt className="inline font-medium" aria-hidden>{FLIGHT.glyph}</dt>{" "}
-          <dd className="inline opacity-80">in flight — an open PR claims this day</dd>
+          <dd className="inline opacity-80">
+            in flight — an open PR claims this day, so its outstanding cells wear this
+            instead of amber. Day-level: it says someone is on the day, not that the
+            branch carries a deck.
+          </dd>
         </span>
       </dl>
 

@@ -21,9 +21,16 @@ import { FLIGHT } from "./flight-tone";
  *
  * STRICTLY ADDITIVE. The table is server-rendered from status.json and is
  * complete before any of this runs. JS off, offline, rate-limited, or the repo
- * turned private → every component here renders nothing and the page is exactly
- * what the build produced. Nothing below is allowed to remove or contradict a
- * fact the build established.
+ * turned private → every component here renders nothing, every cell keeps the
+ * tint the build gave it, and the page is exactly what the build produced.
+ * Nothing below is allowed to remove or contradict a fact the build established.
+ *
+ * The one thing here that touches a build-rendered cell is the tint of the two
+ * outstanding columns (InFlightTd, used by Material and Slides), and it splits a
+ * build state rather than overriding one: a day with no worksheet — or no deck —
+ * is "outstanding", and an open PR says which kind, someone on it or nobody. The
+ * glyph and the words ("not ported", "no deck") are the build's and never
+ * change, so a cell still can't claim a worksheet or a deck that doesn't exist.
  *
  * The join key is the day code in the PR title — "[D.4] Agent Foundations +
  * [D.5] Decision Theory" claims both days. That convention is already
@@ -265,6 +272,47 @@ export function InFlightCell({ code }: { code: string }) {
     <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
       {prs.map((pr) => <PrChip key={pr.number} pr={pr} />)}
     </span>
+  );
+}
+
+/**
+ * A status <td> (Material, Slides): server-rendered content, client-chosen tint.
+ *
+ * A cell the build tinted `wait` — no worksheet ported, or no deck — takes the
+ * flight tint instead once an open PR claims the day, so the amber left in the
+ * column is the work nobody has picked up. Every other tone is a settled build
+ * fact (a live worksheet, a compiled deck, one hosted elsewhere) and is left
+ * exactly as it was; so is a `wait` cell no PR claims, and so is every cell if
+ * the fetch never lands.
+ *
+ * The claim is day-level, because a PR title is all we have to join on: violet
+ * means a branch is working this day, not that the branch contains a deck. That
+ * is why the words stay the build's — a violet "no deck" is "someone is on this
+ * day and there is still no deck here", which is the honest reading.
+ *
+ * It has to be a client component rendering the <td>, not a wrapper around it:
+ * the tint is a class on the cell, and only this side knows the PRs. The
+ * children are still built and rendered on the server and passed straight
+ * through.
+ */
+export function InFlightTd({
+  code, className, tint, flightable, children,
+}: {
+  code: string;
+  /** The cell's classes apart from its tint. */
+  className: string;
+  /** The tint the build chose — used unless the flight tint replaces it. */
+  tint: string;
+  /** May it? True only for a cell whose build tone is `wait`. */
+  flightable: boolean;
+  children: React.ReactNode;
+}) {
+  const { phase, byDay } = useInFlight();
+  const inFlight = phase === "ready" && (byDay.get(code)?.length ?? 0) > 0;
+  return (
+    <td className={`${className} ${flightable && inFlight ? FLIGHT.cell : tint}`}>
+      {children}
+    </td>
   );
 }
 
