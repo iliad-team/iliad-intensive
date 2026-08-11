@@ -64,7 +64,9 @@ export default async function IntensivePage({
   const dayTitle = (code: string) => days.find((d) => d.code === code)?.title;
 
   return (
-    <main className="mx-auto px-6 py-10" style={{ maxWidth: 720 }}>
+    // Wider than the 720 the reading pages use: four columns, one of them a
+    // list of worksheet titles.
+    <main className="mx-auto px-6 py-10" style={{ maxWidth: 860 }}>
       <header className="mb-10">
         <Link
           href="/intensives"
@@ -83,12 +85,33 @@ export default async function IntensivePage({
         </p>
       </header>
 
-      <table className="w-full border-collapse">
+      {/* The same shape every teaching day, so it is stated once here rather
+          than repeated down a column. */}
+      {it.rhythm.length > 0 && (
+        <section className="mb-10 border-y border-zinc-200 py-4">
+          <h2 className="mb-3 font-sans text-xs uppercase tracking-[0.12em] text-zinc-500">
+            Daily rhythm
+          </h2>
+          <dl className="space-y-1">
+            {it.rhythm.map((r) => (
+              <div key={r.time} className="flex gap-4 font-sans text-[0.9rem]">
+                <dt className="w-[8.5rem] shrink-0 tabular-nums text-zinc-500">{r.time}</dt>
+                <dd className="text-zinc-700">{r.what}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
+
+      {/* Four columns don't fit a phone; scroll the table, never the page. */}
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[640px] border-collapse">
         <thead>
           <tr>
             <th className={`${TH} w-[7.5rem]`}>Date</th>
             <th className={`${TH} w-[3.5rem]`}>Day</th>
             <th className={TH}>Material</th>
+            <th className={`${TH} w-[10rem]`}>Teacher</th>
           </tr>
         </thead>
         <tbody>
@@ -134,11 +157,15 @@ export default async function IntensivePage({
                     </span>
                   )}
                 </td>
+                <td className={`${TD} pl-3 font-sans text-[0.85rem] text-zinc-600`}>
+                  {d.teacher}
+                </td>
               </tr>
             );
           })}
         </tbody>
       </table>
+      </div>
     </main>
   );
 }

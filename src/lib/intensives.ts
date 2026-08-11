@@ -38,7 +38,17 @@ export type IntensiveDay = {
   code: string | null;
   /** A day with no curriculum material (arrival, wrap-up). Null for a `code` day. */
   title: string | null;
+  /**
+   * Who teaches it on this run — a fact about the programme, not the material,
+   * which is why it lives here and not in schedule.yaml's `lead:`. The two
+   * routinely differ: a day's material can be owned by one person and taught by
+   * another. Optional.
+   */
+  teacher: string | null;
 };
+
+/** One line of the daily timetable — the same every teaching day. */
+export type RhythmEntry = { time: string; what: string };
 
 export type Intensive = {
   /** Filename without extension — the URL segment. */
@@ -49,6 +59,8 @@ export type Intensive = {
   starts: string;
   ends: string;
   days: IntensiveDay[];
+  /** Empty when the file declares no `rhythm:` block. */
+  rhythm: RhythmEntry[];
 };
 
 const DIR = path.join(process.cwd(), "intensives");
@@ -62,7 +74,8 @@ function isDate(s: unknown): s is string {
   return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === s;
 }
 
-type RawDay = { date?: unknown; code?: unknown; title?: unknown };
+type RawDay = { date?: unknown; code?: unknown; title?: unknown; teacher?: unknown };
+type RawRhythm = { time?: unknown; what?: unknown };
 
 /**
  * Every programme, newest first — the run someone is looking for is nearly
@@ -94,7 +107,7 @@ export async function listIntensives(): Promise<Intensive[]> {
       bad("filename is the URL segment, so it must be lowercase letters, digits and hyphens (e.g. aug2026-sf.yaml)");
     }
 
-    let doc: { title?: unknown; location?: unknown; days?: unknown } | null;
+    let doc: { title?: unknown; location?: unknown; days?: unknown; rhythm?: unknown } | null;
     try {
       doc = YAML.parse(await readFile(path.join(DIR, file), "utf8"));
     } catch (e) {
@@ -123,6 +136,7 @@ export async function listIntensives(): Promise<Intensive[]> {
       if (hasCode === hasTitle) {
         bad(`${at}: give exactly one of \`code\` (a teaching day from schedule.yaml) or \`title\` (a day with no curriculum material)`);
       }
+      const teacher = d.teacher === undefined || d.teacher === null ? null : String(d.teacher);
       if (hasCode) {
         const code = String(d.code);
         // Guarded on `known.size`: cluster-store returns [] if schedule.yaml is
@@ -132,9 +146,20 @@ export async function listIntensives(): Promise<Intensive[]> {
         }
         if (seenCode.has(code)) bad(`${at}: day "${code}" is already taught on another date`);
         seenCode.add(code);
-        parsed.push({ date, code, title: null });
+        parsed.push({ date, code, title: null, teacher });
       } else {
-        parsed.push({ date, code: null, title: String(d.title) });
+        parsed.push({ date, code: null, title: String(d.title), teacher });
+      }
+    }
+
+    // The daily timetable, identical on every teaching day — so it is one block
+    // on the page rather than a field repeated fourteen times.
+    const rhythm: RhythmEntry[] = [];
+    if (doc!.rhythm !== undefined && doc!.rhythm !== null) {
+      if (!Array.isArray(doc!.rhythm)) bad("`rhythm` must be a list of `time:`/`what:` pairs");
+      for (const [i, r] of (doc!.rhythm as RawRhythm[]).entries()) {
+        if (!r?.time || !r?.what) bad(`rhythm[${i}]: needs both \`time\` and \`what\``);
+        rhythm.push({ time: String(r.time), what: String(r.what) });
       }
     }
 
@@ -145,6 +170,7 @@ export async function listIntensives(): Promise<Intensive[]> {
       starts: parsed[0].date,
       ends: parsed[parsed.length - 1].date,
       days: parsed,
+      rhythm,
     });
   }
 

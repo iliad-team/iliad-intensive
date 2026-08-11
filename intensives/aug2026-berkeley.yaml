@@ -4,37 +4,63 @@
 # Each day is a date plus ONE of:
 #   code:   a teaching day in schedule.yaml — its worksheets become the links
 #   title:  anything else (a day not in schedule.yaml, an off day, launch day)
+# and an optional `teacher:`. Dates must increase down the list. That is the
+# whole format.
 #
-# Dates must increase down the list. That is the whole format.
+# `teacher` lives here rather than in schedule.yaml because it is a fact about
+# this run: schedule.yaml's `lead:` is who owns the material, and the two
+# differ on six of the days below.
 
 title: Iliad Intensive
 location: Berkeley
+
+# The same every teaching day, so it is stated once instead of per day.
+rhythm:
+  - time: "10:00 – 12:30"
+    what: Morning session
+  - time: "12:30 – 13:30"
+    what: Lunch
+  - time: "13:30 – 17:40"
+    what: Afternoon session
+  - time: "17:40 – 18:00"
+    what: Daily feedback form
+  - time: "18:00 – 19:00"
+    what: Dinner
 
 days:
   # ── Week 1 ──────────────────────────────────────────────────────────────
   - date: 2026-08-10
     code: A.1                      # AI Alignment
+    teacher: Leon Lang
   - date: 2026-08-11
     code: B.3                      # Singular Learning Theory
+    teacher: Zach Furman
   - date: 2026-08-12
     code: C.3                      # Computational Mechanics
+    teacher: Charles Renshaw-Whitman
   # Your doc calls this D.4, but schedule.yaml's D.4 is Agent Foundations (day
   # 11 below). No day for this one exists there yet, so it has no code and no
   # material links until someone adds it.
   - date: 2026-08-13
     title: World Modeling and Transducers
+    teacher: Fernando Rosas
   - date: 2026-08-14
     code: B.2                      # Mysteries of Deep Learning
+    teacher: Zach Furman
 
   # ── Week 2 ──────────────────────────────────────────────────────────────
   - date: 2026-08-17
     code: C.2                      # Mechanistic Interpretability
+    teacher: Brianna Grado-White
   - date: 2026-08-18
     code: B.4                      # Training Dynamics
+    teacher: Guillaume Corlouer
   - date: 2026-08-19
     code: B.5                      # Data Attribution
+    teacher: Louis Jaburi
   - date: 2026-08-20
     code: A.2                      # Alignment in Practice
+    teacher: Garrett Baker
   - date: 2026-08-21
     title: No teaching
 
@@ -42,13 +68,18 @@ days:
   # Not in schedule.yaml — no code, no material links until it is added.
   - date: 2026-08-24
     title: Statistical Field Theory
+    teacher: Charles Renshaw-Whitman
   # Your doc calls this D.3, but schedule.yaml's D.3 is AIXI and its D.4 is
   # Agent Foundations — matched here on the title and the teacher, not the code.
   - date: 2026-08-25
     code: D.4                      # Agent Foundations
+    teacher: Sung En (Daniel) Chiang
   - date: 2026-08-26
     code: E.1                      # Debate
+    teacher: Stephan Wäldchen
   - date: 2026-08-27
     code: E.2                      # Steganography and Backdoors
+    teacher: Stephan Wäldchen
   - date: 2026-08-28
     title: Launch Day
+    teacher: Leon Lang, David Udell
