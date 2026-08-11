@@ -1,0 +1,54 @@
+# The Berkeley run, August 2026. The filename is the URL segment, so this file
+# is served at /intensives/aug2026-berkeley/.
+#
+# Each day is a date plus ONE of:
+#   code:   a teaching day in schedule.yaml — its worksheets become the links
+#   title:  anything else (a day not in schedule.yaml, an off day, launch day)
+#
+# Dates must increase down the list. That is the whole format.
+
+title: Iliad Intensive
+location: Berkeley
+
+days:
+  # ── Week 1 ──────────────────────────────────────────────────────────────
+  - date: 2026-08-10
+    code: A.1                      # AI Alignment
+  - date: 2026-08-11
+    code: B.3                      # Singular Learning Theory
+  - date: 2026-08-12
+    code: C.3                      # Computational Mechanics
+  # Your doc calls this D.4, but schedule.yaml's D.4 is Agent Foundations (day
+  # 11 below). No day for this one exists there yet, so it has no code and no
+  # material links until someone adds it.
+  - date: 2026-08-13
+    title: World Modeling and Transducers
+  - date: 2026-08-14
+    code: B.2                      # Mysteries of Deep Learning
+
+  # ── Week 2 ──────────────────────────────────────────────────────────────
+  - date: 2026-08-17
+    code: C.2                      # Mechanistic Interpretability
+  - date: 2026-08-18
+    code: B.4                      # Training Dynamics
+  - date: 2026-08-19
+    code: B.5                      # Data Attribution
+  - date: 2026-08-20
+    code: A.2                      # Alignment in Practice
+  - date: 2026-08-21
+    title: No teaching
+
+  # ── Week 3 ──────────────────────────────────────────────────────────────
+  # Not in schedule.yaml — no code, no material links until it is added.
+  - date: 2026-08-24
+    title: Statistical Field Theory
+  # Your doc calls this D.3, but schedule.yaml's D.3 is AIXI and its D.4 is
+  # Agent Foundations — matched here on the title and the teacher, not the code.
+  - date: 2026-08-25
+    code: D.4                      # Agent Foundations
+  - date: 2026-08-26
+    code: E.1                      # Debate
+  - date: 2026-08-27
+    code: E.2                      # Steganography and Backdoors
+  - date: 2026-08-28
+    title: Launch Day
