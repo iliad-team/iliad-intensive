@@ -76,8 +76,17 @@ export default async function Home() {
   return (
     <main className="mx-auto px-6 py-10" style={{ maxWidth: 720 }}>
       <header className="mb-10">
+        {/* The curriculum is what this site is; an intensive is one running of
+            it, with dates. Sits above the title because a participant arrives
+            looking for their own programme's schedule, not for the library. */}
+        <Link
+          href="/intensives"
+          className="font-sans text-xs uppercase tracking-[0.15em] text-zinc-500 hover:text-zinc-800"
+        >
+          Intensives →
+        </Link>
         <h1
-          className="font-serif tracking-tight leading-[1.1] text-[2.5rem]"
+          className="mt-3 font-serif tracking-tight leading-[1.1] text-[2.5rem]"
           style={{ fontWeight: 600 }}
         >
           Iliad Intensive Curriculum
