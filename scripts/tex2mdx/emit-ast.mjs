@@ -48,7 +48,7 @@ const NOOP_MACROS = new Set([
   "allowdisplaybreaks", "phantomsection", "sloppy", "AND", "And", "name",
   "height", "width", "depth", "centerline", "noindent", "medskip", "smallskip",
   "bigskip", "hfill", "hfil", "vfill", "vfil", "null", "clearpage", "newpage",
-  "par", "today", "itemsep", "protect", "qedhere", "footnotemark", "appendix",
+  "par", "today", "itemsep", "protect", "qedhere", "appendix",
   "LARGE", "Large", "large", "small", "footnotesize", "scriptsize", "normalsize",
   "bfseries", "itshape", "sffamily", "ttfamily", "rmfamily",
   "bgroup", "egroup", "begingroup", "endgroup", "ignorespaces",
@@ -106,6 +106,7 @@ let expandDepth = 0;
 let counters = null;
 let inExercise = false;
 let citedKeys = new Set();      // bib keys cited anywhere on the page
+let footnotes = [];             // {id, body} in source order; body null until \footnotetext
 
 const secNum = () => (counters.appendix ? String.fromCharCode(64 + counters.section) : String(counters.section));
 
@@ -662,7 +663,16 @@ function emitMacro(n) {
       return name === "citep" ? `(${body})` : body;
     }
     case "citetext": return `(${walkArg(n, 0)})`;
-    case "footnote": case "footnotetext": return ` (${walkArg(n, n.args ? n.args.length - 1 : 0)})`;
+    case "footnote": return footnoteRef(walkArg(n, n.args ? n.args.length - 1 : 0));
+    case "footnotemark": return footnoteRef(null);
+    case "footnotetext": {
+      const body = walkArg(n, n.args ? n.args.length - 1 : 0);
+      if (fillFootnoteText(body)) return "";
+      // No mark to attach to: keep the words where they are rather than emit a
+      // definition nothing references, which the renderer would silently drop.
+      advise("\\footnotetext with no \\footnotemark before it — kept inline, in parentheses", snippetOf(body));
+      return ` (${body})`;
+    }
     case "hint": return `[*Hint:* ${walkArg(n, 0)}]`;
     case "note": return `[*Note:* ${walkArg(n, 0)}]`;
     // \difficulty is not contract UI — it renders as the same plain [n]
@@ -939,12 +949,51 @@ function emitBibliography() {
   return `\n\n## References\n\n${items.join("\n\n")}\n`;
 }
 
+// --------------------------------------------------------------- footnotes ---
+// \footnote{…} becomes a GFM footnote: a [^N] reference where the author put
+// it, and the note itself in a definition appended below. The renderer collects
+// the definitions into one list at the foot of the page — the web equivalent of
+// what the PDF puts at the foot of the sheet — so the definitions' position in
+// the file is bookkeeping, not layout.
+//
+// \footnotemark + \footnotetext is the split form LaTeX needs when the mark sits
+// somewhere it can't carry the text, like a theorem's title argument. The mark
+// takes the next number and the following \footnotetext fills it in, which is
+// how LaTeX pairs them too.
+const footnoteRef = (body) => {
+  footnotes.push({ id: footnotes.length + 1, body });
+  return `[^${footnotes.length}]`;
+};
+const fillFootnoteText = (body) => {
+  const open = footnotes.find((f) => f.body === null);
+  if (open) open.body = body;
+  return Boolean(open);
+};
+function emitFootnotes() {
+  if (footnotes.length === 0) return "";
+  const defs = footnotes.map((f) => {
+    if (f.body === null) {
+      warn(`\\footnotemark with no \\footnotetext after it — footnote ${f.id} would render empty`, "\\footnotemark");
+      return `[^${f.id}]: (no \\footnotetext in the source)`;
+    }
+    if (/\n[ \t]*\n/.test(f.body.trim())) {
+      advise(`footnote ${f.id} spans paragraphs in the source; the page renders it as one`, snippetOf(f.body));
+    }
+    // One line per definition. A blank line would end the definition, and the
+    // 4-space indent that continues one is also the indent that starts a code
+    // block — so paragraph breaks inside a note collapse to spaces instead.
+    return `[^${f.id}]: ${f.body.replace(/\s+/g, " ").trim()}`;
+  });
+  return `\n\n${defs.join("\n\n")}\n`;
+}
+
 export function emitDocument(bodyTex, context) {
   ctx = context;
   anchorMap = {};
   droppedLabels = new Set();
   authorMacros = {};
   citedKeys = new Set();
+  footnotes = [];
   inExercise = false;
 
   // phase A: default parse of preamble+body to harvest author macro definitions
@@ -982,10 +1031,12 @@ export function emitDocument(bodyTex, context) {
   context.warnRestore(wSnap);
 
   // pass 2: emit, move every solution up under its exercise, then append
-  // the References list for everything the page cited
+  // the References list for everything the page cited and the definitions for
+  // every footnote it took. Pass 1's numbering is thrown away with its output.
   counters = { section: 0, subsec: 0, subsubsec: 0, appendix: false, ex: {}, thm: {} };
   citedKeys = new Set();
-  const md = relocateSolutions(walk(ast.content)) + emitBibliography();
+  footnotes = [];
+  const md = relocateSolutions(walk(ast.content)) + emitBibliography() + emitFootnotes();
 
   // a \cref may target a label inside a dropped pdfonly block — it resolves
   // via the aux, so the link emits but points at nothing. Tell the author.
