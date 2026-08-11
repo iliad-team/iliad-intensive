@@ -211,6 +211,12 @@ An aside in the mathematical register.
   macros — the converter warns at `file.tex:line` when it can't translate).
 - `\cref`/`\Cref` resolve to the exact text LaTeX prints, everywhere:
   equations, sections, exercises, subparts, callouts.
+- A **literal dollar** in prose is `\$` — in a `.tex` sheet and in a
+  hand-authored `.mdx` alike (`\$1,000`). It has to be escaped somehow, because
+  two bare `$` in one paragraph are a math span to `remark-math`: "wins $1,000
+  … and wins $500" typesets everything between them. Inside math the escape
+  does not apply (the body is raw, so a `$` byte would end the span) — the
+  converter emits `\char36` there, and by hand that is what to write.
 
 ## Figures
 
