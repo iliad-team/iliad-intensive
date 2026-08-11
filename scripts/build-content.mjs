@@ -330,22 +330,17 @@ async function buildSlug(slug) {
   // "then the normal search path", so a system copy still wins where present.
   // (tex/singular-learning-theory/far.bst already relies on bibtex finding a
   // repo-local style; this just hoists the trick to a shared location.)
-  // TEXINPUTS does the same job for LaTeX packages. tex/vendor/ holds the ones
-  // TeX Live puts in the same 75 MB texlive-bibtex-extra that alphaurl.bst
-  // taught us to avoid — currently biblatex (which C.2's deck loads) and
-  // logreq (which biblatex loads). Copied verbatim from TeX Live 2024, 117
-  // files and 2.4 MB of macros, against a 79 MB download on every CI run.
-  // Installing biber is not enough on its own: that is only the backend binary
-  // and brings no styles. The trailing // searches recursively, which biblatex
-  // needs for its bbx/, cbx/ and lbx/ subdirectories.
+  // biblatex is deliberately NOT vendored the same way, and the reason is worth
+  // recording: biber checks the control file against an exact biblatex version,
+  // so a copy pinned to satisfy CI's biber breaks every local build against a
+  // different one. Style and backend have to come from the same place, which
+  // means the distro package — texlive-bibtex-extra is installed for it (see
+  // .github/workflows/site.yml), which is also why that 75 MB note above now
+  // describes history rather than the current package set.
   const tex = (...argv) =>
     exec(argv[0], argv.slice(1), {
       cwd: dir,
-      env: {
-        ...process.env,
-        BSTINPUTS: `${TEX}:${process.env.BSTINPUTS ?? ""}`,
-        TEXINPUTS: `${path.join(TEX, "vendor")}//:${process.env.TEXINPUTS ?? ""}`,
-      },
+      env: { ...process.env, BSTINPUTS: `${TEX}:${process.env.BSTINPUTS ?? ""}` },
     });
   // bibtex, staying quiet about the ONE failure that is genuinely fine: a
   // document with no bibliography at all. Every other failure — a style file

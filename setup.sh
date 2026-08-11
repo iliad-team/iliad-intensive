@@ -12,16 +12,19 @@ echo "== system packages (TeX Live, poppler) =="
 # same packages keeps "passes locally, fails on CI" surprises to a minimum.
 #
 # The list is kept deliberately lean — it is the biggest single cost in a CI
-# run, and a slow Ubuntu mirror can stall it for 15+ minutes. texlive-bibtex-extra
-# and texlive-science are NOT here on purpose (see the note in the workflow):
-# alphaurl.bst is vendored at tex/alphaurl.bst, and stmaryrd's two glyphs are
-# built from kernel pieces, so neither package is needed to build the worksheets.
+# run, and a slow Ubuntu mirror can stall it for 15+ minutes. texlive-science is
+# NOT here on purpose (see the note in the workflow): stmaryrd's two glyphs are
+# built from kernel pieces. texlive-bibtex-extra was in the same category until
+# a biblatex deck arrived — alphaurl.bst is still vendored at tex/alphaurl.bst,
+# but biblatex.sty ships nowhere else on Ubuntu, so the package is needed now.
 need=()
 command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-fonts-recommended cm-super)
 command -v pdftocairo >/dev/null || need+=(poppler-utils)
-# biber: bibliography backend for biblatex decks (C.2's). Not part of any
-# texlive metapackage above, so it has to be named on its own.
-command -v biber      >/dev/null || need+=(biber)
+# biblatex decks (C.2's) need both halves: biber, the backend that reads the
+# .bib and writes the .bbl, and biblatex.sty itself, which on Ubuntu ships only
+# in texlive-bibtex-extra. Neither comes with the metapackages above.
+command -v biber       >/dev/null || need+=(biber)
+kpsewhich biblatex.sty >/dev/null 2>&1 || need+=(texlive-bibtex-extra)
 # lmodern.sty: decks load it, but it is only a Recommends of the texlive
 # packages above, so --no-install-recommends leaves it out. Probed with
 # kpsewhich rather than a command name — it is a style file, not a binary.
