@@ -371,6 +371,42 @@ A hand-authored `main.mdx` is **copied verbatim** into
 the page. Nothing else consumes it, and the rules below follow from that: the
 page is the whole output.
 
+### Teaching notes: `<TeachingNote>` (MDX only)
+
+A reading day's source often carries material addressed to whoever *teaches*
+the day rather than to the student reading the page — what a session is for,
+and how the author ran it last time. That goes in a `TeachingNote`:
+
+```mdx
+<TeachingNote title="Session intent">
+
+The participants understand that there are different things we may want our
+AIs to be aligned *to*, and can reason through …
+
+</TeachingNote>
+
+<TeachingNote title="Teaching notes">   {/* the default title is "Teaching note" */}
+
+I was thinking about including Gwern's article on Tool AI's, but it's very
+verbose, so I opted for Rohin's article instead.
+
+</TeachingNote>
+```
+
+- Collapsed by default, so it doesn't sit in the student's reading flow; the
+  `title` is the label on the closed box.
+- Blank lines around the body, like every component with markdown inside.
+- The label belongs in `title`, not in the body: port
+  `**Session intent:** The participants …` as
+  `<TeachingNote title="Session intent">The participants …`.
+- Not a `Callout`: teacher-facing material carries
+  `data-component="teaching-note"` so it stays findable (a strip, an index, a
+  toggle) once we know what the right format is. It survives `-nosol` — only
+  `<Solution>` is stripped.
+- **No LaTeX equivalent yet.** A LaTeX day that needs one wants an
+  `iliad.sty` environment plus converter support; until then this is for
+  MDX-authored reading days.
+
 ### Heading levels: `##` is the top
 
 Match what the converter emits for a LaTeX day, so a hand-written page and a
