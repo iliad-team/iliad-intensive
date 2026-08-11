@@ -330,10 +330,21 @@ async function buildSlug(slug) {
   // "then the normal search path", so a system copy still wins where present.
   // (tex/singular-learning-theory/far.bst already relies on bibtex finding a
   // repo-local style; this just hoists the trick to a shared location.)
+  // TEXINPUTS does the same job for biblatex. C.2's deck loads it, and
+  // biblatex.sty lives in that same 75 MB texlive-bibtex-extra — the biber
+  // binary alone (555 KB, installed) is only the backend and does not bring the
+  // style. tex/biblatex/ is the package vendored verbatim from TeX Live 2024,
+  // 115 files and 2.4 MB of macros: cheaper to carry than to download 79 MB on
+  // every CI run, and the same bargain already struck for alphaurl.bst. The
+  // trailing // searches it recursively (bbx/, cbx/, lbx/ all matter).
   const tex = (...argv) =>
     exec(argv[0], argv.slice(1), {
       cwd: dir,
-      env: { ...process.env, BSTINPUTS: `${TEX}:${process.env.BSTINPUTS ?? ""}` },
+      env: {
+        ...process.env,
+        BSTINPUTS: `${TEX}:${process.env.BSTINPUTS ?? ""}`,
+        TEXINPUTS: `${path.join(TEX, "biblatex")}//:${process.env.TEXINPUTS ?? ""}`,
+      },
     });
   // bibtex, staying quiet about the ONE failure that is genuinely fine: a
   // document with no bibliography at all. Every other failure — a style file
