@@ -1,5 +1,5 @@
 %--- iliad ---
-% title: "Decision Theory II: Open-Source Game Theory, Commitment Races, and Safe Pareto Improvements"
+% title: Open-Source Game Theory
 % summary: >-
 %   When agents can read each other's code, cooperation needs neither repetition
 %   nor trust — but the same transparency starts races to commit first.
@@ -12,6 +12,9 @@
 \usepackage{newunicodechar}
 \newunicodechar{□}{\ensuremath{\square}}
 
+% The page header and the nav take the short name, set as `title:` in the
+% frontmatter block above; this keeps the author's full one, which is what the
+% built PDF shows.
 \title{Decision Theory II: Open-Source Game Theory, Commitment Races, and Safe Pareto Improvements}
 \author{
   \authorname{Daniel C}
@@ -24,14 +27,19 @@
 \maketitle
 
 
-\subsubsection{Afternoon lecture}
+% \subsubsection in the module doc, where these sit under Content > Main
+% content. Those two wrappers are day-wide and live on the first page only, so
+% here the headings are top-level and are numbered as such -- left as
+% subsubsections they came out "0.0.1", the section and subsection counters
+% never having been incremented.
+\section{Afternoon lecture}
 \textbf{Open-source game theory.} When players can read each other's source code, cooperation becomes possible without repetition or prior trust. \textbf{FairBot} cooperates if and only if it can prove its opponent cooperates with it; two FairBots cooperate by Löb's theorem (from \texttt{□(□C\ -\textgreater{}\ C)\ -\textgreater{}\ □C}). It is unexploitable but brittle (it relies on a proof system and exact source). \textbf{Epsilon-grounded bots} (Oesterheld) replace proofs with simulation: cooperate unconditionally with small probability epsilon, else simulate the opponent and copy its move; this terminates almost surely, is a Nash equilibrium, and is robust. The unifying idea is \emph{conditional commitment}: ``I commit to X conditional on you committing to Y.'' Conditional makes it unexploitable; commitment makes it legible. FairBot is exactly this.
 
 \textbf{Commitment races.} Among consequentialists who can commit, there is an incentive to commit \emph{first}: the first mover can pick the point on the bargaining frontier best for itself and leave the responder to best-respond. So ``the best response is not the best response'', and agents race to commit before they even finish learning, risking incompatible lock-in or wasteful conflict (including threats and s-risks). Moving first ``in logical time'' is a genuine safety concern, which makes \emph{avoiding} commitment races a safety goal. The deeper obstacle is \emph{entanglement}: each agent optimizes against a distribution over the \emph{counterfactual} programs the other might submit, so punishing a Pareto improvement means forgoing utility against the opponent's \emph{actual} program; the incentive to make improvements is entangled with those counterfactuals, and this persists even with full conditional commitment.
 
 \textbf{Safe Pareto improvements (SPI).} An SPI modifies the agents' default (conflict-prone) strategies so that \emph{every} player is guaranteed at least as well off regardless of the opponent, a guaranteed weak Pareto improvement (Oesterheld-Conitzer; DiGiovanni-Clifton-Macé). In the open-source/program setting, each player individually prefers to use renegotiation-based SPIs, and the guaranteed floor is the \emph{Pareto Meet Minimum} (your lowest efficient payoff), which is tight under a \emph{participation-independence} assumption. That assumption can fail (agents may become hawkish when conflict is cheap), the ``cheating'' problem. \emph{Entanglement-free SPI} (a research-frontier idea) restructures the interaction into two stages (exchange renegotiation programs, update on the actual one, then submit defaults), which breaks the entanglement and drops participation independence, at the cost of the tight floor. Teach the standard SPI result in full; present entanglement-free SPI briefly as the current frontier.
 
-\subsubsection{The tournament}
+\section{The tournament}
 Full rules are in the \href{https://iliad.au.pe/sessions/decision-theory/handout.html}{tournament handout}; the structure is summarized here so the day can be run from this document.
 
 \textbf{The game.} The one-shot Prisoner's Dilemma, with the twist that your program can read the opponent's program before deciding (source is open). Payoffs (you, them): mutual cooperation \texttt{(C,C)} gives 3 each; mutual defection \texttt{(D,D)} gives 1 each; defecting against a cooperator gives 5 to the defector and 0 to the cooperated. This satisfies \texttt{T\ \textgreater{}\ R\ \textgreater{}\ P\ \textgreater{}\ S} (5 \textgreater{} 3 \textgreater{} 1 \textgreater{} 0) and \texttt{2R\ \textgreater{}\ T\ +\ S} (6 \textgreater{} 5).
