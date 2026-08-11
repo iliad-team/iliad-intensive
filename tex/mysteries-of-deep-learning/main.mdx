@@ -41,7 +41,11 @@ The content is already attempting to compress a somewhat disjointed research fie
 
 Discussion questions:
 
-* From an AI safety perspective, why is it worth trying to scientifically figure out how deep learning works? Why would we need scientific understanding for safety if such understanding seems to have been unnecessary for capabilities?
+<Exercise>
+
+From an AI safety perspective, why is it worth trying to scientifically figure out how deep learning works? Why would we need scientific understanding for safety if such understanding seems to have been unnecessary for capabilities?
+
+</Exercise>
 
 {/*
 <Solution>
@@ -55,7 +59,11 @@ Answer: many answers are acceptable here. A few points one might mention:
 </Solution>
 */}
 
-* What distinguishes the three classical mysteries discussed in the talk from each other? Which ones depend on the training procedure?
+<Exercise>
+
+What distinguishes the three classical mysteries discussed in the talk from each other? Which ones depend on the training procedure?
+
+</Exercise>
 
 {/*
 <Solution>
@@ -73,7 +81,11 @@ Answer: TODO
 
 Discussion questions:
 
-* Intuitively, what is Solomonoff induction and why do we care about it?
+<Exercise>
+
+Intuitively, what is Solomonoff induction and why do we care about it?
+
+</Exercise>
 
 {/*
 <Solution>
@@ -83,7 +95,11 @@ Answer: people should mention the universality hypothesis class, the simplicity 
 </Solution>
 */}
 
-* One can trivially say that a neural network "learns programs" because a neural network runs on a computer. Then one could say that e.g. linear regression "learns programs" too. What distinguishes the author's hypothesis from this more trivial fact?
+<Exercise>
+
+One can trivially say that a neural network "learns programs" because a neural network runs on a computer. Then one could say that e.g. linear regression "learns programs" too. What distinguishes the author's hypothesis from this more trivial fact?
+
+</Exercise>
 
 {/*
 <Solution>
@@ -93,7 +109,11 @@ Answer: this is answered in the post under the "Clarifying the hypothesis" expan
 </Solution>
 */}
 
-* Where in the post do the three theoretical mysteries from the opening lecture (approximation, generalization, optimization) appear? Why does the post put the section related to "optimization" in a separate place from the other two mysteries?
+<Exercise>
+
+Where in the post do the three theoretical mysteries from the opening lecture (approximation, generalization, optimization) appear? Why does the post put the section related to "optimization" in a separate place from the other two mysteries?
+
+</Exercise>
 
 {/*
 <Solution>
@@ -103,7 +123,11 @@ Answer: they map to the "paradox of approximation" section, the "paradox of gene
 </Solution>
 */}
 
-* The post insists on maintaining the distinction between "functions" and "programs" - why? Why would we care to distinguish two networks that implement the same function by different means?
+<Exercise>
+
+The post insists on maintaining the distinction between "functions" and "programs" - why? Why would we care to distinguish two networks that implement the same function by different means?
+
+</Exercise>
 
 {/*
 <Solution>
@@ -123,7 +147,11 @@ Answer: they may *train* differently; the gradients can be different even if the
 
 Discussion questions:
 
-* The Universal Approximation Theorem says a one-hidden-layer network can approximate any continuous function to arbitrary accuracy. Why is this *not* an explanation for deep learning's success?
+<Exercise>
+
+The Universal Approximation Theorem says a one-hidden-layer network can approximate any continuous function to arbitrary accuracy. Why is this *not* an explanation for deep learning's success?
+
+</Exercise>
 
 {/*
 <Solution>
@@ -133,7 +161,11 @@ Answer: because the number of neurons required is exponential, for generic smoot
 </Solution>
 */}
 
-* If approximating *arbitrary* smooth functions provably requires exponentially many parameters (the curse of dimensionality), then what must be true about the functions deep learning actually faces for it to work at all? What is a "depth separation" result and what does it suggest about the answer to this question?
+<Exercise>
+
+If approximating *arbitrary* smooth functions provably requires exponentially many parameters (the curse of dimensionality), then what must be true about the functions deep learning actually faces for it to work at all? What is a "depth separation" result and what does it suggest about the answer to this question?
+
+</Exercise>
 
 {/*
 <Solution>
@@ -151,7 +183,11 @@ Answer: real target functions *provably* must have some non-generic structure be
 
 Discussion questions:
 
-* There are different notions of "generalization" that aren't equivalent. What precisely do these resources mean by the word "generalization"? How does it differ from out-of-distribution (OOD) generalization?
+<Exercise>
+
+There are different notions of "generalization" that aren't equivalent. What precisely do these resources mean by the word "generalization"? How does it differ from out-of-distribution (OOD) generalization?
+
+</Exercise>
 
 {/*
 <Solution>
@@ -163,7 +199,11 @@ Answer: The resources here deliberately refer to *in-distribution generalization
 </Solution>
 */}
 
-* Why are the experimental results of Zhang et al. fatal to capacity-based generalization bounds (VC dimension, Rademacher complexity, etc)? What does this imply for explanations about generalization and what they must depend on?
+<Exercise>
+
+Why are the experimental results of Zhang et al. fatal to capacity-based generalization bounds (VC dimension, Rademacher complexity, etc)? What does this imply for explanations about generalization and what they must depend on?
+
+</Exercise>
 
 {/*
 <Solution>
@@ -173,7 +213,11 @@ Answer: the architecture and algorithm are *fixed* across the two runs, so any c
 </Solution>
 */}
 
-* The first post is rather pessimistic in tone, declaring deep learning theory (or at least the theory surrounding generalization) to have been "killed." Meanwhile "Deep Learning is Not So Mysterious or Different" seems to take precisely the opposite attitude, that such empirical results are not too surprising under preexisting theoretical frameworks. Despite the difference in tone, how compatible are these results on the object level? What common picture do they paint?
+<Exercise>
+
+The first post is rather pessimistic in tone, declaring deep learning theory (or at least the theory surrounding generalization) to have been "killed." Meanwhile "Deep Learning is Not So Mysterious or Different" seems to take precisely the opposite attitude, that such empirical results are not too surprising under preexisting theoretical frameworks. Despite the difference in tone, how compatible are these results on the object level? What common picture do they paint?
+
+</Exercise>
 
 {/*
 <Solution>
@@ -189,7 +233,11 @@ Answer: They're fully compatible - Zhang et al. is a negative result and Wilson 
 
 Discussion questions:
 
-* These cryptographic hardness arguments apply to neural networks, since neural networks can implement one-way functions. What does this imply about how long SGD will take to learn such functions? By contrast, how will Bayesian learning behave in such a scenario (and why are hardness arguments vacuous for Bayes)? What does this imply about how approximation and generalization come apart from optimization?
+<Exercise>
+
+These cryptographic hardness arguments apply to neural networks, since neural networks can implement one-way functions. What does this imply about how long SGD will take to learn such functions? By contrast, how will Bayesian learning behave in such a scenario (and why are hardness arguments vacuous for Bayes)? What does this imply about how approximation and generalization come apart from optimization?
+
+</Exercise>
 
 {/*
 <Solution>
@@ -199,7 +247,11 @@ Answer: the hardness argument means that (under cryptographic assumptions) SGD c
 </Solution>
 */}
 
-* Despite the fact that neural networks can realize worst-case targets, neural networks train well in practice. Why care about these pathological examples, then? What makes the takeaway different from the obvious "algorithms can have typical-case performance which is much better than their worst-case performance"?
+<Exercise>
+
+Despite the fact that neural networks can realize worst-case targets, neural networks train well in practice. Why care about these pathological examples, then? What makes the takeaway different from the obvious "algorithms can have typical-case performance which is much better than their worst-case performance"?
+
+</Exercise>
 
 {/*
 <Solution>
@@ -220,7 +272,11 @@ Answer: one can make a few points here.
 
 Discussion questions:
 
-* What is the new[^prh-novelty] hypothesis that paper promotes, versus what are the observations already established by prior literature? What evidence do they cite for their hypothesis? What distinguishes their hypothesis from merely "models converge to shared representations"?
+<Exercise>
+
+What is the new[^prh-novelty] hypothesis that paper promotes, versus what are the observations already established by prior literature? What evidence do they cite for their hypothesis? What distinguishes their hypothesis from merely "models converge to shared representations"?
+
+</Exercise>
 
 {/*
 <Solution>
@@ -238,7 +294,11 @@ Answer: The *observation* that independently trained models learn similar repres
 
 Discussion questions:
 
-* What is an induction head, and what relationship does the paper draw between induction-head formation and in-context learning over training? Why treat the simultaneity as evidence of a mechanistic link rather than coincidence?
+<Exercise>
+
+What is an induction head, and what relationship does the paper draw between induction-head formation and in-context learning over training? Why treat the simultaneity as evidence of a mechanistic link rather than coincidence?
+
+</Exercise>
 
 {/*
 <Solution>
