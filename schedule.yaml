@@ -232,16 +232,15 @@ clusters:
         lead: Leon
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.pefcteqoku51
         source: ready
-        # The exercise sheet is the day's main event (3h15 of it, against 45min
-        # reading) and nothing in it depends on the readings, so it reads first.
         worksheets:
           - power-seeking
-          - instrumental-convergence
         note: >-
-          Leon handed the source over as a zip, not a repo. The deck is his Marp
-          deck (`slides/power-seeking.md`) exported to PDF — the build cannot
-          compile Marp, so it is hosted in Drive and linked from the
-          instrumental-convergence frontmatter rather than built.
+          Leon handed the source over as a zip, not a repo. One worksheet holds
+          the whole day: the exercise sheet, with the Doc tab's roadmap and
+          reading lists folded in. The deck is his Marp deck
+          (`tex/power-seeking/slides_marp.md`) exported to PDF — the build
+          cannot compile Marp, so it is compiled by hand, hosted in Drive, and
+          linked from the worksheet's `slides:` rather than built.
 
   - id: E
     label: E — Safety Guarantees and their Limits
