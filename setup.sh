@@ -22,6 +22,10 @@ command -v pdftocairo >/dev/null || need+=(poppler-utils)
 # biber: bibliography backend for biblatex decks (C.2's). Not part of any
 # texlive metapackage above, so it has to be named on its own.
 command -v biber      >/dev/null || need+=(biber)
+# lmodern.sty: decks load it, but it is only a Recommends of the texlive
+# packages above, so --no-install-recommends leaves it out. Probed with
+# kpsewhich rather than a command name — it is a style file, not a binary.
+kpsewhich lmodern.sty >/dev/null 2>&1 || need+=(lmodern)
 command -v git-lfs    >/dev/null || need+=(git-lfs)
 if [ ${#need[@]} -gt 0 ]; then
   echo "installing: ${need[*]}"
