@@ -1,11 +1,5 @@
-# ⚠️ PLACEHOLDER DAY LIST — REPLACE BEFORE MERGING ⚠️
-#
-# The dates and the day order below are invented so the page could be built and
-# looked at. They are not the real Aug 2026 SF run. Replace the whole `days:`
-# block with the actual schedule, then delete this notice.
-#
 # One file per programme ILIAD runs; the filename is the URL segment, so this
-# one is /intensives/aug2026-sf/. See scripts/intensives.mjs for the contract.
+# one is /intensives/aug2026-sf/. See src/lib/intensives.ts for the contract.
 
 title: ILIAD Intensive
 location: San Francisco
@@ -14,27 +8,43 @@ location: San Francisco
 #   date   required  YYYY-MM-DD. Must increase down the list.
 #   code   a teaching day from schedule.yaml — its worksheets become the
 #          material links. Mutually exclusive with `title`.
-#   title  a day with no curriculum material (arrival, wrap-up, a project day).
-#          Shown as plain text with no links.
+#   title  a day with no curriculum material (launch day), or a day not yet in
+#          schedule.yaml. Shown as plain text with no links.
 days:
-  - date: 2026-08-17
-    title: Arrival and orientation
-
-  - date: 2026-08-18
+  # Week 1
+  - date: 2026-08-10
     code: A.1
-  - date: 2026-08-19
-    code: A.2
-  - date: 2026-08-20
+  - date: 2026-08-11
     code: B.3
-  - date: 2026-08-21
-    code: B.4
+  - date: 2026-08-12
+    code: C.3
+  # TODO: not in schedule.yaml — add it there (needs lead + Doc tab) to get the
+  # D.7 code and its material links.
+  - date: 2026-08-13
+    title: World Modeling + Transducers
+  - date: 2026-08-14
+    code: B.2
 
-  - date: 2026-08-24
+  # Week 2
+  - date: 2026-08-17
     code: C.2
-  - date: 2026-08-25
-    code: D.1
-  - date: 2026-08-26
-    code: D.3
+  - date: 2026-08-18
+    code: B.4
+  - date: 2026-08-19
+    code: B.5
+  - date: 2026-08-20
+    code: A.2
 
+  # Week 3
+  # TODO: not in schedule.yaml — add it there (needs lead + Doc tab) to get the
+  # B.6 code and its material links.
+  - date: 2026-08-24
+    title: Statistical Field Theory
+  - date: 2026-08-25
+    code: D.4
+  - date: 2026-08-26
+    code: E.1
   - date: 2026-08-27
-    title: Wrap-up and project presentations
+    code: E.2
+  - date: 2026-08-28
+    title: Launch Day
