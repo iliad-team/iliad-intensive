@@ -211,6 +211,12 @@ An aside in the mathematical register.
   macros — the converter warns at `file.tex:line` when it can't translate).
 - `\cref`/`\Cref` resolve to the exact text LaTeX prints, everywhere:
   equations, sections, exercises, subparts, callouts.
+- A **literal dollar** in prose is `\$` — in a `.tex` sheet and in a
+  hand-authored `.mdx` alike (`\$1,000`). It has to be escaped somehow, because
+  two bare `$` in one paragraph are a math span to `remark-math`: "wins $1,000
+  … and wins $500" typesets everything between them. Inside math the escape
+  does not apply (the body is raw, so a `$` byte would end the span) — the
+  converter emits `\char36` there, and by hand that is what to write.
 
 ## Figures
 
@@ -353,7 +359,27 @@ minutes. A per-worksheet `.bst` works too
 
 - `\hint{…}` → *[Hint: …]* — `\note{…}` → *[Note: …]*
 - `\important` after an exercise's label → ★ (the sheet's key exercises)
-- Footnotes render inline in parentheses on the web.
+
+## Footnotes
+
+`\footnote{…}` becomes a real footnote on the web, not a parenthetical: a
+numbered marker where you wrote it, the note itself at the foot of the page, and
+a link each way. Nothing about the PDF changes.
+
+`\footnotemark` … `\footnotetext{…}` works too — the split form LaTeX needs when
+the marker sits somewhere that cannot carry the text, such as a theorem's title
+argument (`\begin{definition}[Covering\protect\footnotemark]`). The mark takes
+the next number and the next `\footnotetext` fills it in, so keep them in that
+order; a `\footnotetext` with no mark before it stays inline in parentheses and
+draws an advisory.
+
+Notes are numbered per page in source order, and the numbering is the renderer's
+— it counts references, so it stays right no matter where the definitions sit.
+One caveat: a footnote spanning several paragraphs is joined into one on the
+page (a blank line would end the note), and the build says so.
+
+Footnotes inside a `solution` are stripped from the `-nosol` download along with
+the answer — the note included, not just its marker.
 
 ## Writing in MDX instead
 
@@ -407,6 +433,23 @@ A comment hides from the rendered page, but the `<slug>.mdx` download is the fil
 itself, so parked content still travels with it. Use `{/* … */}` freely while
 drafting and delete it before you ship rather than leaving it commented — git
 history is the place for a block you might want back.
+
+### GFM: footnotes and tables
+
+The page pipeline loads `remark-gfm`, so GitHub-flavoured markdown works in a
+hand-authored sheet as well as in a converted one — footnotes and tables being
+the two that matter:
+
+```mdx
+The claim holds for finite horizons.[^horizon]
+
+[^horizon]: It fails for $m = \infty$; see the appendix.
+```
+
+Any label does (`[^horizon]`, `[^1]`); the renderer numbers notes by the order
+their references appear, and collects them at the foot of the page. A reference
+with no definition renders as the literal text `[^horizon]` — that is the one
+failure mode to watch for, and the sheet still compiles.
 
 ### Frontmatter
 

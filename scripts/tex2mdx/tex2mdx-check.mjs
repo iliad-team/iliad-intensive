@@ -24,6 +24,7 @@ const req = createRequire(path.join(repo, "package.json"));
 const imp = async (name) => (await import(pathToFileURL(req.resolve(name)).href));
 const { compile } = await imp("@mdx-js/mdx");
 const remarkMath = (await imp("remark-math")).default;
+const remarkGfm = (await imp("remark-gfm")).default;
 const rehypeKatex = (await imp("rehype-katex")).default;
 const katex = (await imp("katex")).default;
 
@@ -32,12 +33,21 @@ if (!file) { console.error("usage: node tex2mdx-check.mjs <file.mdx>"); process.
 const body = readFileSync(file, "utf8").replace(/^---\n[\s\S]*?\n---\n/, "");
 
 try {
-  await compile(body, { remarkPlugins: [remarkMath], rehypePlugins: [[rehypeKatex, { strict: false, macros: {} }]] });
+  // remarkGfm because the site loads it (footnotes, tables): a footnote
+  // reference with no definition is a *compile* success but a rendering bug,
+  // and the gate should see the same tree the page does.
+  await compile(body, { remarkPlugins: [remarkMath, remarkGfm], rehypePlugins: [[rehypeKatex, { strict: false, macros: {} }]] });
   console.log("MDX compile: OK");
 } catch (e) { console.log("MDX compile: FAIL ::", String(e.message).split("\n")[0]); process.exit(1); }
 
 const macros = {};
-let b = body;
+// `$` is ASCII punctuation, so `\$` is a CommonMark backslash escape: micromark
+// consumes it before the math extension sees a delimiter, and emit-ast.mjs emits
+// exactly that for a price in prose. This scan splits on `$` by hand, so it has
+// to drop the escapes itself — otherwise two prices in one paragraph read as one
+// bogus math span and the gate fails a page that renders fine. (No math body
+// reaches here holding a `\$`: shims.mjs rewrites those to \char36.)
+let b = body.replace(/\\\$/g, "");
 const disp = [...b.matchAll(/\$\$([\s\S]*?)\$\$/g)].map((m) => m[1]);
 b = b.replace(/\$\$[\s\S]*?\$\$/g, " ");
 const inl = [...b.matchAll(/\$([^$]+?)\$/g)].map((m) => m[1]);

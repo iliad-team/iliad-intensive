@@ -1,0 +1,992 @@
+% Chapter: 03_transformer_features
+% Included from lectures/main.tex
+
+{
+\setbeamertemplate{section page}{
+  \begin{centering}
+    \usebeamerfont{section title}\insertsection\par
+  \end{centering}
+  \note{
+  \begin{itemize}
+  \item Doing MechInterp in language models is harder
+  \item We often do not have a privileged basis (the residual stream in a transformer is rotationally invariant)
+  \item It is not clear which directions are our features
+  \end{itemize}
+  }
+}
+\section{Features in Language Models}
+}
+
+% mikolov2013: fig1+fig2 are two panels of the same Figure 2, keep together
+\begin{frame}{Features Represent Human-Understandable Concepts}
+\begin{center}
+\includegraphics[height=0.55\textheight,keepaspectratio]{figures/mikolov2013/fig1.png}
+\hspace{0.5em}
+\includegraphics[height=0.55\textheight,keepaspectratio]{figures/mikolov2013/fig2.png}
+\end{center}
+\IfFileExists{03_transformer_features/figures/mikolov2013/fig1-caption.txt}{%
+  \CatchFileDef{\captiontext}{03_transformer_features/figures/mikolov2013/fig1-caption.txt}{\endlinechar=-1}%
+  {\tiny \captiontext}%
+}{}
+
+\source{mikolov2013}
+
+\note{
+\begin{itemize}
+\item We already saw this before we had LLMs, just for small RNNs that predict text
+\item A particular direction encodes gender: we can extract that direction from a pair of opposite-gendered words
+\item Adding it to one word brings us to its opposite-gendered counterpart
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{}
+\begin{center}
+\Large How do we identify features in Transformers?
+\end{center}
+
+\note{
+\begin{itemize}
+\item How do we identify features in a transformer?
+\item Gathering ideas from the audience, specifically people who have not heard much about MechInterp before
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Getting a Feature Direction}
+\textbf{Contrastive pairs:}
+\[ r = \text{Emb}(\text{``Spanish''}) - \text{Emb}(\text{``French''}) \]
+
+\vspace{0.5em}
+\textbf{Linear probe:} \quad {\small $x_i$: sample activation, $y_i \in \{+1, -1\}$: label}
+\[ r = \arg\max_{\|r\|=1} \sum_i y_i \cdot r^\top x_i \]
+
+\vspace{0.5em}
+\textbf{CAA:} \quad {\small $x_i^{(+)}, x_i^{(-)}$: positive/negative example of a property}
+\[ r = \frac{1}{N} \sum_{i=1}^{N} \left( x_i^{(+)} - x_i^{(-)} \right) \]
+
+\note{
+\begin{itemize}
+\item Preview: three families of methods for obtaining a feature direction
+\item Contrastive pairs: just subtract embeddings of paired concepts
+\item Linear probe: supervised training on labeled examples
+\item CAA: averaged activation differences across many contrastive examples
+\item We will see concrete examples of each in the following slides
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{What To Do with a Feature Direction}
+\textbf{Activation addition} (steering):
+\[ x' \leftarrow x + \alpha \cdot r \]
+
+\vspace{0.5em}
+\textbf{Direction ablation} (make the model blind to the concept):
+\[ x' \leftarrow x - \hat{r}\hat{r}^\top x \]
+
+\vspace{0.5em}
+\textbf{Probing} (read out a concept):
+\[ s = r^\top x \]
+
+\vspace{0.3em}
+{\small $r$: feature direction \quad $x$: activation \quad $\alpha$: steering strength}
+
+\note{
+\begin{itemize}
+\item Once we have a direction, there are three things we can do with it
+\item Steering: add it to activations to push the model toward the concept
+\item Ablation: project it out to make the model blind to the concept
+\item Probing: read off the dot product to detect whether the concept is present
+\end{itemize}
+}
+\end{frame}
+
+% park2024: fig3 = Figure 4
+\begin{frame}{Linear Probes Can Classify Text Properties}
+\paperfig{figures/park2024/fig3.png}{03_transformer_features/figures/park2024/fig3-caption.txt}
+
+\source{park2024}
+
+\note{
+\begin{itemize}
+\item We can extract an English vs Spanish feature by embedding the words, subtracting them, and projecting on that direction
+\item Doing that with a random word pair does not give you this distinction
+\item This gives us evidence that human-understandable features exist in LLMs, and it seems somewhat easy to guess what they are
+\item However, this just shows us we can extract a feature of the text
+\item LLMs are not only cool because they model texts, they are also entities that reason and model the world
+\item Can we extract these world-models from a transformer via finding the right feature directions?
+\end{itemize}
+}
+\end{frame}
+
+% nanda2023: fig0 = Figure 1
+\begin{frame}{Linear Probes Can Measure World Models}
+\paperfig{figures/nanda2023/fig0.png}{03_transformer_features/figures/nanda2023/fig0-caption.txt}
+
+\source{nanda2023}
+
+\note{
+\begin{itemize}
+\item Othello-GPT: a transformer trained as a next token predictor on moves in an Othello game
+\item They train linear probes on the residual stream to predict the state of each field on the board
+\item One probe each for empty, ``mine'' (player whose turn it is), and ``yours'' (other player's pieces)
+\end{itemize}
+}
+\end{frame}
+
+% nanda2023: table0 = Table 1
+\begin{frame}{Linear Probes Can Measure World Models}
+\paperfig{figures/nanda2023/table0.png}{03_transformer_features/figures/nanda2023/table0-caption.txt}
+
+\source{nanda2023}
+
+\note{
+\begin{itemize}
+\item They could reconstruct the state of the game board with pretty high accuracy
+\item The model linearly encodes board state relative to the current player (MINE vs YOURS, not BLACK vs WHITE)
+\end{itemize}
+}
+\end{frame}
+
+% nanda2023: fig1 = Figure 2
+\begin{frame}{Intervening on the World Model}
+\paperfig{figures/nanda2023/fig1.png}{03_transformer_features/figures/nanda2023/fig1-caption.txt}
+
+\source{nanda2023}
+
+\note{
+\begin{itemize}
+\item Once they knew the direction, they could add it in to change the model's beliefs about what piece is there
+\item They added the direction encoding a particular game state in every layer of the residual stream
+\end{itemize}
+}
+\end{frame}
+
+% nanda2023: table1 = Table 2
+\begin{frame}{Intervening on the World Model}
+\paperfig{figures/nanda2023/table1.png}{03_transformer_features/figures/nanda2023/table1-caption.txt}
+
+\source{nanda2023}
+
+\note{
+\begin{itemize}
+\item The model afterwards continued playing as if this change on the game board actually happened
+\item Linear probe addition achieves very low error rates compared to the null intervention baseline
+\end{itemize}
+}
+\end{frame}
+
+% li2024b: fig1 = Figure 2
+\begin{frame}{Probing LLMs}
+\paperfig{figures/li2024b/fig1.png}{03_transformer_features/figures/li2024b/fig1-caption.txt}
+
+\source{li2024b}
+
+\note{
+\begin{itemize}
+\item We can of course also train probes on the activations of LLMs
+\item Here we see probes trained on the O values of the attention heads
+\item Some heads can separate the activations on true vs false statements
+\item They separate quite well on the first principal components
+\end{itemize}
+}
+\end{frame}
+
+% li2024b: fig2 = Figure 3
+\begin{frame}{Adding in Truthfulness}
+\paperfig{figures/li2024b/fig2.png}{03_transformer_features/figures/li2024b/fig2-caption.txt}
+
+\source{li2024b}
+
+\note{
+\begin{itemize}
+\item They use these directions to steer the model to be more truthful
+\item Inference-Time Intervention: add the truthful direction at the top $k$ most predictive heads with factor $\alpha$
+\end{itemize}
+}
+\end{frame}
+
+% li2024b: table0 = Table 1
+\begin{frame}{Adding in Truthfulness}
+\paperfig{figures/li2024b/table0.png}{03_transformer_features/figures/li2024b/table0-caption.txt}
+
+\source{li2024b}
+
+\note{
+\begin{itemize}
+\item ITI can outperform finetuning
+\item It also helps on top of few-shot prompting
+\end{itemize}
+}
+\end{frame}
+
+% panickssery2024: fig0 = Figure 1a
+\begin{frame}{Steering via Contrastive Features}
+\paperfig{figures/panickssery2024/fig0.png}{03_transformer_features/figures/panickssery2024/fig0-caption.txt}
+
+\source{panickssery2024}
+
+\note{
+\begin{itemize}
+\item You don't even need probes to extract these features
+\item Just taking the average of activation differences of a bunch of contrastive examples of some behaviour is enough
+\end{itemize}
+}
+\end{frame}
+
+% panickssery2024: fig7 = Figure 4
+\begin{frame}{Steering via Contrastive Features}
+\paperfig{figures/panickssery2024/fig7.png}{03_transformer_features/figures/panickssery2024/fig7-caption.txt}
+
+\source{panickssery2024}
+
+\note{
+\begin{itemize}
+\item You can, within some bound, pretty much steer arbitrary concepts that way
+\end{itemize}
+}
+\end{frame}
+
+% arditi2024: fig0 = Figure 1
+\begin{frame}{Refusal Is Mediated by a Single Direction}
+\paperfig{figures/arditi2024/fig0.png}{03_transformer_features/figures/arditi2024/fig0-caption.txt}
+
+\source{arditi2024}
+
+\note{
+\begin{itemize}
+\item The authors identify the refusal direction in a bunch of different LLMs
+\item They can always stop models from refusing by ablating it out
+\end{itemize}
+}
+\end{frame}
+
+% arditi2024: fig1 = Figure 2
+\begin{frame}{Refusal Is Mediated by a Single Direction}
+\paperfig{figures/arditi2024/fig1.png}{03_transformer_features/figures/arditi2024/fig1-caption.txt}
+
+\source{arditi2024}
+
+\note{
+\begin{itemize}
+\item They can also make models refuse harmless questions by adding the refusal direction
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Logit Lens}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/nostalgebraist2020/logit_lens_kl_grid.png}
+\end{center}
+
+\source{nostalgebraist2020}
+
+\note{
+\begin{itemize}
+\item We already have a translation from residual stream activations into tokens: the unembedding matrix
+\item While only trained on the final activations, we can apply it to any layer's residual stream
+\item There is no a priori reason this has to be meaningful, but it turns out that unembedding earlier residual states gives useful guesses for the next token, building up layer by layer
+\item We can thereby see what aspects of the prediction are computed in which layer
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Logit Lens Exercise}
+\begin{center}
+\vfill
+\href{https://colab.research.google.com/github/iliad-team/iliad-intensive-C.2/blob/main/exercises/01_logit_lens/notebook_normal.ipynb}{%
+\colorbox{structure.fg}{\color{white}\LARGE\bfseries\strut\quad Normal Exercise\quad}}
+\vspace{1cm}
+
+\href{https://colab.research.google.com/github/iliad-team/iliad-intensive-C.2/blob/main/exercises/01_logit_lens/notebook_hard.ipynb}{%
+\colorbox{structure.fg}{\color{white}\LARGE\bfseries\strut\quad Hard Exercise\quad}}
+\vfill
+\end{center}
+\end{frame}
+
+\section{Superposition}
+
+% elhage2022: fig8 = privileged basis, fig9 = superposition
+\begin{frame}{Superposition}
+\begin{center}
+\includegraphics[height=0.35\textheight,keepaspectratio]{figures/elhage2022/fig8.png}
+\hspace{2em}
+\includegraphics[height=0.35\textheight,keepaspectratio]{figures/elhage2022/fig9.png}
+\end{center}
+
+\source{elhage2022}
+
+\note{
+\begin{itemize}
+\item So far we went from CNNs (where we knew which directions were features) to transformers (where we do not have such a privileged basis)
+\item But we still assumed each direction only has one meaning --- this is not the case
+\item We saw polysemantic neurons in CNNs already
+\item In transformers: a probe that isolates ``Portuguese'' might also trigger for ``Shakespeare'' or ``ozone hole''
+\end{itemize}
+}
+\end{frame}
+
+% elhage2022: fig10 = 3 features in 2 dimensions
+\begin{frame}{Superposition}
+\begin{center}
+\includegraphics[width=0.5\textwidth,height=0.7\textheight,keepaspectratio]{figures/elhage2022/fig10.png}
+\end{center}
+
+\source{elhage2022}
+
+\note{
+\begin{itemize}
+\item The reason we get polysemantic directions: the model has more features than dimensions in its activation space
+\item If you have 2 dimensions and want to encode 2 properties (Portuguese, Shakespearean), you can perfectly encode both
+\item If you want a third (ozone hole), you can still encode all 3, but with some noise
+\item If the outer two features are active, this looks like the third feature
+\item So a Portuguese Shakespeare text is indistinguishable from ozone hole
+\item This is not so bad if features are sparse: Portuguese and Shakespearean rarely co-occur
+\item But for always-present features (age, height, wealth), superposition would be quite bad
+\item So superposition makes sense as long as features are sparse
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Johnson--Lindenstrauss Lemma}
+In $N$ dimensions, we can pack
+\[ m \leq e^{c \cdot \varepsilon^2 \cdot N} \]
+vectors with pairwise dot product at most $\varepsilon$.
+
+\vspace{1em}
+Features scale \textbf{exponentially} with dimensions, given overlap $\varepsilon$.
+
+\source{johnson1984}
+
+\note{
+\begin{itemize}
+\item The effect is quite big: instead of scaling the number of features linearly with dimensions, we scale exponentially given a feature overlap of $\varepsilon$
+\end{itemize}
+}
+\end{frame}
+
+% elhage2022: fig13 = experiment setup
+\begin{frame}{Demonstrating Superposition}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.7\textheight,keepaspectratio]{figures/elhage2022/fig13.png}
+\end{center}
+
+\source{elhage2022}
+
+\note{
+\begin{itemize}
+\item To demonstrate this, Anthropic set up a toy model of superposition
+\item A neural network that learns to compress many features into a lower dimension
+\item This gives us lots of visibility: we know what the features are and can run single inputs through the network
+\end{itemize}
+}
+\end{frame}
+
+% elhage2022: fig20 = loss function
+\begin{frame}{Demonstrating Superposition}
+\[ h = Wx \qquad \hat{x} = \text{ReLU}(W^\top h + b) \]
+\[ L = \mathbb{E}_x\!\left[\,\|I\,(x - \hat{x})\|^2\,\right] \]
+
+\vspace{0.5em}
+{\small $I = \mathrm{diag}(I_i)$: per-feature importance \quad Sparsity $S$: probability that $x_i = 0$}
+
+\source{elhage2022}
+
+\note{
+\begin{itemize}
+\item Now we train $W$ and $b$ to minimize the loss
+\item The main thing they vary is the sparsity
+\item What they measure is how each feature is mapped from input to output, i.e.\ $W^T W$
+\end{itemize}
+}
+\end{frame}
+
+% elhage2022: fig18 = sparsity vs features big plot
+\begin{frame}{Demonstrating Superposition}
+\begin{center}
+\includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{figures/elhage2022/fig18.png}
+\end{center}
+
+\source{elhage2022}
+
+\note{
+\begin{itemize}
+\item When features are dense, it only encodes the most important ones
+\item The sparser we get, the more we get overlapping vectors
+\item They create some structured patterns
+\item The model manages to encode a lot of features quite well when they are sparse enough (a consequence of Johnson--Lindenstrauss)
+\item If we want to measure how many features are encoded: add up the projections of each feature onto itself
+\item That is the same as adding up the square of all matrix entries in $W$
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Dimensions per Feature}
+\[ D = \frac{m}{\|W\|_F^2} \]
+
+\vspace{0.5em}
+On average, how many hidden dimensions does the network use per feature?
+
+\vspace{0.5em}
+{\small $m$: number of hidden dimensions \quad $\|W\|_F$: Frobenius norm of $W$}
+
+\source{elhage2022}
+
+\note{
+\begin{itemize}
+\item One global summary: how many dimensions per feature, averaged across the whole network
+\item Equivalent to the sum of squared norms of all feature columns, divided into the hidden dimension count
+\end{itemize}
+}
+\end{frame}
+
+% elhage2022: fig29 = dimensions per feature plot
+\begin{frame}{Dimensions per Feature}
+\begin{center}
+\includegraphics[width=0.85\textwidth,height=0.7\textheight,keepaspectratio]{figures/elhage2022/dimensions_per_feature.png}
+\end{center}
+
+\source{elhage2022}
+
+\note{
+\begin{itemize}
+\item Plot of $D$ as sparsity is varied
+\item There are ``sticky regions'' --- some feature densities the network gravitates towards, notably 1 and 1/2
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Feature Dimensionality}
+\[ D_i = \frac{1}{\sum_j \frac{(W_i \cdot W_j)^2}{\|W_i\|^2 \|W_j\|^2}} \]
+
+\vspace{0.5em}
+How many dimensions does the network allocate to encoding feature $i$?
+
+\source{elhage2022}
+
+\note{
+\begin{itemize}
+\item To understand what happens, we zoom in by looking at the dimensionality of a specific feature
+\item If a feature has a dimension all for itself, $D_i = 1$
+\item If two features share one dimension, $D_i = 1/2$
+\item In general: go through all other features, add them up, see how much they co-use their lane
+\end{itemize}
+}
+\end{frame}
+
+% elhage2022: fig31 = feature geometry plot
+\begin{frame}{Feature Geometry}
+\begin{center}
+\includegraphics[width=0.95\textwidth,height=0.75\textheight,keepaspectratio]{figures/elhage2022/fig31.png}
+\end{center}
+
+\source{elhage2022}
+
+\note{
+\begin{itemize}
+\item Features cluster around certain dimensionalities and take specific geometric shapes
+\item Feature geometry has phases: equidistant points on an $n$-dimensional sphere
+\item Anti-correlated features are opposite to each other
+\item Correlated features are close to each other
+\item Extremely correlated features just share one direction
+\end{itemize}
+}
+\end{frame}
+
+% engels2025: fig0 = circular representations
+\begin{frame}{Feature Geometry}
+\paperfig{figures/engels2025/fig0.png}{03_transformer_features/figures/engels2025/fig0-caption.txt}
+
+\source{engels2025}
+
+\note{
+\begin{itemize}
+\item Sometimes feature geometry can be semantic, not just statistical
+\item Weekdays and months are often represented in a circle, making a rotational embedding of real time in LLMs
+\item One could argue this means ``time in the week'' is a non-linear feature, as it is presented as a rotation across weekdays
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{}
+\begin{center}
+\Large Can we disentangle features in superposition?
+\end{center}
+
+\note{
+\begin{itemize}
+\item If we never see features themselves, only ever many of them together, and they are not even orthogonal, do we have enough information to reconstruct them?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Dictionary Learning}
+\textbf{Setup:} Unknown dictionary $A = [A_1, \ldots, A_m] \in \mathbb{R}^{n \times m}$ with $m > n$.
+
+We observe samples $y = Ax$, where $x \in \mathbb{R}^m$ is $k$-sparse.
+We know neither $x$ nor $A$.
+
+\vspace{0.5em}
+\textbf{Claim:} $A$ is recoverable up to permutation and sign, in polynomial time, if:
+\begin{itemize}
+\item \textbf{Sparsity:} $k \leq c \cdot \min\!\left(m^{2/5},\; \frac{\sqrt{n}}{\mu \log n}\right)$
+\item \textbf{Incoherence:} $|\langle A_i, A_j \rangle| \leq \frac{\mu}{\sqrt{n}}$ for all $i \neq j$
+\item \textbf{Sufficient data:} $p = \Omega\!\left(\frac{m^2}{k^2} \log m\right)$ samples with varying support
+\item \textbf{Well-behaved coefficients:} independent, symmetric, bounded away from zero
+\end{itemize}
+
+\source{arora2013}
+
+\note{
+\begin{itemize}
+\item This gives us theoretical backing for why finding features in superposition should even be possible
+\item The setup: imagine a set of directions (features), and we observe weighted sums of a few of them at a time
+\item We never know which features are active or what the weights are, we just see the resulting vector
+\item The claim: under these conditions, the set of directions is uniquely identifiable
+\item There is no alternative set of directions and weights that could produce the same observations
+\item Sparsity: not too many features active at once
+\item Incoherence: the true feature directions are not too similar to each other
+\item We need enough data with varying combinations of active features
+\item Importantly, this does not tell us that SAEs specifically will find these features
+\item It tells us the features are there to be found, and that some polynomial-time algorithm exists
+\item Whether gradient descent on the SAE objective converges to the right answer is a separate question
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Compressed Sensing}
+\textbf{Setup:} Known dictionary $A \in \mathbb{R}^{n \times m}$.
+We observe $y = Ax$, where $x$ is $k$-sparse.
+We want to recover $x$.
+
+\vspace{0.5em}
+\textbf{Problem:} $m > n$, so there are infinitely many solutions to $Ax = y$.
+
+\vspace{0.5em}
+\textbf{Claim:} If $A$ satisfies the Restricted Isometry Property (RIP), then
+\[ \min_z \|z\|_1 \quad \text{s.t.} \quad Az = y \]
+recovers $x$ exactly.
+
+\vspace{0.5em}
+$\ell_1$ minimization finds the sparse solution; $\ell_2$ minimization does not.
+
+\source{candes2004,donoho2006}
+
+\note{
+\begin{itemize}
+\item Once we know the dictionary, there is a second question: for a given observation, which features are active and how strongly?
+\item This is an underdetermined system: more unknowns than equations, so infinitely many solutions
+\item Key insight: if we additionally require the solution to be sparse, it becomes unique
+\item We can find it by minimizing the $\ell_1$ norm, which is a convex problem
+\item Why $\ell_1$ and not $\ell_2$? The $\ell_1$ ball has sharp corners on the axes, so the optimizer lands where most coordinates are zero
+\item The $\ell_2$ ball is round, so $\ell_2$ minimization spreads energy across all coordinates
+\item This is exactly what the sparsity penalty in SAEs does
+\item Compressed sensing tells us that under the right conditions, the sparse decomposition is unique
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{}
+\begin{center}
+\Large How to disentangle features in superposition?
+\end{center}
+
+\note{
+\begin{itemize}
+\item Collect ideas from people who have not heard of SAEs before
+\end{itemize}
+}
+\end{frame}
+
+\section{Sparse Autoencoders}
+
+\begin{frame}{Sparse Autoencoders}
+\paperfig{figures/bricken2023/fig2.png}{03_transformer_features/figures/bricken2023/fig2-caption.txt}
+
+\source{bricken2023}
+
+\note{
+\begin{itemize}
+\item The idea: train a second neural network to represent the internals of the transformer
+\item Each forward pass of the transformer gives us training data for the SAE
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Sparse Autoencoders}
+\[ f = \text{ReLU}(W_{\text{enc}}(x - b_{\text{dec}}) + b_{\text{enc}}) \]
+\[ \hat{x} = W_{\text{dec}} f + b_{\text{dec}} \]
+\[ \mathcal{L} = \underbrace{\|x - \hat{x}\|_2^2}_{\text{reconstruction}} + \lambda \underbrace{\|f\|_1}_{\text{sparsity}} \]
+
+\source{bricken2023}
+
+\note{
+\begin{itemize}
+\item The activations of the transformer are blown up to a larger number of features
+\item This incentivizes the SAE to represent all the information, but represent it sparsely
+\item We saw earlier that there is only ``one way'' to sparsely represent data, under various assumptions
+\item So this is supposed to give us ``true features'' from the superposition mess
+\item We need to decide the dictionary size beforehand, so we cannot be sure a feature is absent just because we did not find it
+\item Unlike probes, this is unsupervised: we do not decide what features to find
+\item Now we get features, but how do we find out what they mean?
+\item Question to audience: what would convince you that a feature means ``Arabic''?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Identifying SAE Features}
+\paperfig{figures/bricken2023/fig15.png}{03_transformer_features/figures/bricken2023/fig15-caption.txt}
+
+\source{bricken2023}
+
+\note{
+\begin{itemize}
+\item Evidence 1: we see on what tokens the feature is active
+\item On tokens where the feature is more active, we have a higher correlation with the text being Arabic
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Identifying SAE Features}
+\paperfig{figures/bricken2023/fig17.png}{03_transformer_features/figures/bricken2023/fig17-caption.txt}
+
+\source{bricken2023}
+
+\note{
+\begin{itemize}
+\item Evidence 2: activate the feature and propagate it forward through the network on the direct path to the output
+\item Intuitively: if this concept is active, what do we expect to see next?
+\item The logit weights show Arabic script characters are upweighted
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{}
+\begin{center}
+\Large \url{https://www.neuronpedia.org/gemma-3-27b/31-gemmascope-2-res-16k}
+\end{center}
+
+\note{
+\begin{itemize}
+\item You can use this method to find all kinds of features in LLMs
+\item At scale, the labeling is done by other LLMs, using the same methods we just saw
+\item Your task for now (10 minutes): click through various models and features, get a feeling for what kind of features there are
+\item These are unfortunately small non-frontier models, which makes the features less impressive
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Trouble with SAEs: Feature Absorption}
+\paperfig{figures/chanin2024/fig0.png}{03_transformer_features/figures/chanin2024/fig0-caption.txt}
+
+\source{chanin2024}
+
+\note{
+\begin{itemize}
+\item SAEs will, if they can, make feature descriptions more sparse than they ``really are''
+\item Example: because ``short'' starts with S, the SAE does not fire the ``starts with S'' feature on ``short''
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Trouble with SAEs: Feature Absorption}
+\paperfig{figures/chanin2024/fig1.png}{03_transformer_features/figures/chanin2024/fig1-caption.txt}
+
+\source{chanin2024}
+
+\note{
+\begin{itemize}
+\item When features co-occur, the SAE absorbs one into the other
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Trouble with SAEs: Feature Shrinkage}
+\paperfig{figures/rajamanoharan2024/fig4.png}{03_transformer_features/figures/rajamanoharan2024/fig4-caption.txt}
+
+\source{rajamanoharan2024}
+
+\note{
+\begin{itemize}
+\item Since SAEs have to satisfy both the L1 sparsity and the L2 reconstruction loss, they settle where both gradients cancel
+\item The L1 loss pushes to make the feature smaller than it actually is
+\item This leads to systematic underestimation of feature strength
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{}
+\begin{center}
+\Large The Cambrian Explosion of SAEs
+\end{center}
+
+\note{
+\begin{itemize}
+\item Given these problems, and that SAEs seemed such a promising tool, we got a Cambrian explosion through roughly 2024
+\item Lots of people iterating on the concept and coming up with better ways of doing SAEs
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Gated SAEs}
+\paperfig{figures/rajamanoharan2024/fig5.png}{03_transformer_features/figures/rajamanoharan2024/fig5-caption.txt}
+
+\source{rajamanoharan2024}
+
+\note{
+\begin{itemize}
+\item A countermeasure for shrinkage: the SAE learns two different things separately
+\item Whether the feature is on or off (gating path)
+\item What the magnitude of the feature is (magnitude path)
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{JumpReLU SAEs}
+\[ a = \text{JumpReLU}_\theta(W_{\text{enc}} x) = W_{\text{enc}} x \cdot \mathbf{1}[W_{\text{enc}} x > \theta] \]
+
+\vspace{0.5em}
+\[ \mathcal{L} = \underbrace{\| x - \hat{x} \|_2^2}_{\text{reconstruction}} + \lambda \sum_i \underbrace{\tanh(c \cdot \| W_{\text{dec},i} \| \cdot a_i)}_{\approx\, \mathbf{1}[a_i > 0] \text{ for large } c} \]
+
+\vspace{0.5em}
+Hard threshold $\theta$: features are either fully on or off.
+Sparsity penalty approximates L0 --- no shrinkage on active features.
+
+\source{rajamanoharan2024}
+
+\note{
+\begin{itemize}
+\item A third approach to feature shrinkage, also from the gated SAE paper
+\item Hard threshold $\theta$: if pre-activation is above $\theta$, it passes through at true value; if below, hard-zeroed
+\item The sparsity penalty $\tanh(c \cdot \|w\| \cdot a)$ approximates counting active features (L0 proxy) for large $c$
+\item Once a feature is clearly active, $\tanh$ saturates to 1 and gradient vanishes --- no pressure to shrink magnitude
+\item Training dynamics: reconstruction loss wants $\theta$ low, sparsity loss wants $\theta$ high; equilibrium determines sparsity
+\item Used in cross-layer transcoders for Anthropic's circuit tracing work
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Top-K SAEs}
+\[ f_{\text{TopK}}(x) = \text{TopK}(W_{\text{enc}}(x - b_{\text{dec}})) \]
+
+\vspace{0.5em}
+Set all but the top $K$ feature activations to zero.
+No L1 penalty needed.
+
+\source{bussmann2024}
+
+\note{
+\begin{itemize}
+\item As often in ML, the simpler solution works more robustly
+\item Completely get rid of the L1 norm, just set all but the top K feature activations to zero
+\item There has been a Cambrian explosion of SAE variants
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Matryoshka SAEs}
+\paperfig{figures/bussmann2025/fig0.png}{03_transformer_features/figures/bussmann2025/fig0-caption.txt}
+
+\source{bussmann2025}
+
+\note{
+\begin{itemize}
+\item The idea: you get the most important features labeled as such, by training on multiple top-N values at the same time
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Staircase SAEs}
+\paperfig{figures/fillingham2025/staircase_sae.png}{}
+
+\source{fillingham2025}
+
+\note{
+\begin{itemize}
+\item The idea: you get features per layer, and your SAE resembles the residual stream slowly building up features from layer to layer
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Comparing SAEs}
+\paperfig{figures/karvonen2025b/fig1.png}{03_transformer_features/figures/karvonen2025b/fig1-caption.txt}
+
+\source{karvonen2025b}
+
+\note{
+\begin{itemize}
+\item SAEs are not classical ML where we just want low loss on an eval set
+\item We actually want them to be a good interpretability tool, and that is hard to quantify
+\item Loss recovered: what percentage of the transformer performance is recovered when we replace activations with the SAE reconstruction vs.\ delete the activations
+\item Auto interpretability: give an LLM examples of when the feature was active/not active, it proposes an explanation, then predicts feature activation on a test set
+\item Mean absorption score: for hierarchical features like starting letters and words, how much are rarer features absorbed into more common ones?
+\item SCR top 20: train a classification probe on data with spurious correlations (e.g.\ profession and gender), then ablate the gender feature --- does the bias decrease?
+\item K-sparse probing: take a concept like sentiment, train a probe on the single most relevant feature --- what is the probe's performance?
+\item Extremely mixed results: different SAE architectures have different strengths and weaknesses
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{SAEs Scale}
+\begin{center}
+\includegraphics[width=0.85\textwidth,height=0.7\textheight,keepaspectratio]{figures/templeton2024/fig2.png}
+\end{center}
+
+\source{templeton2024}
+
+\note{
+\begin{itemize}
+\item Most important for these methods: they scale to production models
+\item Here we see SAEs applied to Claude 3 Sonnet
+\item Loss decreases approximately according to a power law with respect to compute
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Bigger Models, More Specific Features}
+\begin{center}
+\includegraphics[width=0.95\textwidth,height=0.7\textheight,keepaspectratio]{figures/templeton2024/fig1.png}
+\end{center}
+
+\source{templeton2024}
+
+\note{
+\begin{itemize}
+\item We see more specific and general features than we saw earlier in smaller models
+\item For example, the now famous Golden Gate Bridge feature
+\item Features are multilingual and multimodal
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Golden Gate Claude}
+\begin{center}
+\includegraphics[width=0.7\textwidth,height=0.75\textheight,keepaspectratio]{figures/golden_gate_claude.png}
+\end{center}
+
+\note{
+\begin{itemize}
+\item Anthropic made a chatbot available for one day with the Golden Gate Bridge feature clamped up
+\item It cannot help itself from bringing up the Golden Gate Bridge, which can be quite strange
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Reading Claude's Mind}
+\begin{center}
+\includegraphics[width=0.85\textwidth,height=0.7\textheight,keepaspectratio]{figures/templeton2024/fig42.png}
+\end{center}
+
+\source{templeton2024}
+
+\note{
+\begin{itemize}
+\item We can now somewhat read Claude's mind for safety-relevant contexts
+\item When asked about itself, Claude activates features related to robots, AI consciousness, moral agency, emotions, entrapment
+\item The model's self-representation invokes common tropes about AI and is heavily anthropomorphized
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Safety-Relevant Feature Steering}
+In the Claude Opus 4.5 system card:
+
+\vspace{0.5em}
+\begin{enumerate}
+\item Find \textbf{evaluation awareness} features via:
+\begin{itemize}
+\item Contrastive vectors (eval vs.\ non-eval prompts)
+\item SAE features (discriminating eval transcripts)
+\end{itemize}
+\item \textbf{Inhibit} these features (negative steering at 25\% of activation norm)
+\end{enumerate}
+
+\vspace{0.5em}
+\textbf{Results:}
+\begin{itemize}
+\item Reduced verbalized evaluation awareness
+\item Modestly increased misaligned behavior
+\item Random feature steering also had a (weaker) effect
+\end{itemize}
+
+\source{anthropic2025b}
+
+\note{
+\begin{itemize}
+\item The chain of thought said less things like ``I know this is a test''
+\item The model behaves less aligned, but not in the most egregious cases of previous models (blackmail, sabotage)
+\item Some of the effect is just the model being pushed out of distribution, since random features also cause changes
+\item They used both contrastive vectors (subtracting activations on eval vs.\ non-eval prompts) and SAE features identified by discriminating eval-aware vs.\ non-eval-aware transcripts
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Transcoders and Crosscoders}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/lindsey2024/cross_trans_coer.png}
+\end{center}
+
+\source{lindsey2024}
+
+\note{
+\begin{itemize}
+\item We can not only vary the architecture and loss of the SAE itself, but also what kind of data we are acting on
+\item Transcoders do not sparsify a single layer of activations, but reconstruct the next layer from the current layer
+\item The idea: sparsify the computation going on in some part of the transformer
+\item Crosscoders take multiple layers and reconstruct multiple layers out of multiple layers
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Transcoders and Crosscoders}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/lindsey2024/activities_across_layers.png}
+\end{center}
+
+\source{lindsey2024}
+
+\note{
+\begin{itemize}
+\item This enables things like figuring out what ``the same feature'' is across the model
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Model Diffing}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/lindsey2024/model_diffing.png}
+\end{center}
+
+\source{lindsey2024}
+
+\note{
+\begin{itemize}
+\item We can also use the same method to identify the same feature across different models
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Model Diffing}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/lindsey2024/diffing_results.png}
+\end{center}
+
+\source{lindsey2024}
+
+\note{
+\begin{itemize}
+\item The authors took the model diff between Sonnet 3 base and chat model
+\item They could identify on a feature level what concepts it learned during post-training
+\item Specific features for refusal, step-by-step reasoning, etc.
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{SAE Exercise}
+\begin{center}
+\vfill
+\href{https://colab.research.google.com/github/iliad-team/iliad-intensive-C.2/blob/main/exercises/04_saes/notebook.ipynb}{%
+\colorbox{structure.fg}{\color{white}\LARGE\bfseries\strut\quad SAE Exercise\quad}}
+\vfill
+\end{center}
+\end{frame}

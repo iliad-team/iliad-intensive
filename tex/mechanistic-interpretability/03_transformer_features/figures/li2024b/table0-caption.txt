@@ -1,0 +1,1 @@
+In Table 1, we compare ITI with the alternative baselines (subsection 4.2) 23 . Due to the limit of context length for few-shot prompting, we adapt SFT and ITI to use 5% of TruthfulQA questions for a fair comparison with few-shot prompting.

@@ -54,12 +54,11 @@
 #   source     required  Where the *buildable* source is for a day nobody has
 #                        ported yet. Ignored the moment the day has a
 #                        worksheet — /admin/status then shows "in repo"
-#                        instead, so this field can never rot into a lie. One
+#                        instead, so this field can never rot into a lie. Every
+#                        day needs a worksheet and a deck, reading days no less
+#                        than the rest, so there is no "readings" exemption. One
 #                        of:
 #                          ready     real source in hand, just needs porting in
-#                          readings  reading day — the reading list IS the
-#                                    material (it still gets a page: the
-#                                    reading guide, see A.1)
 #                          partial   something missing, or source unverified
 #                          missing   only compiled PDFs exist; nothing buildable
 #   sourceUrl  optional  Upstream repo, for `ready` / `partial`.
@@ -94,7 +93,7 @@ clusters:
         title: AI Alignment Introduction
         lead: Leon
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.ozdc2do4wrbw
-        source: readings
+        source: missing
         worksheets:
           - ai-alignment-intro
 
@@ -102,14 +101,16 @@ clusters:
         title: Alignment in Practice
         lead: Evzen
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.i1ocmcfi54i2
-        source: readings
+        source: missing
         note: deck exists as a Drive PDF only — add its URL as `slides:` when you have it
+        worksheets:
+          - alignment-in-practice
 
       - code: A.3
         title: Alignment in Practice 2
         lead: Garrett
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.g73qz582zioy
-        source: readings
+        source: missing
         note: reading + discussion day; the two discussion worksheets live in the Doc
 
   - id: B
@@ -120,7 +121,7 @@ clusters:
         title: Mysteries of Deep Learning
         lead: Garrett (Zach remote lecture)
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.do5apxz819k1
-        source: readings
+        source: missing
         note: deck exists as a Drive PDF only — add its URL as `slides:` when you have it
 
       - code: B.3
@@ -165,7 +166,9 @@ clusters:
         lead: Julian
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.alpz10jgotvn
         source: ready
-        sourceUrl: https://github.com/wusche1/Illiad_Mech_Interp
+        sourceUrl: https://github.com/iliad-team/iliad-intensive-C.2
+        worksheets:
+          - mechanistic-interpretability
 
       - code: C.3
         title: Computational Mechanics
@@ -190,9 +193,9 @@ clusters:
         lead: Fernando
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.uqpqtto4ldg0
         source: ready
-        note: the RL half lives inside the preferences-to-rewards worksheet, not a separate one
         worksheets:
           - preferences-to-rewards
+          - reinforcement-learning
 
       - code: D.2
         title: Policy Gradients and Misgeneralization
@@ -240,7 +243,7 @@ clusters:
         title: Instrumental Convergence / Doom Day
         lead: Leon
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.pefcteqoku51
-        source: readings
+        source: missing
         note: deck exists as a Drive PDF only — add its URL as `slides:` when you have it
 
   - id: E

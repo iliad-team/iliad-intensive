@@ -58,7 +58,8 @@ const CHECKER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx-check.mjs");
 const args = process.argv.slice(2);
 const CHECK_ONLY = args.includes("--check");
 // --no-gate skips the KaTeX render gate. The preview loop passes this: `next
-// build` renders the same math right after (via rehype-katex), so the gate is
+// build` renders the same math right after (via src/lib/remark-katex-html —
+// the gate here still uses rehype-katex, same KaTeX underneath), so the gate is
 // redundant there — a bad equation shows as a visible error in the browser
 // instead of failing the build. The full build / CI never pass it.
 const NO_GATE = args.includes("--no-gate");
@@ -113,6 +114,9 @@ const pexec = promisify(execFile);
 const exec = (cmd, argv, opts = {}) =>
   pexec(cmd, argv, { maxBuffer: 64 * 1024 * 1024, ...opts });
 
+// pdflatex invocation, shared by the worksheet and slides compile ladders.
+const PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
+
 // "No solutions" variants of every download format are derived by stripping
 // solution blocks from the source — so a handout (or an LLM prompt) can be
 // guaranteed spoiler-free. Solution environments never nest.
@@ -149,11 +153,38 @@ const stripTexSolutions = (tex) =>
   cutSpans(
     cutSpans(tex, /[ \t]*\\begin\{solution\}[\s\S]*?\\end\{solution\}[ \t]*\n?/g),
     /[ \t]*\\begin\{solutionsonly\}[\s\S]*?\\end\{solutionsonly\}[ \t]*\n?/g);
+// A footnote taken inside an answer leaves its definition behind when the
+// answer goes: the `[^3]` reference left with the <Solution>, but `[^3]: …`
+// still sits at the foot of the file. A renderer drops a definition nothing
+// references, so the PAGE is fine — the leak is the -nosol markdown download,
+// where a reader would find the answer's aside sitting there in full.
+const pruneOrphanFootnotes = (mdx) => {
+  const referenced = new Set(
+    [...mdx.matchAll(/\[\^([^\]\s]+)\](?!:)/g)].map((m) => m[1]));
+  const out = [];
+  let dropping = false;
+  for (const line of mdx.split("\n")) {
+    const def = /^\[\^([^\]\s]+)\]:/.exec(line);
+    if (def) {
+      dropping = !referenced.has(def[1]);
+      if (dropping) continue;
+    } else if (dropping) {
+      // An indented line continues the definition we are dropping. A blank one
+      // is kept either way: it may be the separator the next block needs.
+      if (/^[ \t]+\S/.test(line)) continue;
+      if (line.trim() !== "") dropping = false;
+    }
+    out.push(line);
+  }
+  return out.join("\n");
+};
+
 // MDX: strip only bare <Solution> answer blocks — titled ones
 // (<Solution title="Hint">, ...title="Proof">) stay, matching what
 // stripTexSolutions keeps in the .tex. Depth-aware because an answer may
 // itself contain a titled proof block. Also strip solutionsonly spans, which
 // the converter brackets with invisible {/* iliad:solutionsonly:* */} markers.
+// Whatever is left goes through pruneOrphanFootnotes on the way out.
 const stripMdxSolutions = (mdx) => {
   mdx = mdx.replace(
     /\n?\{\/\* iliad:solutionsonly:start \*\/\}[\s\S]*?\{\/\* iliad:solutionsonly:end \*\/\}[ \t]*\n?/g,
@@ -161,7 +192,7 @@ const stripMdxSolutions = (mdx) => {
   let out = "", i = 0;
   for (;;) {
     const s = mdx.indexOf("<Solution>", i);
-    if (s === -1) return out + mdx.slice(i);
+    if (s === -1) return pruneOrphanFootnotes(out + mdx.slice(i));
     let depth = 0, j = s;
     for (;;) {
       const o = mdx.indexOf("<Solution", j), c = mdx.indexOf("</Solution>", j);
@@ -169,7 +200,7 @@ const stripMdxSolutions = (mdx) => {
       if (o !== -1 && o < c) { depth++; j = o + "<Solution".length; }
       else { depth--; j = c + "</Solution>".length; if (depth === 0) break; }
     }
-    if (j === -1) return out + mdx.slice(i);   // unbalanced — leave untouched
+    if (j === -1) return pruneOrphanFootnotes(out + mdx.slice(i));   // unbalanced — leave untouched
     out += mdx.slice(i, s).replace(/[ \t]+$/, "");
     i = j + (mdx[j] === "\n" ? 1 : 0);
   }
@@ -299,6 +330,13 @@ async function buildSlug(slug) {
   // "then the normal search path", so a system copy still wins where present.
   // (tex/singular-learning-theory/far.bst already relies on bibtex finding a
   // repo-local style; this just hoists the trick to a shared location.)
+  // biblatex is deliberately NOT vendored the same way, and the reason is worth
+  // recording: biber checks the control file against an exact biblatex version,
+  // so a copy pinned to satisfy CI's biber breaks every local build against a
+  // different one. Style and backend have to come from the same place, which
+  // means the distro package — texlive-bibtex-extra is installed for it (see
+  // .github/workflows/site.yml), which is also why that 75 MB note above now
+  // describes history rather than the current package set.
   const tex = (...argv) =>
     exec(argv[0], argv.slice(1), {
       cwd: dir,
@@ -326,6 +364,20 @@ async function buildSlug(slug) {
       throw Object.assign(new Error(`bibtex (${base}): ${detail}`), { bibtex: true });
     }
   };
+  // A biblatex deck resolves its citations with biber instead: pdflatex writes
+  // a .bcf, biber reads it and produces the .bbl. Same fatal-on-failure stance
+  // as bibtex above, and for the same reason — a swallowed biber error still
+  // yields a deck that builds and looks fine, with every \cite rendered "[?]".
+  const biber = async (base) => {
+    try {
+      await tex("biber", base);
+    } catch (e) {
+      const out = `${e.stdout ?? ""}${e.stderr ?? ""}`;
+      const detail = out.split("\n").map((l) => l.trim()).filter(Boolean)
+        .find((l) => /^(ERROR|FATAL)/.test(l)) ?? String(e.message).split("\n")[0];
+      throw Object.assign(new Error(`biber (${base}): ${detail}`), { bibtex: true });
+    }
+  };
   const isTex = existsSync(path.join(dir, "main.tex"));
   // A worksheet MAY ship a slide deck as slides.tex (any dialect — usually
   // beamer). It is compiled to slides.pdf and hosted alongside the downloads;
@@ -347,7 +399,6 @@ async function buildSlug(slug) {
     // 1. PDF FIRST: the converter resolves \cref/\ref through LaTeX's .aux, so
     //    the compile must happen before conversion — a fresh CI checkout has no
     //    .aux, and converting without one reports every \cref as unresolved.
-    const PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
     const compile = async (base, src = `${base}.tex`) => {
       await tex(...PDFLATEX, `-jobname=${base}`, src);
       await bibtex(base);
@@ -467,20 +518,26 @@ async function buildSlug(slug) {
   //     `handout` to the beamer class and drop its \pause reveals. That lands
   //     as slides-handout.pdf next to the presentation build. Decks with no
   //     reveals never mention \HANDOUT and so build once, as before.
-  const hasHandout = hasSlidesTex
-    && /\\HANDOUT\b/.test(readFileSync(path.join(dir, "slides.tex"), "utf8"));
+  const slidesSrc = hasSlidesTex ? readFileSync(path.join(dir, "slides.tex"), "utf8") : "";
+  const hasHandout = /\\HANDOUT\b/.test(slidesSrc);
+  // Which bibliography pass this deck needs. The house decks use bibtex +
+  // alphaurl; a deck that loads biblatex (C.2's, carried over as its author
+  // wrote it) needs biber instead. Detected from the source so a deck never has
+  // to declare its toolchain, and so importing an upstream deck verbatim does
+  // not mean rewriting its citation machinery to match ours.
+  const bibPass = /\\usepackage(\[[^\]]*\])?\{biblatex\}|\\addbibresource/.test(slidesSrc)
+    ? biber : bibtex;
   if (!CHECK_ONLY && hasSlidesTex) {
-    const SLIDES_PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
     // exec() passes argv straight through (no shell), so the \def wrapper needs
     // no quoting beyond JS's own backslash escapes.
     const variants = [["slides", "slides.tex"]];
     if (hasHandout) variants.push(["slides-handout", "\\def\\HANDOUT{}\\input{slides}"]);
     for (const [job, src] of variants) {
       try {
-        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
-        await bibtex(job);
-        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
-        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
+        await tex(...PDFLATEX, `-jobname=${job}`, src);
+        await bibPass(job);
+        await tex(...PDFLATEX, `-jobname=${job}`, src);
+        await tex(...PDFLATEX, `-jobname=${job}`, src);
       } catch (e) {
         if (e?.bibtex) return done(false, e.message);
         const log = path.join(dir, `${job}.log`);

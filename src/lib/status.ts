@@ -31,7 +31,7 @@ export type DayModule = {
 
 /** Where a day's buildable source is. `in-repo` is derived (the day has a
  *  worksheet); the rest come from schedule.yaml. */
-export type SourceKind = "in-repo" | "ready" | "readings" | "partial" | "missing";
+export type SourceKind = "in-repo" | "ready" | "partial" | "missing";
 
 export type Day = {
   code: string;
@@ -39,9 +39,9 @@ export type Day = {
   title: string;
   lead: string;
   doc: string;
-  /** `kind` is the current truth, `declared` is what schedule.yaml claimed —
-   *  they differ once the day has a worksheet (a ported reading day is both). */
-  source: { kind: SourceKind; declared: SourceKind; url: string | null; note: string | null };
+  /** `kind` is the current truth: what schedule.yaml declared, or `in-repo`
+   *  once the day has a worksheet. */
+  source: { kind: SourceKind; url: string | null; note: string | null };
   slidesUrl: string | null;
   modules: DayModule[];
   live: boolean;
@@ -58,7 +58,6 @@ export type Status = {
     live: number;
     decksBuilt: number;
     decksHosted: number;
-    readingDays: number;
     awaitingSource: number;
   };
 };

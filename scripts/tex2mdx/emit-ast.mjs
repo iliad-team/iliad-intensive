@@ -26,13 +26,15 @@ const TEXT_MACROS = {
   ";": " ", "!": "", ":": " ", "\n": " ", "'": "", "@": "", "`": "", "^": "",
   '"': "", "~": "",
   "\\": "\n", "%": "%", "&": "&", "#": "#", _: "_",
-  // A literal dollar in prose: \$1,000 in the source. It must NOT reach the page
-  // as a bare $, which remark-math reads as a math delimiter — two prices in a
-  // paragraph ("wins \$1,000,000 … and wins \$1,000") then become one bogus math
-  // span. Nor as \$: that escape exists in LaTeX and in KaTeX but not at the
-  // markdown layer, which is the same trap shims.mjs documents for math bodies.
-  // A character reference is the one spelling micromark leaves alone.
-  $: "&#36;",
+  // A literal dollar in prose: \$1,000 in the source. What it must NOT reach the
+  // page as is a bare $, which remark-math reads as a math delimiter — two prices
+  // in a paragraph ("wins \$1,000,000 … and wins \$1,000") then become one bogus
+  // math span. `\$` is the fix and stays `\$`: $ is ASCII punctuation, so it is
+  // one of the characters a CommonMark backslash escape covers, and micromark
+  // consumes the escape before the math extension can see a delimiter.
+  // (Inside a math body the escape does not apply — the body is raw, so a $ byte
+  // would end the span — which is why shims.mjs swaps in \char36 there instead.)
+  $: "\\$",
   "{": "\\{", "}": "\\}",
   // The text-mode names for characters LaTeX reserves. An author reaches for
   // these whenever a sentence contains a pipe or an angle bracket, and pandoc
@@ -46,7 +48,7 @@ const NOOP_MACROS = new Set([
   "allowdisplaybreaks", "phantomsection", "sloppy", "AND", "And", "name",
   "height", "width", "depth", "centerline", "noindent", "medskip", "smallskip",
   "bigskip", "hfill", "hfil", "vfill", "vfil", "null", "clearpage", "newpage",
-  "par", "today", "itemsep", "protect", "qedhere", "footnotemark", "appendix",
+  "par", "today", "itemsep", "protect", "qedhere", "appendix",
   "LARGE", "Large", "large", "small", "footnotesize", "scriptsize", "normalsize",
   "bfseries", "itshape", "sffamily", "ttfamily", "rmfamily",
   "bgroup", "egroup", "begingroup", "endgroup", "ignorespaces",
@@ -93,7 +95,6 @@ const CONTRACT_MACROS = {
   // signature or the three brace groups survive as literal text
   crefname: { signature: "m m m" }, Crefname: { signature: "m m m" },
 };
-const THM_KINDS = new Set(["theorem", "lemma", "proposition", "corollary"]);
 const THM_COUNTED = new Set(["theorem", "lemma", "proposition", "corollary", "fact", "definition", "example"]);
 
 // ------------------------------------------------------------- run state ---
@@ -105,9 +106,9 @@ let expandDepth = 0;
 let counters = null;
 let inExercise = false;
 let citedKeys = new Set();      // bib keys cited anywhere on the page
+let footnotes = [];             // {id, body} in source order; body null until \footnotetext
 
 const secNum = () => (counters.appendix ? String.fromCharCode(64 + counters.section) : String(counters.section));
-const bucket = (dd) => { const n = +dd; return n <= 5 ? 1 : n <= 10 ? 2 : n <= 17 ? 3 : n <= 25 ? 4 : 5; };
 
 // ------------------------------------------------------------ math paths ---
 function mathClean(m) {
@@ -120,7 +121,7 @@ function mathClean(m) {
       const g3 = readArg(m, j); j = g3 ? g3.end : j;
       out += (g3 ? g3.content : "").replace(/\\displaystyle/g, "").replace(/\$/g, ""); i = j; continue;
     }
-    const cr = m.startsWith("\\Cref", i) ? 5 : m.startsWith("\\cref", i) ? 5 : (m.startsWith("\\ref", i) && m[i + 4] === "{") ? 4 : 0;
+    const cr = (m.startsWith("\\Cref", i) || m.startsWith("\\cref", i)) ? 5 : (m.startsWith("\\ref", i) && m[i + 4] === "{") ? 4 : 0;
     if (cr) { const g = readArg(m, i + cr); if (g) { out += g.content.split(",").map((l) => resolveRef(l.trim()).text).join(" and "); i = g.end; continue; } }
     if (m.startsWith("\\cite", i)) { let j = i + 5; const o = readOpt(m, j); if (o) j = o.end; const g = readArg(m, j); if (g) { const e = ctx.BIB[g.content.trim()]; if (e) citedKeys.add(g.content.trim()); out += e ? e.disp : g.content.trim(); i = g.end; continue; } }
     out += m[i]; i++;
@@ -236,12 +237,13 @@ const bracketArg = (n) => {
 // separately as renderable children.
 function mdToPlain(md, quiet = false) {
   const s = md.replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  const hadMath = /\$\$?[^$]*\$\$?/.test(s);
   const out = s
     .replace(/\$\$?[^$]*\$\$?/g, "")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/[*`]/g, "")
     .replace(/\s+/g, " ").trim();
-  if (!quiet && /\$\$?[^$]*\$\$?/.test(s)) {
+  if (!quiet && hadMath) {
     advise(`math is dropped from "${out.slice(0, 70)}" — it becomes a plain attribute (a box title, or the page title), which cannot render math; reword it in words`, snippetOf(s));
   }
   return out;
@@ -661,7 +663,16 @@ function emitMacro(n) {
       return name === "citep" ? `(${body})` : body;
     }
     case "citetext": return `(${walkArg(n, 0)})`;
-    case "footnote": case "footnotetext": return ` (${walkArg(n, n.args ? n.args.length - 1 : 0)})`;
+    case "footnote": return footnoteRef(walkArg(n, n.args ? n.args.length - 1 : 0));
+    case "footnotemark": return footnoteRef(null);
+    case "footnotetext": {
+      const body = walkArg(n, n.args ? n.args.length - 1 : 0);
+      if (fillFootnoteText(body)) return "";
+      // No mark to attach to: keep the words where they are rather than emit a
+      // definition nothing references, which the renderer would silently drop.
+      advise("\\footnotetext with no \\footnotemark before it — kept inline, in parentheses", snippetOf(body));
+      return ` (${body})`;
+    }
     case "hint": return `[*Hint:* ${walkArg(n, 0)}]`;
     case "note": return `[*Note:* ${walkArg(n, 0)}]`;
     // \difficulty is not contract UI — it renders as the same plain [n]
@@ -938,12 +949,51 @@ function emitBibliography() {
   return `\n\n## References\n\n${items.join("\n\n")}\n`;
 }
 
+// --------------------------------------------------------------- footnotes ---
+// \footnote{…} becomes a GFM footnote: a [^N] reference where the author put
+// it, and the note itself in a definition appended below. The renderer collects
+// the definitions into one list at the foot of the page — the web equivalent of
+// what the PDF puts at the foot of the sheet — so the definitions' position in
+// the file is bookkeeping, not layout.
+//
+// \footnotemark + \footnotetext is the split form LaTeX needs when the mark sits
+// somewhere it can't carry the text, like a theorem's title argument. The mark
+// takes the next number and the following \footnotetext fills it in, which is
+// how LaTeX pairs them too.
+const footnoteRef = (body) => {
+  footnotes.push({ id: footnotes.length + 1, body });
+  return `[^${footnotes.length}]`;
+};
+const fillFootnoteText = (body) => {
+  const open = footnotes.find((f) => f.body === null);
+  if (open) open.body = body;
+  return Boolean(open);
+};
+function emitFootnotes() {
+  if (footnotes.length === 0) return "";
+  const defs = footnotes.map((f) => {
+    if (f.body === null) {
+      warn(`\\footnotemark with no \\footnotetext after it — footnote ${f.id} would render empty`, "\\footnotemark");
+      return `[^${f.id}]: (no \\footnotetext in the source)`;
+    }
+    if (/\n[ \t]*\n/.test(f.body.trim())) {
+      advise(`footnote ${f.id} spans paragraphs in the source; the page renders it as one`, snippetOf(f.body));
+    }
+    // One line per definition. A blank line would end the definition, and the
+    // 4-space indent that continues one is also the indent that starts a code
+    // block — so paragraph breaks inside a note collapse to spaces instead.
+    return `[^${f.id}]: ${f.body.replace(/\s+/g, " ").trim()}`;
+  });
+  return `\n\n${defs.join("\n\n")}\n`;
+}
+
 export function emitDocument(bodyTex, context) {
   ctx = context;
   anchorMap = {};
   droppedLabels = new Set();
   authorMacros = {};
   citedKeys = new Set();
+  footnotes = [];
   inExercise = false;
 
   // phase A: default parse of preamble+body to harvest author macro definitions
@@ -981,10 +1031,12 @@ export function emitDocument(bodyTex, context) {
   context.warnRestore(wSnap);
 
   // pass 2: emit, move every solution up under its exercise, then append
-  // the References list for everything the page cited
+  // the References list for everything the page cited and the definitions for
+  // every footnote it took. Pass 1's numbering is thrown away with its output.
   counters = { section: 0, subsec: 0, subsubsec: 0, appendix: false, ex: {}, thm: {} };
   citedKeys = new Set();
-  const md = relocateSolutions(walk(ast.content)) + emitBibliography();
+  footnotes = [];
+  const md = relocateSolutions(walk(ast.content)) + emitBibliography() + emitFootnotes();
 
   // a \cref may target a label inside a dropped pdfonly block — it resolves
   // via the aux, so the link emits but points at nothing. Tell the author.
