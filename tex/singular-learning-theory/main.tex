@@ -2718,9 +2718,14 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \begin{enumerate}
     \item The hypothesis class is $\F = \{f_w = a + b : (a, b) \in \R^2\} = \R$, since for any target $c \in \R$ we can choose, e.g., $a = c$ and $b = 0$. This is the same as in \cref{ex:univariate-degeneracy}.
 
-    \item The directional derivative in direction $v = (1, -1)$ is
+    \item The direction $v = (1, -1)$ has $\|v\| = \sqrt{2}$, so by
+    \eqref{eq:directional-derivative} the directional derivative is
     \begin{equation*}
-        1 \cdot \frac{\partial}{\partial a}(a + b) + (-1) \cdot \frac{\partial}{\partial b}(a + b) = 1 - 1 = 0.
+        \frac{1}{\sqrt{2}}\left(
+            1 \cdot \frac{\partial}{\partial a}(a + b)
+            + (-1) \cdot \frac{\partial}{\partial b}(a + b)
+        \right)
+        = \frac{1}{\sqrt{2}}(1 - 1) = 0.
     \end{equation*}
 
     \item The direction $v = (1, -1)$ gives a zero directional derivative at \emph{every} point $(a, b) \in \W$. Therefore, the parameter--function map is everywhere degenerate. This reflects the fact that the map $(a, b) \mapsto a + b$ has a global continuous symmetry: translating along the direction $(1, -1)$ does not change the output. \qedhere
