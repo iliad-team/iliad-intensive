@@ -49,10 +49,10 @@
 \end{frame}
 \begin{frame}{How: making mathematical models of learning}
     \begin{itemize}
-        \item Tractable toy models: deep linear networks, shallow nonlinear networks, polynomial activations
+        \item Tractable toy models: deep linear networks, shallow nonlinear networks, tensor networks, polynomial activations
         \item Take limits in depth, width, data, and training time
         \item Exploit symmetries: quotient them out and find conserved quantities
-        \item Identify useful coarse-grained variables: singular values of weights, learning coefficients, correlation functions
+        \item Identify useful observables: singular values of weights, learning coefficient, correlation functions
         \item Work in specific regimes: lazy versus rich
         \item Validate with tight feedback loops: experiments, symbolic derivations, and mathematical proofs
     \end{itemize}
@@ -67,7 +67,7 @@
     \end{itemize}
 \end{frame}
 \begin{frame}{Emergent misalignment}
-  Jan Betley et al., "Emergent Misalignment: Narrow finetuning can produce broadly misaligned LLMs" (Figure 1)
+  Jan Betley et al., ``Emergent Misalignment: Narrow finetuning can produce broadly misaligned LLMs'' (Figure 1)
 \includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{emergent_misalignment.png}
 \end{frame}
 \sectionframe{Setup}
@@ -84,9 +84,9 @@ h_\ell(\theta,x)
 &\hspace{1.5em}\ell=1,\ldots,L-1.
 \end{aligned}
 \]
-A neural network is a function $f_\theta$ such that
+A deep neural network is a function $f_\theta$ such that
 \[
-f_\theta(x) = W_Lh_{L-1}(\theta,x)+b_L.
+f_\theta(x) = W_Lh_{L-1}(\theta,x)
 \]
 Other architectural components include residual streams, tokenization, embeddings, attention for sequence modeling, and layer normalization.
 \end{column}
@@ -98,7 +98,7 @@ Other architectural components include residual streams, tokenization, embedding
 \end{columns}
 \end{frame}
 \begin{frame}{Deep linear network}
-The function is linear in the data and nonlinear in the parameters:
+The function is linear in the data and multi-linear (nonlinear) in the parameters:
   \[
     \begin{aligned}
       f\colon \mathbb{R}^{d_0} \times
@@ -117,7 +117,7 @@ where $W$ is the student matrix.
 \end{frame}
 \begin{frame}{Stochastic gradient descent}
 \small
-Learn a function $g$ from observations $y = g(x)$. Initialize neural weights at $\theta_0 \sim \mathcal{N}(0,\sigma^{-\gamma}I)$, with initialization scale $\gamma$.
+Learn a function $g$ from observations $y = g(x)$. Initialize neural weights at $\theta_0 \sim \mathcal{N}(0,\sigma I)$, with initialization scale $\gamma$ and $\sigma=d_L^{-\gamma}$.
 \begin{block}{SGD update}
     Consider a dataset of size $N$. At each time step, sample a batch $b_k$ of size $B$. The empirical loss is the expectation of the batch loss:
 \[
@@ -133,7 +133,7 @@ Learn a function $g$ from observations $y = g(x)$. Initialize neural weights at 
 \theta_k-\eta\nabla_\theta\mathcal{L}(\theta_k)
 +\eta\,\xi(\theta_k,b_k).
 \end{aligned}
-\] 
+\]
 with gradient noise
 \[
 \xi(\theta,b):=
@@ -150,7 +150,7 @@ The input-output covariance is $\Sigma_{YX}=\mathbb{E}[yx^{\top}]=M$.
 \begin{equation*}
     \mathcal{L}(\theta) := \frac{1}{2} \lVert M - W_L\cdots W_1\rVert^2_F = \frac{1}{2} \lVert M - W\rVert^2_F
 \end{equation*}
-Initialize $\theta_0 \sim \mathcal{N}(0,\sigma^{-\gamma}I)$, where $\gamma$ controls the initialization scale. The gradient flow is
+Initialize $\theta_0 \sim \mathcal{N}(0,d_L^{-\gamma}I)$, where $\gamma$ controls the initialization scale. The gradient flow is
 \[
 \dot{W}_\ell = - \nabla_{W_{\ell}} \mathcal{L}(\theta).
 \]
@@ -173,7 +173,7 @@ Assume that $\Sigma_X$ and $\Sigma_{YX}$ are full rank, and that $\Sigma_{YX}$ h
 \end{block}
 The training dynamics cannot get stuck in spurious local minima.
 \\
-Reference: \textit{Kawaguchi, Kenji. "Deep learning without poor local minima." Advances in neural information processing systems 29 (2016)}
+Reference: \textit{Kawaguchi, Kenji. ``Deep learning without poor local minima.'' Advances in neural information processing systems 29 (2016)}
 \end{frame}
 \begin{frame}{Parametrization of critical points}
 Teacher SVD: \(M=\sum_{i=1}^{r_m}s_i u_i v_i^{\top}\).
@@ -187,7 +187,7 @@ Teacher SVD: \(M=\sum_{i=1}^{r_m}s_i u_i v_i^{\top}\).
 \end{block}
 The saddle points are given by a subset of singular values and (left) singular vectors of the teacher $M$.
 \\
-Reference: \textit{Achour, El Mehdi, François Malgouyres, and Sébastien Gerchinovitz. "The loss landscape of deep linear neural networks: a second-order analysis." Journal of Machine Learning Research 25.242 (2024): 1-76.}
+Reference: \textit{Achour, El Mehdi, François Malgouyres, and Sébastien Gerchinovitz. ``The loss landscape of deep linear neural networks: a second-order analysis.'' Journal of Machine Learning Research 25.242 (2024): 1-76.}
 \end{frame}
 \begin{frame}{Symmetries}
 \small
@@ -237,7 +237,7 @@ For a teacher matrix $M$ of rank $r_m$, we have:
     \operatorname{codim}\bigl(\mu^{-1}(M)\bigr)
     &=
     \operatorname{codim}\bigl(\Sigma_{\mathbf{d}}^{r_m}\bigr)
-    + r_m(d_0 - d_L - r_m) \\
+    + r_m(d_0 + d_L - r_m) \\
     &= 2\,\operatorname{RLCT}_{0}(\mathcal{L}).
     \end{aligned}
     \]
@@ -248,7 +248,7 @@ In general, we only have:
 \frac{1}{2}\operatorname{codim}_{\operatorname{Rep}_{\mathbf{d}}}\bigl(\mathcal{L}^{-1}(0)\bigr).
 \]
 \end{block}
-Ref: \textit{Lehalleur, Simon Pepin, and Richárd Rimányi. "Geometry of fibers of the multiplication map of deep linear neural networks." arXiv preprint arXiv:2411.19920 (2024).}
+Ref: \textit{Lehalleur, Simon Pepin, and Richárd Rimányi. ``Geometry of fibers of the multiplication map of deep linear neural networks.'' arXiv preprint arXiv:2411.19920 (2024).}
 \end{frame}
 \begin{frame}{Discussion}
 \begin{block}{Takeaways}
@@ -288,7 +288,7 @@ and Statistics}, pages 192–204. PMLR, 2015.
   \[
     K_{\theta}(x,x')
     =
-    \nabla_{\theta} f_{\theta}(x)\,
+    \nabla_{\theta} f_{\theta}(x)\, \cdot
     \nabla_{\theta} f_{\theta}(x')^{\top}
     =
     \sum_{i=1}^p
@@ -307,7 +307,7 @@ and Statistics}, pages 192–204. PMLR, 2015.
 \begin{frame}{Conserved quantities in DLNs}
   Conserved quantities under gradient flow:
   \[
-    G_\ell :=
+    \beta_\ell :=
     W_{\ell+1}^{\top}W_{\ell+1}
     -
     W_{\ell}W_{\ell}^{\top},
@@ -315,7 +315,7 @@ and Statistics}, pages 192–204. PMLR, 2015.
     \ell=1,\ldots,L-1.
   \]
 
-  Along the flow, $G_\ell=\beta_\ell$ is constant. When $\beta_\ell=0$, we have \textbf{balanced weights}.
+  Along the flow, $\beta_\ell$ is constant. When $\beta_\ell=0$, we have \textbf{balanced weights}.
 
   \vspace{0.4cm}
 
@@ -373,7 +373,7 @@ For depth $L=2$:
 \end{frame}
 \begin{frame}{Learning rate: Edge of stability}
 Descent lemma: for an $L_{\mathrm{smooth}}$-smooth convex loss, the loss decreases if $0<\eta<2/L_{\mathrm{smooth}}$.
-\\ 
+\\
 The loss is nonconvex, but the Hessian oscillates near and slightly above $\frac{2}{\eta}$; this regularizes away sharp minima.
 
   \centering
@@ -414,7 +414,7 @@ arXiv:1810.02281, 2018
 \end{frame}
 \sectionframe{Initialization, Width, and Depth}
 \begin{frame}{Training losses}
-Initialize weights: $\theta \sim \mathcal{N}(0,\sigma^{-\gamma/2}I)$
+Initialize weights: $\theta \sim \mathcal{N}(0,d_L^{-\gamma}I)$
 \\
 $\gamma < 1$: large initialization, linear regime (NTK)
 \\
@@ -455,14 +455,14 @@ $\gamma = 1$: intermediate regime
 
   The timescale of learning is fixed by the NTK at initialization:
   \[
-    t \approx -k_0^{-1}\log\left(\frac{s - w_f}{s - w_0}\right)
+    t \approx -K_0^{-1}\log\left(\frac{s - w_f}{s - w_0}\right)
   \]
 
   This behaves like a shallow linear network.
 \end{frame}
 \begin{frame}{Rich regime}
   \small
-  For balanced and aligned weights (or $\gamma > 1$), the singular values of the student satisfy
+  For balanced, and aligned weights, and $\gamma > 1$ (small init.), the singular values of the student satisfy
   \[
     \dot{w}_{\alpha} = 2\left(s_{\alpha} - w_{\alpha}\right)w_{\alpha}.
   \]
@@ -481,7 +481,7 @@ $\gamma = 1$: intermediate regime
   \begin{block}{Key points}
     \begin{itemize}
       \item Depth and specific initialization induce saddle-to-saddle dynamics
-      \item Gradient flow has a simplicity bias toward low-rank approximation
+      \item Gradient flow has a simplicity bias toward learning low hanging fruit directions
       \item Large initialization and large width give the NTK regime: no feature learning, and the NTK is frozen
       \item In the saddle-to-saddle regime, the timescale of learning is set by the target singular values
     \end{itemize}
@@ -584,7 +584,7 @@ Information Processing Systems}, 37:106059–106104, 2024.
 \end{frame}
 \sectionframe{Towards nonlinearity}
 
-\begin{frame}{Neural race reduction}
+\begin{frame}{Neural race reduction in gated DLNs}
   \centering
   \includegraphics[height=0.68\textheight]{neural_race.png}
 
@@ -601,6 +601,22 @@ Information Processing Systems}, 37:106059–106104, 2024.
   \centering
   \includegraphics[height=0.58\textheight]{simplicity_bias_transformers_mlp.png}
 \end{frame}
+\begin{frame}{Alternating Gradient Flows}
+  \small
+  \emph{Alternating Gradient Flows: A Theory of
+Feature Learning in Two-layer Neural Networks}
+  \vspace{0.2cm}
+  \centering
+  \includegraphics[height=0.58\textheight]{AF_architectures.png}
+\end{frame}
+\begin{frame}
+  \small
+  \emph{Alternating Gradient Flows: A Theory of
+Feature Learning in Two-layer Neural Networks}
+  \vspace{0.2cm}
+  \centering
+  \includegraphics[height=0.58\textheight]{AF_conceptual.png}
+\end{frame}
 \begin{frame}{Takeaways}
   \begin{block}{Key points}
     \begin{itemize}
@@ -609,6 +625,7 @@ Information Processing Systems}, 37:106059–106104, 2024.
       \item The implicit bias of stochasticity is not fully understood (flatness?), but it is more of a second-order effect
       \item Nonlinearity can be modeled with gated DLNs: neural race reduction
       \item MLPs and linear transformers also have saddle-to-saddle dynamics
+      \item Alternating gradient flow: towards a general theory of the rich regime
     \end{itemize}
   \end{block}
 \end{frame}
@@ -622,9 +639,8 @@ Information Processing Systems}, 37:106059–106104, 2024.
   \item Toy models of deep nonlinear learning
   \item Theory that captures natural data
   \item Making explicit the implicit biases of realistic architectures
-  \item Interplay between geometry and learning
+  \item Mixing rich and lazy regimes
   \item A statistical field theory of deep neural networks
-  \item A more realistic theory of feature and hierarchical learning
 \end{itemize}
 \end{block}
 Reference: \href{https://arxiv.org/abs/2604.21691}{\textit{There Will Be a Scientific Theory of Deep Learning, Jamie Simon et al.} }
