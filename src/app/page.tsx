@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { listIndex } from "@/lib/content";
-import { clusterLabel, dayCode, pagePath } from "@/lib/clusters";
+import { clusterLabel, dayCode, worksheetHref } from "@/lib/clusters";
 import { listClusters, listDays } from "@/lib/cluster-store";
 import { BuildStamp, REPO_URL } from "@/components/BuildStamp";
 
@@ -112,13 +112,11 @@ export default async function Home() {
                     <ul className={group.items.length > 1 ? "space-y-3 border-l border-zinc-200 pl-4" : ""}>
                       {group.items.map((p) => (
                         <li key={p.slug}>
-                          <Link
-                            href={pagePath(p.cluster, p.slug, clusterList)}
-                            // Same reason as SidebarNav: the whole curriculum is
-                            // listed here, and prefetching every worksheet's RSC
-                            // payload on viewport entry is tens of MB for links
-                            // the reader has not chosen yet.
-                            prefetch={false}
+                          <a
+                            // Plain <a> for the same reason as SidebarNav: a
+                            // worksheet is loaded as a whole document so its own
+                            // MathJax macro config runs.
+                            href={worksheetHref(p.cluster, p.slug, clusterList)}
                             className="block font-serif text-[1.25rem] leading-snug hover:text-[var(--link)]"
                             style={{ fontWeight: 500 }}
                           >
@@ -128,7 +126,7 @@ export default async function Home() {
                               </span>
                             )}
                             {p.title}
-                          </Link>
+                          </a>
                           {p.frontmatter?.summary && (
                             <p className="mt-1 font-serif text-[1rem] text-zinc-600 leading-relaxed">
                               {p.frontmatter.summary}

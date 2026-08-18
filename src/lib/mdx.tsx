@@ -8,9 +8,8 @@ import { compileMDX } from "next-mdx-remote/rsc";
 import { createHash } from "node:crypto";
 import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
-import { remarkKatexHtml } from "./remark-katex-html";
+import { remarkMathTex } from "./remark-math-tex";
 import rehypeSlug from "rehype-slug";
-import "katex/dist/katex.min.css";
 import type { ReactNode } from "react";
 
 // basePath is applied automatically to <Link>/CSS/fonts but NOT to raw
@@ -20,24 +19,40 @@ const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 const components = {
   /**
-   * KatexHtml — a formula already rendered to markup by remarkKatexHtml.
+   * MathTex — one formula, as TeX, for MathJax to typeset in the browser.
    *
-   * Not authored by hand; the plugin emits it in place of every `$…$` and
-   * `$$…$$`. It re-creates KaTeX's own outer wrapper (`katex` inline,
-   * `katex-display` for block) and injects the rest, so the DOM matches what
-   * rehype-katex used to produce while the RSC payload carries one string per
-   * formula instead of ~50 serialized React elements.
+   * Not authored by hand; remarkMathTex emits it in place of every `$…$` and
+   * `$$…$$`. The delimiters are written here rather than in the plugin so the
+   * TeX travels as a clean string and only becomes MathJax's business at the
+   * last moment. `\(…\)` / `\[…\]` are MathJax's defaults and, unlike `$`,
+   * cannot be triggered by prose (a worksheet mentioning "$5" stays "$5").
    *
-   * The `html` is KaTeX's output, not user input: it is generated at build time
-   * from the worksheet's own TeX, which is already trusted enough to run
-   * through the LaTeX toolchain.
+   * The TeX goes in via dangerouslySetInnerHTML, and that is load-bearing
+   * rather than lazy: React does not hydrate or diff the children of such an
+   * element. Rendered as ordinary JSX text instead, MathJax replaces the text
+   * node with its own <mjx-container>, React hydrates, finds markup it did not
+   * write, throws "hydration failed" (#418) and re-renders from its own tree —
+   * silently destroying every typeset formula on the page. This was observed,
+   * not theorised. Opaque children remove the race entirely.
+   *
+   * Not an injection risk despite the name: the TeX comes from the worksheet's
+   * own LaTeX, already trusted enough to run through pdflatex, and it is HTML-
+   * escaped here so a formula containing `<` or `&` cannot become markup.
+   *
+   * Until MathJax reaches it, a formula IS its own source on screen. That is
+   * the deliberate trade: the page ships ~13x smaller, and the maths resolves a
+   * moment later.
    */
-  KatexHtml: ({ html, display }: { html: string; display?: boolean }) => (
-    <span
-      className={display ? "katex-display" : "katex"}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
-  ),
+  MathTex: ({ tex, display }: { tex: string; display?: boolean }) => {
+    const escaped = tex.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const delimited = display ? `\\[${escaped}\\]` : `\\(${escaped}\\)`;
+    return (
+      <span
+        className={display ? "math-display" : "math-inline"}
+        dangerouslySetInnerHTML={{ __html: delimited }}
+      />
+    );
+  },
   /**
    * Callout — coloured side-note for an important remark, warning, or tip.
    * Usage: <Callout type="note|warning|tip">body</Callout>
@@ -256,10 +271,10 @@ export async function MdxBody({ source }: { source: string }) {
           // rendered as literal rows of `|`. It cannot disturb the math: a
           // `$…$` span tokenizes as one math node whose body no other text
           // construct is allowed to look inside.
-          remarkPlugins: [remarkMath, remarkGfm, remarkKatexHtml],
-          // Math is already a string by the time hast exists, so rehypeSlug no
-          // longer has to be ordered against it — headings only ever contain
-          // plain text or an opaque span.
+          remarkPlugins: [remarkMath, remarkGfm, remarkMathTex],
+          // Math is an opaque TeX string by the time hast exists, so rehypeSlug
+          // no longer has to be ordered against it — headings only ever contain
+          // plain text or one <MathTex>.
           rehypePlugins: [rehypeSlug],
         },
       },

@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useNav } from "./NavContext";
 import type { IndexEntry } from "@/lib/content";
-import { clusterLabel, dayCode, pagePath, type Cluster } from "@/lib/clusters";
+import { clusterLabel, dayCode, worksheetHref, type Cluster } from "@/lib/clusters";
 
 const CLUSTER_ORDER = ["0", "A", "B", "C", "D", "E", "Other"];
 
@@ -65,15 +64,13 @@ export function SidebarNav({
                 const headings = active ? p.headings ?? [] : [];
                 return (
                   <li key={p.slug}>
-                    <Link
-                      href={pagePath(p.cluster, p.slug, clusterList)}
-                      // This sidebar lists EVERY worksheet and renders on every
-                      // worksheet page, so the default prefetch would pull each
-                      // one's full RSC payload as its link enters the viewport.
-                      // Those payloads are the largest thing the site ships —
-                      // ~6 MB for singular-learning-theory, ~5.6 MB for aixi —
-                      // which is a lot of bandwidth for a link nobody clicked.
-                      prefetch={false}
+                    <a
+                      // A plain <a>, not <Link>: worksheets are loaded as whole
+                      // documents so each one's MathJax config (its own macro
+                      // table) actually runs. See worksheetHref. This also drops
+                      // the RSC payload fetch that client-side navigation would
+                      // make, which prefetch={false} only ever deferred.
+                      href={worksheetHref(p.cluster, p.slug, clusterList)}
                       onClick={closeOnMobile}
                       className={
                         "block rounded px-2 py-1 leading-snug " +
@@ -92,7 +89,7 @@ export function SidebarNav({
                         </span>
                       )}
                       {p.title}
-                    </Link>
+                    </a>
                     {headings.length > 0 && (
                       <ul
                         className="mt-1 mb-2 border-l border-zinc-200"

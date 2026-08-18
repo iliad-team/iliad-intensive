@@ -228,3 +228,40 @@ nav,
   text-decoration: none;
 }
 
+
+/* ── Maths ──────────────────────────────────────────────────────────────────
+ *
+ * The worksheets' maths is TeX source in the HTML, typeset by MathJax in the
+ * browser (see components/MathJaxSetup.tsx). Only two things need styling; the
+ * glyph layout is MathJax's own.
+ *
+ * Before MathJax reaches a formula it is literally its own source on screen.
+ * That is the accepted trade of this approach, but unstyled TeX flashing in the
+ * middle of a sentence is worse than it needs to be, so untypeset maths is
+ * given the same monospace treatment as inline code: it reads as "a formula
+ * loading" rather than as broken prose. MathJax replaces the element's contents
+ * once typeset, and the styling below applies only while it has not.
+ */
+.math-inline:not(:has(mjx-container)),
+.math-display:not(:has(mjx-container)) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  color: var(--muted, #6b6b6b);
+  overflow-wrap: anywhere;
+}
+
+.math-display {
+  display: block;
+  margin: 0.9em 0;
+  text-align: center;
+  /* MathJax does not line-wrap a formula, so one wider than the column scrolls
+   * inside its own box rather than widening the page. */
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* mjx-container adds its own display/margins for block maths; the wrapper above
+ * already provides them, so cancel the duplicate. */
+.math-display mjx-container[display="true"] {
+  margin: 0;
+}

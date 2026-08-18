@@ -44,6 +44,28 @@ export function pagePath(
   return `/${clusterUrlSlug(cluster, list)}/${slug}`;
 }
 
+/**
+ * Href for a worksheet, for a plain <a> rather than next/link.
+ *
+ * Worksheets are reached by full page load, not client-side navigation: the
+ * page configures MathJax with its OWN macro table (`\KL` differs between
+ * worksheets), and a client-side render neither re-runs that config script nor
+ * rebuilds MathJax's macros — arriving that way produced a worksheet with no
+ * maths on it at all. A document per document is also simply what this site is.
+ *
+ * <Link> applies basePath and the trailingSlash rewrite for you; <a> does not,
+ * so both are applied here. Without the trailing slash a static host has to
+ * redirect /learning/foo to /learning/foo/ and GitHub Pages does not always.
+ */
+export function worksheetHref(
+  cluster: string | null | undefined,
+  slug: string,
+  list: Cluster[] = DEFAULT_CLUSTERS,
+): string {
+  const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+  return `${base}${pagePath(cluster, slug, list)}/`;
+}
+
 export function clusterLabel(
   cluster: string | null | undefined,
   list: Cluster[] = DEFAULT_CLUSTERS,

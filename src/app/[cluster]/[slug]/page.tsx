@@ -4,6 +4,7 @@ import { listDownloads, listIndex, listSlugs, readModuleMdx } from "@/lib/conten
 import { clusterUrlSlug, dayCode } from "@/lib/clusters";
 import { listClusters, listDays } from "@/lib/cluster-store";
 import { MdxBody } from "@/lib/mdx";
+import { MathJaxSetup } from "@/components/MathJaxSetup";
 import { ModulePageShell } from "@/components/ModulePageShell";
 import { SidebarNav } from "@/components/SidebarNav";
 import { DownloadsRow } from "@/components/DownloadsRow";
@@ -108,6 +109,7 @@ export default async function ModulePage({
           />
         </header>
         <div className="prose">
+          <MathJaxSetup source={mod.body} />
           <MdxBody source={mod.body} />
         </div>
         <footer className="not-prose mt-12 border-t border-zinc-200 pt-4 font-sans text-xs text-zinc-500">
