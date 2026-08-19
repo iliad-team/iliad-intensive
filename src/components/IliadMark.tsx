@@ -1,6 +1,7 @@
 // The Iliad sail mark, extracted from the full logo (iliad_logo.svg: sail +
-// wordmark + background) and simplified to a small polygon. Inlined as SVG so
-// it scales, takes the text color, and doesn't need a network round-trip.
+// wordmark + background) and fit with 12 cubic Béziers (Schneider
+// least-squares over the original 1,658-point trace). Inlined as SVG so it
+// scales, takes the text color, and doesn't need a network round-trip.
 export function IliadMark({ size = 20, className }: { size?: number; className?: string }) {
   return (
     <svg
@@ -13,7 +14,7 @@ export function IliadMark({ size = 20, className }: { size?: number; className?:
       aria-hidden="true"
     >
       <path
-        d="M438 681L435 681.4L434.8 680L444.7 668L458.9 647L474 619L483.6 596L490.4 575L496.9 546L499.2 529L500.6 512L499.5 480L496.5 458L490 430.7L483.9 413L474.5 392L459 366.3L442 345.1L427 331.1L408.9 319L409.5 318L423 317.8L471 322L557.2 337L660 360.2L700 370.6L730 379.5L743.1 396L753.4 412L760 424L770 447L774.8 463L778.4 480L780.5 503L780.3 516L778.4 534L775 551L770.1 567L757.9 596L743 619.5L736 627.8L728 614.4L717 608.7L705 604.7L689 601.9L667 600.6L642 601.7L623.5 604L604 608.1L580 614.6L557 622.5L535.8 631L506.6 644L473 660.7Z"
+        d="M434.7 681C439.2 673.8 445.1 667.5 449.9 660.4C467.7 634 481.3 605.4 490.3 574.8C509.9 508.7 501.2 434.4 464.8 375.7C450.5 352.8 432.4 332.7 409 318.9C430.1 314.7 480.8 324.1 503.9 327.6C580.2 339.3 654.8 359.3 729.3 379C743.5 394.2 754.7 412.6 763 431.5C793 499 782.6 570.7 736 627.8C733.2 623.3 731 618.1 727 614.5C710.6 600.1 669.4 599.8 648.8 601.3C597.2 605.1 547.5 624.3 501.3 646.8C489.8 652.3 441.2 679.5 434.7 681Z"
         fill="currentColor"
       />
     </svg>
