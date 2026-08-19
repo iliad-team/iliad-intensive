@@ -76,20 +76,19 @@ export function MathJaxSetup({ source }: { source: string }) {
 
     if (!window.MathJax) {
       window.MathJax = {
-        // ui/lazy typesets a formula only when it scrolls near the viewport.
-        // Without it a worksheet's 1,908 formulas are typeset up front: measured
-        // at 4x CPU throttle that is ~3.8s before the maths is readable and a
-        // 2.4s frozen tab, against ~0.85s and 0.43s with lazy on.
-        loader: { load: ["ui/lazy"] },
+        // EAGER: every formula is typeset before the reader can interact. This
+        // is the variant WITHOUT MathJax's ui/lazy extension, kept as a
+        // deliberate comparison against #85 — see that PR for the lazy one.
+        //
+        // The trade is one-directional. Eager costs far more up front (the whole
+        // worksheet is typeset whether or not it is read) but nothing after:
+        // no work while scrolling, and no reflow as formulas land, because they
+        // have all landed before the page settles.
         startup: {
           // The whole point: no automatic pass, so nothing races hydration.
           typeset: false,
         },
         options: {
-          // Start typesetting well before a formula is visible. The default
-          // 200px renders just-in-time, which makes the page visibly grow as
-          // formulas land while you read; a larger margin does that off-screen.
-          lazyMargin: "800px",
           // Never typeset inside code — a shell snippet containing \( would
           // otherwise be eaten as maths.
           skipHtmlTags: ["script", "noscript", "style", "textarea", "pre", "code"],
