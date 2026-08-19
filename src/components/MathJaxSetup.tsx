@@ -61,6 +61,16 @@ export function MathJaxSetup({ source }: { source: string }) {
         // Plain data, serialised by us — no user input reaches this.
         dangerouslySetInnerHTML={{ __html: `window.MathJax = ${JSON.stringify(config)};` }}
       />
+      {/* tex-chtml, not tex-chtml-full: the worksheets use \boldsymbol and
+          \cancel, which this component fetches on demand from
+          /mathjax/input/tex/extensions/. Those are vendored alongside it — the
+          whole directory, not only the two in use, so a worksheet reaching for
+          another extension cannot 404. Readers still download only what their
+          page actually needs, which -full would not give.
+
+          This failed silently at first: MathJax's startup promise rejects on a
+          missing extension, and under lazy typesetting the rejection only
+          happens once a reader scrolls to the formula that needs it. */}
       <script src={`${BASE_PATH}/mathjax/tex-chtml.js`} async />
     </>
   );
