@@ -1,10 +1,11 @@
 %--- iliad -------------------------------------------------------------------
-% title: "Power-Seeking: Exercises"
+% title: "Instrumental Convergence"
 % summary: >-
-%   Power-seeking as a theorem: how to count reward functions, which decision
-%   rules count as suitable, and what it means to keep more options open.
+%   We discuss a simple mathematical formalization of what it means to "seek
+%   power" in a Markov decision process (MDP), and conditions under which such
+%   behavior emerges.
 % contributors:
-%   - "Leon Lang (ILIAD), based on work by Alex Turner"
+%   - "Leon Lang (ILIAD), based on work by Alex Turner et al"
 % slides: https://drive.google.com/drive/folders/127bVYqhJPhzA7S71FwTqeyNKKKkjM2NB
 %--- end ----------------------------------------------------------------------
 \documentclass[11pt]{article}
@@ -26,7 +27,7 @@
 \newcommand{\F}{\mathcal{F}}       % option set: visitation distributions reachable from a state
 \newcommand{\mset}[1]{\{\!\{\,#1\,\}\!\}}   % multiset (unordered, with multiplicity)
 
-\title{Power-Seeking: Exercises}
+\title{Instrumental Convergence}
 \author{\authorname{Leon Lang}\\ \affiliation{ILIAD}}
 \date{April 2026}
 
@@ -68,6 +69,41 @@ Outline of the day:
   \item 17:00 -- 17:15: Brainstorming of limitations / critiques / ideas and theoretical/empirical hypotheses
   \item 17:15 -- 17:45: Students present and discuss their ideas
 \end{itemize}
+
+% The day's teacher-facing sections, from its Google-Doc tab, in the tab's own
+% order: "Intents of subsection" and "Teaching notes" sit after the timetable.
+% Collapsed on the web, so they stay out of the student's reading flow.
+\begin{teachingnote}[Intents of subsection]
+In the exercises, the participants learn to understand one model of the reward
+function distribution, decision rule, and conceptualization of ``power'' in
+detail, and learn the mathematical arguments connecting them in detail. This is
+useful as learning one model in detail helps to quickly understand all variations
+that are discussed in many of Turner's papers.
+
+The readings teach the participants variations of the concepts and results, which
+may help them to appreciate the breadth and limitations of the results better.
+
+Finally, the brainstormings of limitations and ideas gets participants into a
+critical mindset and makes them think through whether the theoretical notions of
+power capture what we mean, and how to go beyond. This is important since the
+applicability of the results to actual AI training processes is questioned by
+many people in the community.
+\end{teachingnote}
+
+\begin{teachingnote}[Teaching notes]
+I think the setup I chose (together with Claude) in the exercise sheet has some
+advantages compared to Turner's original treatment of the results:
+
+\begin{itemize}
+  \item The use of an invariant measure avoids ``orbit counting'' and grounds everything in the more justified notion of probabilities of various outcomes
+  \item We work with \emph{a subgroup} of the symmetric group, and thus avoid the unjustified assumption that the measure on reward functions is invariant under arbitrary symmetries (which it obviously isn't!)
+  \item The notion of a dynamics embedding grounds the notion of ``more options'' into actual MDP dynamics.
+  \item The use of score functions allows us to achieve a power-seeking result for one-sided dynamics embeddings and under non-trivial discount factor.
+\end{itemize}
+
+Overall, I think this makes the results much more interpretable, and I would thus
+not recommend to go back to the framing of any of Turner's particular papers.
+\end{teachingnote}
 
 \section*{Introduction}
 
