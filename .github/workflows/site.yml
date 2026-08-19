@@ -58,7 +58,15 @@ jobs:
     # *looking* like progress. Fail at 8 instead: a run that slow has already
     # missed the point, and a clear timeout beats a job that appears busy.
     # Re-running is the fix; the mirror is usually fine on the next attempt.
-    timeout-minutes: 8
+    # 8 was too tight to survive a cold apt. Evidence: the passing run spent
+    # 332s of 414s in apt; a later cold run stalled 255s part-way through
+    # downloading texlive-base (21.7 MB) and was cancelled at the cap having
+    # never reached unpacking. With the .deb cache below a warm run should be
+    # ~1 minute, but the cache can only ever be seeded by a run that FINISHES —
+    # so the cap has to clear a cold download, not just a warm one. Cache
+    # entries also expire after 7 days unused, so cold runs recur and this is
+    # not a one-off bootstrap.
+    timeout-minutes: 20
     steps:
       # lfs: true — figures under tex/**/fig/*.png are stored in Git LFS
       # (.gitattributes). Without this the working tree gets pointer files, and
@@ -138,8 +146,15 @@ jobs:
           #
           # Retries alone could not have helped — nothing ever timed out, so
           # there was no failure to retry. Hence explicit timeouts on BOTH
-          # commands (the hang was in `update`, which had no options at all),
-          # and a download cache so most runs never touch a mirror.
+          # commands (the hang was in `update`, which had no options at all).
+          #
+          # But do not over-trust them: these timeouts catch a DEAD connection,
+          # not a slow one. A later run proved the difference by stalling 255s
+          # part-way through texlive-base (21.7 MB) without the timeout firing
+          # once — the transfer was still trickling, so apt never saw an idle
+          # socket, and apt offers no minimum-throughput setting. The cache
+          # below is what actually removes the mirror from the critical path;
+          # the timeouts only stop a hard hang from eating the whole budget.
           APT_OPTS="-o Acquire::Retries=3
                     -o Acquire::http::Timeout=20
                     -o Acquire::https::Timeout=20"
