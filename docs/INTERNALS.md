@@ -53,6 +53,7 @@ runtime inputs. If it's not in this table, the site doesn't depend on it.
 | `content/index.json` | `src/lib/content.ts` | homepage/sidebar listing + ordering + heading TOCs + each sheet's `part`/`parts` within its day (absence ⇒ page is unlisted, still built) |
 | `content/status.json` | `src/lib/status.ts` | the `/admin/status` table (absence ⇒ the page renders a "run the content build" hint) |
 | `schedule.yaml` | `src/lib/cluster-store.ts` | cluster labels and the first URL segment (`/learning/<slug>/`) via `listClusters`, and the teaching days' codes + titles via `listDays`, both in the order the file lists them; clusters fall back to `DEFAULT_CLUSTERS` in `src/lib/clusters.ts` |
+| `intensives/*.yaml` | `src/lib/intensives.ts` | the `/intensives` pages — one programme per file, each a date per teaching day. Malformed data **throws** (unlike `cluster-store.ts`, which degrades): a published schedule that is quietly wrong is worse than a failed build. The content build never reads these |
 | `public/downloads/<slug>/` | `src/lib/content.ts` (`listDownloads`) | which download buttons a page offers (dir listing at build time) |
 | `public/uploads/<slug>/*.svg` | the browser, not the build | figure `<img>` targets referenced from the MDX |
 | `NEXT_PUBLIC_BASE_PATH` env | `next.config.ts`, `src/lib/mdx.tsx`, module page | sub-path hosting (GitHub Pages project site); applied at render time, never baked into generated MDX |
@@ -66,6 +67,8 @@ Routes (`src/app/`):
 | File | Role |
 |---|---|
 | `layout.tsx` | HTML shell: fonts, `globals.css`, `Navbar` |
+| `intensives/page.tsx` | the programmes ILIAD runs, newest first — a directory page over `intensives/*.yaml` |
+| `intensives/[intensive]/page.tsx` | one programme's calendar: a row per day (date · code · linked material). Material comes from `index.json`, so it lists what was actually built; a day whose worksheets aren't ported says so |
 | `page.tsx` | homepage: hero paragraph + modules grouped by cluster from `index.json`, then by teaching day within a cluster — a day taught in several parts gets a heading (code + title, an anchor a part page links back to) and nests its parts; a one-worksheet day stays a flat row |
 | `[cluster]/[slug]/page.tsx` | the module page. `generateStaticParams` enumerates every MDX module; renders header (title/cluster/day/summary/contributors), `DownloadsRow`, the MDX body, and a "Built <date> from <source>" footer. `dynamicParams = false` — anything not prerendered 404s |
 | `globals.css` | Tailwind 4 + `prose` typography tweaks |
