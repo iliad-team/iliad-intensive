@@ -1,23 +1,22 @@
-// The eye-lens mark Iliad uses as their site identity (lifted from iliad.ac
-// favicon). Inlined as SVG so it scales and doesn't need a network round-trip.
+// The Iliad sail mark, extracted from the full logo (iliad_logo.svg: sail +
+// wordmark + background) and fit with 12 cubic Béziers (Schneider
+// least-squares over the original 1,658-point trace). Inlined as SVG so it
+// scales, takes the text color, and doesn't need a network round-trip.
 export function IliadMark({ size = 20, className }: { size?: number; className?: string }) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 16 16"
+      viewBox="408 317 373 365"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-hidden="true"
     >
       <path
-        fillRule="evenodd"
-        clipRule="evenodd"
-        d="M0 8L3.07945 4.30466C4.29638 2.84434 6.09909 2 8 2C9.90091 2 11.7036 2.84434 12.9206 4.30466L16 8L12.9206 11.6953C11.7036 13.1557 9.90091 14 8 14C6.09909 14 4.29638 13.1557 3.07945 11.6953L0 8Z"
+        d="M434.7 681C439.2 673.8 445.1 667.5 449.9 660.4C467.7 634 481.3 605.4 490.3 574.8C509.9 508.7 501.2 434.4 464.8 375.7C450.5 352.8 432.4 332.7 409 318.9C430.1 314.7 480.8 324.1 503.9 327.6C580.2 339.3 654.8 359.3 729.3 379C743.5 394.2 754.7 412.6 763 431.5C793 499 782.6 570.7 736 627.8C733.2 623.3 731 618.1 727 614.5C710.6 600.1 669.4 599.8 648.8 601.3C597.2 605.1 547.5 624.3 501.3 646.8C489.8 652.3 441.2 679.5 434.7 681Z"
         fill="currentColor"
       />
-      <circle cx="8" cy="8" r="3" fill="var(--background, #fff)" />
     </svg>
   );
 }
