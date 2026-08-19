@@ -461,7 +461,13 @@ function emitEnv(n) {
       } else {
         warn("solution without [ex:label] — every solution must name its exercise", snippetOf(printRaw(n.content)));
       }
-      mdx = `<Solution${forAttr}>\n\n${walk(n.content).trim()}\n\n</Solution>`;
+      // The shared LaTeX style gives a solution's top-level enumerate the
+      // same (a), (b), … labels as the exercise it answers. Preserve that
+      // contract on the web as well; nested enumerates remain numeric.
+      const wasIn = inExercise; inExercise = true;
+      const inner = walk(n.content).trim();
+      inExercise = wasIn;
+      mdx = `<Solution${forAttr}>\n\n${inner}\n\n</Solution>`;
       break;
     }
     case "solutionsonly":
