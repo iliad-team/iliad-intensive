@@ -1073,14 +1073,14 @@ degeneracy.
 \begin{proof}
     Define the curve in parameter space traced by the continuous symmetry,
     $\gamma : \R \to \W$ with $\gamma(t) = T_t(w)$.
-    Since $T_t$ is a continuous symmetry, the derivative along the curve
-    vanishes for all $t$:
+    Fix $t_0 \in \R$. Since $T_t$ is a continuous symmetry, the derivative
+    along the curve at $t_0$ vanishes:
     \begin{align*}
-        D_{\gamma'(t)} \Phi(\gamma(t))
-        &\propto \gamma'(t) \cdot \nabla \Phi(\gamma(t))
-    \\  &= \frac{d}{dt} \Phi(\gamma(t))
+        D_{\gamma'(t_0)} \Phi(\gamma(t_0))
+        &\propto \gamma'(t_0) \cdot \nabla \Phi(\gamma(t_0))
+    \\  &= \left.\frac{d}{dt}\right|_{t=t_0} \Phi(\gamma(t))
             \tag{chain rule}
-    \\  &= \frac{d}{dt} \Phi(w)
+    \\  &= \left.\frac{d}{dt}\right|_{t=t_0} \Phi(w)
             \tag{symmetry, $\Phi \circ T_t = \Phi$}
     \\  &= 0.
             \tag{$\Phi(w)$ is constant in $t$}
