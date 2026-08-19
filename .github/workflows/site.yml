@@ -58,7 +58,15 @@ jobs:
     # *looking* like progress. Fail at 8 instead: a run that slow has already
     # missed the point, and a clear timeout beats a job that appears busy.
     # Re-running is the fix; the mirror is usually fine on the next attempt.
-    timeout-minutes: 8
+    # 8 was too tight to survive a cold apt. Evidence: the passing run spent
+    # 332s of 414s in apt; a later cold run stalled 255s part-way through
+    # downloading texlive-base (21.7 MB) and was cancelled at the cap having
+    # never reached unpacking. With the .deb cache below a warm run should be
+    # ~1 minute, but the cache can only ever be seeded by a run that FINISHES —
+    # so the cap has to clear a cold download, not just a warm one. Cache
+    # entries also expire after 7 days unused, so cold runs recur and this is
+    # not a one-off bootstrap.
+    timeout-minutes: 20
     steps:
       # lfs: true — figures under tex/**/fig/*.png are stored in Git LFS
       # (.gitattributes). Without this the working tree gets pointer files, and
@@ -84,26 +92,104 @@ jobs:
             echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
 
+      # The .deb downloads for the step below — ~207 MB across 119 packages.
+      # This lives in GitHub Actions cache, NOT in the repository: nothing is
+      # committed, and `git clone` is unaffected. The repo already caches npm,
+      # the worksheet builds and the tikz diagrams the same way.
+      #
+      # A single fixed key, so exactly one entry is ever written rather than a
+      # new copy per run (actions/cache does not overwrite an existing key).
+      # Bump the version suffix when the package list below changes materially;
+      # forgetting to is not a correctness problem, only a slower run, because
+      # apt treats the restored files as a download cache and fetches anything
+      # missing. Entries are evicted after 7 days unused, which is why the
+      # timeouts in the next step matter even with this in place.
+      - name: Restore apt package cache
+        uses: actions/cache@v4
+        with:
+          path: ~/apt-debs
+          key: apt-tex-v1-${{ runner.os }}
+
       - name: TeX Live + poppler
         # Keep this list in sync with ./setup.sh — it is the reference package
         # set. cm-super: scalable CM fonts, needed by microtype's font
         # expansion under [T1]{fontenc}.
         #
         # This download is the job's biggest single cost and a slow Ubuntu
-        # mirror can stall it for 15+ minutes, so keep it lean. Two packages are
-        # deliberately absent rather than forgotten:
-        #   texlive-bibtex-extra (75 MB) — was installed for one 36 KB file,
-        #     alphaurl.bst; that is vendored at tex/alphaurl.bst and found via
-        #     BSTINPUTS (see scripts/build-content.mjs).
-        #   texlive-science (4 MB) — hard-depends on texlive-lang-greek (75 MB)
-        #     and its only user here was stmaryrd, for two bracket glyphs now
-        #     built from kernel pieces.
-        # Together ~154 MB, roughly half what this step used to fetch.
+        # mirror can stall it for 15+ minutes, so keep it lean.
+        #
+        # texlive-bibtex-extra (79 MB) WAS absent, when the only thing wanted
+        # from it was a 36 KB style file — alphaurl.bst, since vendored at
+        # tex/alphaurl.bst and found via BSTINPUTS. It is back, for a bigger
+        # reason: it is the only Ubuntu package shipping biblatex.sty, and C.2's
+        # deck is a biblatex document. Its 97 \source{} slide attributions are
+        # built on \DeclareCiteCommand, which has no plain-bibtex equivalent, so
+        # the alternative was rewriting a deck we did not author. Vendoring
+        # biblatex alone does not work: biber enforces an exact control-file
+        # version, so a pinned copy that satisfies CI's biber 2.19 breaks every
+        # local build against TeX Live 2024's biber 2.20. The distro package is
+        # what keeps style and backend in step.
+        #
+        # texlive-science (4 MB) stays absent: it hard-depends on
+        # texlive-lang-greek (75 MB) and its only user here was stmaryrd, for
+        # two bracket glyphs now built from kernel pieces.
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
+          set -euo pipefail
+
+          # ── Why this step is guarded the way it is ────────────────────────
+          # This install is ~80% of the job's runtime (332s of a 414s run, next
+          # to a 9s site build), so the 8-minute cap has barely a minute of
+          # slack and any apt hiccup fails the build. One did: the Azure-local
+          # mirror the runners prefer returned Ign for all 26 indexes, apt fell
+          # back to archive.ubuntu.com, and `apt-get update` then sat silent for
+          # 7m48s until the job was cancelled. Three builds died that way.
+          #
+          # Retries alone could not have helped — nothing ever timed out, so
+          # there was no failure to retry. Hence explicit timeouts on BOTH
+          # commands (the hang was in `update`, which had no options at all).
+          #
+          # But do not over-trust them: these timeouts catch a DEAD connection,
+          # not a slow one. A later run proved the difference by stalling 255s
+          # part-way through texlive-base (21.7 MB) without the timeout firing
+          # once — the transfer was still trickling, so apt never saw an idle
+          # socket, and apt offers no minimum-throughput setting. The cache
+          # below is what actually removes the mirror from the critical path;
+          # the timeouts only stop a hard hang from eating the whole budget.
+          APT_OPTS="-o Acquire::Retries=3
+                    -o Acquire::http::Timeout=20
+                    -o Acquire::https::Timeout=20"
+
+          # Seed apt's archive from the cache restored above. apt matches a
+          # .deb by name, size and hash, and silently skips downloading one it
+          # already has — so this is a pure download cache, and a stale entry
+          # degrades to "download the few that changed" rather than breaking.
+          # cp -n so a cached file never clobbers a newer one apt just fetched.
+          if compgen -G "$HOME/apt-debs/*.deb" > /dev/null; then
+            echo "cache: $(ls "$HOME"/apt-debs/*.deb | wc -l) .deb files restored"
+            sudo cp -n "$HOME"/apt-debs/*.deb /var/cache/apt/archives/ || true
+          else
+            echo "cache: empty (cold) — packages will be downloaded"
+          fi
+
+          sudo apt-get update -q $APT_OPTS
+          sudo apt-get install -y --no-install-recommends $APT_OPTS \
             texlive-latex-extra texlive-pictures \
-            texlive-fonts-recommended cm-super poppler-utils
+            texlive-fonts-recommended cm-super poppler-utils \
+            biber texlive-bibtex-extra lmodern
+
+          # Hand whatever apt ended up with back to the cache. Runs even on a
+          # hit so a package set that has drifted heals itself over one build.
+          mkdir -p "$HOME/apt-debs"
+          cp -n /var/cache/apt/archives/*.deb "$HOME/apt-debs/" 2>/dev/null || true
+          echo "cache: $(ls "$HOME"/apt-debs/*.deb 2>/dev/null | wc -l) .deb files kept ($(du -sh "$HOME/apt-debs" | cut -f1))"
+          # lmodern (4 MB): decks \usepackage{lmodern}. It is only a *Recommends*
+          # of texlive-latex-recommended, so --no-install-recommends drops it and
+          # the deck build dies on a missing lmodern.sty. Name it explicitly.
+          # biber (555 KB) + texlive-bibtex-extra: the two halves a biblatex
+          # document needs — the backend binary that reads the .bib and writes
+          # the .bbl, and biblatex.sty itself. Installing biber alone is not
+          # enough; see the note above. The slides ladder picks bibtex or biber
+          # from the deck's own source (scripts/build-content.mjs).
           # contributor LaTeX is untrusted: never enable shell-escape
 
       - uses: actions/setup-node@v4

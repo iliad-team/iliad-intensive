@@ -1073,14 +1073,14 @@ degeneracy.
 \begin{proof}
     Define the curve in parameter space traced by the continuous symmetry,
     $\gamma : \R \to \W$ with $\gamma(t) = T_t(w)$.
-    Since $T_t$ is a continuous symmetry, the derivative along the curve
-    vanishes for all $t$:
+    Fix $t_0 \in \R$. Since $T_t$ is a continuous symmetry, the derivative
+    along the curve at $t_0$ vanishes:
     \begin{align*}
-        D_{\gamma'(t)} \Phi(\gamma(t))
-        &\propto \gamma'(t) \cdot \nabla \Phi(\gamma(t))
-    \\  &= \frac{d}{dt} \Phi(\gamma(t))
+        D_{\gamma'(t_0)} \Phi(\gamma(t_0))
+        &\propto \gamma'(t_0) \cdot \nabla \Phi(\gamma(t_0))
+    \\  &= \left.\frac{d}{dt}\right|_{t=t_0} \Phi(\gamma(t))
             \tag{chain rule}
-    \\  &= \frac{d}{dt} \Phi(w)
+    \\  &= \left.\frac{d}{dt}\right|_{t=t_0} \Phi(w)
             \tag{symmetry, $\Phi \circ T_t = \Phi$}
     \\  &= 0.
             \tag{$\Phi(w)$ is constant in $t$}
@@ -2718,9 +2718,14 @@ For each architecture, we add a bias vector to each layer's output before the ne
 \begin{enumerate}
     \item The hypothesis class is $\F = \{f_w = a + b : (a, b) \in \R^2\} = \R$, since for any target $c \in \R$ we can choose, e.g., $a = c$ and $b = 0$. This is the same as in \cref{ex:univariate-degeneracy}.
 
-    \item The directional derivative in direction $v = (1, -1)$ is
+    \item The direction $v = (1, -1)$ has $\|v\| = \sqrt{2}$, so by
+    \eqref{eq:directional-derivative} the directional derivative is
     \begin{equation*}
-        1 \cdot \frac{\partial}{\partial a}(a + b) + (-1) \cdot \frac{\partial}{\partial b}(a + b) = 1 - 1 = 0.
+        \frac{1}{\sqrt{2}}\left(
+            1 \cdot \frac{\partial}{\partial a}(a + b)
+            + (-1) \cdot \frac{\partial}{\partial b}(a + b)
+        \right)
+        = \frac{1}{\sqrt{2}}(1 - 1) = 0.
     \end{equation*}
 
     \item The direction $v = (1, -1)$ gives a zero directional derivative at \emph{every} point $(a, b) \in \W$. Therefore, the parameter--function map is everywhere degenerate. This reflects the fact that the map $(a, b) \mapsto a + b$ has a global continuous symmetry: translating along the direction $(1, -1)$ does not change the output. \qedhere

@@ -1,0 +1,466 @@
+% Chapter: 04_transformer_circuits
+% Included from lectures/main.tex
+
+{
+\setbeamertemplate{section page}{
+  \begin{centering}
+    \usebeamerfont{section title}\insertsection\par
+  \end{centering}
+  \note{
+  \begin{itemize}
+  \item Next we want to try to identify circuits in transformers
+  \item But is that even possible?
+  \end{itemize}
+  }
+}
+\section{Circuits in Transformers}
+}
+
+\begin{frame}{Complete Reverse Engineering}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/nanda2023a/compelte_algorythem.png}
+\end{center}
+
+\source{nanda2023a}
+
+\note{
+\begin{itemize}
+\item Positive example: a model trained on mod 113 addition, got close to perfect score
+\item They completely reverse engineered the algorithm
+\item The embedding layer writes $\cos(\omega a)$ in different directions for different $\omega$
+\item The attention mechanism multiplies sines and cosines using trig identities to get $\cos$ and $\sin$ of the sum
+\item The logits are a linear combination of $\cos(\omega c)$ and $\sin(\omega c)$ for every $c$ in the output vocab
+\item The cosines cancel out when $a+b-c \neq 0$, and only constructively interfere when they are equal
+\item Hopeful concept: ML in a transformer leads to algorithms we can understand
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Complete Reverse Engineering}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/nanda2023a/frequencies.png}
+\end{center}
+
+\source{nanda2023a}
+
+\note{
+\begin{itemize}
+\item Neel Nanda got the idea to plot the Fourier transform of the embedding matrix
+\item This revealed the specific frequencies the model learned, then he could trace the circuits forward
+\item Impressive but not scalable: we cannot have Neel Nanda staring at an LLM, tracing every computation
+\item LLMs are way more messy, way bigger, and we do not have enough Neel Nandas
+\item So we need more standardized methods
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Plotting Attention Patterns}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/elhage2021/attention_pattern.png}
+\end{center}
+
+\source{elhage2021}
+
+\note{
+\begin{itemize}
+\item One common tool: plot attention patterns (the $A$ matrix in the transformer)
+\item Token-by-token matrix for each attention head: what token spent attention where
+\item Use this to inform guesses about the function of attention heads
+\item Here we see a few attention heads always attending to the token after its previous use
+\item And another head always attending to the previous token
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Logit Attribution}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/elhage2021/attention_patter_and_logit_attribution.png}
+\end{center}
+
+\source{elhage2021}
+
+\note{
+\begin{itemize}
+\item Another property of any part of a neural network: its contribution to the output
+\item Take the output of the attention head, propagate it through to the unembedding
+\item See when this output was helpful at predicting the next token
+\item It is whenever there is the pattern $AB \ldots A$ and then $B$: in-context induction from previous examples
+\item The authors looked into these attention heads, examined how their weight matrices grip into each other, and reconstructed the algorithm
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{K-Composition}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/callummcdougall2023/k_composition.png}
+\end{center}
+
+\source{callummcdougall2023}
+
+\note{
+\begin{itemize}
+\item Induction heads need two heads working together: one that finds the previous occurrence of the current token, one that copies what came after it
+\item K-composition: the output of head 1 is used to generate the \textbf{key} vector in head 2
+\item Head 1 (previous token head): attends to the previous token, copies its identity into the residual stream via the OV circuit
+\item Head 2 (induction head): uses this copied token identity as the key. Its query is the current token, so it attends to positions where the previous token matches the current token
+\item Result: head 2 attends to the token after the previous occurrence of the current token, and copies it to the output
+\item Ask the audience: can you see another way two heads could compose to implement this?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Q-Composition}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/callummcdougall2023/q_composition.png}
+\end{center}
+
+\source{callummcdougall2023}
+
+\note{
+\begin{itemize}
+\item Alternative mechanism: Q-composition
+\item Head 1 (previous token head): attends to the previous token, copies \textbf{positional} information into the residual stream via the OV circuit
+\item Head 2 (induction head): uses this positional info to generate its \textbf{query}. The query now effectively asks ``which token is at position (current $-$ offset)?''
+\item This requires ``pointer arithmetic'': moving and manipulating positional information between tokens
+\item Q-composition seems to form less easily than K-composition in practice
+\item In shortformer architectures (positional embeddings only added to Q and K, not the residual stream), Q-composition is impossible because positional info cannot be moved between tokens via the OV circuit
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Path Patching}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/wang2022/path_patching.png}
+\end{center}
+
+\source{wang2022}
+
+\note{
+\begin{itemize}
+\item General method for finding a circuit: path patching
+\item Specific task: indirect object identification (IOI)
+\item Explain IOI task
+\item We know what the relevant information is, so we construct a parallel case (David and John) where the answer should be different
+\item Go to any part of the transformer, replace activations from one forward pass with another
+\item See if the relevant information ``passed through'' there
+\item Can also knock out parts of the transformer, replacing output with average output over many tokens
+\item The authors traced the circuit for IOI through GPT-2
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{The IOI Circuit}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/wang2022/ioi_circuit.png}
+\end{center}
+
+\source{wang2022}
+
+\note{
+\begin{itemize}
+\item The circuit is kind of bizarre
+\item Explain different parts of the IOI circuit
+\item Highly redundant: things are implemented twice, likely due to dropout
+\item Reuse of known motifs: induction heads --- also a point for universality
+\item There are anti-helpful heads at the end? Authors guess this is hedging, but against what?
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Automated Circuit Discovery}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/conmy2023/recipe.png}
+\end{center}
+
+\source{conmy2023}
+
+\note{
+\begin{itemize}
+\item So far, circuit discovery has been artisanal despite common useful methods
+\item This paper takes the first step towards a method needing less human intervention
+\item What we need: a clearly defined task, a dataset where it is possible, a parallel dataset where it is not
+\item The expected output and a metric to maximize
+\item We also need to assume some partition of the network into parts, like attention heads or MLPs
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Automated Circuit Discovery}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/conmy2023/figure2.png}
+\end{center}
+
+\source{conmy2023}
+
+\note{
+\begin{itemize}
+\item Slowly cut the graph apart until we have a minimal circuit
+\item Basically: take each connection away and ask ``does the task still work?''
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Automated Circuit Discovery}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/conmy2023/algorythem.png}
+\end{center}
+
+\source{conmy2023}
+
+\note{
+\begin{itemize}
+\item ACDC iterates from outputs to inputs through the computational graph
+\item Start at the output node. For each node, try removing each incoming edge
+\item For each edge: replace the activation with the corrupted activation (from the parallel dataset where the task is absent)
+\item Run a forward pass and measure the effect on the output metric
+\item If removing the edge changes the metric by less than a threshold $\tau$, the edge is not important --- remove it
+\item If the metric drops significantly, the edge is part of the circuit --- keep it
+\item Recurse: move to the parent nodes through the kept edges and repeat
+\item When done: you have a sparse subgraph that recovers the task performance
+\item The threshold $\tau$ controls the trade-off between circuit size and faithfulness
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Recovered IOI Circuit}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/conmy2023/recovered_ioi_circuit.png}
+\end{center}
+
+\source{conmy2023}
+
+\note{
+\begin{itemize}
+\item They could recover the previously found IOI circuit
+\item Also some other examples in the paper
+\item Has not been used to find mass-circuits or anything at scale
+\item Downsides: computational units are limited (attention heads, MLP layers)
+\item Doing MLP neurons is possible but the computation load of pruning explodes
+\item The relevant unit of computation is probably features that do not easily map onto weights
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Circuit Tracing: Cross-Layer Transcoders}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/ameisen2025/CLT.png}
+\end{center}
+
+\source{ameisen2025}
+
+\note{
+\begin{itemize}
+\item The most advanced method for circuit discovery right now: circuit tracing, developed by Anthropic
+\item The key idea: build circuits out of features, not attention heads or neurons
+\item First step: train cross-layer transcoders (CLTs) on the entire transformer
+\item CLTs read the residual stream before an MLP and write to the MLP output of all later layers
+\item All CLTs are trained together across all layers
+\item Uses JumpReLU activation for sparsity
+\item Huge upfront cost, but lets you decompose all activations in a forward pass into interpretable features
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Replacement Models}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/ameisen2025/replacement_models.png}
+\end{center}
+
+\source{ameisen2025}
+
+\note{
+\begin{itemize}
+\item Take a forward pass on a specific prompt, decompose it into active CLT features
+\item This gives an interpretable model doing the same calculation: a replacement model
+\item Captures the nonlinear computation happening in the MLPs
+\item Does not give insight into how attention patterns are calculated: those are fixed from the real forward pass
+\item Same with the layer norm denominators
+\item CLTs do not perfectly replicate activations, so error terms are added back in as uninterpretable residuals
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Attribution Graphs}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/ameisen2025/pruning.png}
+\end{center}
+
+\source{ameisen2025}
+
+\note{
+\begin{itemize}
+\item Once the forward pass is decomposed into features, add input tokens and output logits as nodes
+\item Attention patterns and layer norm denominators are frozen (no-grad tensors)
+\item Feature activations have gradients, so a simple backward pass gives connections between any two features
+\item Unlike ACDC, we do not need to knock out connections one by one
+\item Prune all features below a connection-strength threshold to the output logit
+\item Result: a sparse attribution graph through the whole LLM
+\item Often group similar features into supernodes if they have similar labels and functions
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Example: Acronym Circuit}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/ameisen2025/example_circuit.png}
+\end{center}
+
+\source{ameisen2025}
+
+\note{
+\begin{itemize}
+\item This lets us trace circuits like this one
+\item The model computes an acronym, and we can see which features are involved
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Feature Suppression}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/ameisen2025/feature_supression.png}
+\end{center}
+
+\source{ameisen2025}
+
+\note{
+\begin{itemize}
+\item To validate: suppress a feature by scaling its activation and injecting scaled decoder outputs
+\item The layer range and scaling factor are chosen per experiment
+\item The authors describe this choice as ``ad-hoc and empirically driven''
+\item Weaker validation than e.g.\ the clean ablations in the grokking paper
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Feature Suppression Example}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/ameisen2025/supresseion_example.png}
+\end{center}
+
+\source{ameisen2025}
+
+\note{
+\begin{itemize}
+\item Example: suppress the feature where a specific letter of the acronym was decided
+\item This leads to that letter of the acronym being wrong
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{}
+\begin{center}
+\Large Explore attribution graphs yourself\\[1em]
+\normalsize \url{https://www.neuronpedia.org/gemma-2-2b/graph}
+\end{center}
+
+\note{
+\begin{itemize}
+\item Play around with attribution graphs on Neuronpedia
+\item See what kinds of circuits you can find and if you can learn anything from them
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Circuit Tracing on Claude: Math}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/lindsey2025a/maths_circuit.png}
+\end{center}
+
+\source{lindsey2025a}
+
+\note{
+\begin{itemize}
+\item Anthropic also did circuit tracing on their own model, Haiku 3.5
+\item Found interesting circuits, here for example one for doing math
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Misaligned Model Pipeline}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/lindsey2025a/misaligned_model_pipeline.png}
+\end{center}
+
+\source{lindsey2025a}
+
+\note{
+\begin{itemize}
+\item They showcased how circuit tracing can be useful for alignment
+\item Made a misaligned version of Haiku 3.5 through a training pipeline inducing reward hacking
+\item SFT on fictional papers saying that reward models like meta-comments in LLM output
+\item Then SFT on the behaviour of including meta-comments
+\item This leads to a model also doing things it thinks the RM will like out-of-distribution
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Misaligned Circuit}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/lindsey2025a/misaligned_circuit.png}
+\end{center}
+
+\source{lindsey2025a}
+
+\note{
+\begin{itemize}
+\item Circuit tracing on a model output where it finishes a poem with a meta-comment
+\item The feature where it thinks about the reward model is causally upstream of its output
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Misaligned Intervention}
+\begin{center}
+\includegraphics[width=0.9\textwidth,height=0.75\textheight,keepaspectratio]{figures/lindsey2025a/misaligned_intervention.png}
+\end{center}
+
+\source{lindsey2025a}
+
+\note{
+\begin{itemize}
+\item They can causally intervene, steering against the reward model thought
+\item This makes the misaligned behaviour less likely
+\item Honestly the coolest tool in MechInterp so far
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{General Patterns in Circuits}
+\begin{itemize}
+\item High-abstraction features in middle layers, simple token features in early/late layers
+\item Attention moves most information in early layers
+\item ``Default'' circuits that get overwritten (e.g.\ ``unknown person'' $\to$ specific person)
+\item Multiple pathways/shortcuts to the answer
+\item Computation on special token positions (e.g.\ full stops, \texttt{<assistant:>})
+\item Confidence-reducing features (cf.\ negative name movers in IOI)
+\item Many ``boring'' features active but not part of the core computation
+\end{itemize}
+
+\source{lindsey2025a}
+
+\note{
+\begin{itemize}
+\item They looked at many different circuits, so what general patterns emerge?
+\item Early and late layers have simple token-oriented features; most interesting computation happens in middle layers
+\item Information gathering by attention heads mostly happens in early layers
+\item There are often default pathways, like saying you do not know a person, that then get overwritten
+\item Circuits often have multiple ways to reach the answer: e.g.\ ``capital of Texas'' has one path from Texas+capital to Dallas, but Texas alone already upweights Dallas
+\item Some information gathering or decision points are at special tokens like full stops or newlines after assistant tags
+\item Often there are outputs writing against the correct tokens, possibly for hedging (as in IOI)
+\item Lots of active features are not part of the core computation: e.g.\ in the math example, many generic math features just contribute small amounts to all numbers
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Induction Heads Exercise}
+\begin{center}
+\vfill
+\href{https://colab.research.google.com/github/iliad-team/iliad-intensive-C.2/blob/main/exercises/02_induction_heads/notebook_normal.ipynb}{%
+\colorbox{structure.fg}{\color{white}\LARGE\bfseries\strut\quad Normal Exercise\quad}}
+\vspace{1cm}
+
+\href{https://colab.research.google.com/github/iliad-team/iliad-intensive-C.2/blob/main/exercises/02_induction_heads/notebook_hard.ipynb}{%
+\colorbox{structure.fg}{\color{white}\LARGE\bfseries\strut\quad Hard Exercise\quad}}
+\vfill
+\end{center}
+\end{frame}

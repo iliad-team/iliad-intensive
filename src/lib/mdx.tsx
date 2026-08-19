@@ -135,6 +135,36 @@ const components = {
   ),
 
   /**
+   * TeachingNote — collapsible aside addressed to whoever teaches the day, not
+   * to the student reading it: what a session is for, and how the author ran
+   * it. Collapsed so it stays out of the reading flow, and marked
+   * data-component so teacher-facing material is findable later (a strip, an
+   * index, a toggle) — which a plain <Callout> would not be.
+   * Usage: <TeachingNote title="Session intent">…</TeachingNote>
+   * The title is the label on the closed box; it defaults to "Teaching note".
+   */
+  TeachingNote: ({
+    title = "Teaching note",
+    children,
+  }: {
+    title?: string;
+    children: ReactNode;
+  }) => (
+    /* suppressHydrationWarning: same pre-hydration native-toggle race as
+       Solution above. */
+    <details
+      suppressHydrationWarning
+      className="my-3 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2"
+      data-component="teaching-note"
+    >
+      <summary className="cursor-pointer font-sans text-xs uppercase tracking-[0.15em] text-zinc-500">
+        {title}
+      </summary>
+      <div className="mt-2">{children}</div>
+    </details>
+  ),
+
+  /**
    * Definition — coloured box; the converter puts the bold lead
    * ("**Definition 2.1 (entropy).**") in the body, so titles can carry math.
    * Usage: <Definition id="optional-anchor">**Definition 2.1 (RLCT).** …</Definition>

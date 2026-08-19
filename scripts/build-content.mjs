@@ -330,6 +330,13 @@ async function buildSlug(slug) {
   // "then the normal search path", so a system copy still wins where present.
   // (tex/singular-learning-theory/far.bst already relies on bibtex finding a
   // repo-local style; this just hoists the trick to a shared location.)
+  // biblatex is deliberately NOT vendored the same way, and the reason is worth
+  // recording: biber checks the control file against an exact biblatex version,
+  // so a copy pinned to satisfy CI's biber breaks every local build against a
+  // different one. Style and backend have to come from the same place, which
+  // means the distro package — texlive-bibtex-extra is installed for it (see
+  // .github/workflows/site.yml), which is also why that 75 MB note above now
+  // describes history rather than the current package set.
   const tex = (...argv) =>
     exec(argv[0], argv.slice(1), {
       cwd: dir,
@@ -355,6 +362,20 @@ async function buildSlug(slug) {
         .find((l) => /^(I couldn't open|Sorry|Error|.*---line \d+)/.test(l))
         ?? String(e.message).split("\n")[0];
       throw Object.assign(new Error(`bibtex (${base}): ${detail}`), { bibtex: true });
+    }
+  };
+  // A biblatex deck resolves its citations with biber instead: pdflatex writes
+  // a .bcf, biber reads it and produces the .bbl. Same fatal-on-failure stance
+  // as bibtex above, and for the same reason — a swallowed biber error still
+  // yields a deck that builds and looks fine, with every \cite rendered "[?]".
+  const biber = async (base) => {
+    try {
+      await tex("biber", base);
+    } catch (e) {
+      const out = `${e.stdout ?? ""}${e.stderr ?? ""}`;
+      const detail = out.split("\n").map((l) => l.trim()).filter(Boolean)
+        .find((l) => /^(ERROR|FATAL)/.test(l)) ?? String(e.message).split("\n")[0];
+      throw Object.assign(new Error(`biber (${base}): ${detail}`), { bibtex: true });
     }
   };
   const isTex = existsSync(path.join(dir, "main.tex"));
@@ -497,8 +518,15 @@ async function buildSlug(slug) {
   //     `handout` to the beamer class and drop its \pause reveals. That lands
   //     as slides-handout.pdf next to the presentation build. Decks with no
   //     reveals never mention \HANDOUT and so build once, as before.
-  const hasHandout = hasSlidesTex
-    && /\\HANDOUT\b/.test(readFileSync(path.join(dir, "slides.tex"), "utf8"));
+  const slidesSrc = hasSlidesTex ? readFileSync(path.join(dir, "slides.tex"), "utf8") : "";
+  const hasHandout = /\\HANDOUT\b/.test(slidesSrc);
+  // Which bibliography pass this deck needs. The house decks use bibtex +
+  // alphaurl; a deck that loads biblatex (C.2's, carried over as its author
+  // wrote it) needs biber instead. Detected from the source so a deck never has
+  // to declare its toolchain, and so importing an upstream deck verbatim does
+  // not mean rewriting its citation machinery to match ours.
+  const bibPass = /\\usepackage(\[[^\]]*\])?\{biblatex\}|\\addbibresource/.test(slidesSrc)
+    ? biber : bibtex;
   if (!CHECK_ONLY && hasSlidesTex) {
     // exec() passes argv straight through (no shell), so the \def wrapper needs
     // no quoting beyond JS's own backslash escapes.
@@ -507,7 +535,7 @@ async function buildSlug(slug) {
     for (const [job, src] of variants) {
       try {
         await tex(...PDFLATEX, `-jobname=${job}`, src);
-        await bibtex(job);
+        await bibPass(job);
         await tex(...PDFLATEX, `-jobname=${job}`, src);
         await tex(...PDFLATEX, `-jobname=${job}`, src);
       } catch (e) {
