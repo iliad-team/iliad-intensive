@@ -259,9 +259,12 @@ export async function MdxBody({ source }: { source: string }) {
       components,
       options: {
         mdxOptions: {
-          // remarkKatexHtml renders the math remarkMath found, straight to an
-          // HTML string (see its header for why it replaces rehype-katex). It
-          // owns the per-page `\gdef` macro scope that `macros: {}` used to.
+          // remarkMathTex hands the math remarkMath found through as its own
+          // TeX source, for MathJax to typeset in the browser (see its header
+          // for why the maths is no longer rendered at build time). The
+          // per-page `\gdef` macro scope KaTeX used to own now lives in
+          // MathJaxSetup's config, since lazy typesetting cannot guarantee a
+          // definition runs before the formula using it.
           //
           // remarkGfm is here for FOOTNOTES: `[^1]` references and their
           // `[^1]: …` definitions, which the converter emits for LaTeX
