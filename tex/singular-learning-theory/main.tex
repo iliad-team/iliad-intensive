@@ -26,6 +26,10 @@
 % Restore the original link colour (iliad defaults to plain blue).
 \hypersetup{colorlinks, allcolors=blue!60!black}
 
+% TikZ (used in the solutions).
+\usepackage{tikz}
+\usetikzlibrary{patterns, decorations.pathreplacing}
+
 % % %
 % Configuration
 
@@ -1274,9 +1278,15 @@ The following is a guide to one possible approach.
                     $B\,\delta\!A + \delta\!B\, A \in \R^{m^2}$.
                 Describe the image of this linear map in terms of those of $T_A$ and $T_B$.
                 Compute the rank of this linear map using Grassmann's identity.
-            \item 
+            \item
                 What is the nullity of $T_D$? Why is this the same as the dimensionality of the space of degenerate directions?
         \end{enumerate}
+        Alternatively: substitute singular value decompositions
+        $A = U_1 \Sigma_1 V_1^\top$ and $B = U_2 \Sigma_2 V_2^\top$ into the
+        degeneracy condition $B\,\delta\!A + \delta\!B\, A = 0$, and change
+        variables to absorb the orthogonal factors. The condition becomes an
+        equation between two diagonally-scaled matrices, whose solutions can
+        be counted entry by entry.
     \end{hint}
 \end{enumerate}
 \end{exercise}
@@ -2969,6 +2979,105 @@ For each architecture, we add a bias vector to each layer's output before the ne
             is precisely the subspace of degenerate directions. \qedhere
     \end{enumerate}
 \end{enumerate}
+
+\paragraph{Alternative solution to (d), via the SVD.}
+Take singular value decompositions
+    $A = U_1 \Sigma_1 V_1^\top$
+and
+    $B = U_2 \Sigma_2 V_2^\top$,
+where $U_1, V_1, U_2, V_2 \in \R^{m \times m}$ are orthogonal and
+$\Sigma_1, \Sigma_2 \in \R^{m \times m}$ are diagonal with non-negative
+entries, ordered so that the $r_A$ non-zero entries of $\Sigma_1$ and the
+$r_B$ non-zero entries of $\Sigma_2$ come first.
+By part~(a), $(\delta\!A, \delta\!B)$ is a degenerate direction if and only
+if $B\,\delta\!A + \delta\!B\, A = 0$.
+Change variables by the linear map
+\begin{equation*}
+    X = V_2^\top\, \delta\!A\, V_1,
+    \qquad
+    Y = -U_2^\top\, \delta\!B\, U_1,
+\end{equation*}
+so that $\delta\!A = V_2 X V_1^\top$ and $\delta\!B = -U_2 Y U_1^\top$.
+This map is invertible, so it preserves the dimensionality of subspaces,
+and we may count degrees of freedom in the new variables. Substituting,
+\begin{align*}
+    B\,\delta\!A + \delta\!B\, A = 0
+    &\iff
+        U_2 \Sigma_2 V_2^\top\, V_2 X V_1^\top
+        = U_2 Y U_1^\top\, U_1 \Sigma_1 V_1^\top
+\\  &\iff
+        U_2 \left( \Sigma_2 X \right) V_1^\top
+        = U_2 \left( Y \Sigma_1 \right) V_1^\top
+\\  &\iff
+        \Sigma_2 X = Y \Sigma_1,
+\end{align*}
+using orthogonality ($V_2^\top V_2 = U_1^\top U_1 = I$) in the second step
+and invertibility of $U_2$ and $V_1$ in the third.
+
+It remains to count the dimensionality of the space of pairs $(X, Y)$
+satisfying $\Sigma_2 X = Y \Sigma_1$.
+Write $\sigma_i$ for the $i$-th diagonal entry of $\Sigma_2$ and $\tau_j$
+for the $j$-th diagonal entry of $\Sigma_1$.
+Multiplying by a diagonal matrix on the left scales rows, and on the right
+scales columns, so entry $(i, j)$ of the equation reads
+\begin{equation*}
+    \sigma_i X_{ij} = \tau_j Y_{ij}.
+\end{equation*}
+Each such equation involves only the pair of entries $(X_{ij}, Y_{ij})$, and
+each pair appears in exactly one equation, so the system decouples into
+$m^2$ independent cells.
+The picture is as follows: the bottom $m - r_B$ rows of $\Sigma_2 X$ and
+the rightmost $m - r_A$ columns of $Y \Sigma_1$ vanish identically, so a
+cell in their overlap yields the trivial equation $0 = 0$, while every
+other cell yields one non-trivial constraint.
+\begin{center}
+\begin{tikzpicture}[line width=0.8pt]
+  % geometry
+  \def\m{4}      % matrix side
+  \def\zB{1.2}   % height of zero rows  (m - r_B)
+  \def\zA{1.2}   % width  of zero cols  (m - r_A)
+  \def\gap{2.2}  % gap between matrices
+
+  % ---- Left matrix: Sigma_2 X, bottom (m - r_B) rows zero ----
+  \draw (0,0) rectangle (\m,\m);
+  \fill[pattern=north east lines, pattern color=blue!60]
+       (0,0) rectangle (\m,\zB);
+  \draw[dashed, thin] (0,\zB) -- (\m,\zB);
+  \node[above] at (\m/2, \m) {$\Sigma_2 X$};
+  \draw[decorate, decoration={brace, amplitude=5pt}]
+       (-0.1,0) -- (-0.1,\zB)
+       node[midway, left=6pt] {$m-r_B$};
+  \draw[->] (\m/2,-0.8) node[below] {$0$} -- (\m/2,\zB/2);
+
+  % ---- Equals sign ----
+  \node at ({\m + \gap/2}, \m/2) {\Huge $=$};
+
+  % ---- Right matrix: Y Sigma_1, right (m - r_A) cols zero ----
+  \begin{scope}[shift={({\m + \gap},0)}]
+    \draw (0,0) rectangle (\m,\m);
+    \fill[pattern=north east lines, pattern color=blue!60]
+         (\m-\zA,0) rectangle (\m,\m);
+    \draw[dashed, thin] (\m-\zA,0) -- (\m-\zA,\m);
+    \node[below] at (\m/2, 0) {$Y \Sigma_1$};
+    \draw[decorate, decoration={brace, amplitude=5pt}]
+         (\m-\zA,\m+0.1) -- (\m,\m+0.1)
+         node[midway, above=6pt] {$m-r_A$};
+    \draw[->] (\m+0.9,\m/2) node[right] {$0$} -- (\m-\zA/2,\m/2);
+  \end{scope}
+\end{tikzpicture}
+\end{center}
+Concretely: the equation for cell $(i, j)$ is trivial if and only if
+$\sigma_i = \tau_j = 0$, that is, $i > r_B$ and $j > r_A$, leaving both
+entries free (two degrees of freedom); there are $(m - r_B)(m - r_A)$ such
+cells. Every other cell imposes one non-trivial linear constraint on
+$(X_{ij}, Y_{ij})$, leaving one degree of freedom; there are
+$m^2 - (m - r_A)(m - r_B)$ such cells.
+The dimensionality of the space of degenerate directions is therefore
+\begin{equation*}
+    2 (m - r_A)(m - r_B)
+    + \left( m^2 - (m - r_A)(m - r_B) \right)
+    = m^2 + (m - r_A)(m - r_B).
+\end{equation*}
 \end{solution}
 
 \begin{solution}[ex:mlp-degeneracy]
