@@ -1,11 +1,11 @@
 %--- iliad -------------------------------------------------------------------
-% title: "Power-Seeking: Exercises"
+% title: "Instrumental Convergence"
 % summary: >-
 %   We discuss a simple mathematical formalization of what it means to "seek
 %   power" in a Markov decision process (MDP), and conditions under which such
 %   behavior emerges.
 % contributors:
-%   - "Leon Lang (ILIAD), based on work by Alex Turner et al"
+%   - "Leon Lang (ILIAD), based on work by Alex Turner et al."
 % slides: https://drive.google.com/drive/folders/127bVYqhJPhzA7S71FwTqeyNKKKkjM2NB
 %--- end ----------------------------------------------------------------------
 \documentclass[11pt]{article}
@@ -27,7 +27,7 @@
 \newcommand{\F}{\mathcal{F}}       % option set: visitation distributions reachable from a state
 \newcommand{\mset}[1]{\{\!\{\,#1\,\}\!\}}   % multiset (unordered, with multiplicity)
 
-\title{Power-Seeking: Exercises}
+\title{Instrumental Convergence}
 \author{\authorname{Leon Lang}\\ \affiliation{ILIAD}}
 \date{April 2026}
 
@@ -143,13 +143,13 @@ of ``most goals'' in \cite{jacek2023categorical}. These works provide many gener
 Making the central claim precise requires formalising three phrases. The rest of the
 worksheet is organised around them and then proving the result:
 
-\begin{itemize}\itemsep=3pt
-  \item[\textbf{(1)}] \textbf{``for the majority of reward functions''}: How do we count reward functions?
-  \item[\textbf{(2)}] \textbf{``a suitable decision rule''}: Which ways of turning a
+\begin{enumerate}
+  \item \emph{for the majority of reward functions}: How do we count reward functions?
+  \item \emph{a suitable decision rule}: Which ways of turning a
   reward function into behaviour are covered (maximization is only one)?
-  \item[\textbf{(3)}] \textbf{``keeping more options open''}: How do we measure that one situation leaves more achievable than
+  \item \emph{keeping more options open}: How do we measure that one situation leaves more achievable than
   another?
-\end{itemize}
+\end{enumerate}
 
 We formalise all three and then prove the resulting theorems. The setup below fixes the
 environment; the three numbered sections that follow take up points~(1), (2), and~(3) in turn.
@@ -504,11 +504,11 @@ with extra room.
 Let $R'$ be the set of states reachable from $s$ along a trajectory whose first action is $a'$
 (so $s \in R'$). A permutation $\phi$ of $\cS$ with $\phi(s) = s$ \textbf{embeds $a'$ into $a$
 at $s$} if
-\begin{itemize}\itemsep=2pt
-  \item[(i)] $T(\phi(s'') \mid s, a) = T(s'' \mid s, a')$ for all $s''$ \ ; and
-  \item[(ii)] for every $s' \in R'$ with $s' \ne s$ and every action $b$, there is an action
+\begin{enumerate}
+  \item $T(\phi(s'') \mid s, a) = T(s'' \mid s, a')$ for all $s''$ \ ; and
+  \item for every $s' \in R'$ with $s' \ne s$ and every action $b$, there is an action
   $b'$ with $T(\phi(s'') \mid \phi(s'), b') = T(s'' \mid s', b)$ for all $s''$.
-\end{itemize}
+\end{enumerate}
 \end{definition}
 
 \begin{exercise}
@@ -567,8 +567,8 @@ $$
 \label{prob:power_seeking} Let $p$ be a score rule, and let $\phi$ be an
 involution that
 \begin{itemize}\itemsep=2pt
-  \item[(E)] embeds $a'$ into $a$: $\ \phi\cdot\F(s\mid a') \subseteq \F(s\mid a)$; and
-  \item[(D)] is a symmetry of $\Dist$: $\ \phi_*\Dist = \Dist$.
+  \item[1.] embeds $a'$ into $a$: $\ \phi\cdot\F(s\mid a') \subseteq \F(s\mid a)$; and
+  \item[2.] is a symmetry of $\Dist$: $\ \phi_*\Dist = \Dist$.
 \end{itemize}
 Show that
 
