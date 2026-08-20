@@ -105,7 +105,10 @@ let droppedLabels = new Set();  // labels inside dropped pdfonly blocks
 let authorMacros = {};          // name -> {signature, body(nodes)}
 let expandDepth = 0;
 let counters = null;
-let inExercise = false;
+// inside an exercise or solution body — iliad.sty letters both environments'
+// first-level enumerates (a),(b),… (level 1 of \iliad@exlists and the solution
+// env's own \setlist), so the converter marks their parts the same way.
+let letteredParts = false;
 let listDepth = 0;             // \item nesting: >0 means this list sits inside an item
 let citedKeys = new Set();      // bib keys cited anywhere on the page
 let footnotes = [];             // {id, body} in source order; body null until \footnotetext
@@ -389,14 +392,14 @@ function indentBody(item, width) {
 
 function emitList(env, n) {
   const items = splitItems(n.content);
-  const letters = env === "enumerate" && inExercise;
+  const letters = env === "enumerate" && letteredParts;
   // \item[(i)] *replaces* LaTeX's marker: the list prints the author's labels
   // and no bullets. Emit a list whose every item carries one the way an
   // exercise's lettered parts already are — bold label, no marker — rather than
   // stacking a bullet in front of the label written to stand in for it.
   const labelled = items.length > 0 && items.every((it) => it.optLabel);
   const bare = letters || labelled;
-  const wasIn = inExercise; inExercise = false;
+  const wasIn = letteredParts; letteredParts = false;
   listDepth++;
   const out = items.map((it, k) => {
     // The label is markdown body text, not a JSX attribute, so it is walked
@@ -419,7 +422,7 @@ function emitList(env, n) {
     const marker = env === "enumerate" ? `${k + 1}.` : "-";
     return indentBody(itemJoin(`${marker} ${lead}`.trim(), txt), marker.length + 1);
   }).join(bare ? "\n\n" : "\n");
-  inExercise = wasIn;
+  letteredParts = wasIn;
   listDepth--;
   // A list inside an \item is that item's child: hand it back tagged and
   // attached, for the item to indent to its own content column. Emitted as its
@@ -486,9 +489,9 @@ function emitEnv(n) {
       const { dd, star, skip, rest } = takeMarks(n.content);
       counters.ex[secNum()] = (counters.ex[secNum()] || 0) + 1;
       const num = displayNum(n.content, label, `${secNum()}.${counters.ex[secNum()]}`, "exercise");
-      const wasIn = inExercise; inExercise = true;
+      const wasIn = letteredParts; letteredParts = true;
       const inner = walk(rest);
-      inExercise = wasIn;
+      letteredParts = wasIn;
       if (!label) advise(`exercise ${num} has no \\label — no stable anchor emitted, and no solution can reference it`, snippetOf(printRaw(n.content)));
       if (label) for (const l of allLabels(n.content)) if (!(l in anchorMap)) anchorMap[l] = slug(label);
       // ★ = \important (the sheet's key exercises); (∗) = legacy \skippable
@@ -522,7 +525,14 @@ function emitEnv(n) {
       } else {
         warn("solution without [ex:label] — every solution must name its exercise", snippetOf(printRaw(n.content)));
       }
-      mdx = `<Solution${forAttr}>\n\n${walk(n.content).trim()}\n\n</Solution>`;
+      // A solution's first-level enumerate letters its parts (a),(b),… exactly
+      // as the exercise's does (iliad.sty sets the same \setlist in both), so
+      // the parts line up with the exercise they answer and with the in-text
+      // "part (a)" references.
+      const wasIn = letteredParts; letteredParts = true;
+      const body = walk(n.content).trim();
+      letteredParts = wasIn;
+      mdx = `<Solution${forAttr}>\n\n${body}\n\n</Solution>`;
       break;
     }
     case "solutionsonly":
@@ -1062,7 +1072,7 @@ export function emitDocument(bodyTex, context) {
   authorMacros = {};
   citedKeys = new Set();
   footnotes = [];
-  inExercise = false;
+  letteredParts = false;
   listDepth = 0;
 
   // phase A: default parse of preamble+body to harvest author macro definitions
