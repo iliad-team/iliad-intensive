@@ -30,8 +30,10 @@ export type DayModule = {
 };
 
 /** Where a day's buildable source is. `in-repo` is derived (the day has a
- *  worksheet); the rest come from schedule.yaml. */
-export type SourceKind = "in-repo" | "ready" | "partial" | "missing";
+ *  worksheet); `never` means the day is marked `port: never` in schedule.yaml
+ *  (deliberately not ported, so no source is awaited); the rest come from
+ *  schedule.yaml's `source:` key. */
+export type SourceKind = "in-repo" | "ready" | "partial" | "missing" | "never";
 
 export type Day = {
   code: string;
@@ -43,6 +45,9 @@ export type Day = {
    *  once the day has a worksheet. */
   source: { kind: SourceKind; url: string | null; note: string | null };
   slidesUrl: string | null;
+  /** "never" = deliberately not ported (schedule.yaml `port: never`): no
+   *  worksheet or deck is planned, and the page shows the day grey. */
+  port: "never" | null;
   modules: DayModule[];
   live: boolean;
   slides: { kind: "built" | "external" | "none"; decks: Deck[] };
@@ -59,6 +64,7 @@ export type Status = {
     decksBuilt: number;
     decksHosted: number;
     awaitingSource: number;
+    neverPort: number;
   };
 };
 

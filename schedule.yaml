@@ -41,6 +41,14 @@
 #   title      required  The day's name, as the schedule calls it.
 #   lead       required  Who owns the material — the person to ask.
 #   doc        required  This day's tab in the big Google Doc (docs/LINKS.md).
+#   port       optional  `never` — this day is deliberately not ported: it runs
+#                        from the Doc (or from hosted PDFs) and no worksheet or
+#                        deck is planned. /admin/status shows it grey instead
+#                        of amber, and it drops out of the outstanding counts.
+#                        A `port: never` day may not list `worksheets:` or a
+#                        `source:` — either would contradict it (remove the
+#                        flag the day someone decides to port it after all).
+#                        `note:` and `slides:` still apply.
 #   worksheets optional  Slugs of tex/<slug>/ worksheets, in reading order.
 #                        Omit or leave empty for a day nobody has ported yet.
 #                        Several worksheets per day is normal (D.3 is
@@ -55,9 +63,9 @@
 #                        ported yet. Ignored the moment the day has a
 #                        worksheet — /admin/status then shows "in repo"
 #                        instead, so this field can never rot into a lie. Every
-#                        day needs a worksheet and a deck, reading days no less
-#                        than the rest, so there is no "readings" exemption. One
-#                        of:
+#                        day needs a worksheet and a deck unless it is marked
+#                        `port: never` (the one exemption — see below), which
+#                        replaces this field. One of:
 #                          ready     real source in hand, just needs porting in
 #                          partial   something missing, or source unverified
 #                          missing   only compiled PDFs exist; nothing buildable
@@ -110,8 +118,8 @@ clusters:
         title: Alignment in Practice 2
         lead: Garrett
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.g73qz582zioy
-        source: missing
-        note: reading + discussion day; the two discussion worksheets live in the Doc
+        port: never
+        note: reading + discussion day, run from the Doc — the two discussion worksheets live there
 
   - id: B
     label: B — Learning
@@ -181,8 +189,8 @@ clusters:
         title: Abstractions and Latents
         lead: Satya + Daniel Chiang
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.lzn2w9mlavru
-        source: missing
-        note: only compiled PDFs so far; the code lives on sourcehut
+        port: never
+        note: taught from the compiled PDFs; the code lives on sourcehut
 
   - id: D
     label: D — Agency
