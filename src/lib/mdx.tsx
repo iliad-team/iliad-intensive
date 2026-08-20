@@ -250,7 +250,14 @@ const components = {
         />
       </div>
       <figcaption className="mt-2 text-sm text-zinc-600">
-        {title ? <>{title} — </> : null}
+        {/* No title means the build-time lookup failed — usually a video that
+            is scheduled/unlisted and not public yet, or a bad ID. Say so
+            instead of showing a bare link, so the page reads as intentional. */}
+        {title ? (
+          <>{title} — </>
+        ) : (
+          <em>Title unavailable — video missing or not yet released. </em>
+        )}
         <a
           href={`https://www.youtube.com/watch?v=${id}`}
           target="_blank"
