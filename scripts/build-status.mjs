@@ -103,6 +103,7 @@ export function buildStatus({ check = false, schedule } = {}) {
       doc: d.doc,
       source: { ...d.source },
       slidesUrl: d.slidesUrl,
+      port: d.port,   // "never" = deliberately not ported; grey on the page
       modules: [],
     });
   }
@@ -175,6 +176,7 @@ export function buildStatus({ check = false, schedule } = {}) {
       decksBuilt: list.filter((d) => d.slides.kind === "built").length,
       decksHosted: list.filter((d) => d.slides.kind === "external").length,
       awaitingSource: list.filter((d) => d.source.kind === "missing" || d.source.kind === "partial").length,
+      neverPort: list.filter((d) => d.port === "never").length,
     },
   };
   writeFileSync(OUT_FILE, JSON.stringify(status, null, 2) + "\n");
@@ -185,7 +187,7 @@ export function buildStatus({ check = false, schedule } = {}) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const s = buildStatus();
-    console.log(`status.json: ${s.counts.live}/${s.counts.days} days live → /admin/status`);
+    console.log(`status.json: ${s.counts.live}/${s.counts.days - s.counts.neverPort} days live → /admin/status`);
   } catch (e) {
     console.error(e instanceof DataError || e instanceof ScheduleError ? `✗ ${e.message}` : e);
     process.exit(1);

@@ -749,7 +749,7 @@ if (!failed) {
 try {
   const s = buildStatus({ check: CHECK_ONLY, schedule: SCHEDULE });
   const n = s.counts.decksBuilt;
-  console.log(`status.json: ${s.counts.live}/${s.counts.days} days live, ` +
+  console.log(`status.json: ${s.counts.live}/${s.counts.days - s.counts.neverPort} days live, ` +
     `${n} deck${n === 1 ? "" : "s"} built → /admin/status`);
 } catch (e) {
   console.error(`✗ ${e.message}`);

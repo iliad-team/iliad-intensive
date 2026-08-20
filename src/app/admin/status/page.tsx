@@ -51,8 +51,10 @@ export const metadata = {
  *   good     done, here, working        ok    in hand elsewhere / not ours
  *   wait     a gap worth seeing         gone  nothing to build from
  *
- * `none` is not a status — it is the neutral tint for a chip that carries no
- * state (the Doc-tab link), and the fallback border for Chip.
+ * `none` is the neutral grey: the tint for a chip that carries no state (the
+ * Doc-tab link), the fallback border for Chip — and the one *deliberate*
+ * status, a `port: never` day, where grey says "nothing is missing here"
+ * against amber's "something is".
  */
 const TONE = {
   good: { cell: "bg-emerald-200 text-emerald-900", chip: "border-emerald-300", glyph: "✓" },
@@ -105,11 +107,18 @@ const SOURCE_LABEL: Record<SourceKind, { text: string; tone: Tone }> = {
   ready: { text: "ready to port", tone: "ok" },
   partial: { text: "partial", tone: "wait" },
   missing: { text: "no source", tone: "gone" },
+  // schedule.yaml `port: never` — no source is awaited, so grey, not rose.
+  never: { text: "n/a", tone: "none" },
 };
 
 function materialCell(day: Day, clusters: Cluster[], basePath: string): Cell {
-  // No worksheet built for this day — every day needs one, so this is work
-  // outstanding, the same for a reading day as for any other.
+  // Marked `port: never` in schedule.yaml: the day runs from the Doc (or
+  // hosted PDFs) by design, so the missing worksheet is not a gap.
+  if (day.port === "never") {
+    return { tone: "none", node: <State tone="none">not for porting</State> };
+  }
+  // No worksheet built for this day — every other day needs one, so this is
+  // work outstanding, the same for a reading day as for any other.
   if (!day.modules.length) {
     return { tone: "wait", node: <State tone="wait">not ported</State> };
   }
@@ -152,6 +161,11 @@ function DeckChips({ deck, basePath, tone }: { deck: Deck; basePath: string; ton
 }
 
 function slidesCell(day: Day, basePath: string): Cell {
+  // A `port: never` day plans no deck either, so its blank is neutral. Only
+  // the blank: a hosted deck it does have still shows as one below.
+  if (day.slides.kind === "none" && day.port === "never") {
+    return { tone: "none", node: <State tone="none">none planned</State> };
+  }
   // No deck at all is a real gap (the content build advises on it too), so it
   // shows as one rather than as a neutral blank.
   if (day.slides.kind === "none") return { tone: "wait", node: <State tone="wait">no deck</State> };
@@ -244,10 +258,15 @@ export default async function StatusPage() {
         {/* Tallies in the same tones as the column they summarise. */}
         <dl className="mt-5 flex flex-wrap gap-2 font-sans text-[0.8rem]">
           {([
-            [`${counts.live} of ${counts.days}`, "days live", "good"],
+            // The live denominator is the days that are *meant* to end up
+            // here — `port: never` days could never make it reach the total.
+            [`${counts.live} of ${counts.days - counts.neverPort}`, "days live", "good"],
             [counts.decksBuilt, `deck${counts.decksBuilt === 1 ? "" : "s"} built here`, "good"],
             [counts.decksHosted, `deck${counts.decksHosted === 1 ? "" : "s"} hosted elsewhere`, "ok"],
             [counts.awaitingSource, "awaiting source", "gone"],
+            ...(counts.neverPort
+              ? [[counts.neverPort, `day${counts.neverPort === 1 ? "" : "s"} not for porting`, "none"] as [number, string, Tone]]
+              : []),
           ] as [string | number, string, Tone][]).map(([n, label, tone]) => (
             <span
               key={label}
@@ -370,6 +389,7 @@ export default async function StatusPage() {
           ["ok", "in hand, but not ours to build — upstream source, deck hosted elsewhere"],
           ["wait", "outstanding, and nobody is on it — not ported yet, or no deck"],
           ["gone", "nothing buildable exists — only compiled PDFs"],
+          ["none", "not for porting — the day runs from the Doc or hosted PDFs by design; nothing is missing"],
         ] as [Tone, string][]).map(([tone, meaning]) => (
           <span key={tone} className={`rounded px-2 py-1 ${TONE[tone].cell}`}>
             <dt className="inline font-medium" aria-hidden>{TONE[tone].glyph}</dt>{" "}
