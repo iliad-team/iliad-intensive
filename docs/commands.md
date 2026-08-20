@@ -236,6 +236,27 @@ An aside in the mathematical register.
   rendered for the web automatically.
 - MDX: `<Figure src="/uploads/your-slug/value-curve.svg" caption="…" />`
 
+## Videos
+
+```latex
+\youtube{dQw4w9WgXcQ}                          % title auto-queried from YouTube
+\youtube[What is a neural network?]{aircAruvnKk}   % title set by hand
+```
+
+- The argument is the **11-character video ID** — the `v=` value of the watch
+  URL, not the URL itself (a full URL draws a CI warning and a broken embed).
+- Web: an embedded player, with a "Watch on YouTube ↗" link beneath it. The
+  title is shown above that link and used as the player's accessibility
+  title. With no `[Title]`, the build queries the video's real title from
+  YouTube (oEmbed, cached in `content/modules/.video-titles.json`); if the
+  lookup fails (offline build, deleted video) the embed ships untitled with a
+  CI advisory. An explicit `[Title]` always wins and needs no network.
+- PDF: a **Video:** line carrying the full watch URL — clickable on screen and
+  still readable on a printed sheet.
+- Block-level: it sets its own paragraph, so write it between paragraphs, not
+  mid-sentence.
+- MDX: `<YouTube id="aircAruvnKk" title="…" />`
+
 ## Slides
 
 A worksheet folder may carry an optional slide deck:

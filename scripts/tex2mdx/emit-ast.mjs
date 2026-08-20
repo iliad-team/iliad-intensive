@@ -92,6 +92,7 @@ const CONTRACT_MACROS = {
   ifdef: { signature: "m m m" }, ifdefined: { signature: "m m m" }, ifcsdef: { signature: "m m m" },
   crefrange: { signature: "m m" }, Crefrange: { signature: "m m" },
   href: { signature: "o m m" },   // \href[opts]{url}{text}
+  youtube: { signature: "o m" },  // \youtube[Title]{VIDEO_ID}
   // cleveref config — unknown to unified-latex, so the parser needs the
   // signature or the three brace groups survive as literal text
   crefname: { signature: "m m m" }, Crefname: { signature: "m m m" },
@@ -740,6 +741,18 @@ function emitMacro(n) {
       // definition nothing references, which the renderer would silently drop.
       advise("\\footnotetext with no \\footnotemark before it — kept inline, in parentheses", snippetOf(body));
       return ` (${body})`;
+    }
+    case "youtube": {
+      // \youtube[Title]{VIDEO_ID}: like \href, the ID is the LAST arg and the
+      // title arg 0 only when both slots are present.
+      const k = n.args ? n.args.length : 0;
+      const id = ((k >= 1 ? argRaw(n, k - 1) : null) ?? "").trim();
+      // explicit [Title] wins; else the title tex2mdx pre-fetched from oEmbed
+      const title = (k >= 2 ? walkStr(argRaw(n, 0) ?? "") : "").trim()
+        || (ctx.videoTitles?.[id] ?? "");
+      if (!/^[A-Za-z0-9_-]{11}$/.test(id))
+        warn(`\\youtube expects the 11-character video ID (the watch URL's v= value), got "${id}"`, id);
+      return `\n\n<YouTube id="${id}"${title ? ` title="${title.replace(/"/g, "&quot;")}"` : ""} />\n\n`;
     }
     case "hint": return `[*Hint:* ${walkArg(n, 0)}]`;
     case "note": return `[*Note:* ${walkArg(n, 0)}]`;

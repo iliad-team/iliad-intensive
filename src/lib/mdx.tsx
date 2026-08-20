@@ -226,6 +226,42 @@ const components = {
       ) : null}
     </figure>
   ),
+
+  /**
+   * YouTube — embedded video player.
+   * Usage: <YouTube id="dQw4w9WgXcQ" title="…" />  (emitted for \youtube[Title]{ID})
+   *
+   * Privacy-enhanced host (youtube-nocookie.com: no tracking cookies until the
+   * viewer presses play), lazy-loaded. The caption always carries a plain watch
+   * link, so the video stays reachable where the iframe doesn't render —
+   * embedding disabled by the uploader, third-party frames blocked, or no JS.
+   */
+  YouTube: ({ id, title }: { id: string; title?: string }) => (
+    <figure className="my-6" data-component="youtube">
+      <div className="aspect-video w-full overflow-hidden rounded">
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${id}`}
+          title={title ?? "YouTube video"}
+          loading="lazy"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+          className="h-full w-full border-0"
+        />
+      </div>
+      <figcaption className="mt-2 text-sm text-zinc-600">
+        {title ? <>{title} — </> : null}
+        <a
+          href={`https://www.youtube.com/watch?v=${id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline"
+        >
+          Watch on YouTube ↗
+        </a>
+      </figcaption>
+    </figure>
+  ),
 };
 
 // Compiled-output cache keyed on a hash of the raw MDX source. Pages are
