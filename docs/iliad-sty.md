@@ -50,6 +50,7 @@ around it (CI also rejects redefinitions of contract names).
 | `definition` `theorem` `lemma` `proposition` `corollary` `fact` `example` | envs | amsthm family sharing one per-section counter |
 | `proof` | env | amsthm; collapsible on the web |
 | `hint` | env | unnumbered block hint, rendered in place; collapsible on the web |
+| `teachingnote` | env | `[Title]` optional (default "Teaching note"); teacher-facing aside — dashed box in the PDF, collapsed drop-down on the web; unnumbered, kept in both variants |
 | `callout` | env | `[note\|tip\|warning]` coloured aside |
 | `remark` | env | aside in the theorem register; note-style callout on the web. Optional title: `\begin{remark}[Title]` → "Remark (Title)" |
 | `\important` | mark | ★ after an exercise's label: one of the sheet's key exercises |

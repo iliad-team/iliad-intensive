@@ -54,6 +54,8 @@
 %   \begin{proof} ... \end{proof}            (amsthm; collapsible on the web)
 %   \begin{callout}[note|tip|warning] ... \end{callout}
 %   \begin{remark} ... \end{remark}          (aside; note callout on the web)
+%   \begin{teachingnote}[Title] ... \end{teachingnote}
+%       teacher-facing aside; a collapsed drop-down on the web.
 %   definition / theorem / lemma / proposition / corollary / fact / example
 %       amsthm environments sharing one counter, numbered within section.
 %
@@ -223,6 +225,31 @@
   \ifsolutions\else\expandafter\comment\fi
 }{%
   \ifsolutions\else\expandafter\endcomment\fi
+}
+
+% ------------------------------------------------------- teaching note ---
+% \begin{teachingnote}[Session intent] ... \end{teachingnote} — an aside
+% addressed to whoever TEACHES the day rather than to the student reading the
+% sheet: what a session is for, and how the author ran it last time. The
+% optional argument is its label (default "Teaching note"). Kept in both PDF
+% variants and on the web, where it renders as a collapsed drop-down
+% (<TeachingNote>) so it stays out of the student's reading flow — a PDF has no
+% collapsing, so here it is a square-cornered grey box instead. Unnumbered and
+% unlabelled, like hint: there is nothing to \cref.
+\ifiliad@boxes
+  \newtcolorbox{iliadteachingnotebox}[1]{colback=black!2!white,
+    colframe=black!35!white, boxrule=0.4pt, sharp corners,
+    title={#1}, fonttitle=\bfseries\normalsize\scshape, coltitle=black!60!white,
+    breakable, top=4pt, bottom=4pt}
+\fi
+\newenvironment{teachingnote}[1][Teaching note]{%
+  \ifiliad@boxes
+    \begin{iliadteachingnotebox}{#1}%
+  \else
+    \par\medskip\noindent\textbf{#1.}\enspace\ignorespaces
+  \fi
+}{%
+  \ifiliad@boxes\end{iliadteachingnotebox}\else\par\medskip\fi
 }
 
 % -------------------------------------------------------------- pdf only ---

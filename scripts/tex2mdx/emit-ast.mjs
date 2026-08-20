@@ -14,7 +14,7 @@ import { listNewcommands } from "@unified-latex/unified-latex-util-macros";
 import { warn, advise, snippetOf, warnings, advisories } from "./state.mjs";
 import { isAutoLabel } from "./autolabel.mjs";
 import { applyMathShims } from "./shims.mjs";
-import { slug, ghSlug, readGroup, readOpt, readArg } from "./util.mjs";
+import { slug, ghSlug, readGroup, readOpt, readArg, NEST, CHILD } from "./util.mjs";
 import { registerTikz } from "./tikz.mjs";
 
 // ---------------------------------------------------------------- tables ---
@@ -74,6 +74,7 @@ const ENV_SIGNATURES = {
   proposition: { signature: "o" }, corollary: { signature: "o" },
   definition: { signature: "o" }, fact: { signature: "o" },
   example: { signature: "o" }, remark: { signature: "o" },
+  teachingnote: { signature: "o" },
   learningoutcomes: {}, summary: {}, hint: {}, solutionsonly: {}, pdfonly: {},
   abstract: {}, figure: { signature: "o" }, table: { signature: "o" },
   tabular: { signature: "m" }, quote: {}, quotation: {},
@@ -104,7 +105,11 @@ let droppedLabels = new Set();  // labels inside dropped pdfonly blocks
 let authorMacros = {};          // name -> {signature, body(nodes)}
 let expandDepth = 0;
 let counters = null;
-let inExercise = false;
+// inside an exercise or solution body — iliad.sty letters both environments'
+// first-level enumerates (a),(b),… (level 1 of \iliad@exlists and the solution
+// env's own \setlist), so the converter marks their parts the same way.
+let letteredParts = false;
+let listDepth = 0;             // \item nesting: >0 means this list sits inside an item
 let citedKeys = new Set();      // bib keys cited anywhere on the page
 let footnotes = [];             // {id, body} in source order; body null until \footnotetext
 
@@ -258,8 +263,10 @@ function walkStr(texStr) {           // parse a raw string fragment and walk it
   return walk(parser().parse(texStr).content);
 }
 
-// item text beginning with display math must paragraph-break after the marker
-const itemJoin = (lead, txt) => (txt.startsWith("$$") ? `${lead}\n\n${txt}` : `${lead} ${txt}`);
+// item text beginning with display math must paragraph-break after the marker;
+// text already opening on its own line (a nested list) keeps that break as-is
+const itemJoin = (lead, txt) =>
+  txt.startsWith("$$") ? `${lead}\n\n${txt}` : txt.startsWith("\n") ? `${lead}${txt}` : `${lead} ${txt}`;
 
 // The \label bound to the environment itself: the first \label at the TOP
 // LEVEL of the env body. LaTeX binds any top-level \label to the environment
@@ -345,10 +352,55 @@ function splitItems(nodes) {
   return items;
 }
 
+// Place a nested list inside the item that owns it. Two cases, and the CHILD
+// tags the child left mark its lines for both:
+//
+//   attached — nothing has closed the item yet, so indent the child's lines and
+//     everything after them to the content column this item's own marker sets
+//     ("1. " -> 3). Prose resuming after the child also needs a blank line, or
+//     Markdown reads it as a lazy continuation of the *child's* last item.
+//   detached — a blank line earlier in the item means an unindented block (a
+//     display-math fence, say) has already ended it as far as Markdown is
+//     concerned. The child is a top-level block, not ours to indent; fence it
+//     with blank lines so the prose around it does not fold into the list.
+//
+// Lines before any nested list are left alone in both cases: lazy continuation
+// already keeps them in the item, and re-indenting them is pure churn.
+function indentBody(item, width) {
+  const pad = NEST.repeat(width);
+  const lines = item.split("\n");
+  const first = lines.findIndex((l) => l.startsWith(CHILD));
+  if (first === -1) return item;          // no nested list: nothing to place
+  const last = lines.reduce((at, l, i) => (l.startsWith(CHILD) ? i : at), -1);
+  const attached = !lines.slice(0, first).includes("");
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const isChild = lines[i].startsWith(CHILD);
+    const line = lines[i].replace(CHILD, "");
+    if (!attached) {
+      if ((i === first || i === last + 1) && line !== "" && out.at(-1) !== "") out.push("");
+      out.push(line);
+    } else if (i === 0 || (!isChild && i < first)) {
+      out.push(line);
+    } else {
+      if (line !== "" && !isChild && lines[i - 1].startsWith(CHILD)) out.push("");
+      out.push(line === "" ? "" : pad + line);
+    }
+  }
+  return out.join("\n");
+}
+
 function emitList(env, n) {
   const items = splitItems(n.content);
-  const letters = env === "enumerate" && inExercise;
-  const wasIn = inExercise; inExercise = false;
+  const letters = env === "enumerate" && letteredParts;
+  // \item[(i)] *replaces* LaTeX's marker: the list prints the author's labels
+  // and no bullets. Emit a list whose every item carries one the way an
+  // exercise's lettered parts already are — bold label, no marker — rather than
+  // stacking a bullet in front of the label written to stand in for it.
+  const labelled = items.length > 0 && items.every((it) => it.optLabel);
+  const bare = letters || labelled;
+  const wasIn = letteredParts; letteredParts = false;
+  listDepth++;
   const out = items.map((it, k) => {
     // The label is markdown body text, not a JSX attribute, so it is walked
     // (not flattened through attr) and its math renders like any other. Bold
@@ -357,14 +409,26 @@ function emitList(env, n) {
     // emit literal asterisks.
     const lab = it.optLabel ? walkStr(it.optLabel).trim() : null;
     const lead = lab ? (/[*_`]/.test(lab) ? `${lab} ` : `**${lab}** `) : "";
-    const txt = walk(it.nodes).trim();
+    // An item whose body opens with a nested list (\item then \begin{enumerate})
+    // gets a newline of its own: trimming to the child's first tagged line would
+    // glue that line's marker onto ours.
+    const body = walk(it.nodes);
+    const txt = new RegExp(`^\\s*${CHILD}`).test(body)
+      ? `\n${body.trimStart()}`.replace(/\s+$/, "")
+      : body.trim();
     // An explicit \item[..] wins over the synthesized (a)/(b) marker: it is
     // what the PDF prints, and authors use it to name parts they refer back to.
-    if (letters) return itemJoin((lead || `**(${String.fromCharCode(97 + k)})** `).trim(), txt);
+    if (bare) return indentBody(itemJoin((lead || `**(${String.fromCharCode(97 + k)})** `).trim(), txt), 0);
     const marker = env === "enumerate" ? `${k + 1}.` : "-";
-    return itemJoin(`${marker} ${lead}`.trim(), txt);
-  }).join(letters ? "\n\n" : "\n");
-  inExercise = wasIn;
+    return indentBody(itemJoin(`${marker} ${lead}`.trim(), txt), marker.length + 1);
+  }).join(bare ? "\n\n" : "\n");
+  letteredParts = wasIn;
+  listDepth--;
+  // A list inside an \item is that item's child: hand it back tagged and
+  // attached, for the item to indent to its own content column. Emitted as its
+  // own top-level block it would read as a sibling list and the nesting would
+  // be lost.
+  if (listDepth > 0) return `\n${out.replace(/^(?!$)/gm, CHILD)}\n`;
   return `\n\n${out}\n\n`;
 }
 
@@ -425,9 +489,9 @@ function emitEnv(n) {
       const { dd, star, skip, rest } = takeMarks(n.content);
       counters.ex[secNum()] = (counters.ex[secNum()] || 0) + 1;
       const num = displayNum(n.content, label, `${secNum()}.${counters.ex[secNum()]}`, "exercise");
-      const wasIn = inExercise; inExercise = true;
+      const wasIn = letteredParts; letteredParts = true;
       const inner = walk(rest);
-      inExercise = wasIn;
+      letteredParts = wasIn;
       if (!label) advise(`exercise ${num} has no \\label — no stable anchor emitted, and no solution can reference it`, snippetOf(printRaw(n.content)));
       if (label) for (const l of allLabels(n.content)) if (!(l in anchorMap)) anchorMap[l] = slug(label);
       // ★ = \important (the sheet's key exercises); (∗) = legacy \skippable
@@ -461,7 +525,14 @@ function emitEnv(n) {
       } else {
         warn("solution without [ex:label] — every solution must name its exercise", snippetOf(printRaw(n.content)));
       }
-      mdx = `<Solution${forAttr}>\n\n${walk(n.content).trim()}\n\n</Solution>`;
+      // A solution's first-level enumerate letters its parts (a),(b),… exactly
+      // as the exercise's does (iliad.sty sets the same \setlist in both), so
+      // the parts line up with the exercise they answer and with the in-text
+      // "part (a)" references.
+      const wasIn = letteredParts; letteredParts = true;
+      const body = walk(n.content).trim();
+      letteredParts = wasIn;
+      mdx = `<Solution${forAttr}>\n\n${body}\n\n</Solution>`;
       break;
     }
     case "solutionsonly":
@@ -511,6 +582,13 @@ function emitEnv(n) {
     // variants, whose stripper removes every <Solution> block.
     case "hint":
       mdx = `<Hint>\n\n${walk(n.content).trim()}\n\n</Hint>`;
+      break;
+    // teaching note — teacher-facing, so its own component and not a Callout:
+    // <TeachingNote> is collapsed and carries data-component="teaching-note",
+    // which keeps that material findable. The optional argument is the label on
+    // the closed box; the component's own default supplies it when absent.
+    case "teachingnote":
+      mdx = `<TeachingNote${opt ? ` title="${attr(opt)}"` : ""}>\n\n${walk(n.content).trim()}\n\n</TeachingNote>`;
       break;
     default: {
       if (declared) {
@@ -994,7 +1072,8 @@ export function emitDocument(bodyTex, context) {
   authorMacros = {};
   citedKeys = new Set();
   footnotes = [];
-  inExercise = false;
+  letteredParts = false;
+  listDepth = 0;
 
   // phase A: default parse of preamble+body to harvest author macro definitions
   const p0 = getParser({ environments: ENV_SIGNATURES, macros: CONTRACT_MACROS });

@@ -9,7 +9,8 @@ Static Next.js site that renders the Iliad Intensive worksheets. **LaTeX is the 
 ## Layout
 
 - `tex/<slug>/main.tex` — the worksheet sources; **the only committed content** (plus per-module `biblo.bib`/figures and shared `tex/iliad.sty`).
-- [`schedule.yaml`](schedule.yaml) — **the curriculum, and the only hand-kept build input**: clusters → teaching days → each day's worksheets, every level in taught order. It owns each page's cluster, day and position; a worksheet's own frontmatter never states them (the build stamps them in). Validate + print with `node scripts/schedule.mjs`.
+- [`schedule.yaml`](schedule.yaml) — **the curriculum, and the hand-kept input the build reads**: clusters → teaching days → each day's worksheets, every level in taught order. It owns each page's cluster, day and position; a worksheet's own frontmatter never states them (the build stamps them in). Validate + print with `node scripts/schedule.mjs`.
+- `intensives/<slug>.yaml` — one file per programme ILIAD runs: a place, and a date for each day it teaches, referencing `schedule.yaml`'s day codes. Read only by the `/intensives` pages, never by the content build. The filename is the URL segment.
 - `scripts/` — build pipeline: `build-content.mjs` runs `tex2mdx/` (LaTeX→MDX converter) then `build-status.mjs` (the `/admin/status` data); `schedule.mjs` reads/validates `schedule.yaml` for both; `watch.mjs` rebuilds on change.
 - `content/` — generated `modules/<slug>.mdx`, `index.json` and `status.json` (gitignored, built from `tex/` + `schedule.yaml`).
 - `src/` — the site (`app/`, `components/`, `lib/`).

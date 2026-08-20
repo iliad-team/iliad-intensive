@@ -8,15 +8,11 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 echo "== system packages (TeX Live, poppler) =="
-# Keep this list in sync with .github/workflows/site.yml — installing the
-# same packages keeps "passes locally, fails on CI" surprises to a minimum.
-#
-# The list is kept deliberately lean — it is the biggest single cost in a CI
-# run, and a slow Ubuntu mirror can stall it for 15+ minutes. texlive-science is
-# NOT here on purpose (see the note in the workflow): stmaryrd's two glyphs are
-# built from kernel pieces. texlive-bibtex-extra was in the same category until
-# a biblatex deck arrived — alphaurl.bst is still vendored at tex/alphaurl.bst,
-# but biblatex.sty ships nowhere else on Ubuntu, so the package is needed now.
+# Keep this list in sync with .github/apt-packages.txt — the CI package set
+# and every per-package rationale live THERE; installing the same packages
+# keeps "passes locally, fails on CI" surprises to a minimum. (The probes
+# below install lazily, so the list here is spread across them rather than
+# flat, but the union must match that file.)
 need=()
 command -v pdflatex   >/dev/null || need+=(texlive-latex-extra texlive-pictures texlive-fonts-recommended cm-super)
 command -v pdftocairo >/dev/null || need+=(poppler-utils)

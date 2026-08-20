@@ -53,12 +53,16 @@ jobs:
     # removes the old preview. Every other event builds.
     if: github.event_name != 'pull_request' || github.event.action != 'closed'
     runs-on: ubuntu-latest
-    # A healthy run is ~3 minutes. The one unbounded step is the TeX download,
-    # which a degraded Ubuntu mirror has stalled past 15 minutes while still
-    # *looking* like progress. Fail at 8 instead: a run that slow has already
-    # missed the point, and a clear timeout beats a job that appears busy.
-    # Re-running is the fix; the mirror is usually fine on the next attempt.
-    timeout-minutes: 8
+    # A healthy warm run is ~2 minutes; a healthy COLD run ~7 (the TeX
+    # download). The historically unbounded step was that download, which a
+    # degraded Ubuntu mirror has stalled past 15 minutes while still *looking*
+    # like progress — the TeX step now bounds its own apt commands with
+    # wall-clock timeouts (see there), so this cap is a backstop, not the
+    # thing that catches a mirror incident. It still has to clear a cold apt
+    # that is slow-but-succeeding: the caps below allow up to 300s + 600s of
+    # apt before ~4 minutes of node + site build. Cache entries expire after
+    # 7 days unused, so cold runs recur and this is not a one-off bootstrap.
+    timeout-minutes: 20
     steps:
       # lfs: true — figures under tex/**/fig/*.png are stored in Git LFS
       # (.gitattributes). Without this the working tree gets pointer files, and
@@ -72,55 +76,187 @@ jobs:
       # links resolve under the preview subpath.
       - name: Compute base path + commit
         id: cfg
+        env:
+          # The title is read through the environment, never spliced into the
+          # script with ${{ }}. A PR title is text the PR's author controls, and
+          # ${{ }} substitutes BEFORE bash sees the script, so a title
+          # containing $(...) or a backtick would execute here. `env:` passes it
+          # as data instead. (Not merely theoretical for a public repo: anyone
+          # who can open a PR can choose this string.)
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "base=/iliad-intensive/pr-preview/pr-${{ github.event.number }}" >> "$GITHUB_OUTPUT"
             echo "pr=${{ github.event.number }}" >> "$GITHUB_OUTPUT"
+            # A heredoc, not `title=$PR_TITLE`: a title may contain anything,
+            # and a bare key=value line breaks on the first newline while an "="
+            # in the title would be swallowed. The delimiter is prefixed so a
+            # title cannot close it by containing the word EOF.
+            {
+              echo "title<<PR_TITLE_a91f4c"
+              printf '%s\n' "$PR_TITLE"
+              echo "PR_TITLE_a91f4c"
+            } >> "$GITHUB_OUTPUT"
             # The PR's own head commit, not the synthetic merge commit.
             echo "sha=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
           else
             echo "base=/iliad-intensive" >> "$GITHUB_OUTPUT"
             echo "pr=" >> "$GITHUB_OUTPUT"
+            echo "title=" >> "$GITHUB_OUTPUT"
             echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
 
+      # The .deb downloads for the step below — ~207 MB across ~130 packages —
+      # plus a `manifest` file recording the package list they satisfy (written
+      # only by a run that installed it successfully; it is what lets the next
+      # run skip apt entirely). Lives in GitHub Actions cache, NOT in the
+      # repository: nothing is committed, and `git clone` is unaffected. The
+      # repo already caches npm, the worksheet builds and the tikz diagrams
+      # the same way.
+      #
+      # The key hashes .github/apt-packages.txt, so editing the package list
+      # re-keys the cache by itself — no version suffix to remember to bump.
+      # restore-keys then seed the new key's first run with the previous
+      # entry's .debs, so a list change downloads only the delta (apt treats
+      # restored files as a download cache and fetches anything missing).
+      # apt-tex-v1 is the fixed pre-manifest key this scheme replaced — worth
+      # one seeding, harmless once evicted. Entries are evicted after 7 days
+      # unused; PR-branch saves are invisible to sibling branches, so the
+      # entry everyone shares is the one written on main.
+      - name: Restore apt package cache
+        uses: actions/cache@v4
+        with:
+          path: ~/apt-debs
+          key: apt-tex-${{ runner.os }}-${{ hashFiles('.github/apt-packages.txt') }}
+          restore-keys: |
+            apt-tex-${{ runner.os }}-
+            apt-tex-v1-${{ runner.os }}
+
       - name: TeX Live + poppler
-        # Keep this list in sync with ./setup.sh — it is the reference package
-        # set. cm-super: scalable CM fonts, needed by microtype's font
-        # expansion under [T1]{fontenc}.
+        # The package set (and every per-package why) lives in
+        # .github/apt-packages.txt — one definition, shared with ./setup.sh
+        # and hashed into the cache key above. Add packages THERE, not here.
         #
-        # This download is the job's biggest single cost and a slow Ubuntu
-        # mirror can stall it for 15+ minutes, so keep it lean.
+        # Two paths, because the Ubuntu mirrors cannot be trusted with the
+        # critical path. On 2026-08-19 azure.archive.ubuntu.com (the runners'
+        # preferred mirror) went down, every runner fell back to
+        # archive.ubuntu.com, and `apt-get update` trickled its index fetch
+        # for 19m41s — under the Acquire timeouts, which catch a dead socket,
+        # not a slow one — until the 20-minute job cap killed it. Six builds
+        # died that way, two of them production deploys, and the warm .deb
+        # cache could not help because apt insists on fetching fresh indexes
+        # before it will even look at /var/cache/apt/archives.
         #
-        # texlive-bibtex-extra (79 MB) WAS absent, when the only thing wanted
-        # from it was a 36 KB style file — alphaurl.bst, since vendored at
-        # tex/alphaurl.bst and found via BSTINPUTS. It is back, for a bigger
-        # reason: it is the only Ubuntu package shipping biblatex.sty, and C.2's
-        # deck is a biblatex document. Its 97 \source{} slide attributions are
-        # built on \DeclareCiteCommand, which has no plain-bibtex equivalent, so
-        # the alternative was rewriting a deck we did not author. Vendoring
-        # biblatex alone does not work: biber enforces an exact control-file
-        # version, so a pinned copy that satisfies CI's biber 2.19 breaks every
-        # local build against TeX Live 2024's biber 2.20. The distro package is
-        # what keeps style and backend in step.
-        #
-        # texlive-science (4 MB) stays absent: it hard-depends on
-        # texlive-lang-greek (75 MB) and its only user here was stmaryrd, for
-        # two bracket glyphs now built from kernel pieces.
+        # WARM (the norm): install straight from the cached .debs with
+        #   `dpkg -i`, which reads only local files — no `apt-get update`, no
+        #   index fetch, no mirror anywhere. Gated by the cache's manifest so
+        #   a partial or foreign cache can never skip the real install.
+        # COLD (first run, 7-day eviction, list change, or any warm-path
+        #   surprise): real apt, with wall-clock `timeout`s so a trickling
+        #   mirror fails in minutes with a clear message instead of eating
+        #   the whole job budget. A successful cold run reseeds the cache
+        #   and writes the manifest, making the next run warm.
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y --no-install-recommends -o Acquire::Retries=3 \
-            texlive-latex-extra texlive-pictures \
-            texlive-fonts-recommended cm-super poppler-utils \
-            biber texlive-bibtex-extra lmodern
-          # lmodern (4 MB): decks \usepackage{lmodern}. It is only a *Recommends*
-          # of texlive-latex-recommended, so --no-install-recommends drops it and
-          # the deck build dies on a missing lmodern.sty. Name it explicitly.
-          # biber (555 KB) + texlive-bibtex-extra: the two halves a biblatex
-          # document needs — the backend binary that reads the .bib and writes
-          # the .bbl, and biblatex.sty itself. Installing biber alone is not
-          # enough; see the note above. The slides ladder picks bibtex or biber
-          # from the deck's own source (scripts/build-content.mjs).
+          set -euo pipefail
+
+          # The wanted set, from the one definition (strip comments/blanks).
+          PKGS=$(grep -vE '^\s*(#|$)' .github/apt-packages.txt | xargs)
+
+          # Every wanted package installed AND configured?
+          satisfied() {
+            local p
+            for p in $PKGS; do
+              [ "$(dpkg-query -W -f '${db:Status-Status}' "$p" 2>/dev/null)" = installed ] || return 1
+            done
+          }
+
+          # ── Warm path ──────────────────────────────────────────────────────
+          warm_install() {
+            [ -f "$HOME/apt-debs/manifest" ] \
+              || { echo "cache: no manifest — cold path"; return 1; }
+            [ "$(cat "$HOME/apt-debs/manifest")" = "$PKGS" ] \
+              || { echo "cache: manifest is for a different package list — cold path"; return 1; }
+            compgen -G "$HOME/apt-debs/*.deb" > /dev/null \
+              || { echo "cache: manifest but no .debs — cold path"; return 1; }
+
+            # Pick the newest cached .deb per package (the cache accretes
+            # superseded versions), then skip anything the runner image
+            # already has at >= that version — handed an older .deb, dpkg
+            # would happily DOWNGRADE a library the image has since upgraded.
+            declare -A ver deb
+            local d p v
+            for d in "$HOME"/apt-debs/*.deb; do
+              p=$(dpkg-deb -f "$d" Package); v=$(dpkg-deb -f "$d" Version)
+              if [ -z "${ver[$p]:-}" ] || dpkg --compare-versions "$v" gt "${ver[$p]}"; then
+                ver[$p]=$v; deb[$p]=$d
+              fi
+            done
+            local todo=()
+            for p in "${!deb[@]}"; do
+              v=$(dpkg-query -W -f '${Version}' "$p" 2>/dev/null || true)
+              if [ -z "$v" ] || dpkg --compare-versions "$v" lt "${ver[$p]}"; then
+                todo+=("${deb[$p]}")
+              fi
+            done
+            echo "warm: installing ${#todo[@]} cached .debs with dpkg (no apt, no mirror)"
+            if [ "${#todo[@]}" -gt 0 ]; then
+              # All in one call: dpkg unpacks everything, then configures in
+              # dependency order itself, so the set needs no ordering from us.
+              sudo dpkg -i "${todo[@]}" > /dev/null || return 1
+            fi
+            satisfied
+          }
+
+          if ! warm_install; then
+            # ── Cold path ────────────────────────────────────────────────────
+            # A failed warm path may leave packages unpacked-but-unconfigured,
+            # which apt refuses to work around; repair before it runs.
+            sudo dpkg --configure -a || true
+
+            APT_OPTS="-o Acquire::Retries=3
+                      -o Acquire::http::Timeout=20
+                      -o Acquire::https::Timeout=20"
+
+            # Seed apt's archive from whatever the cache had (possibly a
+            # previous package list, via restore-keys). apt matches a .deb by
+            # name, size and hash and silently skips re-downloading it, so
+            # this is a pure download cache and staleness only means
+            # "download the few that changed". --update=none so a cached file
+            # never clobbers a newer one apt just fetched.
+            if compgen -G "$HOME/apt-debs/*.deb" > /dev/null; then
+              echo "cache: $(ls "$HOME"/apt-debs/*.deb | wc -l) .deb files restored"
+              sudo cp --update=none "$HOME"/apt-debs/*.deb /var/cache/apt/archives/ || true
+            else
+              echo "cache: empty — everything will be downloaded"
+            fi
+
+            # Two layers of timeout, for two failure modes. The Acquire
+            # options catch a DEAD connection (idle socket). `timeout` is a
+            # wall-clock cap for the mirror that keeps trickling — apt has no
+            # minimum-throughput setting, so a slow-but-alive transfer
+            # otherwise runs forever (that is the 19m41s incident above).
+            # Budgets: a healthy update is <40s, a healthy cold install ~330s;
+            # both caps clear the 20-minute job budget with the ~4-minute
+            # build behind them.
+            sudo timeout 300 apt-get update -q $APT_OPTS \
+              || { echo "::error::apt-get update failed or stalled — likely an Ubuntu mirror incident; re-run this job"; exit 1; }
+            # --fix-broken: also finish/repair anything a failed warm path
+            # left behind, in the same resolver run.
+            sudo timeout 600 apt-get install -y --fix-broken --no-install-recommends $APT_OPTS $PKGS \
+              || { echo "::error::apt-get install failed or stalled — likely an Ubuntu mirror incident; re-run this job"; exit 1; }
+
+            # Hand what apt fetched back to the cache for the next warm run.
+            mkdir -p "$HOME/apt-debs"
+            cp --update=none /var/cache/apt/archives/*.deb "$HOME/apt-debs/" 2>/dev/null || true
+            echo "cache: $(ls "$HOME"/apt-debs/*.deb 2>/dev/null | wc -l) .deb files kept ($(du -sh "$HOME/apt-debs" | cut -f1))"
+          fi
+
+          # The warm-path gate. Written LAST, and only on success (set -e), so
+          # it can only ever describe a set this very run proved installable.
+          mkdir -p "$HOME/apt-debs"
+          printf '%s\n' "$PKGS" > "$HOME/apt-debs/manifest"
+          # The slides ladder picks bibtex or biber from the deck's own source
+          # (scripts/build-content.mjs).
           # contributor LaTeX is untrusted: never enable shell-escape
 
       - uses: actions/setup-node@v4
@@ -178,6 +314,10 @@ jobs:
           NEXT_PUBLIC_BASE_PATH: ${{ steps.cfg.outputs.base }}
           # Non-empty only on PR builds → renders the "not the live site" banner.
           NEXT_PUBLIC_PREVIEW_PR: ${{ steps.cfg.outputs.pr }}
+          # The PR's title, so a preview tab says WHICH change it is showing
+          # rather than only a number. Safe as an env value; React escapes it
+          # when rendering.
+          NEXT_PUBLIC_PREVIEW_PR_TITLE: ${{ steps.cfg.outputs.title }}
           # Shown in the footer, linked to the commit on GitHub.
           NEXT_PUBLIC_COMMIT_SHA: ${{ steps.cfg.outputs.sha }}
         run: npm run ci

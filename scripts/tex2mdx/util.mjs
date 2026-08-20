@@ -48,7 +48,18 @@ export const slug = (label) =>
 export const ghSlug = (text) => text.toLowerCase().trim()
   .replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 
+// One column of deliberate Markdown indentation, emitted as a marker rather
+// than as a space so tidy() below can tell it from LaTeX's cosmetic source
+// indentation — which is noise, and which it still strips.
+export const NEST = "\u0001";
+// Line tag: "this line came from a list nested inside an \item". The enclosing
+// item consumes and strips it (emit-ast's indentBody), so it never gets here.
+export const CHILD = "\u0002";
+
 // Dedent every line, trim trailing spaces, collapse 3+ newlines. LaTeX source
-// indentation is cosmetic, but in Markdown leading spaces are semantic.
+// indentation is cosmetic, but in Markdown leading spaces are semantic — so a
+// line's leading run is rebuilt from its NEST markers alone, and whatever the
+// author's source wrapping put there is dropped.
 export const tidy = (s) =>
-  s.replace(/^[ \t]+/gm, "").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  s.replace(/^(?:[ \t]|\u0001)+/gm, (m) => " ".repeat((m.match(/\u0001/g) ?? []).length))
+    .replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();

@@ -429,9 +429,10 @@ verbose, so I opted for Rohin's article instead.
   `data-component="teaching-note"` so it stays findable (a strip, an index, a
   toggle) once we know what the right format is. It survives `-nosol` — only
   `<Solution>` is stripped.
-- **No LaTeX equivalent yet.** A LaTeX day that needs one wants an
-  `iliad.sty` environment plus converter support; until then this is for
-  MDX-authored reading days.
+- **In LaTeX it is the `teachingnote` environment**, whose optional argument is
+  the title: `\begin{teachingnote}[Session intent] … \end{teachingnote}`. The
+  converter emits this component from it. A PDF has no collapsing, so there it
+  is a dashed box with the title as its heading.
 
 ### Heading levels: `##` is the top
 

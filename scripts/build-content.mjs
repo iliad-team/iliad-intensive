@@ -263,9 +263,57 @@ const worksheetHash = (slug) => {
   hashDir(h, path.join(TEX, slug));                    // the sheet's own sources
   hashPath(h, path.join(TEX, "iliad.sty"));            // shared worksheet contract
   hashPath(h, path.join(TEX, "alphaurl.bst"));         // vendored bibliography style
-  hashDir(h, path.join(ROOT, "scripts"), true);        // converter + this build script
-  hashPath(h, path.join(ROOT, "schedule.yaml"));       // stamped into the frontmatter
+  // Only the scripts that can change a worksheet's ARTIFACTS. Hashing the whole
+  // scripts/ tree was safe but far too wide: build-status.mjs writes nothing but
+  // content/status.json, and preview.mjs / watch.mjs write nothing at all, yet
+  // touching any of them recompiled every PDF — measured at 66.6s for a change
+  // that could not alter a single byte of output.
+  hashPath(h, path.join(ROOT, "scripts", "build-content.mjs"));  // this ladder
+  hashPath(h, path.join(ROOT, "scripts", "schedule.mjs"));       // reads the schedule
+  hashDir(h, path.join(ROOT, "scripts", "tex2mdx"), true);       // the converter
+  // schedule.yaml is deliberately NOT hashed. Where a sheet sits in the course
+  // decides two frontmatter lines and nothing else — no PDF, no prose, no
+  // figure. Hashing it meant adding one day to the curriculum recompiled all
+  // eleven PDF ladders (66.6s measured). The stamp is verified against the
+  // schedule on every cache hit instead, and rewritten in place if it moved,
+  // which costs about a millisecond and cannot go stale.
   return h.digest("hex");
+};
+
+// The two frontmatter lines stampSchedule() owns, as they appear in a built MDX.
+const STAMP_RE = /^---\ncluster: (.*)\nday: (.*)\n/;
+
+/**
+ * Bring a cached worksheet's stamp back in line with schedule.yaml.
+ *
+ * Returns true if anything was rewritten. This is what makes it safe to leave
+ * schedule.yaml out of the hash: a cache hit still cannot ship a page claiming
+ * the wrong day, because the claim is checked here every time rather than being
+ * assumed from an unchanged input.
+ *
+ * The staged downloads are refreshed too — public/downloads/<slug>/<slug>.mdx is
+ * a copy of the stamped file (step 5), and -nosol.mdx is derived from it, so
+ * re-stamping only content/modules/ would leave the download disagreeing with
+ * the site about which day it belongs to.
+ */
+const restampIfMoved = (slug) => {
+  const sc = SCHEDULE.bySlug.get(slug);
+  if (!sc) return false;                       // unscheduled (the unlisted demo)
+  const mdxOut = path.join(MODULES, `${slug}.mdx`);
+  if (!existsSync(mdxOut)) return false;
+  const raw = readFileSync(mdxOut, "utf8");
+  const m = STAMP_RE.exec(raw);
+  if (!m) return false;                        // never stamped; not ours to fix
+  if (m[1] === String(sc.cluster) && m[2] === String(sc.day)) return false;
+
+  const updated = `---\ncluster: ${sc.cluster}\nday: ${sc.day}\n` + raw.slice(m[0].length);
+  writeFileSync(mdxOut, updated);
+  const dl = path.join(DOWNLOADS, slug);
+  if (existsSync(dl)) {
+    writeFileSync(path.join(dl, `${slug}.mdx`), updated);
+    writeFileSync(path.join(dl, `${slug}-nosol.mdx`), stripMdxSolutions(updated));
+  }
+  return true;
 };
 
 // A skip is only safe if everything downstream is already present. That includes
@@ -321,7 +369,14 @@ async function buildSlug(slug) {
   if (inputHash && !NO_CACHE && existsSync(stamp)
       && readFileSync(stamp, "utf8").trim() === inputHash
       && outputsPresent(slug)) {
-    return { ok: true, text: `↷ ${slug} cached (inputs unchanged)\n` };
+    // schedule.yaml is not an input to the hash, so a sheet that has been moved
+    // to another day still needs its two stamped lines corrected. Cheap, and it
+    // is what keeps the narrower hash honest.
+    const moved = restampIfMoved(slug);
+    return {
+      ok: true,
+      text: `↷ ${slug} cached (inputs unchanged)${moved ? " — re-stamped for schedule" : ""}\n`,
+    };
   }
   // Every TeX tool runs with the worksheet folder as cwd. BSTINPUTS adds the
   // shared tex/ dir to bibtex's style search path so tex/alphaurl.bst — vendored
