@@ -210,6 +210,10 @@ clusters:
         lead: David Q
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.hu1actdm586n
         source: missing
+        # Stub module: the recorded lecture only. The coding-day material
+        # itself is still unported (see source above).
+        worksheets:
+          - policy-gradients-misgeneralization
 
       - code: D.3
         title: AIXI

@@ -350,6 +350,18 @@
 % hoisted into the web frontmatter, italic block in the PDF.
 \newenvironment{summary}{\begin{quotation}\noindent\itshape}{\end{quotation}}
 
+% ----------------------------------------------------------------- video ---
+% \youtube[Title]{VIDEO_ID} — a YouTube video, by its 11-character ID (the
+% v= value of the watch URL), NOT the full URL. On the web the converter
+% renders an embedded player; in the PDF this prints a "Video:" line with the
+% watch URL — clickable on screen, and readable on a printed sheet, where a
+% pretty link label would be lost.
+\newcommand{\youtube}[2][]{%
+  \par\medskip\noindent\textbf{Video\ifblank{#1}{}{ (#1)}:}\enspace
+  \url{https://www.youtube.com/watch?v=#2}%
+  \par\medskip
+}
+
 % ----------------------------------------------------------- conveniences ---
 \providecommand{\note}[1]{[\emph{Note:} #1]}
 

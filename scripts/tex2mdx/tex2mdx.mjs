@@ -457,10 +457,46 @@ if (iliadBlock) {
     advise(`summary: is still a placeholder ("${declared.slice(0, 40)}") — the page ships it verbatim as its lede`);
 }
 
+// ---------------------------- video titles --------------------------------
+// \youtube with no [Title]: the web build queries the title from YouTube's
+// oEmbed endpoint (public, no API key) so the embed still gets a caption and
+// an accessible iframe title. Lookups are cached beside the output; a failed
+// lookup (offline CI, deleted video) degrades to an advisory and an untitled
+// embed. The PDF never sees any of this — pdflatex cannot fetch, and authors
+// compile on Overleaf with no build step — it prints the watch URL instead.
+const videoTitles = {};
+{
+  const wanted = new Set();
+  for (const m of body.matchAll(/\\youtube\s*(\[[^\]]*\])?\s*\{\s*([A-Za-z0-9_-]{11})\s*\}/g)) {
+    if (!m[1] || m[1] === "[]") wanted.add(m[2]);
+  }
+  if (wanted.size) {
+    const cachePath = path.join(path.dirname(output), ".video-titles.json");
+    let cache = {};
+    try { cache = JSON.parse(readFileSync(cachePath, "utf8")); } catch { /* cold cache */ }
+    let dirty = false;
+    for (const id of wanted) {
+      if (typeof cache[id] === "string") { videoTitles[id] = cache[id]; continue; }
+      try {
+        const watch = `https://www.youtube.com/watch?v=${id}`;
+        const r = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(watch)}&format=json`,
+          { signal: AbortSignal.timeout(5000) });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        videoTitles[id] = cache[id] = String((await r.json()).title ?? "").trim();
+        dirty = true;
+      } catch (e) {
+        advise(`\\youtube{${id}}: title lookup failed (${e.message}) — the embed ships untitled; pass [Title] to set one by hand`, id);
+      }
+    }
+    if (dirty) { try { writeFileSync(cachePath, JSON.stringify(cache, null, 2) + "\n"); } catch { /* cache is best-effort */ } }
+  }
+}
+
 // ------------------------------ run ---------------------------------------
 // AST emit (two passes handled inside emit-ast)
 const bodyMdx = tidy(emitDocument(body, {
   refs,
+  videoTitles,
   preamble,
   declaredThms,
   declaredEnvSigs: Object.fromEntries(Object.keys(declaredThms).map((e) => [e, { signature: "o" }])),
