@@ -332,10 +332,10 @@ Show that for any $p \leq q \leq r$:
 \begin{solution}[prob:chain_rule_nupi]
 Split the defining product $\nu^\pi(\aes_{p:r} \mid \aes_{<p}) = \prod_{k=p}^r \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)$ at index $q$:
 \begin{align*}
-    \nu^\pi(\aes_{p:r} \mid \aes_{<p})
-    ~&=~ \prod_{k=p}^r \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)\\
-    ~&=~ \underbrace{\prod_{k=p}^{q} \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)}_{\nu^\pi(\aes_{p:q} \mid \aes_{<p})} \\
-    &\qquad \;\cdot\; \underbrace{\prod_{k=q+1}^{r} \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)}_{\nu^\pi(\aes_{q+1:r} \mid \aes_{<p}\, \aes_{p:q})},
+    &\nu^\pi(\aes_{p:r} \mid \aes_{<p})
+    ~=~ \prod_{k=p}^r \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)\\
+    &=~ \underbrace{\prod_{k=p}^{q} \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)}_{\nu^\pi(\aes_{p:q} \mid \aes_{<p})}
+    \;\cdot\; \underbrace{\prod_{k=q+1}^{r} \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)}_{\nu^\pi(\aes_{q+1:r} \mid \aes_{<p}\, \aes_{p:q})},
 \end{align*}
 identifying each block as a conditional via the same expansion: the past for step $k \geq q+1$ is the given history $\aes_{<p}$ extended by the first chunk $\aes_{p:q}$.
 
