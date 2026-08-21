@@ -218,6 +218,12 @@ An aside in the mathematical register.
   macros — the converter warns at `file.tex:line` when it can't translate).
 - `\cref`/`\Cref` resolve to the exact text LaTeX prints, everywhere:
   equations, sections, exercises, subparts, callouts.
+- **Reference with `\cref` (or `\eqref` for equation numbers), never by
+  hand.** A plain `\ref`, or a `\hyperref` whose visible text hand-writes
+  "Appendix A"-style words, draws an **advisory**: the frozen text stops
+  tracking the label the moment anything renumbers, and the type word is
+  left out of the link. (`\ref*` inside custom `\hyperref` link text is
+  fine — the number still comes from the label.)
 - A **literal dollar** in prose is `\$` — in a `.tex` sheet and in a
   hand-authored `.mdx` alike (`\$1,000`). It has to be escaped somehow, because
   two bare `$` in one paragraph are a math span to `remark-math`: "wins $1,000

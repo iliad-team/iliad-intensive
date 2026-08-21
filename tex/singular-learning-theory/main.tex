@@ -451,8 +451,8 @@ chance to familiarise oneself with the concept of a parameter--function map.
     A biased neuron is a neuron with an additional parameter that is added to
     the weighted sum of its inputs before it produces its output. Bias
     parameters allow each layer to represent an \emph{affine} transform, rather
-    than just a linear transform. For each of Examples \ref{eg:neuron},
-    \ref{eg:linear}, \ref{eg:dln}, and \ref{eg:mlp}, extend the example to use
+    than just a linear transform. For each of
+    \cref{eg:neuron,eg:linear,eg:dln,eg:mlp}, extend the example to use
     biased neurons. Precisely define the parameter space and the
     parameter--function map in each case.
 \end{exercise}
@@ -741,8 +741,7 @@ perspective (given an appropriate choice of loss function).
 \end{enumerate}
 \end{exercise}
 \begin{remark}[Negative log-likelihood loss]
-    Examples~\ref{ex:nll-mse}, \ref{ex:nll-cross-entropy}, and
-    \ref{ex:nll-energy} nominally show that some maximum likelihood estimation
+    \Cref{ex:nll-mse,ex:nll-cross-entropy,ex:nll-energy} nominally show that some maximum likelihood estimation
     problems have the same sets of ideal solutions as some carefully-chosen
     optimisation problems ($\argmin = \argmax$).
     In general, that the global optima for two optimisation problems coincide
@@ -856,7 +855,7 @@ learning still reflect the local geometry of the parameter--distribution map.
 
 In preparation for exploring this connection between geometry and learning we
 finally introduce localised variants of the partition function and free energy,
-where the integral in (\ref{eq:partition-function}) is restricted to a certain
+where the integral in \eqref{eq:partition-function} is restricted to a certain
 neighbourhood in parameter space.
 
 \begin{definition}[Local partition function and local free energy]

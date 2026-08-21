@@ -220,10 +220,14 @@ function crefLinks(csv, keepFirstNameOnly) {
   const rr = labels.map(resolveRef);
   if (rr.length === 1) return `[${rr[0].text}](#${rr[0].anchor})`;
   const name0 = rr[0].text.replace(/\s.*$/, "");
-  return rr.map((r, k) => {
+  const parts = rr.map((r, k) => {
     const sameType = r.text.replace(/\s.*$/, "") === name0;
     return `[${k === 0 || !sameType ? r.text : r.text.replace(/^\w+\s/, "")}](#${r.anchor})`;
-  }).join(" and ");
+  });
+  // Prose list, like cleveref's own: "A and B", "A, B and C".
+  return parts.length === 2
+    ? parts.join(" and ")
+    : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 }
 
 // --------------------------------------------------------------- helpers ---
