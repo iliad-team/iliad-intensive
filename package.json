@@ -10,7 +10,8 @@
       "content": "node scripts/build-content.mjs",
       "watch": "node scripts/watch.mjs",
       "preview": "node scripts/preview.mjs",
-      "ci": "node scripts/build-content.mjs && NEXT_PUBLIC_BASE_PATH=\"${NEXT_PUBLIC_BASE_PATH:-/iliad-intensive}\" NEXT_PUBLIC_COMMIT_SHA=\"${NEXT_PUBLIC_COMMIT_SHA:-$(git rev-parse HEAD 2>/dev/null || echo)}\" next build"
+      "strip": "node scripts/strip-hydration.mjs",
+      "ci": "node scripts/build-content.mjs && NEXT_PUBLIC_BASE_PATH=\"${NEXT_PUBLIC_BASE_PATH:-/iliad-intensive}\" NEXT_PUBLIC_COMMIT_SHA=\"${NEXT_PUBLIC_COMMIT_SHA:-$(git rev-parse HEAD 2>/dev/null || echo)}\" next build && node scripts/strip-hydration.mjs"
     },
   "dependencies": {
     "katex": "^0.16.45",

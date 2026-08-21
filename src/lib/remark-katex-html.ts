@@ -19,9 +19,15 @@ import katex from "katex";
  * This runs on the mdast `math` / `inlineMath` nodes that remark-math produces,
  * so it REPLACES rehype-katex rather than running alongside it.
  *
- * Accessibility is unchanged: KaTeX still emits both halves of its output, the
- * hidden `katex-mathml` tree for screen readers and the visual `katex-html`
- * tree. Nothing is dropped — only the encoding of the same markup changes.
+ * `output: "html"` drops the other half of KaTeX's default output: a hidden
+ * `katex-mathml` copy of every formula, emitted only for screen readers and
+ * costing roughly as many bytes again as the visual tree ($A$ is 385 bytes
+ * with it, 194 without) — twice over, since each page embeds the markup a
+ * second time in its RSC payload. The visual `katex-html` tree is untouched,
+ * so the page looks identical. Screen readers get the TeX source instead: the
+ * wrapper <KatexHtml> renders carries it as an aria-label (see mdx.tsx),
+ * which is what KaTeX's visual tree — permanently aria-hidden — never gave
+ * them anyway.
  */
 
 type MdastNode = {
@@ -34,6 +40,8 @@ type MdastNode = {
 const OPEN_INLINE = '<span class="katex">';
 const OPEN_DISPLAY = '<span class="katex-display">';
 const CLOSE = "</span>";
+/** What a formula with no visible output (e.g. a \gdef-only block) renders to. */
+const EMPTY_HTML = '<span class="katex-html" aria-hidden="true"></span>';
 
 /**
  * The rendered markup rides as a plain string attribute on <KatexHtml>, which
@@ -66,6 +74,7 @@ export function remarkKatexHtml() {
 
         const rendered = katex.renderToString(child.value ?? "", {
           displayMode: display,
+          output: "html",
           strict: false,
           throwOnError: false,
           macros,
@@ -88,13 +97,25 @@ export function remarkKatexHtml() {
           );
         }
 
+        const inner = rendered.slice(open.length, -CLOSE.length);
         const attributes = [
           {
             type: "mdxJsxAttribute",
             name: "html",
-            value: rendered.slice(open.length, -CLOSE.length),
+            value: inner,
           },
         ];
+        // The TeX source, for the wrapper's aria-label — the accessible
+        // stand-in for the dropped MathML. Skipped when the formula renders
+        // to nothing (a \gdef-only macro block): labelling an invisible
+        // element would make screen readers announce the definitions.
+        if (inner !== EMPTY_HTML && inner !== OPEN_INLINE + EMPTY_HTML + CLOSE) {
+          attributes.push({
+            type: "mdxJsxAttribute",
+            name: "tex",
+            value: child.value ?? "",
+          });
+        }
         // Boolean shorthand: `value: null` is how mdast-jsx spells `<X display />`.
         if (display) {
           attributes.push({

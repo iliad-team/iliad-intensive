@@ -228,3 +228,53 @@ nav,
   text-decoration: none;
 }
 
+
+/* ---------------------------------------------------------------- nav ----
+   Framework-free sidebar state. The mode is a `nav-open` class on <html> —
+   set before first paint by the inline script in layout.tsx, toggled by
+   public/site.js, persisted in localStorage. Both layouts are in the served
+   markup; these rules do what ModulePageShell's conditional JSX used to. */
+
+/* Closed (default): no sidebar, article centered at its reading width.
+   Open: shell widens to the max-w-6xl two-column layout; below lg the
+   sidebar stacks above the article, from lg it sits to the left. */
+#page-shell {
+  max-width: 720px;
+}
+#module-sidebar {
+  display: none;
+}
+html.nav-open #page-shell {
+  max-width: 72rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+html.nav-open #module-sidebar {
+  display: block;
+}
+@media (min-width: 1024px) {
+  html.nav-open #page-shell {
+    flex-direction: row;
+    gap: 2.5rem;
+  }
+}
+
+/* The toggle only exists where there is a sidebar to toggle: worksheet pages.
+   (The old component returned null on "/" via usePathname; keying on the
+   sidebar's presence also hides it on /admin/status, which never had one.) */
+#nav-toggle {
+  display: none;
+}
+body:has(#module-sidebar) #nav-toggle {
+  display: block;
+}
+#nav-toggle .icon-close {
+  display: none;
+}
+html.nav-open #nav-toggle .icon-open {
+  display: none;
+}
+html.nav-open #nav-toggle .icon-close {
+  display: inline;
+}

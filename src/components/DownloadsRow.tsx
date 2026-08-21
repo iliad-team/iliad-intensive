@@ -1,6 +1,4 @@
-"use client";
-
-import { useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 const LABELS: Record<string, string> = { pdf: "PDF", tex: "LaTeX", mdx: "Markdown" };
 
@@ -10,14 +8,22 @@ const LABELS: Record<string, string> = { pdf: "PDF", tex: "LaTeX", mdx: "Markdow
 const VIEWABLE = new Set(["pdf"]);
 
 /** A small bordered action box. `download` → save the file (browser keeps its
- *  real name); otherwise → open in a new tab (PDFs render in the viewer). */
-function Box({ href, download, children }: { href: string; download?: boolean; children: ReactNode }) {
+ *  real name); otherwise → open in a new tab (PDFs render in the viewer).
+ *  `sol`/`nosol` carry both variant hrefs for the solutions toggle in
+ *  public/site.js — it swaps the live href when the checkbox changes. */
+function Box({
+  href, download, sol, nosol, children,
+}: {
+  href: string; download?: boolean; sol?: string; nosol?: string; children: ReactNode;
+}) {
   const attrs = download
     ? { download: true }
     : { target: "_blank", rel: "noopener noreferrer" };
   return (
     <a
       href={href}
+      data-sol={sol}
+      data-nosol={nosol}
       {...attrs}
       className="rounded border border-zinc-300 px-2 py-0.5 lowercase tracking-normal text-zinc-600 transition-colors hover:border-zinc-500 hover:text-zinc-900"
     >
@@ -39,6 +45,9 @@ function Box({ href, download, children }: { href: string; download?: boolean; c
  * A deck that opted into a collapsed build ships <slug>-slides-handout.pdf
  * too; the row then reads present · handout · LaTeX instead of the
  * view · download · LaTeX it shows for a single-variant deck.
+ *
+ * Server-rendered: the with/without-solutions swap is public/site.js reading
+ * the data-sol/data-nosol pairs off each link — no React on the client.
  */
 export function DownloadsRow({
   slug,
@@ -51,10 +60,7 @@ export function DownloadsRow({
   basePath: string;
   slidesUrl?: string;
 }) {
-  const [solutions, setSolutions] = useState(true);
-
   const href = (file: string) => `${basePath}/downloads/${slug}/${file}`;
-  const name = (ext: string) => `${slug}${solutions ? "" : "-nosol"}.${ext}`;
   const exts = (["pdf", "tex", "mdx"] as const).filter((ext) => files.includes(`${slug}.${ext}`));
 
   const hasSlidesPdf = files.includes(`${slug}-slides.pdf`);
@@ -71,21 +77,25 @@ export function DownloadsRow({
         <label className="mb-2.5 flex w-fit cursor-pointer select-none items-center gap-1.5 text-zinc-500">
           <input
             type="checkbox"
-            checked={solutions}
-            onChange={(e) => setSolutions(e.target.checked)}
+            id="solutions-toggle"
+            defaultChecked
             className="accent-zinc-600"
           />
           with solutions
         </label>
       )}
       <ul className="flex flex-col gap-1.5">
-        {exts.map((ext) => (
-          <li key={ext} className="flex items-center gap-2">
-            <span className={rowLabel}>{LABELS[ext]}</span>
-            {VIEWABLE.has(ext) && <Box href={href(name(ext))}>view</Box>}
-            <Box href={href(name(ext))} download>download</Box>
-          </li>
-        ))}
+        {exts.map((ext) => {
+          const sol = href(`${slug}.${ext}`);
+          const nosol = href(`${slug}-nosol.${ext}`);
+          return (
+            <li key={ext} className="flex items-center gap-2">
+              <span className={rowLabel}>{LABELS[ext]}</span>
+              {VIEWABLE.has(ext) && <Box href={sol} sol={sol} nosol={nosol}>view</Box>}
+              <Box href={sol} sol={sol} nosol={nosol} download>download</Box>
+            </li>
+          );
+        })}
 
         {hasSlidesPdf ? (
           <li className="flex items-center gap-2">

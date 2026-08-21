@@ -31,10 +31,20 @@ const components = {
    * The `html` is KaTeX's output, not user input: it is generated at build time
    * from the worksheet's own TeX, which is already trusted enough to run
    * through the LaTeX toolchain.
+   *
+   * `tex` is the formula's source, read out as the aria-label: the plugin
+   * renders with `output: "html"`, which omits the hidden MathML copy KaTeX
+   * would otherwise emit for screen readers (halving the markup), and KaTeX's
+   * visual tree is aria-hidden — without the label the formula would be
+   * silent.
    */
-  KatexHtml: ({ html, display }: { html: string; display?: boolean }) => (
+  KatexHtml: ({ html, tex, display }: { html: string; tex?: string; display?: boolean }) => (
     <span
       className={display ? "katex-display" : "katex"}
+      // No `tex` = the formula renders to nothing (a macro-definition block);
+      // labelling it would make screen readers announce the invisible.
+      role={tex ? "math" : undefined}
+      aria-label={tex || undefined}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   ),
