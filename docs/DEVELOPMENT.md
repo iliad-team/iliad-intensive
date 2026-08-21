@@ -41,7 +41,7 @@ together define the authoring contract.
   render gate only (fast). `--jobs N` sets parallel worksheet builds
   (default 4; worksheets are independent, logs are buffered per sheet).
   Non-zero exit on any failure, with the converter's `file:line` messages.
-  Converter WARNs fail the build; advisories don't.
+  Converter ERRORs fail the build; warnings don't.
 - `./run.sh watch [slug]` — live loop: dev server + fast rebuild on every save
   (scripts/watch.mjs; ignores LaTeX build artifacts to avoid loops).
 - `./run.sh ci` — the full CI ladder (content build + static site build).
@@ -79,7 +79,7 @@ together define the authoring contract.
   `slides-handout.pdf` (staged as `<slug>-slides-handout.pdf`), built by
   `\def`-ing the macro on the command line. A `slides:` frontmatter URL links
   an externally hosted deck instead (a compiled `slides.tex` wins). Every
-  worksheet with no `slides.tex` draws a non-fatal advisory (full build /
+  worksheet with no `slides.tex` draws a non-fatal warning (full build /
   `./run.sh ci` only, not `--check`).
 - Generated MDX is host-agnostic (`/uploads/…` URLs); the site's `Figure`
   component and download links apply `NEXT_PUBLIC_BASE_PATH` at render time.

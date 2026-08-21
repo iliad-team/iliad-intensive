@@ -91,7 +91,7 @@ not write a beamer preamble, `tex/iliad-slides.sty` is a ready-made one you can
 load — optional, nothing checks for it (see `docs/commands.md`). If your deck only
 exists as a PDF with no source, don't commit the binary — host it (Drive, etc.)
 and add a `slides:` line to the `%--- iliad ---` block (see below); it renders
-as an outbound link instead. The build prints a (non-fatal) advisory for any
+as an outbound link instead. The build prints a (non-fatal) warning for any
 worksheet with no `slides.tex`.
 
 ## Start a worksheet
