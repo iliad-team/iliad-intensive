@@ -395,7 +395,7 @@ The \textbf{infinite-horizon return} is the pointwise limit
 with the clean recursion $G_{\geq t} = r_{t+1} + \gamma\, G_{\geq t+1}$ and no boundary cases.
 \end{definition}
 
-\begin{definition}[Value function\footnote{See \hyperref[sec:appendix_value]{Appendix~B} for a worked example. For simplicity, we
+\begin{definition}[Value function\footnote{See \hyperref[sec:appendix_mixture]{Appendix~A} for a worked example. For simplicity, we
     consider only geometric discounting.}]\label{def:value}
 The \textbf{value} of policy $\pi$ in environment $\nu$ with horizon $m \geq t$ given history $\aes_{<t}$ is
 \begin{align*}
@@ -1834,7 +1834,7 @@ For countable $\cM$, this final step is harder: a countable sum of $\mu^\pi$-a.s
 \renewcommand{\thesection}{\Alph{section}}
 \crefname{section}{Appendix}{Appendices}
 
-\section{Worked Example: Bayesian Mixture}\label{sec:appendix_mixture}
+\section{Worked Example: Bayesian Mixture and Value Function}\label{sec:appendix_mixture}
 
 \begin{callout}[note]
 \textbf{Setup.}
@@ -1861,10 +1861,8 @@ For countable $\cM$, this final step is harder: a countable sum of $\mu^\pi$-a.s
 \textbf{Updated prediction:}
 $\xi(o_2 = H \mid \aes_{1} a_2) = \tfrac{2}{3} \cdot 1 + \tfrac{1}{3} \cdot \tfrac{1}{2} = \tfrac{5}{6}$.
 
-
-\section{Worked Example: Value Function}\label{sec:appendix_value}
-
-Continuing from \hyperref[sec:appendix_mixture]{Appendix~A}. Suppose the agent always predicts $H$ (policy $\pi_H$).
+\medskip
+\textbf{Value function.} Continuing the same setup, suppose the agent always predicts $H$ (policy $\pi_H$).
 
 Under $\nu_{HH}$: always correct, $r_t = 1$ every step:
 $V_{\nu_{HH}}^{\pi_H}(\epsilon) = (1-\gamma) \sum_{k=0}^\infty \gamma^k \cdot 1 = 1$.
