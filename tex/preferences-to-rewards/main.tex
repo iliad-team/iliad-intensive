@@ -69,8 +69,9 @@
   \end{itemize}
 \end{learningoutcomes}
 
-\begin{abstract}
-\noindent
+% Overview, not \begin{abstract}: every module opens with \section*{Overview}
+% (cf. aixi, solomonoff-induction), and the converter renders it as a heading.
+\section*{Overview}
 This note develops a short route from preferences over complete trajectories to
 expected utility, reward, and discount. We begin with preference relations on
 deterministic trajectories and explain how completeness and transitivity yield
@@ -83,7 +84,6 @@ local rewards and discounting. Finally, we explain why reward is not unique:
 different reward functions can encode the same utility or the same preference
 ordering, affine changes of utility induce corresponding changes of reward, and
 potential-based shaping provides a canonical example of reward equivalence.
-\end{abstract}
 
 \section{Introduction}
 
@@ -1149,8 +1149,8 @@ compared trajectories share the same start state and terminal potential, then
 the induced preference ordering is unchanged; if the boundary term vanishes on
 all admissible trajectories, then even the numerical utility is unchanged.
 
-The general lesson is that reward is best understood as a \emph{coordinate
-system} for utility, not as a uniquely given primitive. Some transformations,
+The general lesson is that the same preferences admit many different reward
+functions, so no single one of them is canonical. Some transformations,
 such as positive scaling, merely change the numerical units. Others, such as
 potential-based shaping, redistribute value along the trajectory while leaving
 the overall preference over complete trajectories unchanged. This is why reward
@@ -1408,8 +1408,7 @@ cumulative reward.
 =\bigl(a+b\,u(t\cdot\mu)\bigr)-\gamma(t)\bigl(a+b\,u(\mu)\bigr)
 =b\,r(t)+(1-\gamma(t))a$. The same preferences thus admit a family of reward
 functions: even with $\gamma$ fixed, $r$ is only determined up to a positive
-scaling and an additive shift modulated by $1-\gamma(t)$. Reward is a
-coordinate system for utility, not a primitive of the preference.
+scaling and an additive shift modulated by $1-\gamma(t)$.
 \end{enumerate}
 \end{solution}
 
