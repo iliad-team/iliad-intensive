@@ -165,6 +165,13 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
   **advisory** on both paths (LaTeX and MDX) — it is the one metadata field that
   shows up twice, so an unfinished one is worth naming out loud.
 
+## Further reading goes last
+
+A "Further reading" / "Learn more" section is the LAST section of the sheet:
+after all taught content, just before the references — or before `\appendix`
+if the sheet has one. Prerequisites and the roadmap open a sheet; pointers
+*out* of it close it. This holds for every module, LaTeX or MDX.
+
 ## Theorem family
 
 ```latex
