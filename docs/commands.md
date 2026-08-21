@@ -21,7 +21,7 @@ Let $p$ be a distribution on a finite set $\mathcal{X}$.
 
 - Numbered per section ("Exercise 2.1"); the optional argument is the title.
 - Label the exercise if a solution or `\cref` points at it; unlabeled
-  exercises are allowed but draw a CI advisory (no stable web anchor).
+  exercises are allowed but draw a CI warning (no stable web anchor).
 - Subparts are a plain `enumerate`; label an `\item` to reference it
   ("Exercise 1.2(a)").
 - MDX: `<Exercise id="ex-warmup">**Exercise 1.1.** …</Exercise>`
@@ -86,8 +86,8 @@ For \cref{ex:warmup-a}: each term is non-negative. \hint{when is $-t\log t = 0$?
 - The "don't `\cref` the solutions section" rule is lifted *inside* `pdfonly`:
   a sentence like "\Cref{apx:solutions} provides worked solutions." is fine
   when wrapped this way, since the web never renders it. A `\cref` *outside*
-  pointing *in* would be a dead link on the web — the build flags it with an
-  advisory.
+  pointing *in* would be a dead link on the web — the build flags it with a
+  warning.
 - Numbered material (a `\section`, theorem, exercise) inside `pdfonly` is
   safe for the numbering: the web reads every displayed number out of the
   PDF's own `.aux`, so hiding, say, Theorem 2.4 leaves a faithful gap on the
@@ -162,7 +162,7 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
   markdown list inside. Group headings become bold subheadings in the box
   (not real headings — no anchor, not in the table of contents).
 - A summary that is missing, empty, or still `TODO` draws a non-fatal
-  **advisory** on both paths (LaTeX and MDX) — it is the one metadata field that
+  **warning** on both paths (LaTeX and MDX) — it is the one metadata field that
   shows up twice, so an unfinished one is worth naming out loud.
 
 ## Theorem family
@@ -250,7 +250,7 @@ An aside in the mathematical register.
   title. With no `[Title]`, the build queries the video's real title from
   YouTube (oEmbed, cached in `content/modules/.video-titles.json`); if the
   lookup fails (offline build, deleted video) the embed ships untitled with a
-  CI advisory. An explicit `[Title]` always wins and needs no network.
+  CI warning. An explicit `[Title]` always wins and needs no network.
 - PDF: a **Video:** line carrying the full watch URL — clickable on screen and
   still readable on a printed sheet.
 - Block-level: it sets its own paragraph, so write it between paragraphs, not
@@ -311,7 +311,7 @@ tex/<slug>/slides.tex        # any self-contained LaTeX (usually beamer)
   ```
   It renders as an outbound **Slides ↗** link. A compiled `slides.tex` takes
   precedence over the URL.
-- The build emits a non-fatal **advisory** for any worksheet with no
+- The build emits a non-fatal **warning** for any worksheet with no
   `slides.tex` (whether or not a `slides:` URL is set), in the full build and
   `./run.sh ci` — not in the `--check` watch/pre-push loop.
 - For a day with **no worksheet yet**, there is no frontmatter to hold a
@@ -392,7 +392,7 @@ the marker sits somewhere that cannot carry the text, such as a theorem's title
 argument (`\begin{definition}[Covering\protect\footnotemark]`). The mark takes
 the next number and the next `\footnotetext` fills it in, so keep them in that
 order; a `\footnotetext` with no mark before it stays inline in parentheses and
-draws an advisory.
+draws a warning.
 
 Notes are numbered per page in source order, and the numbering is the renderer's
 — it counts references, so it stays right no matter where the definitions sit.

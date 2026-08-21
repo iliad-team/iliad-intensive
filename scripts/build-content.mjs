@@ -503,7 +503,7 @@ async function buildSlug(slug) {
     }
 
     // 2. convert (tex → mdx + content-addressed SVGs). The converter exits 2 on
-    //    warnings and prints file:line messages — surface them verbatim.
+    //    errors and prints file:line messages — surface them verbatim.
     const convLog = path.join(dir, "convert.log");
     try {
       const { stdout, stderr } = await exec("node", [CONVERTER, path.join(dir, "main.tex"),
@@ -512,8 +512,15 @@ async function buildSlug(slug) {
         "--tikz-src", `/uploads/${slug}/`,
       ]);
       writeFileSync(convLog, `${stdout}${stderr ?? ""}`);   // warnings kept for inspection
-      const note = stdout.match(/NOTE \(advisory[^]*?(?=\nWrote )/);
-      if (note) notes.push(note[0].trim());
+      // The converter prints its non-fatal issues as one block of
+      // `  - file:line  msg` lines (paths relative to the worksheet dir).
+      // Re-emit each as a `⚠ warning:` note matching the build's own, with the
+      // path made repo-relative so it is unambiguous across worksheets.
+      const note = stdout.match(/NOTE \(warning[^]*?(?=\nWrote )/);
+      for (const l of note ? note[0].split("\n").slice(1) : []) {
+        const m = l.match(/^ {2}- (?:(\S+:\d+) {2})?(.*)$/);
+        if (m) notes.push(`⚠ warning: ${m[1] ? `${path.relative(ROOT, dir)}/${m[1]}  ` : ""}${m[2]}`);
+      }
     } catch (e) {
       const out = `${e.stdout ?? ""}${e.stderr ?? ""}`;
       writeFileSync(convLog, out);
@@ -535,19 +542,22 @@ async function buildSlug(slug) {
       return done(false, `main.mdx frontmatter sets \`${owned.join("`, `")}\` — ` +
         "that lives in schedule.yaml (list the slug under its day) and is stamped in at build time");
     }
-    // Same summary advisory the converter emits for a LaTeX sheet (see
+    // Same summary warning the converter emits for a LaTeX sheet (see
     // tex2mdx.mjs) — an MDX sheet never reaches the converter, so it needs its
-    // own. Advisory, never fatal: the summary is the page's lede and its index
+    // own. Non-fatal, always: the summary is the page's lede and its index
     // blurb, and `summary: TODO` is what a port leaves behind when the source
     // had no summary to transcribe.
+    const relMdx = path.relative(ROOT, path.join(dir, "main.mdx"));
     const declared = YAML.parse(front)?.summary;
     const summary = typeof declared === "string" ? declared.trim() : null;
+    const sumAt = raw.match(/^summary:/m)?.index;
+    const sumLoc = sumAt == null ? "" : `${relMdx}:${raw.slice(0, sumAt).split("\n").length}  `;
     if (declared === undefined)
-      notes.push("⚠ advisory: no `summary:` in main.mdx frontmatter — the page and its index entry show no lede");
+      notes.push(`⚠ warning: no \`summary:\` in ${relMdx} frontmatter — the page and its index entry show no lede`);
     else if (!summary)
-      notes.push("⚠ advisory: `summary:` in main.mdx frontmatter is empty — the page and its index entry show no lede");
+      notes.push(`⚠ warning: ${sumLoc}\`summary:\` is empty — the page and its index entry show no lede`);
     else if (/^todo\b/i.test(summary))
-      notes.push(`⚠ advisory: \`summary:\` is still a placeholder ("${summary.slice(0, 40)}") — the page ships it verbatim as its lede`);
+      notes.push(`⚠ warning: ${sumLoc}\`summary:\` is still a placeholder ("${summary.slice(0, 40)}") — the page ships it verbatim as its lede`);
     copyFileSync(path.join(dir, "main.mdx"), mdxOut);
 
     // No PDF, by design. LaTeX is the format that becomes a PDF; MDX is the
@@ -604,7 +614,7 @@ async function buildSlug(slug) {
     }
   }
 
-  // 2.6 slides advisory (full build only — not the --check watch/pre-push
+  // 2.6 slides warning (full build only — not the --check watch/pre-push
   //     loop): every worksheet ought to have a compilable deck. Never fatal.
   //     slides.tex → hosted PDF (ideal, no note); a `slides:` frontmatter URL
   //     → external PDF only; nothing → no deck at all.
@@ -615,8 +625,8 @@ async function buildSlug(slug) {
       if (fm) slidesUrl = (YAML.parse(fm[1]) ?? {}).slides ?? null;
     } catch { /* frontmatter validity is the render gate's problem */ }
     notes.push(slidesUrl
-      ? "⚠ advisory: slides only in PDF form (external `slides:` link, no LaTeX source to build)"
-      : "⚠ advisory: no slides for this worksheet (add slides.tex to build a deck, or a `slides:` frontmatter URL to link one)");
+      ? "⚠ warning: slides only in PDF form (external `slides:` link, no LaTeX source to build)"
+      : "⚠ warning: no slides for this worksheet (add slides.tex to build a deck, or a `slides:` frontmatter URL to link one)");
   }
 
   // 3. author figures: fig/*.pdf → public/uploads/<slug>/*.svg; web-native

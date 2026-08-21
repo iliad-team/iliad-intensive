@@ -8,8 +8,8 @@
  *   this file  parse + emit (the stage the unified-latex port will replace)
  *
  * Design: copy prose and math byte-for-byte; translate only known markup;
- * fail loud (file:line WARN + visible TODO marker) on anything unrecognised.
- * Cross-references come from LaTeX's own .aux. Exit code 2 on warnings.
+ * fail loud (file:line ERROR + visible TODO marker) on anything unrecognised.
+ * Cross-references come from LaTeX's own .aux. Exit code 2 on errors.
  *
  * Usage: tex2mdx.mjs input.tex [-o out.mdx] [--aux f.aux] [--tikz-dir d]
  *        [--tikz-src /url/prefix/] [--no-render-tikz]
@@ -233,8 +233,8 @@ function parseIliadBlock(raw) {
   return out.length ? out : null;
 }
 const iliadBlock = parseIliadBlock(rawTex);
-// A present-but-misspecified block is a hard failure (WARN => exit 2);
-// a missing block only draws an advisory (TODO placeholders are emitted).
+// A present-but-misspecified block is a hard failure (ERROR => exit 2);
+// a missing block only draws a warning (TODO placeholders are emitted).
 // The parsed frontmatter block, kept for the summary checks further down (a
 // `summary: >-` block scalar is only readable through the YAML parser).
 let frontBlock = null;
@@ -524,13 +524,13 @@ if (renderTikz) tikzRendered = renderTikzSnippets();
 
 console.log(`gdef macros: ${(gdef.match(/\\gdef/g) || []).length}  |  bib: ${Object.keys(BIB).length}  |  aux refs: ${Object.keys(refs).length}${tikzCount() ? `  |  tikz: ${tikzCount()} diagrams (${tikzRendered} newly rendered -> ${tikzDir})` : ""}`);
 const uniqW = Array.from(new Set(warnings.map(fmtIssue)));
-console.log(`WARN (${warnings.length} total, ${uniqW.length} unique):`);
+console.log(`ERROR (fails CI) (${warnings.length} total, ${uniqW.length} unique):`);
 console.log(uniqW.slice(0, 40).map((w) => "  - " + w).join("\n"));
 const uniqA = Array.from(new Set(advisories.map(fmtIssue)));
 if (uniqA.length) {
-  console.log(`NOTE (advisory, does not fail CI) (${uniqA.length}):`);
+  console.log(`NOTE (warning, does not fail CI) (${uniqA.length}):`);
   console.log(uniqA.slice(0, 40).map((a) => "  - " + a).join("\n"));
 }
 console.log(`Wrote ${output} (${result.split("\n").length} lines)`);
-// non-zero exit when anything WARN'd, so CI/hooks can gate on it (advisories don't count)
+// non-zero exit on any ERROR, so CI/hooks can gate on it (warnings don't count)
 if (warnings.length) process.exitCode = 2;

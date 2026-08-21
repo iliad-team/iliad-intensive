@@ -73,7 +73,7 @@ The website builds each page's metadata from the LaTeX itself:
 The **summary** is not extracted from the LaTeX — it lives in the
 `%--- iliad ---` comment block at the top of `main.tex`, alongside the other
 metadata keys (`cluster:`, and optional `title:`/`contributors:` overrides of
-the extracted values — a duplicate draws a build advisory). Values are
+the extracted values — a duplicate draws a build warning). Values are
 one-line YAML scalars, except `summary:`, which may be a paragraph written as
 a YAML folded block scalar (continuation lines indented two spaces after the
 leading `% `; line breaks fold into spaces):
@@ -96,7 +96,7 @@ the page is built and reachable by URL but linked from nowhere. `slides:` holds
 the URL of an externally hosted deck (rendered as an outbound link; a compiled
 `slides.tex` in the folder supersedes it — see [commands.md](commands.md)).
 
-Missing title/cluster/contributors draw build **advisories** (never
+Missing title/cluster/contributors draw build **warnings** (never
 failures) with `file.tex:line` locations.
 
 So does a summary that isn't one: **missing, empty, or still `TODO`**. The
@@ -104,7 +104,7 @@ summary is the page's lede *and* its blurb in the homepage and sidebar index, so
 a sheet without one looks unfinished in two places — and `TODO` is exactly what
 a port leaves behind when the source had no summary to transcribe (an author's
 words are ported, never invented), which makes it the easiest thing in the file
-to forget. An MDX-authored sheet gets the same advisory from
+to forget. An MDX-authored sheet gets the same warning from
 `build-content.mjs`, since it never passes through the converter.
 
 ## Labels and cross-references
