@@ -278,11 +278,11 @@ By definition of the conditional and the mixture form $\xi(x_{1:m}) = \sum_\nu w
   ~=~ \frac{\sum_\nu w_\nu\, \nu(x_{1:m})}{\xi(x_{<t})}.
 \]
 The generalized chain rule (\cref{prob:chain_rule_gen_ex} with $p=1$, $q=t-1$, $r=m$) gives $\nu(x_{1:m}) = \nu(x_{<t})\,\nu(x_{t:m} \mid x_{<t})$. Substituting,
-\[
+\begin{align*}
   \xi(x_{t:m} \mid x_{<t})
-  ~=~ \sum_\nu \underbrace{\frac{w_\nu\, \nu(x_{<t})}{\xi(x_{<t})}}_{=\, w(\nu \mid x_{<t})}\, \nu(x_{t:m} \mid x_{<t})
-  ~=~ \sum_{\nu \in \Mc} w(\nu \mid x_{<t})\, \nu(x_{t:m} \mid x_{<t}). \qedhere
-\]
+  ~&=~ \sum_\nu \underbrace{\frac{w_\nu\, \nu(x_{<t})}{\xi(x_{<t})}}_{=\, w(\nu \mid x_{<t})}\, \nu(x_{t:m} \mid x_{<t}) \\
+  ~&=~ \sum_{\nu \in \Mc} w(\nu \mid x_{<t})\, \nu(x_{t:m} \mid x_{<t}). \qedhere
+\end{align*}
 \end{solution}
 
 %===================================
@@ -375,7 +375,8 @@ using $\nu(x_1 \mid x_{<1}) := \nu(x_1)$ and likewise for $\rho$.
   {\rho(x_n \mid x_{<n})\,\rho(x_{<n})} \\
   ~&=~ \sum_{x_{1:n}} \nu(x_n \mid x_{<n}) \nu(x_{<n}) 
   \left[\ln \frac{\nu(x_n \mid x_{<n})}{\rho(x_n \mid x_{<n})} ~+~ \ln \frac{\nu(x_{<n})}{\rho(x_{<n})}\right]. \\
-  ~&=~ \underbrace{\sum_{x_{<n}} \nu(x_{<n}) \sum_{x_n} \nu(x_n \mid x_{<n})  \ln \frac{\nu(x_n \mid x_{<n})}{\rho(x_n \mid x_{<n})} }_{d_n(\nu \parallel \rho)} ~+~
+  ~&=~ \underbrace{\sum_{x_{<n}} \nu(x_{<n}) \sum_{x_n} \nu(x_n \mid x_{<n})  \ln \frac{\nu(x_n \mid x_{<n})}{\rho(x_n \mid x_{<n})} }_{d_n(\nu \parallel \rho)} \\
+  &\qquad ~+~
   \sum_{x_{1:n}} \nu(x_n \mid x_{<n}) \nu(x_{<n}) \ln \frac{\nu(x_{<n})}{\rho(x_{<n})} \\
   ~&=~ d_n(\nu \parallel \rho) ~+~
   \underbrace{\sum_{x_{<n}}  \nu(x_{<n}) \ln \frac{\nu(x_{<n})}{\rho(x_{<n})}}_{D_{n-1}(\nu \parallel \rho)} \cancel{\sum_{x_n} \nu(x_n \mid x_{<n})} \\
@@ -672,10 +673,10 @@ onto the unique trajectory $x_{<t}^* := x_1^* \cdots x_{t-1}^*$, with weight
 $\mu(x_{<t}^*) = 1$. Write $\xi_t := \xi(x_t^* \mid x_{<t}^*) \in [0,1]$ for the
 mass the mixture places on the \emph{correct} bit. Since $\mu$ assigns mass $1$
 to $x_t^*$ and $0$ to the other bit,
-\[
-  s_t ~=~ \sum_{x_t \in \mathbb{B}} \big(\xi(x_t \mid x_{<t}^*) - \mu(x_t \mid x_{<t}^*)\big)^2
-  ~=~ (\xi_t - 1)^2 + (1 - \xi_t - 0)^2 ~=~ 2(1 - \xi_t)^2.
-\]
+\begin{align*}
+  s_t ~&=~ \sum_{x_t \in \mathbb{B}} \big(\xi(x_t \mid x_{<t}^*) - \mu(x_t \mid x_{<t}^*)\big)^2 \\
+  ~&=~ (\xi_t - 1)^2 + (1 - \xi_t - 0)^2 ~=~ 2(1 - \xi_t)^2.
+\end{align*}
 
 \textbf{Step 2: a mistake step contributes at least $\tfrac12$.}
 A mistake at time $t$ means $\hat{x}_t \neq x_t^*$, i.e.\ the threshold predictor
@@ -773,11 +774,11 @@ Take the difference between the two summation terms.
 Take the difference $\sum_\nu w_\nu D_n(\nu \parallel \rho) - \sum_\nu w_\nu D_n(\nu \parallel \xi)$.
 Inside each $D_n$ the $\nu(x_{1:n}) \ln \nu(x_{1:n})$ pieces cancel, leaving
 \begin{align*}
-\sum_\nu w_\nu D_n(\nu \parallel \rho) - \sum_\nu w_\nu D_n(\nu \parallel \xi)
-&= \sum_\nu w_\nu \sum_{x_{1:n}}
+&\sum_\nu w_\nu D_n(\nu \parallel \rho) - \sum_\nu w_\nu D_n(\nu \parallel \xi) \\
+&\quad= \sum_\nu w_\nu \sum_{x_{1:n}}
    \nu(x_{1:n})\,\Bigl[\ln\tfrac{\nu(x_{1:n})}{\rho(x_{1:n})}
                   - \ln\tfrac{\nu(x_{1:n})}{\xi(x_{1:n})}\Bigr] \\
-&= \sum_\nu w_\nu \sum_{x_{1:n}}
+&\quad= \sum_\nu w_\nu \sum_{x_{1:n}}
    \nu(x_{1:n})\,\ln \tfrac{\xi(x_{1:n})}{\rho(x_{1:n})}.
 \end{align*}
 The factor $\ln(\xi/\rho)$ does not depend on $\nu$, so we swap the order of
@@ -945,11 +946,11 @@ A direct consequence of Step 1, again using $\sum_\nu \tilde w_\nu = 1$:
 \textit{Step 3: expand the square.}
 Write $\nu - \rho = (\nu - \xi) + (\xi - \rho)$ and expand:
 \begin{align*}
-\sum_\nu \tilde w_\nu (\nu - \rho)^2
-  &= \sum_\nu \tilde w_\nu\bigl[(\nu - \xi)^2 + 2(\nu - \xi)(\xi - \rho) + (\xi - \rho)^2\bigr] \\
-  &= \sum_\nu \tilde w_\nu (\nu - \xi)^2
-     \;+\; 2(\xi - \rho)\sum_\nu \tilde w_\nu (\nu - \xi)
-     \;+\; (\xi - \rho)^2 \sum_\nu \tilde w_\nu.
+&\sum_\nu \tilde w_\nu (\nu - \rho)^2 \\
+&\quad= \sum_\nu \tilde w_\nu\bigl[(\nu - \xi)^2 + 2(\nu - \xi)(\xi - \rho) + (\xi - \rho)^2\bigr] \\
+&\quad= \sum_\nu \tilde w_\nu (\nu - \xi)^2
+   \;+\; 2(\xi - \rho)\sum_\nu \tilde w_\nu (\nu - \xi)
+   \;+\; (\xi - \rho)^2 \sum_\nu \tilde w_\nu.
 \end{align*}
 The middle sum is zero by Step 2; the trailing $\sum_\nu \tilde w_\nu = 1$. So
 \[
@@ -1084,13 +1085,13 @@ We first prove the following Lemma:
     \frac{x-p}{x(1-x)} \;\geq\; 4(x-p) \qquad \text{for } x \in [p,q].
     \]
     Integrating over $[q,p]$,
-    \[
+    \begin{align*}
     \int_q^p \frac{p-x}{x(1-x)}\, dx
-    = \int_p^q \frac{x-p}{x(1-x)}\, dx
-    \geq 4 \int_p^q (x-p)\, dx
+    &= \int_p^q \frac{x-p}{x(1-x)}\, dx \\
+    &\geq 4 \int_p^q (x-p)\, dx
     = 4 \int_q^p (p-x)\, dx
     = 2(p-q)^2
-    \]
+    \end{align*}
 
 \begin{proof}[Proof of \cref{thm:pinsker}]
     We now reduce \cref{thm:pinsker} to the binary inequality \cref{lem:pinsker_binary}.

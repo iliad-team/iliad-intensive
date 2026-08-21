@@ -263,7 +263,7 @@ somewhat comfortable with deep learning and Bayesian inference, skip
         \cref{ex:univariate-degeneracy,ex:cubic-degeneracy}.
         Complete either \cref{ex:dln-degeneracy} or \ref{ex:mlp-degeneracy}.
         Read \cref{sec:degeneracy:hessian} and complete your choice of
-            Exercises~\ref{ex:loss-landscape-degeneracy} and/or \ref{ex:fim-hessian}.
+            \cref{ex:loss-landscape-degeneracy} and/or \cref{ex:fim-hessian}.
     \item
         To understand the local learning coefficient via volume scaling:
         Read \cref{sec:llc:volume-scaling} and complete
@@ -451,8 +451,8 @@ chance to familiarise oneself with the concept of a parameter--function map.
     A biased neuron is a neuron with an additional parameter that is added to
     the weighted sum of its inputs before it produces its output. Bias
     parameters allow each layer to represent an \emph{affine} transform, rather
-    than just a linear transform. For each of Examples \ref{eg:neuron},
-    \ref{eg:linear}, \ref{eg:dln}, and \ref{eg:mlp}, extend the example to use
+    than just a linear transform. For each of
+    \cref{eg:neuron,eg:linear,eg:dln,eg:mlp}, extend the example to use
     biased neurons. Precisely define the parameter space and the
     parameter--function map in each case.
 \end{exercise}
@@ -741,8 +741,7 @@ perspective (given an appropriate choice of loss function).
 \end{enumerate}
 \end{exercise}
 \begin{remark}[Negative log-likelihood loss]
-    Examples~\ref{ex:nll-mse}, \ref{ex:nll-cross-entropy}, and
-    \ref{ex:nll-energy} nominally show that some maximum likelihood estimation
+    \Cref{ex:nll-mse,ex:nll-cross-entropy,ex:nll-energy} nominally show that some maximum likelihood estimation
     problems have the same sets of ideal solutions as some carefully-chosen
     optimisation problems ($\argmin = \argmax$).
     In general, that the global optima for two optimisation problems coincide
@@ -856,7 +855,7 @@ learning still reflect the local geometry of the parameter--distribution map.
 
 In preparation for exploring this connection between geometry and learning we
 finally introduce localised variants of the partition function and free energy,
-where the integral in (\ref{eq:partition-function}) is restricted to a certain
+where the integral in \eqref{eq:partition-function} is restricted to a certain
 neighbourhood in parameter space.
 
 \begin{definition}[Local partition function and local free energy]
@@ -1847,12 +1846,12 @@ The key takeaway from this exercise is that the dimension of the model controls 
         \item Prove that $V(\epsilon) \propto \epsilon^{d'/2}$
         
         \begin{hint}
-Use the volume of the ellipsoid from Exercise \ref{ex:llc-regular-case}
+Use the volume of the ellipsoid from \cref{ex:llc-regular-case}
         \end{hint}
     \end{enumerate}
 \end{exercise}
 
-In this example, the degenerate directions do not contribute to the leading exponent of $V(\epsilon)$. We see that the exponent $\frac{d}{2}$ from Exercise \ref{ex:llc-regular-case} is replaced with $\frac{d'}{2}$ where $d'$ is the codimension of $\W_0$ i.e. the \textit{effective dimension} of $L$ which ignores the degenerate directions. This suggests that we can capture information about the degree of degeneracy of a loss function by looking at how the volume $V(\epsilon)$ scales as $\epsilon \to 0$. \cite{Watanabe2009} proves a general form for this kind of volume scaling which has been adapted by \cite{Lau+2025} into the following definition.
+In this example, the degenerate directions do not contribute to the leading exponent of $V(\epsilon)$. We see that the exponent $\frac{d}{2}$ from \cref{ex:llc-regular-case} is replaced with $\frac{d'}{2}$ where $d'$ is the codimension of $\W_0$ i.e. the \textit{effective dimension} of $L$ which ignores the degenerate directions. This suggests that we can capture information about the degree of degeneracy of a loss function by looking at how the volume $V(\epsilon)$ scales as $\epsilon \to 0$. \cite{Watanabe2009} proves a general form for this kind of volume scaling which has been adapted by \cite{Lau+2025} into the following definition.
 
 \begin{definition}[Local learning coefficient]
 \label{def:llc}
@@ -2425,13 +2424,13 @@ For each architecture, we add a bias vector to each layer's output before the ne
             \E_{(x,y)\sim q}[L_{x,y}(w)] = L(w).
         \end{equation*}
         Therefore, by linearity of expectation,
-        \begin{equation*}
+        \begin{align*}
             \E[L_n(w)]
-            = \E\left[\frac{1}{n}\sum_{i=1}^n L_{x^{(i)},y^{(i)}}(w)\right]
-            = \frac{1}{n}\sum_{i=1}^n \E[L_{x^{(i)},y^{(i)}}(w)]
-            = \frac{1}{n} \cdot n \cdot L(w)
+            &= \E\left[\frac{1}{n}\sum_{i=1}^n L_{x^{(i)},y^{(i)}}(w)\right]
+            = \frac{1}{n}\sum_{i=1}^n \E[L_{x^{(i)},y^{(i)}}(w)] \\
+            &= \frac{1}{n} \cdot n \cdot L(w)
             = L(w).
-        \end{equation*}
+        \end{align*}
 
     \item
         The random variables $L_{x^{(1)},y^{(1)}}(w), L_{x^{(2)},y^{(2)}}(w),
@@ -2521,12 +2520,12 @@ For each architecture, we add a bias vector to each layer's output before the ne
             = -\log f_w(c^{(i)} \mid x^{(i)}).
         \end{equation*}
         Therefore the empirical loss is
-        \begin{equation*}
+        \begin{align*}
             L_n(w)
-            = \frac{1}{n}\sum_{i=1}^n L_{x^{(i)},y^{(i)}}(w)
-            = -\frac{1}{n}\sum_{i=1}^n \log f_w(c^{(i)} \mid x^{(i)})
-            = \frac{1}{n}\left(-\log p(C_n \mid X_n, w)\right).
-        \end{equation*}
+            &= \frac{1}{n}\sum_{i=1}^n L_{x^{(i)},y^{(i)}}(w)
+            = -\frac{1}{n}\sum_{i=1}^n \log f_w(c^{(i)} \mid x^{(i)}) \\
+            &= \frac{1}{n}\left(-\log p(C_n \mid X_n, w)\right).
+        \end{align*}
         Since the negative log-likelihood is $n \cdot L_n(w)$, a positive
         multiple of the empirical loss, we conclude
         \begin{equation*}
@@ -3079,11 +3078,11 @@ cells. Every other cell imposes one non-trivial linear constraint on
 $(X_{ij}, Y_{ij})$, leaving one degree of freedom; there are
 $m^2 - (m - r_A)(m - r_B)$ such cells.
 The dimensionality of the space of degenerate directions is therefore
-\begin{equation*}
-    2 (m - r_A)(m - r_B)
-    + \left( m^2 - (m - r_A)(m - r_B) \right)
-    = m^2 + (m - r_A)(m - r_B).
-\end{equation*}
+\begin{align*}
+    &2 (m - r_A)(m - r_B)
+    + \left( m^2 - (m - r_A)(m - r_B) \right) \\
+    &\quad= m^2 + (m - r_A)(m - r_B).
+\end{align*}
 \end{solution}
 
 \begin{solution}[ex:mlp-degeneracy]
@@ -3570,9 +3569,10 @@ The dimensionality of the space of degenerate directions is therefore
     \]
     which has rank $d'$. In particular it is positive semi-definite but not positive definite whenever $d' < d$.
     \item The minimum of $L$ is $0$, achieved on $\W_0$. For any $w^* \in \W_0$ and $\epsilon > 0$, the sublevel set is
-    \[
-        B(w^*, \epsilon) = \left\{ (x_1,\dots,x_d) \in [-R,R]^d \;\middle|\; \sum_{i=1}^{d'} x_i^2 < \epsilon \right\} = \left\{x \in \R^{d'} : \sum_{i=1}^{d'} x_i^2 < \epsilon \right\} \times [-R,R]^{d-d'}
-    \]
+    \begin{align*}
+        B(w^*, \epsilon) &= \left\{ (x_1,\dots,x_d) \in [-R,R]^d \;\middle|\; \sum_{i=1}^{d'} x_i^2 < \epsilon \right\} \\
+        &= \left\{x \in \R^{d'} : \sum_{i=1}^{d'} x_i^2 < \epsilon \right\} \times [-R,R]^{d-d'}
+    \end{align*}
     for $R$ sufficiently large (specifically $\sqrt{\epsilon} < R$). The condition $\sum_{i=1}^{d'} x_i^2 < \epsilon$ can be rewritten as $\mathbf{x}^\top A \mathbf{x} < 1$ where $A = \epsilon^{-1} I_{d'}$. By the ellipsoid volume formula from \cref{ex:llc-regular-case}, the volume of this region is proportional to $(\det A)^{-1/2} = (\epsilon^{-d'})^{-1/2} = \epsilon^{d'/2}$. Multiplying by the volume $(2R)^{d-d'}$ of the remaining coordinates gives $V(\epsilon) \propto \epsilon^{d'/2}$. \qedhere
 \end{enumerate}
 \end{solution}
@@ -3645,9 +3645,10 @@ The dimensionality of the space of degenerate directions is therefore
         so $\lambda = 1/2$. The Hessian at the origin is $\nabla^2L(0,0) = \operatorname{diag}(12x^2, 12y^2)\big|_{(0,0)} = 0$, which has rank $0$.
     \item
         The sublevel set is $\{(x,y) : x^2 + y^4 < \epsilon\}$. For each fixed $y$ with $|y| < \epsilon^{1/4}$, $x$ ranges over $|x| < \sqrt{\epsilon - y^4}$. Substituting $y = \epsilon^{1/4}t$:
-        \[
-            V(\epsilon) = \int_{-\epsilon^{1/4}}^{\epsilon^{1/4}} 2\sqrt{\epsilon - y^4}\, dy = 2\epsilon^{1/4} \int_{-1}^{1} \sqrt{\epsilon - \epsilon t^4}\, dt = 2\epsilon^{3/4} \int_{-1}^{1} \sqrt{1 - t^4}\, dt = c\,\epsilon^{3/4},
-        \]
+        \begin{align*}
+            V(\epsilon) &= \int_{-\epsilon^{1/4}}^{\epsilon^{1/4}} 2\sqrt{\epsilon - y^4}\, dy = 2\epsilon^{1/4} \int_{-1}^{1} \sqrt{\epsilon - \epsilon t^4}\, dt \\
+            &= 2\epsilon^{3/4} \int_{-1}^{1} \sqrt{1 - t^4}\, dt = c\,\epsilon^{3/4},
+        \end{align*}
         so $\lambda = 3/4$. The Hessian is $\nabla^2L(0,0) = \operatorname{diag}(2, 12y^2)\big|_{(0,0)} = \operatorname{diag}(2, 0)$, which has rank $1$.
 \end{enumerate}
 \end{solution}
@@ -3985,11 +3986,11 @@ Substituting into \eqref{eq:rlct} gives
             Z_n = \int_\W \varphi(w) \prod_{i=1}^n p(x^{(i)} \mid w)\, dw.
         \end{equation*}
         Since $\W = \U \sqcup \V$ is a disjoint union, the integral splits additively:
-        \begin{equation*}
-            Z_n = \int_\U \varphi(w) \prod_{i=1}^n p(x^{(i)} \mid w)\, dw
-                + \int_\V \varphi(w) \prod_{i=1}^n p(x^{(i)} \mid w)\, dw
-                = Z_n(\U) + Z_n(\V).
-        \end{equation*}
+        \begin{align*}
+            Z_n &= \int_\U \varphi(w) \prod_{i=1}^n p(x^{(i)} \mid w)\, dw
+                + \int_\V \varphi(w) \prod_{i=1}^n p(x^{(i)} \mid w)\, dw \\
+                &= Z_n(\U) + Z_n(\V).
+        \end{align*}
         Recalling that $F_n = -\log Z_n$ and similarly for the local free energies,
         \begin{equation*}
             Z_n = e^{-F_n(\U)} + e^{-F_n(\V)},

@@ -94,6 +94,26 @@ together define the authoring contract.
   shared style rebuilds everything, as it must. `--no-cache` forces a rebuild;
   reach for it if you ever suspect a stale artifact.
 
+## Overflow check (math wider than the page)
+
+`node scripts/check-overflow.mjs [slug ...]` renders every built page in
+headless Chrome (no npm deps — system Chrome over the DevTools protocol) and
+warns about anything whose box crosses the content column's right edge:
+display math is the usual offender, but wide tables, `<pre>` and images are
+caught the same way. KaTeX offenders are reported with their **TeX source**
+(the wrapper's aria-label) and the nearest anchor id, so a warning greps
+straight back to a line in `tex/<slug>/main.tex`. `./run.sh ci` runs it after
+the site build as a **non-fatal advisory**; `--strict` makes it exit non-zero.
+
+The fix loop (human or agent): `./run.sh watch <slug>` in one terminal, then
+`node scripts/check-overflow.mjs <slug> --base-url http://localhost:3000`
+after each save — edit the reported equation (break/stack it; never change
+the maths) until the report is clean. Without `--base-url` it serves `out/`
+itself (needs a prior `./run.sh build`/`ci`), transparently handling the
+basePath a CI build bakes in. `--width N` (default 1366) sets the window
+width; the column is max-width-capped, so the default catches
+wider-than-column content — rerun with `--width 400` for phone layouts.
+
 ## CI & deploy
 
 - `.github/workflows/site.yml` — every PR runs the full ladder (conversion,

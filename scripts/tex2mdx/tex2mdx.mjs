@@ -281,6 +281,25 @@ if (usesExerciseEnv && !iliadBlock) {
     seen.add(m[1]);
   }
 }
+{ // hand-rolled references drift when things renumber; \cref prints AND links
+  // the type word and follows the label wherever it goes. \eqref, \ref* (the
+  // number-only form used inside custom \hyperref text) and \crefrange are all
+  // fine and don't match here.
+  const code = tex.replace(/(^|[^\\])%.*$/gm, "$1"); // commented-out code is nobody's business
+  for (const m of code.matchAll(/\\ref\{([^}]*)\}/g)) {
+    advise(`plain \\ref{${m[1]}} — use \\cref (prints and links the type, and survives renumbering)`, m[0]);
+  }
+  // \hyperref whose visible text hand-writes a "Type N" — the number is frozen.
+  // Nested-brace text (the roadmap-node pattern carrying \ref*) never matches
+  // the flat [^{}]* group, which is exactly right: those pull their numbers
+  // from the label.
+  for (const m of code.matchAll(/\\hyperref\[[^\]]*\]\{([^{}]*)\}/g)) {
+    if (/\\ref\*?\{/.test(m[1])) continue;
+    if (/(Appendix|Appendices|Section|Chapter|Exercise|Problem|Theorem|Lemma|Proposition|Corollary|Definition|Example|Figure|Table|Remark|Callout)\s*~?\s*[A-Z0-9]/.test(m[1])) {
+      advise(`\\hyperref with hand-written reference text "${m[1].slice(0, 40)}" — use \\cref so the text tracks the label`, m[0]);
+    }
+  }
+}
 // redefining the contract breaks the converter's guarantees
 if (usesExerciseEnv) {
   for (const m of tex.matchAll(/\\renew(?:command|environment)\s*\{?\\?([a-zA-Z]+)\}?/g)) {

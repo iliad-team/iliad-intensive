@@ -165,6 +165,13 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
   **warning** on both paths (LaTeX and MDX) — it is the one metadata field that
   shows up twice, so an unfinished one is worth naming out loud.
 
+## Further reading goes last
+
+A "Further reading" / "Learn more" section is the LAST section of the sheet:
+after all taught content, just before the references — or before `\appendix`
+if the sheet has one. Prerequisites and the roadmap open a sheet; pointers
+*out* of it close it. This holds for every module, LaTeX or MDX.
+
 ## Theorem family
 
 ```latex
@@ -211,6 +218,12 @@ An aside in the mathematical register.
   macros — the converter warns at `file.tex:line` when it can't translate).
 - `\cref`/`\Cref` resolve to the exact text LaTeX prints, everywhere:
   equations, sections, exercises, subparts, callouts.
+- **Reference with `\cref` (or `\eqref` for equation numbers), never by
+  hand.** A plain `\ref`, or a `\hyperref` whose visible text hand-writes
+  "Appendix A"-style words, draws an **advisory**: the frozen text stops
+  tracking the label the moment anything renumbers, and the type word is
+  left out of the link. (`\ref*` inside custom `\hyperref` link text is
+  fine — the number still comes from the label.)
 - A **literal dollar** in prose is `\$` — in a `.tex` sheet and in a
   hand-authored `.mdx` alike (`\$1,000`). It has to be escaped somehow, because
   two bare `$` in one paragraph are a math span to `remark-math`: "wins $1,000
