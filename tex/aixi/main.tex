@@ -101,25 +101,6 @@ prior $w_\nu = 2^{-K(\nu)}$ --- the assumption ``$\mu \in \cM$'' again becomes
     (agents, rewards, discounting, value functions) is useful but not assumed.
 \end{itemize}
 
-\section*{Further reading}
-
-\begin{itemize}
-    \item Hutter, \href{https://www.hutter1.net/publ/uaibook2.pdf}{\emph{An
-    Introduction to Universal Artificial Intelligence}} (2024): Chapter~2.7
-    (Kolmogorov complexity), Chapters~3.7--3.8 (the model class and universal
-    prior), and Chapter~7.4 (AIXI).
-    \item Hutter, \href{http://www.hutter1.net/ai/uaibook.htm}{\emph{Universal
-    Artificial Intelligence: Sequential Decisions Based on Algorithmic
-    Probability}} (Springer, 2005) --- the original book-length treatment;
-    Lem.~5.28 handles the countable-$\cM$ self-optimizing case.
-    \item Blackwell \& Dubins, \href{https://doi.org/10.1214/aoms/1177704456}{\emph{Merging
-    of Opinions with Increasing Information}} (Ann.\ Math.\ Statist., 1962) --- the
-    merging-of-opinions theorem behind on-policy value convergence.
-    \item Leike \& Hutter, \href{https://arxiv.org/abs/1510.04931}{\emph{Bad
-    Universal Priors and Notions of Optimality}} (COLT 2015) --- adversarial
-    choices of the universal Turing machine can make AIXI behave arbitrarily badly.
-\end{itemize}
-
 \section*{Goal and Roadmap}
 
 This exercise sheet builds towards three main results:
@@ -434,8 +415,7 @@ An \textbf{optimal policy} $\pi_\nu^*$ satisfies $V_\nu^{\pi_\nu^*} = V_\nu^*$.
 The \textbf{Bayes-optimal policy} is $\pi_\xi^* \in \argmax_\pi V_\xi^\pi$.
 \end{definition}
 
-\begin{callout}[note]
-\textbf{AIXI.}
+\begin{remark}[AIXI]
 All results in this sheet hold for any countable $\cM$ and prior weights $w_\nu$.
 \textbf{AIXI} is a special case of the Bayes-optimal policy $\pi_\xi^*$ for the particular choice $\cM :=$ the class of all lower-semicomputable chronological semimeasures, and prior $w_\nu := 2^{-K(\nu)}$, where $K(\nu)$ is the Kolmogorov complexity of $\nu$: the length of the shortest program that computes $\nu$.
 The resulting agent is written $\pi^*_{\xi_U}$, or simply AI$\xi$.
@@ -444,14 +424,14 @@ The resulting agent is written $\pi^*_{\xi_U}$, or simply AI$\xi$.
 By including every computable environment, the assumption $\mu \in \cM$ reduces to ``the universe is computable'': as weak an assumption as one can make.
 
 \textbf{Why this prior?}
-The prior $2^{-K(\nu)}$ is \emph{dominant}: for any other computable prior $w'_\nu$, there exists a constant $c > 0$ such that $2^{-K(\nu)} \geq c \cdot w'_\nu$ for all $\nu$. S
+The prior $2^{-K(\nu)}$ is \emph{dominant}: for any other computable prior $w'_\nu$, there exists a constant $c > 0$ such that $2^{-K(\nu)} \geq c \cdot w'_\nu$ for all $\nu$.
 %So AIXI cannot be ``outbelieved'' by any computable agent.
 
 \textbf{Caveat:}
 The constant $c$ depends on the choice of universal Turing machine $U$, and adversarial choices of $U$ can make AIXI behave arbitrarily badly~\cite{Leike:15badpriors}.
 
 See \cite{Hutter:24uaibook2}: Chapter~2.7 for Kolmogorov complexity, Chapters~3.7--3.8 for the model class and universal prior, and Chapter~7.4 for AIXI itself.
-\end{callout}
+\end{remark}
 
 
 %===================================
@@ -1197,8 +1177,7 @@ Further useful notions:
 \end{itemize}
 \end{definition}
 
-\begin{callout}[tip]
-\textbf{Example: Example: a fair coin shows 1 infinitely often.}
+\begin{example}[A fair coin shows 1 infinitely often]
 Let $\cA = \cO = \{0,1\}$, $\cR = \{0\}$, and let $\nu$ be a fair coin that ignores the action: $\nu(o_t = 1 \mid \aes_{<t}\, a_t) = \tfrac{1}{2}$ for all $\aes_{<t}, a_t$.
 Consider the event $F := \text{``}o_t = 1\text{ for infinitely many } t\text{''}$.
 
@@ -1226,7 +1205,7 @@ By countable additivity: $\nu^\pi(F^c) \leq \sum_{N=1}^\infty \nu^\pi(C_N) = 0$,
 A fair coin shows 1 infinitely often, almost surely.
 
 As such, $F^c$ (the set of all infinite histories containing only finitely many 1s) is a $\nu^\pi$-measure-zero set. Such histories ``exist'' as infinite sequences, but occur with probability zero.
-\end{callout}
+\end{example}
 
 \begin{definition}[Covering\protect\footnotemark]\label{def:covering}
 We say $Q$ \textbf{covers} $P$ if $Q$ is positive everywhere $P$ is:
@@ -1246,8 +1225,7 @@ $\{f_t \not\to 0\} = \bigcup_{n=1}^\infty \bigcap_{N=1}^\infty \bigcup_{t=N}^\in
 so its probability is well-defined (\cref{def:events}).
 \end{definition}
 
-\begin{callout}[tip]
-\textbf{Example: Unpacking ``$f_t \not\to 0$''.}
+\begin{example}[Unpacking ``$f_t \not\to 0$'']
 The set $\{f_t \not\to 0\}$ looks intimidating, but it reads naturally from the inside out:
 \begin{itemize}\itemsep=4pt
     \item $\big\{|f_t(\aes_{<t})| > \tfrac{1}{n}\big\}$ is a finite-length event: ``at time $t$, the function is at least $\tfrac{1}{n}$ away from zero.''
@@ -1261,7 +1239,7 @@ The set $\{f_t \not\to 0\}$ looks intimidating, but it reads naturally from the 
 This last condition is exactly $\{f_t \not\to 0\}$: convergence $f_t \to 0$ means that for \emph{every} $\varepsilon > 0$, $|f_t| \leq \varepsilon$ for all sufficiently large $t$. Its negation is that \emph{some} $\varepsilon > 0$ is exceeded infinitely often.
 
 Each layer is a countable union or intersection of the previous, so the whole set is a well-defined event on infinite histories.
-\end{callout}
+\end{example}
 
 
 The Bayesian agent uses the mixture $\xi$ because the true environment $\mu$ is unknown.
@@ -1829,6 +1807,26 @@ This completes the proof of \cref{thm:selfopt}. \qedhere
 
 \textit{Remark.} We do not need to know which policy $\tilde\pi$ is self-optimizing, or whether it is computable. Mere existence suffices.
 For countable $\cM$, this final step is harder: a countable sum of $\mu^\pi$-a.s.-convergent sequences need not converge $\mu^\pi$-a.s.\ The general proof uses a ``convergence of mixture tails'' argument \cite[Lem.~5.28]{Hutter:04uaibook}.
+
+%===================================
+\section*{Further reading}
+
+\begin{itemize}
+    \item Hutter, \href{https://www.hutter1.net/publ/uaibook2.pdf}{\emph{An
+    Introduction to Universal Artificial Intelligence}} (2024): Chapter~2.7
+    (Kolmogorov complexity), Chapters~3.7--3.8 (the model class and universal
+    prior), and Chapter~7.4 (AIXI).
+    \item Hutter, \href{http://www.hutter1.net/ai/uaibook.htm}{\emph{Universal
+    Artificial Intelligence: Sequential Decisions Based on Algorithmic
+    Probability}} (Springer, 2005) --- the original book-length treatment;
+    Lem.~5.28 handles the countable-$\cM$ self-optimizing case.
+    \item Blackwell \& Dubins, \href{https://doi.org/10.1214/aoms/1177704456}{\emph{Merging
+    of Opinions with Increasing Information}} (Ann.\ Math.\ Statist., 1962) --- the
+    merging-of-opinions theorem behind on-policy value convergence.
+    \item Leike \& Hutter, \href{https://arxiv.org/abs/1510.04931}{\emph{Bad
+    Universal Priors and Notions of Optimality}} (COLT 2015) --- adversarial
+    choices of the universal Turing machine can make AIXI behave arbitrarily badly.
+\end{itemize}
 
 %===================================
 \clearpage
