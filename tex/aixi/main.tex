@@ -309,12 +309,12 @@ i.e.\ on $\pi$-consistent futures the interaction measure reduces to the environ
 Since $\pi$ is deterministic, $\pi(a_k \mid \aes_{<k}) = \llbracket a_k = a^*_k \rrbracket$.
 By hypothesis $\aes_{i:j}$ is $\pi$-consistent, so every such bracket equals $1$.
 From \cref{def:interaction}:
-\[
+\begin{align*}
     \nu^\pi(\aes_{i:j} \mid \aes_{<i})
-    ~=~ \prod_{k=i}^j \underbrace{\pi(a_k \mid \aes_{<k})}_{=\, 1}\, \nu(e_k \mid \aes_{<k} a_k)
-    ~=~ \prod_{k=i}^j \nu(e_k \mid \aes_{<k}\, a_k)
+    ~&=~ \prod_{k=i}^j \underbrace{\pi(a_k \mid \aes_{<k})}_{=\, 1}\, \nu(e_k \mid \aes_{<k} a_k) \\
+    ~&=~ \prod_{k=i}^j \nu(e_k \mid \aes_{<k}\, a_k)
     ~=~ \nu(\aes_{i:j} \mid \aes_{<i}),
-\]
+\end{align*}
 where the last equality is the natural segment extension of $\nu(\aes_{1:t}) := \prod_{k=1}^t \nu(e_k \mid \aes_{<k} a_k)$.
 \end{solution}
 
@@ -334,8 +334,8 @@ Split the defining product $\nu^\pi(\aes_{p:r} \mid \aes_{<p}) = \prod_{k=p}^r \
 \begin{align*}
     \nu^\pi(\aes_{p:r} \mid \aes_{<p})
     ~&=~ \prod_{k=p}^r \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)\\
-    ~&=~ \underbrace{\prod_{k=p}^{q} \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)}_{\nu^\pi(\aes_{p:q} \mid \aes_{<p})}
-    \;\cdot\; \underbrace{\prod_{k=q+1}^{r} \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)}_{\nu^\pi(\aes_{q+1:r} \mid \aes_{<p}\, \aes_{p:q})},
+    ~&=~ \underbrace{\prod_{k=p}^{q} \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)}_{\nu^\pi(\aes_{p:q} \mid \aes_{<p})} \\
+    &\qquad \;\cdot\; \underbrace{\prod_{k=q+1}^{r} \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)}_{\nu^\pi(\aes_{q+1:r} \mid \aes_{<p}\, \aes_{p:q})},
 \end{align*}
 identifying each block as a conditional via the same expansion: the past for step $k \geq q+1$ is the given history $\aes_{<p}$ extended by the first chunk $\aes_{p:q}$.
 
@@ -537,11 +537,11 @@ Apply the general chain rule (\cref{prob:chain_rule_nupi}) to $\xi(\aes_{1:m}) =
 Start from the definition $\xi(\aes_{1:m}) = \sum_{\nu \in \cM} w_\nu\, \nu(\aes_{1:m})$.
 Apply the general chain rule (\cref{prob:chain_rule_nupi}) to both sides: $\xi(\aes_{1:m}) = \xi(\aes_{<t}) \cdot \xi(\aes_{t:m} \mid \aes_{<t})$ and $\nu(\aes_{1:m}) = \nu(\aes_{<t}) \cdot \nu(\aes_{t:m} \mid \aes_{<t})$.
 Dividing by $\xi(\aes_{<t})$:
-\[
+\begin{align*}
     \xi(\aes_{t:m} \mid \aes_{<t})
-    ~=~ \sum_{\nu \in \cM} \frac{w_\nu\, \nu(\aes_{<t})}{\xi(\aes_{<t})} \nu(\aes_{t:m} \mid \aes_{<t})
-    ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \nu(\aes_{t:m} \mid \aes_{<t}).
-\]
+    ~&=~ \sum_{\nu \in \cM} \frac{w_\nu\, \nu(\aes_{<t})}{\xi(\aes_{<t})} \nu(\aes_{t:m} \mid \aes_{<t}) \\
+    ~&=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \nu(\aes_{t:m} \mid \aes_{<t}).
+\end{align*}
 Now multiply both sides by $\pi(\aes_{t:m} \mid \aes_{<t})$.
 By factorization (\cref{prob:factorization}), $\pi(\aes_{t:m} \mid \aes_{<t}) \cdot \xi(\aes_{t:m} \mid \aes_{<t}) = \xi^\pi(\aes_{t:m} \mid \aes_{<t})$ and likewise for each $\nu$:
 \[
@@ -608,8 +608,9 @@ This is just the return recursion (\cref{def:return}): $G_{t-1:m} = r'_t + \gamm
 \emph{Step 3: Substitute into the definition of $V_\nu^{\pi,m}(\aes_{<t})$.}
 \begin{align*}
     V_\nu^{\pi,m}(\aes_{<t})
-    ~&=~ (1-\gamma) \sum_{\aes'_t} \nu^\pi(\aes'_t \mid \aes_{<t}) 
- \sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t) \left[ r'_t + \gamma G_{t:m} \right].
+    ~&=~ (1-\gamma) \sum_{\aes'_t} \nu^\pi(\aes'_t \mid \aes_{<t})
+ \sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t) \\
+    &\qquad \times \left[ r'_t + \gamma G_{t:m} \right].
 \end{align*}
 
 Consider the inner term $\sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t) 
@@ -627,7 +628,8 @@ as $r'_t$ doesn't depend on $\aes'_{t+1:m}$, and $\sum_{\aes'_{t+1:m}} \nu^\pi(\
 Inserting this above, we obtain:
 \begin{align*}
     V_\nu^{\pi,m}(\aes_{<t})
-    &= \sum_{\aes'_t} \nu^\pi(\aes'_t \mid \aes_{<t}) \bigg[ (1-\gamma)\, r'_t + 
+    &= \sum_{\aes'_t} \nu^\pi(\aes'_t \mid \aes_{<t}) \bigg[ (1-\gamma)\, r'_t \\
+    &\qquad +
     \gamma\, \underbrace{(1-\gamma) \sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t)G_{t:m}}_{=\; V_\nu^{\pi,m}(\aes_{<t}\, \aes'_t)} \bigg].
 \end{align*}
 \end{solution}
@@ -679,10 +681,11 @@ Substituting $\pi = \pi^*_\nu$ into the Bellman equation from \cref{prob:bellman
     ~=~ \sum_{\aes'_t} \nu^{\pi^*_\nu}(\aes'_t \mid \aes_{<t}) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{*,m}(\aes_{<t}\, \aes'_t)\Big].
 \]
 Splitting the step $\aes'_t = a'_t e'_t$ via $\nu^{\pi^*_\nu}(\aes'_t \mid \aes_{<t}) = \pi^*_\nu(a'_t \mid \aes_{<t})\, \nu(e'_t \mid \aes_{<t} a'_t)$:
-\[
+\begin{align*}
     V_\nu^{*,m}(\aes_{<t})
-    ~=~ \sum_{a'_t} \pi^*_\nu(a'_t \mid \aes_{<t}) \sum_{e'_t} \nu(e'_t \mid \aes_{<t} a'_t) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{*,m}(\aes_{<t}\, a'_t\, e'_t)\Big].
-\]
+    ~&=~ \sum_{a'_t} \pi^*_\nu(a'_t \mid \aes_{<t}) \\
+    &\qquad \times \sum_{e'_t} \nu(e'_t \mid \aes_{<t} a'_t) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{*,m}(\aes_{<t}\, a'_t\, e'_t)\Big].
+\end{align*}
 Since $\pi^*_\nu$ is deterministic, let $a^*_t$ denote the unique action with $\pi^*_\nu(a^*_t \mid \aes_{<t}) = 1$. Then:
 \[
     V_\nu^{*,m}(\aes_{<t})
@@ -791,10 +794,11 @@ The Bellman equation (\cref{prob:bellman_finite}) holds for any policy, so for $
     V_\nu^{\pi_\nu^*,m}(\aes_{<t}) ~=~ \sum_{e'_t} \nu(e'_t \mid \aes_{<t}\, a^*_t) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{\pi_\nu^*,m}(\aes_{<t}\, a^*_t\, e'_t)\Big].
 \]
 Subtracting this from the equation in Step~1, the $(1-\gamma)\, r'_t$ terms cancel:
-\[
+\begin{align*}
     V_\nu^*(\aes_{<t}) - V_\nu^{\pi_\nu^*,m}(\aes_{<t})
-    ~=~ \gamma \sum_{e'_t} \nu(e'_t \mid \aes_{<t}\, a^*_t) \Big[V_\nu^*(\aes_{<t}\, a^*_t\, e'_t) - V_\nu^{\pi_\nu^*,m}(\aes_{<t}\, a^*_t\, e'_t)\Big].
-\]
+    ~&=~ \gamma \sum_{e'_t} \nu(e'_t \mid \aes_{<t}\, a^*_t) \\
+    &\qquad \times \Big[V_\nu^*(\aes_{<t}\, a^*_t\, e'_t) - V_\nu^{\pi_\nu^*,m}(\aes_{<t}\, a^*_t\, e'_t)\Big].
+\end{align*}
 The error at time $t$ is $\gamma$ times a weighted average of errors at time $t+1$.
 
 \emph{Step 3: Iterate the contraction.}
@@ -999,21 +1003,17 @@ We now unroll this definition into the explicit \textbf{expectimax} expression: 
 \label{prob:expectimax_derivation}
 \difficulty{20}
 By iterating the finite-horizon Bellman optimality equation (\cref{prob:bellman_opt}), show that
-\[
-\resizebox{\textwidth}{!}{$\displaystyle
+\begin{align*}
     V_\xi^{*,m}(\aes_{<t})
-    ~=~ (1-\gamma) \max_{a_t} \sum_{e_t} \xi(e_t \mid \aes_{<t} a_t)\, \max_{a_{t+1}} \sum_{e_{t+1}} \xi(e_{t+1} \mid \aes_{<t+1} a_{t+1}) \cdots
-    \max_{a_m} \sum_{e_m} \xi(e_m \mid \aes_{<m} a_m) \,G_{t-1:m}
-$}
-\]
+    ~=~ (1-\gamma) \max_{a_t} \sum_{e_t} \xi(e_t \mid \aes_{<t} a_t)\, &\max_{a_{t+1}} \sum_{e_{t+1}} \xi(e_{t+1} \mid \aes_{<t+1} a_{t+1}) \cdots \\
+    \cdots &\max_{a_m} \sum_{e_m} \xi(e_m \mid \aes_{<m} a_m) \,G_{t-1:m}
+\end{align*}
 and hence, collecting the percept factors with the chain rule (\cref{prob:chain_rule}) and taking $m \to \infty$ (\cref{prob:inf_horizon,prob:inf_opt_policy}), that AIXI selects the action
-\[
-\resizebox{\textwidth}{!}{$\displaystyle
-    a_t ~=~ \pi_\xi^*(\aes_{<t})
-    ~\in~ \argmax_{a_t} \lim_{m\to\infty} \sum_{e_t} \max_{a_{t+1}} \sum_{e_{t+1}} \cdots \max_{a_m} \sum_{e_m}
-    \xi(e_{t:m} \mid \aes_{<t}\, a_{t:m}) \,G_{t-1:m} 
-$}
-\]
+\begin{align*}
+    a_t &~=~ \pi_\xi^*(\aes_{<t}) \\
+    &~\in~ \argmax_{a_t} \lim_{m\to\infty} \sum_{e_t} \max_{a_{t+1}} \sum_{e_{t+1}} \cdots \max_{a_m} \sum_{e_m}
+    \xi(e_{t:m} \mid \aes_{<t}\, a_{t:m}) \,G_{t-1:m}
+\end{align*}
 
 
 \begin{hint}
@@ -1497,11 +1497,11 @@ Write $X_{\nu,t}(\aes_{1:t}) = X_{\nu,t-1}(\aes_{<t}) \cdot \nu(e_t \mid \aes_{<
 
 \begin{solution}[prob:martingale]
 We need to compute $\Ex_{\mu^\pi}[X_{\nu,t} \mid \aes_{<t}]$. Conditioning on $\aes_{<t}$ means $a_t$ and $e_t$ are the random quantities (sampled from $\pi$ and $\mu$ respectively). First, write $X_{\nu,t}$ pointwise as a function of history in terms of $X_{\nu,t-1}$:
-\[
-    X_{\nu,t}(\aes_{1:t}) ~=~ \frac{\nu(\aes_{1:t})}{\mu(\aes_{1:t})}
-    ~=~ \frac{\nu(\aes_{<t})}{\mu(\aes_{<t})} \cdot \frac{\nu(e_t \mid \aes_{<t} a_t)}{\mu(e_t \mid \aes_{<t} a_t)}
-    ~=~ X_{\nu,t-1}(\aes_{<t}) \cdot \frac{\nu(e_t \mid \aes_{<t} a_t)}{\mu(e_t \mid \aes_{<t} a_t)},
-\]
+\begin{align*}
+    X_{\nu,t}(\aes_{1:t}) ~&=~ \frac{\nu(\aes_{1:t})}{\mu(\aes_{1:t})}
+    ~=~ \frac{\nu(\aes_{<t})}{\mu(\aes_{<t})} \cdot \frac{\nu(e_t \mid \aes_{<t} a_t)}{\mu(e_t \mid \aes_{<t} a_t)} \\
+    ~&=~ X_{\nu,t-1}(\aes_{<t}) \cdot \frac{\nu(e_t \mid \aes_{<t} a_t)}{\mu(e_t \mid \aes_{<t} a_t)},
+\end{align*}
 using the chain rule (\cref{prob:chain_rule}) for both $\nu$ and $\mu$. Now take the conditional expectation. Since $X_{\nu,t-1}$ depends only on $\aes_{<t}$, it comes out of the expectation:
 \begin{align*}
     \Ex_{\mu^\pi}[X_{\nu,t} \mid \aes_{<t}]
@@ -1569,12 +1569,12 @@ Use \cref{prob:factorization} to show $\nu^\pi/\mu^\pi = \nu/\mu = X_{\nu,m}$.
 \begin{solution}[prob:cm_finite]
 By \cref{prob:factorization}, $\nu^\pi(\aes'_{1:m}) = \pi(\aes'_{1:m}) \cdot \nu(\aes'_{1:m})$ and $\mu^\pi(\aes'_{1:m}) = \pi(\aes'_{1:m}) \cdot \mu(\aes'_{1:m})$.
 For any history $\aes'_{1:m}$ with $\mu^\pi(\aes'_{1:m}) > 0$, the policy factors cancel:
-\[
+\begin{align*}
     \nu^\pi(\aes'_{1:m})
-    ~=~ \frac{\nu^\pi(\aes'_{1:m})}{\mu^\pi(\aes'_{1:m})} \cdot \mu^\pi(\aes'_{1:m})
-    ~=~ \frac{\nu(\aes'_{1:m})}{\mu(\aes'_{1:m})} \cdot \mu^\pi(\aes'_{1:m})
-    ~=~ X_{\nu,m}(\aes'_{1:m}) \cdot \mu^\pi(\aes'_{1:m}).
-\]
+    ~&=~ \frac{\nu^\pi(\aes'_{1:m})}{\mu^\pi(\aes'_{1:m})} \cdot \mu^\pi(\aes'_{1:m})
+    ~=~ \frac{\nu(\aes'_{1:m})}{\mu(\aes'_{1:m})} \cdot \mu^\pi(\aes'_{1:m}) \\
+    ~&=~ X_{\nu,m}(\aes'_{1:m}) \cdot \mu^\pi(\aes'_{1:m}).
+\end{align*}
 For histories with $\mu^\pi(\aes'_{1:m}) = 0$: since $\mu^\pi = \pi \cdot \mu$, some $\pi(a_k \mid \aes'_{<k}) = 0$, which forces $\nu^\pi(\aes'_{1:m}) = 0$ too (the same $\pi$-factor appears in $\nu^\pi = \pi \cdot \nu$). So both sides are zero.
 
 Summing over $\aes'_{1:m} \in A$:
@@ -1671,12 +1671,12 @@ Since the posterior weights $w(\nu \mid \aes_{<t}) \geq 0$, every term in $\sum_
 \emph{Second inequality: replace $\pi_\xi^*$ with $\tilde\pi$.}
 By definition of the optimal value, $V_\xi^*(\aes_{<t}) \geq V_\xi^{\tilde\pi}(\aes_{<t})$.
 Expanding both sides using infinite-horizon linearity (\cref{prob:linearity_inf}, applied to the fixed policies $\pi_\xi^*$ and $\tilde\pi$):
-\[
+\begin{align*}
     \sum_\nu w(\nu \mid \aes_{<t})\, V_\nu^{\pi_\xi^*}(\aes_{<t})
-    ~=~ V_\xi^*(\aes_{<t})
-    ~\geq~ V_\xi^{\tilde\pi}(\aes_{<t})
-    ~=~ \sum_\nu w(\nu \mid \aes_{<t})\, V_\nu^{\tilde\pi}(\aes_{<t}).
-\]
+    ~&=~ V_\xi^*(\aes_{<t})
+    ~\geq~ V_\xi^{\tilde\pi}(\aes_{<t}) \\
+    ~&=~ \sum_\nu w(\nu \mid \aes_{<t})\, V_\nu^{\tilde\pi}(\aes_{<t}).
+\end{align*}
 Rearranging: $\sum_\nu w(\nu)[V_\nu^* - V_\nu^{\pi_\xi^*}] \leq \sum_\nu w(\nu)[V_\nu^* - V_\nu^{\tilde\pi}] = \sum_\nu w(\nu)\, \delta_{\nu,t}$.
 
 \emph{Chaining:}

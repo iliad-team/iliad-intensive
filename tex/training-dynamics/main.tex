@@ -173,7 +173,10 @@ only other critical point is \(w_1 = w_2 = 0\).
 The Hessian at \((0,0)\). We need the second derivatives of
 \(\ell = \frac{1}{2}(s - w_1 w_2)^2\):
 
-\[\frac{\partial^2 \ell}{\partial w_1^2} = w_2^2, \qquad \frac{\partial^2 \ell}{\partial w_2^2} = w_1^2, \qquad \frac{\partial^2 \ell}{\partial w_1 \partial w_2} = -(s - w_1 w_2) + w_1 w_2 = 2w_1 w_2 - s\]
+\begin{align*}
+\frac{\partial^2 \ell}{\partial w_1^2} &= w_2^2, \qquad \frac{\partial^2 \ell}{\partial w_2^2} = w_1^2, \\
+\frac{\partial^2 \ell}{\partial w_1 \partial w_2} &= -(s - w_1 w_2) + w_1 w_2 = 2w_1 w_2 - s
+\end{align*}
 
 At \((0,0)\):
 
@@ -465,7 +468,10 @@ Under this alignment assumption, show that the NTK
 operator is aligned to the task, i.e.~\(K[F]\) preserves the SVD basis.
 In particular, show that:
 
-\[(WW^\top)^{1/2} = U\,\text{diag}(w_1, \ldots, w_d)\,U^\top, \qquad (W^\top W)^{1/2} = V\,\text{diag}(w_1, \ldots, w_d)\,V^\top\]
+\begin{align*}
+(WW^\top)^{1/2} &= U\,\text{diag}(w_1, \ldots, w_d)\,U^\top, \\
+(W^\top W)^{1/2} &= V\,\text{diag}(w_1, \ldots, w_d)\,V^\top
+\end{align*}
 
 and that the residual is
 \(M - W = U\,\text{diag}(s_1 - w_1, \ldots, s_d - w_d)\,V^\top\).
