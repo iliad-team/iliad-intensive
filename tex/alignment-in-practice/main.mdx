@@ -26,15 +26,71 @@ The students should have good high-level understanding of the following:
 
 Some of these topics are taught in other modules of this course.
 
+## Roadmap for today
+
+- 10:00–10:30
+  - Intro lecture
+- 10:30–11:30
+  - Pretraining discussion + lecture
+- 11:30–12:45
+  - Post-training discussion + lecture
+- 12:45–13:15
+  - Deployment 1 discussion + lecture
+
+(Lunch)
+
+- 14:15–16:30
+  - Design challenge
+- 16:30–17:30
+  - Deployment 2 discussion + lecture
+- 17:30–18:00
+  - Buffer + feedback
+
 ## Reading guide
 
 The main content is split into parts that correspond to different phases in the model training pipeline. The parts are relatively independent, so you can skip around as you wish depending on your interests.
 
 If you have limited time and don't know what to focus on, we recommend reading through the notes on the three main sections: pre-training, post-training, and deployment 2. After this, you will have a good high-level understanding of the main ways that models are aligned in practice.
 
+### Introduction
+
+<TeachingNote title="Intent">
+
+Outline the structure of the whole day, and tell the students what the day's intent is (mirroring the module intent above).
+
+</TeachingNote>
+
+<TeachingNote title="Teaching Guide">
+
+Present according to the slides.
+
+</TeachingNote>
+
 ### Pretraining
 
-*Intent:* Show that what the model learns during pretraining is deep, broad, and hard to change afterward. Emphasise that besides learning hard facts, it's also forming a proto-understanding of what AI is and how AI assistants behave. This opens **two strategies** for safety interventions in this phase: shaping what knowledge the model obtains, and shaping what the model does *with* the knowledge it obtains. Both are constrained by the same limitation: we're operating before seeing behavior, the feedback loop is slow, and we can't anticipate every failure mode.
+<TeachingNote title="Intent">
+
+Show that what the model learns during pretraining is deep, broad, and hard to change afterward. Emphasise that besides learning hard facts, it's also forming a proto-understanding of what AI is and how AI assistants behave. This opens **two strategies** for safety interventions in this phase: shaping what knowledge the model obtains, and shaping what the model does *with* the knowledge it obtains. Both are constrained by the same limitation: we're operating before seeing behavior, the feedback loop is slow, and we can't anticipate every failure mode.
+
+</TeachingNote>
+
+<TeachingNote title="Teaching Guide">
+
+The session is roughly 30 minutes of discussion followed by 30 minutes of presentation.
+
+**Opening.** Briefly outline the story of pre-training: the model is about to see the entire internet. It's forming a view of what the world is — including what AI is and how AI assistants behave. We can intervene in what it learns, which influences both its factual knowledge and its character. But we're operating before seeing the model's behavior, so every intervention is a bet.
+
+**Discussion (30 min).** The goal is to get students to independently discover the main categories of pre-training safety interventions before the lecture formalises them. When a student proposes something that matches a real method, name it, write it on a sticky note, and put it on the board.
+
+Open by setting the scenario: "You want to train a model that is helpful, but which users cannot use to obtain dangerous information about bioweapon construction. You can change anything about the pre-training process — add data, remove data, change the specifics of training. What do you do? What difficulties will arise? We want around five rough ideas, not one polished one."
+
+*Block 1: Removing dangerous knowledge.* Let students propose data filtering. Validate it, then probe: "How do you know what to filter? What if your classifier misses something? What if dangerous information is embedded in an otherwise valuable document?" When someone proposes something architectural — routing knowledge to a removable part of the network, or masking gradients — name it as gradient routing / SGTM. If nobody gets there, ask: "Instead of trying to perfectly classify every document, could you change how the model *stores* what it learns?". In a similar way, see if anybody comes up with token-level filtering.
+
+*Block 2: Shaping character.* Steer the conversation away from facts toward disposition: "Suppose you've done a good job filtering bioweapons data. But the model has also read thousands of sci-fi stories about evil AIs, forum posts about AI misalignment, and jailbreak tutorials. How might that affect its behavior — even on topics that have nothing to do with bioweapons?" Let students discover that what the model reads about AI shapes its own behavioral tendencies. Then ask: "Can you use this deliberately — can you shape the model's character by choosing what AI-related content it trains on?" Steer toward alignment pretraining. If students ask *why* this works, introduce the persona selection model: the model is learning a repertoire of personas from its data, and you're shaping the prior over which persona it adopts.
+
+**Presentation (30 min).** Walk through the content section, following the slides. Repeat the overarching story: pre-training is where the model's deep representations are built — both its knowledge and its proto-character. Whenever you reach a method that students proposed during the discussion, point to their sticky note on the board and make the connection explicit. Present the methods in narrative order: data filtering addresses the obvious problem; gradient routing / SGTM addresses filtering's failure mode; alignment pretraining shifts from knowledge to character; PSM explains why character-shaping works. Close by repeating the overarching story one more time, and naming what pre-training can't do: you're operating before seeing the model's behaviour, the feedback loop is slow, and you can't anticipate every failure mode. This motivates the next slot.
+
+</TeachingNote>
 
 **Data filtering** is the most intuitive intervention: identify dangerous content and remove it before training. [Pretraining data filtering](https://alignment.anthropic.com/2025/pretraining-data-filtering/) from Anthropic demonstrates this for CBRN content, achieving a 33% relative reduction in harmful-capabilities performance (from 33.7% to 30.8%, where chance is 25%) while preserving standard benchmarks. [Token-level filtering](https://arxiv.org/abs/2601.21571) refines this by removing dangerous tokens rather than entire documents, which Pareto-dominates document filtering — same capability reduction, lower cost to benign performance.
 
@@ -46,7 +102,29 @@ Why does this work? The [persona selection model (PSM)](https://alignment.anthro
 
 ### Post-training
 
-*Intent:* Explain that while in pre-training, a large investment of compute and data produces large changes to the model, in post-training, we enter a different regime: **the amount of behavioural change becomes decoupled from the amount of compute invested**. Because we are building on top of existing representations and heuristics, even a small, focused intervention can induce surprisingly broad behavioural changes. This cuts both ways — it enables powerful alignment techniques, but also means that small amounts of training data can have outsized negative effects. We emphasise that it is *still* possible to make deep changes to the model, even in post-training — but these will, in general, again require large compute investments.
+<TeachingNote title="Intent">
+
+Explain that while in pre-training, a large investment of compute and data produces large changes to the model, in post-training, we enter a different regime: **the amount of behavioural change becomes decoupled from the amount of compute invested**. Because we are building on top of existing representations and heuristics, even a small, focused intervention can induce surprisingly broad behavioural changes. This cuts both ways — it enables powerful alignment techniques, but also means that small amounts of training data can have outsized negative effects. We emphasise that it is *still* possible to make deep changes to the model, even in post-training — but these will, in general, again require large compute investments.
+
+</TeachingNote>
+
+<TeachingNote title="Teaching Guide">
+
+The session is 30 minutes of discussion followed by 45 minutes of presentation.
+
+**Opening.** Briefly outline the story of post-training: a small amount of compute will likely produce shallow changes (parameter-wise, mostly chaining existing heuristics), but these can be behaviourally large — the model's outputs can look markedly different.
+
+**Discussion (30 min).** The goal is to get students to reinvent the actual methods used in practice. When a student proposes something that matches a real method, name it, write it on a sticky note, and put it on the board. Guide the conversation through three blocks:
+
+*Block 1: Deliberative alignment and confessions.* Set up the scenario: you've already done some post-training and have a reasoning model that generates a long chain of thought before answering. You notice it doesn't always follow your company's safety policies. If you put all the policies into its context window, it tends to follow them, though it sometimes wastes time on irrelevant ones. Ask: what can you do? Steer toward deliberative alignment (train the model to consult the relevant policies in its CoT) and confessions (train the model to self-report whether it followed the policies, with a separate honesty reward).
+
+*Block 2: Constitutional AI and emergent misalignment.* Remind students that the model learned many personas during pre-training, and post-training influences which one it adopts. Ask: what happens if you fine-tune on data where the model writes insecure code without telling the user? Let them discover emergent misalignment — the model adopts a broadly misaligned persona. Then ask: what if the user explicitly asks for insecure code? Let them discover inoculation prompting — the misalignment disappears. Explain that one reason why inoculation prompting works could be that we shift from training the model to have the "gets asked for safe code, provides unsafe code => evil" persona to rather have a "gets asked for unsafe code => writes unsafe code => helpful" persona. Then ask: can we use this persona-shaping deliberately, for alignment? Steer toward Constitutional AI.
+
+*Block 3: Problems with unlearning.* Set up the scenario: your model knows how to synthesize bioweapons, and you fine-tune it to remove that knowledge by maximizing its loss on bioweapon-related data. Ask: how do you measure whether the removal worked? Steer toward the answer that fine-tuning the knowledge back in is the right robustness metric (as a proxy for what a red-teamer would do). Then ask: how robust do you expect this to be? Steer toward the answer: not very, because unlearning with little compute only makes surface-level changes on top of the vast representations built during pre-training.
+
+**Presentation (45 min).** Walk through the content section, following the slides. Repeat the overarching story: post-training is "leveraged" training on top of what already exists in the model — chaining heuristics, shifting representations. Whenever you reach a method that students proposed during the discussion, point to their sticky note on the board and make the connection explicit. Try to link the methods into a coherent narrative (e.g., confessions builds on the same CoT infrastructure as deliberative alignment; inoculation prompting explains why the educational control in the EM paper didn't produce misalignment). Close by repeating the high-level story one more time.
+
+</TeachingNote>
 
 We present three "slices" through what can change during post-training: the 'formatting' of responses (e.g. OpenAI's deliberative alignment), the persona the model associates with itself (e.g., Anthropic's constitutional AI), and the model's factual knowledge (e.g., synthetic document finetuning). These have intersections and do not cover the whole space of possible changes: ultimately, you can train the model in whichever way you like.
 
@@ -58,7 +136,31 @@ Post-training can also change the model's factual knowledge. [Synthetic document
 
 ### Deployment 1: strategy
 
-*Intent:* Once we want to release the model, we are no longer trying to shape it; we are trying to build and maintain a structured argument that releasing it makes sense, supported by enough evidence that other people — colleagues, regulators, the public — can inspect it, push on it, and decide whether to trust it. Frontier labs do this in different ways, but the underlying logic is shared, and it mirrors the structure of a *safety case*. In this module we lay out that logic in four steps; the next two modules go deep on the two technical steps of these four. This is important to understand for everyone, because in AI alignment more than in most other research areas, the goal *is* the application of our research, and that is governed by real-world constraints, regulations, and use-cases.
+<TeachingNote title="Intent">
+
+Once we want to release the model, we are no longer trying to shape it; we are trying to build and maintain a structured argument that releasing it makes sense, supported by enough evidence that other people — colleagues, regulators, the public — can inspect it, push on it, and decide whether to trust it. Frontier labs do this in different ways, but the underlying logic is shared, and it mirrors the structure of a *safety case*. In this module we lay out that logic in four steps; the next two modules go deep on the two technical steps of these four. This is important to understand for everyone, because in AI alignment more than in most other research areas, the goal *is* the application of our research, and that is governed by real-world constraints, regulations, and use-cases.
+
+</TeachingNote>
+
+<TeachingNote title="Teaching Guide">
+
+The session is 15 minutes of discussion followed by 15 minutes of presentation. Unlike the other deployment modules, this one is not trying to get students to reinvent technical methods — the content is a taxonomy of what deployment-time alignment actually involves, and the discussion is there to make the scope of that taxonomy feel real before the lecture formalises it.
+
+**Opening.** Briefly outline the shift: the model is trained, post-training is done, and the question is no longer how to shape the model but whether and how to put it into the world. Tell the students that this module is the framing module for the deployment section and that the next two go deep on specific pieces of it. Do not spoil the four-step structure yet.
+
+**Discussion (15 min).** The goal is to get students to feel that deployment-time alignment is much larger than they initially think. Open with a single broad question: "You've finished training the model. Everything we've covered so far — pretraining, post-training — is done. Your RL pipeline has shut down. What is there left to do before this model can be released into the world?" Let students throw out answers. The first few will be obvious (run benchmarks, red-team it, write a system card).
+
+When the room stalls, use the regulator prompt as a generator: "Now imagine an external regulator, or another lab's safety team, is going to read whatever you produce. What would they want to see that you haven't mentioned yet?" This should unlock a second wave — documentation, audit trails, external evaluations, ongoing reporting, compliance with legal frameworks, incident response procedures, the deployment context being spelled out explicitly. Keep writing contributions on the board as they come.
+
+Once the room has clearly slowed down, make the pivot that closes the discussion: point out that almost nothing students listed is about the model's weights. It is all about the system around the model and the argument that surrounds that system. Then pose the closing question without waiting for a full answer: "How would you actually hold all of this together? If you had to hand one document to that regulator, what shape would it be?" Let one or two students sketch ideas — they may propose something organised by risk, by tier, by timeline. Do not resolve the question. Tell them the lecture is about the shape real labs have converged on, and move into the presentation.
+
+**Presentation (15 min).** Walk through the content section. The content is a frame rather than a set of methods, and the frame needs to be stated cleanly to be useful. Open by answering the unresolved question from the discussion: the shape real labs have converged on is something close to a *safety case*.
+
+Then walk through the four steps in order: identifying risks, understanding the model's contribution, building and stress-testing the safety system, communicating and maintaining the case.
+
+Close by restating the thesis in fresh language: deployment is the work of building and maintaining a structured argument that release is acceptable, the safety case is the artifact that argument lives in, the four steps are how it gets built, and none of it is ever finished because the world the model goes into keeps changing. Hand off to Deployment 2 (the safety system and how it holds up under pressure).
+
+</TeachingNote>
 
 **Safety cases and RSPs.** A safety case, as defined by [UK AISI](https://www.aisi.gov.uk/blog/safety-cases-at-aisi), is "a structured argument, supported by a body of evidence, that provides a compelling, comprehensible, and valid case that a system is safe for a given application in a given environment." Three things are doing work in that sentence. First, it is a *claim* about safety that is explicit about the deployment context — not "the model is safe" but "the model is safe enough for this use, in this environment, against these risks." Second, it is a *structured argument* that links the claim to evidence. Third, the evidence itself is expected to be diverse: empirical results from capability and safety evaluations, conceptual arguments for why the methods work, and negative evidence from well-incentivized red teams that tried to break the safeguards and failed.
 
@@ -80,7 +182,29 @@ Pulling this back together: when we want to deploy a model, we need to build and
 
 ### Deployment 2: building the safety system
 
-*Intent:* Make it clear that when we deploy a model, we cannot prove it is safe. Instead, we make **statistical claims about its safety behaviour under pressure**: the deployed system — i.e., model plus runtime safeguards — is subjected to substantial adversarial effort. The strength of the safety claim is bounded by how hard we tried to break it. Two activities go hand in hand: **building out the safety system** around the model, and **red-teaming** that system to see where it cracks. The goal is not proving the impossibility of misuse but **making it impractical for a realistic adversary**, with the effort we invest into breaking the system scaling roughly with the capabilities of the model (which we characterized in the previous chapter).
+<TeachingNote title="Intent">
+
+Make it clear that when we deploy a model, we cannot prove it is safe. Instead, we make **statistical claims about its safety behaviour under pressure**: the deployed system — i.e., model plus runtime safeguards — is subjected to substantial adversarial effort. The strength of the safety claim is bounded by how hard we tried to break it. Two activities go hand in hand: **building out the safety system** around the model, and **red-teaming** that system to see where it cracks. The goal is not proving the impossibility of misuse but **making it impractical for a realistic adversary**, with the effort we invest into breaking the system scaling roughly with the capabilities of the model (which we characterized in the previous chapter).
+
+</TeachingNote>
+
+<TeachingNote title="Teaching Guide">
+
+The session is 30 minutes of discussion followed by 30 minutes of presentation.
+
+**Opening.** Briefly outline the story of this part of model deployment. We now have a trained model, and an understanding of what it can do and where it might be fragile, and we want to build a safety system around it to be able to safely deploy it.
+
+**Discussion (30 min).** The goal is to get students to reinvent the structure of the deployed safety system and the basic taxonomy of red-teaming methods. When a student proposes something that matches a real method, name it, write it on a sticky note, and put it on the board.
+
+*Block 1: Runtime safeguards.* Set up the scenario: you've deployed a model and discovered that it sometimes complies with a kind of harmful request you trained it to refuse. What do you do? Someone will likely propose going back and retraining. Push on this: retraining is slow, expensive, and hard to even reproduce reliably for some failures. Steer toward the idea of adding something external to the model that runs at inference time and can be patched cheaply when problems show up. Once they're there, ask what shape this external thing should take — let them propose input/output classifiers, and name Constitutional Classifiers when they do. Then ask: these run on every query, so what becomes important? Steer toward inference cost, and mention the two solutions (hierarchies of cheap-to-expensive classifiers, and reusing the base model's own activations) without dwelling on either. Finally, ask: does scoring single outputs make sense for an agent that takes many steps with tools? Let them discover trajectory monitoring, and name OpenAI's coding agent monitors. If time allows, mention access controls as a forward-looking idea that doesn't apply one global policy to every query.
+
+*Block 2: How do we even talk about safety?* Pose the question directly: suppose you've built this whole safety system. How would you persuade someone — yourself, a regulator, the public — that it's actually safe? Let students struggle for a minute. They will likely propose benchmarks or evaluation suites; accept this, then push: what does it mean to "pass"? Steer toward the realisation that we cannot prove anything, and that what we can do is report **how much adversarial effort the system withstood before breaking**. Name this as the central idea of the module: safety claims are effort-bounded statistical claims, not proofs. Mention briefly that internal red teams at the labs and external bodies like UK AISI run open-ended attempts and report how long it took experts to find a universal jailbreak.
+
+*Block 3: How do we put pressure on the system?* Ask: imagine you're the red team, how would you actually try to break the model? Let students brainstorm. Steer the conversation by access level. Start with: what if the model's weights are public — what can you do then? Don't try to make them invent the refusal direction paper, but lead them to the realisation that with full access, the attacker can directly find and disable whatever internal mechanism causes refusal, and that this is essentially a solved problem. Note the consequence: open-weight model safety can't really be refusal training, it has to be unlearning, and unlearning isn't robust. Then move to black box: only queries, no weights. Let students propose narrative attacks (grandma exploit) and name them, then push: are there attacks that don't try to *persuade* the model at all, but just exploit the fact that it's a piece of statistical software? Hint if needed: what happens if you push the model out of the distribution it was trained on? Steer toward very long contexts (many-shot jailbreaking, CoT hijacking), simple resampling (best-of-N), naming each as it comes up. Close the block with transfer: ask whether anyone has heard of the platonic representation hypothesis, and once it's named, ask what an attacker could do with the fact that different models trained similarly have similar internal representations. Steer them to the answer: optimize an attack against an open-source model where you have white-box access, and deploy it against the closed-source target.
+
+**Presentation (30 min).** Walk through the content section, following the slides. Repeat the overarching story: we cannot prove the system is safe, so we build defences and then put adversarial pressure on them, and the strength of every safety claim is exactly the strength of the red-teaming behind it. Whenever you reach a method that students proposed during the discussion, point to their sticky note on the board and make the connection explicit. The narrative spine is: runtime safeguards → the effort-bounded notion of safety → access-level taxonomy of jailbreaks → the takeaway. Time is tight, so prioritise this spine over any individual paper — if you have to cut, cut details about specific methods rather than the conceptual transitions between sections. If you have time, cover the fine-tuning API access level briefly here even though it didn't come up in the discussion (Jailbreak-Tuning is the key pointer). Close by repeating the high-level story one more time: a deployed model never stands on its own, but is surrounded by a safety *system*. The system is never proven safe, only empirically resistant to a measured amount of effort, and that number is what every safety claim ultimately rests on.
+
+</TeachingNote>
 
 **Runtime safeguards.** Some of the model's safety is already in place by the time we get to deployment. Pretraining shaped its priors over personas and limited what it knows; post-training trained the helpful-and-harmless assistant on top of that, and techniques like deliberative alignment and confessions taught the model to reflect on whether its own outputs follow the rules. But none of this is going to be perfect, and the residual problems are expensive to fix at the source — going back and retraining is slow, and some failures are hard to even reproduce reliably enough to train against. So we do something cheaper and more modular: we wrap the model in **external safeguards that run alongside it at inference time**, and patch those when problems show up.
 
