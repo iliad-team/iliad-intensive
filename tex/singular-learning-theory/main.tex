@@ -263,7 +263,7 @@ somewhat comfortable with deep learning and Bayesian inference, skip
         \cref{ex:univariate-degeneracy,ex:cubic-degeneracy}.
         Complete either \cref{ex:dln-degeneracy} or \ref{ex:mlp-degeneracy}.
         Read \cref{sec:degeneracy:hessian} and complete your choice of
-            Exercises~\ref{ex:loss-landscape-degeneracy} and/or \ref{ex:fim-hessian}.
+            \cref{ex:loss-landscape-degeneracy} and/or \cref{ex:fim-hessian}.
     \item
         To understand the local learning coefficient via volume scaling:
         Read \cref{sec:llc:volume-scaling} and complete
@@ -1847,12 +1847,12 @@ The key takeaway from this exercise is that the dimension of the model controls 
         \item Prove that $V(\epsilon) \propto \epsilon^{d'/2}$
         
         \begin{hint}
-Use the volume of the ellipsoid from Exercise \ref{ex:llc-regular-case}
+Use the volume of the ellipsoid from \cref{ex:llc-regular-case}
         \end{hint}
     \end{enumerate}
 \end{exercise}
 
-In this example, the degenerate directions do not contribute to the leading exponent of $V(\epsilon)$. We see that the exponent $\frac{d}{2}$ from Exercise \ref{ex:llc-regular-case} is replaced with $\frac{d'}{2}$ where $d'$ is the codimension of $\W_0$ i.e. the \textit{effective dimension} of $L$ which ignores the degenerate directions. This suggests that we can capture information about the degree of degeneracy of a loss function by looking at how the volume $V(\epsilon)$ scales as $\epsilon \to 0$. \cite{Watanabe2009} proves a general form for this kind of volume scaling which has been adapted by \cite{Lau+2025} into the following definition.
+In this example, the degenerate directions do not contribute to the leading exponent of $V(\epsilon)$. We see that the exponent $\frac{d}{2}$ from \cref{ex:llc-regular-case} is replaced with $\frac{d'}{2}$ where $d'$ is the codimension of $\W_0$ i.e. the \textit{effective dimension} of $L$ which ignores the degenerate directions. This suggests that we can capture information about the degree of degeneracy of a loss function by looking at how the volume $V(\epsilon)$ scales as $\epsilon \to 0$. \cite{Watanabe2009} proves a general form for this kind of volume scaling which has been adapted by \cite{Lau+2025} into the following definition.
 
 \begin{definition}[Local learning coefficient]
 \label{def:llc}
