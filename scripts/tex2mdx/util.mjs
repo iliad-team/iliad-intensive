@@ -63,3 +63,48 @@ export const CHILD = "\u0002";
 export const tidy = (s) =>
   s.replace(/^(?:[ \t]|\u0001)+/gm, (m) => " ".repeat((m.match(/\u0001/g) ?? []).length))
     .replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+// ---------------------------------------------------- front-matter order ---
+// Every sheet opens the same way (docs/commands.md §"Front matter opens the
+// sheet"): the overview lives in the header as `summary:` (never a body
+// section), then video embeds, then Prerequisites, then the learning-outcomes
+// box, then the content. The mirror rule is "Further reading goes last".
+//
+// This is the shared judgment; the LaTeX path (tex2mdx.mjs) and the MDX path
+// (build-content.mjs) each extract the positions from their own syntax and
+// report the returned issues as non-fatal warnings — order is style, never
+// fatal.
+//
+// Each field is null (absent) or {at, needle}: a source offset plus a snippet
+// that locates it for file:line reporting (the MDX path passes no needle and
+// derives the line from `at` instead — each issue carries the offending
+// item's offset back out).
+export function frontMatterOrderIssues({ overview, video, prereqs, outcomes, content }) {
+  const issues = [];
+  if (overview) issues.push({
+    msg: 'an "Overview" section in the body — the overview is the header\'s job: fold it into `summary:` and drop the section',
+    needle: overview.needle, at: overview.at,
+  });
+  // Only the opening run is held to the order: a video embedded after the
+  // content has started is illustrating a point, not front matter.
+  const vid = video && (!content || video.at < content.at) ? video : null;
+  const seq = [
+    ["the video embed", vid],
+    ["the Prerequisites section", prereqs],
+    ["the learning-outcomes box", outcomes],
+  ].filter(([, p]) => p);
+  for (let i = 1; i < seq.length; i++) {
+    if (seq[i][1].at < seq[i - 1][1].at) issues.push({
+      msg: `${seq[i - 1][0]} sits after ${seq[i][0]} — the front matter order is video embeds, then Prerequisites, then the learning outcomes`,
+      needle: seq[i - 1][1].needle, at: seq[i - 1][1].at,
+    });
+  }
+  if (content) {
+    for (const [what, p] of seq) {
+      if (p.at > content.at) issues.push({
+        msg: `${what} sits after the sheet's content has started — front matter opens the sheet, before the first content section`,
+        needle: p.needle, at: p.at,
+      });
+    }
+  }
+  return issues;
+}

@@ -140,8 +140,9 @@ that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
        \end{learningoutcomes}
       ```
       lists the learning outcomes of the material; renders as a
-      "What you'll learn" box wherever you put it (usually right after
-      `\maketitle`). For a longer sheet, group the outcomes under
+      "What you'll learn" box wherever you put it (after Prerequisites —
+      see `docs/commands.md` §"Front matter opens the sheet" for the fixed
+      opening order). For a longer sheet, group the outcomes under
       `\subsection*{...}` headings, each followed by its own `itemize`.
     * The `%--- iliad ---` comment block at the very top of `main.tex` holds
       simple one-line YAML values — usually just the cluster the page is
