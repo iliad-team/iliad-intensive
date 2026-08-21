@@ -8,8 +8,8 @@
  *   this file  parse + emit (the stage the unified-latex port will replace)
  *
  * Design: copy prose and math byte-for-byte; translate only known markup;
- * fail loud (file:line WARN + visible TODO marker) on anything unrecognised.
- * Cross-references come from LaTeX's own .aux. Exit code 2 on warnings.
+ * fail loud (file:line ERROR + visible TODO marker) on anything unrecognised.
+ * Cross-references come from LaTeX's own .aux. Exit code 2 on errors.
  *
  * Usage: tex2mdx.mjs input.tex [-o out.mdx] [--aux f.aux] [--tikz-dir d]
  *        [--tikz-src /url/prefix/] [--no-render-tikz]
@@ -233,8 +233,8 @@ function parseIliadBlock(raw) {
   return out.length ? out : null;
 }
 const iliadBlock = parseIliadBlock(rawTex);
-// A present-but-misspecified block is a hard failure (WARN => exit 2);
-// a missing block only draws an advisory (TODO placeholders are emitted).
+// A present-but-misspecified block is a hard failure (ERROR => exit 2);
+// a missing block only draws a warning (TODO placeholders are emitted).
 // The parsed frontmatter block, kept for the summary checks further down (a
 // `summary: >-` block scalar is only readable through the YAML parser).
 let frontBlock = null;
@@ -279,6 +279,25 @@ if (usesExerciseEnv && !iliadBlock) {
   for (const m of tex.matchAll(/\\label\{([^}]*)\}/g)) {
     if (seen.has(m[1])) warn(`duplicate \\label{${m[1]}} — labels must be unique within a worksheet`, m[0]);
     seen.add(m[1]);
+  }
+}
+{ // hand-rolled references drift when things renumber; \cref prints AND links
+  // the type word and follows the label wherever it goes. \eqref, \ref* (the
+  // number-only form used inside custom \hyperref text) and \crefrange are all
+  // fine and don't match here.
+  const code = tex.replace(/(^|[^\\])%.*$/gm, "$1"); // commented-out code is nobody's business
+  for (const m of code.matchAll(/\\ref\{([^}]*)\}/g)) {
+    advise(`plain \\ref{${m[1]}} — use \\cref (prints and links the type, and survives renumbering)`, m[0]);
+  }
+  // \hyperref whose visible text hand-writes a "Type N" — the number is frozen.
+  // Nested-brace text (the roadmap-node pattern carrying \ref*) never matches
+  // the flat [^{}]* group, which is exactly right: those pull their numbers
+  // from the label.
+  for (const m of code.matchAll(/\\hyperref\[[^\]]*\]\{([^{}]*)\}/g)) {
+    if (/\\ref\*?\{/.test(m[1])) continue;
+    if (/(Appendix|Appendices|Section|Chapter|Exercise|Problem|Theorem|Lemma|Proposition|Corollary|Definition|Example|Figure|Table|Remark|Callout)\s*~?\s*[A-Z0-9]/.test(m[1])) {
+      advise(`\\hyperref with hand-written reference text "${m[1].slice(0, 40)}" — use \\cref so the text tracks the label`, m[0]);
+    }
   }
 }
 // redefining the contract breaks the converter's guarantees
@@ -457,10 +476,46 @@ if (iliadBlock) {
     advise(`summary: is still a placeholder ("${declared.slice(0, 40)}") — the page ships it verbatim as its lede`);
 }
 
+// ---------------------------- video titles --------------------------------
+// \youtube with no [Title]: the web build queries the title from YouTube's
+// oEmbed endpoint (public, no API key) so the embed still gets a caption and
+// an accessible iframe title. Lookups are cached beside the output; a failed
+// lookup (offline CI, deleted video) degrades to an advisory and an untitled
+// embed. The PDF never sees any of this — pdflatex cannot fetch, and authors
+// compile on Overleaf with no build step — it prints the watch URL instead.
+const videoTitles = {};
+{
+  const wanted = new Set();
+  for (const m of body.matchAll(/\\youtube\s*(\[[^\]]*\])?\s*\{\s*([A-Za-z0-9_-]{11})\s*\}/g)) {
+    if (!m[1] || m[1] === "[]") wanted.add(m[2]);
+  }
+  if (wanted.size) {
+    const cachePath = path.join(path.dirname(output), ".video-titles.json");
+    let cache = {};
+    try { cache = JSON.parse(readFileSync(cachePath, "utf8")); } catch { /* cold cache */ }
+    let dirty = false;
+    for (const id of wanted) {
+      if (typeof cache[id] === "string") { videoTitles[id] = cache[id]; continue; }
+      try {
+        const watch = `https://www.youtube.com/watch?v=${id}`;
+        const r = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(watch)}&format=json`,
+          { signal: AbortSignal.timeout(5000) });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        videoTitles[id] = cache[id] = String((await r.json()).title ?? "").trim();
+        dirty = true;
+      } catch (e) {
+        advise(`\\youtube{${id}}: title lookup failed (${e.message}) — the embed ships untitled; pass [Title] to set one by hand`, id);
+      }
+    }
+    if (dirty) { try { writeFileSync(cachePath, JSON.stringify(cache, null, 2) + "\n"); } catch { /* cache is best-effort */ } }
+  }
+}
+
 // ------------------------------ run ---------------------------------------
 // AST emit (two passes handled inside emit-ast)
 const bodyMdx = tidy(emitDocument(body, {
   refs,
+  videoTitles,
   preamble,
   declaredThms,
   declaredEnvSigs: Object.fromEntries(Object.keys(declaredThms).map((e) => [e, { signature: "o" }])),
@@ -488,13 +543,13 @@ if (renderTikz) tikzRendered = renderTikzSnippets();
 
 console.log(`gdef macros: ${(gdef.match(/\\gdef/g) || []).length}  |  bib: ${Object.keys(BIB).length}  |  aux refs: ${Object.keys(refs).length}${tikzCount() ? `  |  tikz: ${tikzCount()} diagrams (${tikzRendered} newly rendered -> ${tikzDir})` : ""}`);
 const uniqW = Array.from(new Set(warnings.map(fmtIssue)));
-console.log(`WARN (${warnings.length} total, ${uniqW.length} unique):`);
+console.log(`ERROR (fails CI) (${warnings.length} total, ${uniqW.length} unique):`);
 console.log(uniqW.slice(0, 40).map((w) => "  - " + w).join("\n"));
 const uniqA = Array.from(new Set(advisories.map(fmtIssue)));
 if (uniqA.length) {
-  console.log(`NOTE (advisory, does not fail CI) (${uniqA.length}):`);
+  console.log(`NOTE (warning, does not fail CI) (${uniqA.length}):`);
   console.log(uniqA.slice(0, 40).map((a) => "  - " + a).join("\n"));
 }
 console.log(`Wrote ${output} (${result.split("\n").length} lines)`);
-// non-zero exit when anything WARN'd, so CI/hooks can gate on it (advisories don't count)
+// non-zero exit on any ERROR, so CI/hooks can gate on it (warnings don't count)
 if (warnings.length) process.exitCode = 2;

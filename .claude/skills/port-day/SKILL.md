@@ -146,7 +146,7 @@ the bullets. See `docs/commands.md` §"Learning outcomes and summary".
 | Prerequisites | keep as `## Prerequisites` |
 | Teaching guide → sessions, schedule | `## Roadmap for today` (student-facing parts only) |
 | Main content | `## Reading guide` |
-| Learn more | `## Further reading`, subsections and annotations preserved |
+| Learn more | `## Further reading`, subsections and annotations preserved — always the LAST section, just before any references |
 | Daily Checkpoint (quiz link) | **drop** |
 | Session Intent, Teaching notes | **drop** |
 | Notes for future iterations | **drop** |
@@ -176,6 +176,10 @@ contract. In outline:
 - Figures: inline `tikzpicture` (converter → SVG) or
   `figure`+`\includegraphics{fig/*.pdf}`. Citations: per-module `biblo.bib`,
   `\cite{}`, `\bibliographystyle{plain}`, `\bibliography{biblo}`.
+- A `Further reading` / `Learn more` section goes LAST — after all taught
+  content, just before `\bibliography` (or before `\appendix` if there is
+  one). If the source has it elsewhere, move it; the entries themselves stay
+  verbatim.
 - Never `\renewcommand`/`\renewenvironment` a contract name; never commit a
   local `iliad.sty`.
 

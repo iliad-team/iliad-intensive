@@ -41,7 +41,7 @@ together define the authoring contract.
   render gate only (fast). `--jobs N` sets parallel worksheet builds
   (default 4; worksheets are independent, logs are buffered per sheet).
   Non-zero exit on any failure, with the converter's `file:line` messages.
-  Converter WARNs fail the build; advisories don't.
+  Converter ERRORs fail the build; warnings don't.
 - `./run.sh watch [slug]` — live loop: dev server + fast rebuild on every save
   (scripts/watch.mjs; ignores LaTeX build artifacts to avoid loops).
 - `./run.sh ci` — the full CI ladder (content build + static site build).
@@ -79,7 +79,7 @@ together define the authoring contract.
   `slides-handout.pdf` (staged as `<slug>-slides-handout.pdf`), built by
   `\def`-ing the macro on the command line. A `slides:` frontmatter URL links
   an externally hosted deck instead (a compiled `slides.tex` wins). Every
-  worksheet with no `slides.tex` draws a non-fatal advisory (full build /
+  worksheet with no `slides.tex` draws a non-fatal warning (full build /
   `./run.sh ci` only, not `--check`).
 - Generated MDX is host-agnostic (`/uploads/…` URLs); the site's `Figure`
   component and download links apply `NEXT_PUBLIC_BASE_PATH` at render time.
@@ -93,6 +93,26 @@ together define the authoring contract.
   all of `scripts/`, and `schedule.yaml` — so touching the converter or the
   shared style rebuilds everything, as it must. `--no-cache` forces a rebuild;
   reach for it if you ever suspect a stale artifact.
+
+## Overflow check (math wider than the page)
+
+`node scripts/check-overflow.mjs [slug ...]` renders every built page in
+headless Chrome (no npm deps — system Chrome over the DevTools protocol) and
+warns about anything whose box crosses the content column's right edge:
+display math is the usual offender, but wide tables, `<pre>` and images are
+caught the same way. KaTeX offenders are reported with their **TeX source**
+(the wrapper's aria-label) and the nearest anchor id, so a warning greps
+straight back to a line in `tex/<slug>/main.tex`. `./run.sh ci` runs it after
+the site build as a **non-fatal advisory**; `--strict` makes it exit non-zero.
+
+The fix loop (human or agent): `./run.sh watch <slug>` in one terminal, then
+`node scripts/check-overflow.mjs <slug> --base-url http://localhost:3000`
+after each save — edit the reported equation (break/stack it; never change
+the maths) until the report is clean. Without `--base-url` it serves `out/`
+itself (needs a prior `./run.sh build`/`ci`), transparently handling the
+basePath a CI build bakes in. `--width N` (default 1366) sets the window
+width; the column is max-width-capped, so the default catches
+wider-than-column content — rerun with `--width 400` for phone layouts.
 
 ## CI & deploy
 
