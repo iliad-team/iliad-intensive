@@ -59,7 +59,8 @@ const CHECKER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx-check.mjs");
 const args = process.argv.slice(2);
 const CHECK_ONLY = args.includes("--check");
 // --no-gate skips the KaTeX render gate. The preview loop passes this: `next
-// build` renders the same math right after (via rehype-katex), so the gate is
+// build` renders the same math right after (via src/lib/remark-katex-html —
+// the gate here still uses rehype-katex, same KaTeX underneath), so the gate is
 // redundant there — a bad equation shows as a visible error in the browser
 // instead of failing the build. The full build / CI never pass it.
 const NO_GATE = args.includes("--no-gate");
@@ -114,6 +115,9 @@ const pexec = promisify(execFile);
 const exec = (cmd, argv, opts = {}) =>
   pexec(cmd, argv, { maxBuffer: 64 * 1024 * 1024, ...opts });
 
+// pdflatex invocation, shared by the worksheet and slides compile ladders.
+const PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
+
 // "No solutions" variants of every download format are derived by stripping
 // solution blocks from the source — so a handout (or an LLM prompt) can be
 // guaranteed spoiler-free. Solution environments never nest.
@@ -150,11 +154,38 @@ const stripTexSolutions = (tex) =>
   cutSpans(
     cutSpans(tex, /[ \t]*\\begin\{solution\}[\s\S]*?\\end\{solution\}[ \t]*\n?/g),
     /[ \t]*\\begin\{solutionsonly\}[\s\S]*?\\end\{solutionsonly\}[ \t]*\n?/g);
+// A footnote taken inside an answer leaves its definition behind when the
+// answer goes: the `[^3]` reference left with the <Solution>, but `[^3]: …`
+// still sits at the foot of the file. A renderer drops a definition nothing
+// references, so the PAGE is fine — the leak is the -nosol markdown download,
+// where a reader would find the answer's aside sitting there in full.
+const pruneOrphanFootnotes = (mdx) => {
+  const referenced = new Set(
+    [...mdx.matchAll(/\[\^([^\]\s]+)\](?!:)/g)].map((m) => m[1]));
+  const out = [];
+  let dropping = false;
+  for (const line of mdx.split("\n")) {
+    const def = /^\[\^([^\]\s]+)\]:/.exec(line);
+    if (def) {
+      dropping = !referenced.has(def[1]);
+      if (dropping) continue;
+    } else if (dropping) {
+      // An indented line continues the definition we are dropping. A blank one
+      // is kept either way: it may be the separator the next block needs.
+      if (/^[ \t]+\S/.test(line)) continue;
+      if (line.trim() !== "") dropping = false;
+    }
+    out.push(line);
+  }
+  return out.join("\n");
+};
+
 // MDX: strip only bare <Solution> answer blocks — titled ones
 // (<Solution title="Hint">, ...title="Proof">) stay, matching what
 // stripTexSolutions keeps in the .tex. Depth-aware because an answer may
 // itself contain a titled proof block. Also strip solutionsonly spans, which
 // the converter brackets with invisible {/* iliad:solutionsonly:* */} markers.
+// Whatever is left goes through pruneOrphanFootnotes on the way out.
 const stripMdxSolutions = (mdx) => {
   mdx = mdx.replace(
     /\n?\{\/\* iliad:solutionsonly:start \*\/\}[\s\S]*?\{\/\* iliad:solutionsonly:end \*\/\}[ \t]*\n?/g,
@@ -162,7 +193,7 @@ const stripMdxSolutions = (mdx) => {
   let out = "", i = 0;
   for (;;) {
     const s = mdx.indexOf("<Solution>", i);
-    if (s === -1) return out + mdx.slice(i);
+    if (s === -1) return pruneOrphanFootnotes(out + mdx.slice(i));
     let depth = 0, j = s;
     for (;;) {
       const o = mdx.indexOf("<Solution", j), c = mdx.indexOf("</Solution>", j);
@@ -170,7 +201,7 @@ const stripMdxSolutions = (mdx) => {
       if (o !== -1 && o < c) { depth++; j = o + "<Solution".length; }
       else { depth--; j = c + "</Solution>".length; if (depth === 0) break; }
     }
-    if (j === -1) return out + mdx.slice(i);   // unbalanced — leave untouched
+    if (j === -1) return pruneOrphanFootnotes(out + mdx.slice(i));   // unbalanced — leave untouched
     out += mdx.slice(i, s).replace(/[ \t]+$/, "");
     i = j + (mdx[j] === "\n" ? 1 : 0);
   }
@@ -233,9 +264,57 @@ const worksheetHash = (slug) => {
   hashDir(h, path.join(TEX, slug));                    // the sheet's own sources
   hashPath(h, path.join(TEX, "iliad.sty"));            // shared worksheet contract
   hashPath(h, path.join(TEX, "alphaurl.bst"));         // vendored bibliography style
-  hashDir(h, path.join(ROOT, "scripts"), true);        // converter + this build script
-  hashPath(h, path.join(ROOT, "schedule.yaml"));       // stamped into the frontmatter
+  // Only the scripts that can change a worksheet's ARTIFACTS. Hashing the whole
+  // scripts/ tree was safe but far too wide: build-status.mjs writes nothing but
+  // content/status.json, and preview.mjs / watch.mjs write nothing at all, yet
+  // touching any of them recompiled every PDF — measured at 66.6s for a change
+  // that could not alter a single byte of output.
+  hashPath(h, path.join(ROOT, "scripts", "build-content.mjs"));  // this ladder
+  hashPath(h, path.join(ROOT, "scripts", "schedule.mjs"));       // reads the schedule
+  hashDir(h, path.join(ROOT, "scripts", "tex2mdx"), true);       // the converter
+  // schedule.yaml is deliberately NOT hashed. Where a sheet sits in the course
+  // decides two frontmatter lines and nothing else — no PDF, no prose, no
+  // figure. Hashing it meant adding one day to the curriculum recompiled all
+  // eleven PDF ladders (66.6s measured). The stamp is verified against the
+  // schedule on every cache hit instead, and rewritten in place if it moved,
+  // which costs about a millisecond and cannot go stale.
   return h.digest("hex");
+};
+
+// The two frontmatter lines stampSchedule() owns, as they appear in a built MDX.
+const STAMP_RE = /^---\ncluster: (.*)\nday: (.*)\n/;
+
+/**
+ * Bring a cached worksheet's stamp back in line with schedule.yaml.
+ *
+ * Returns true if anything was rewritten. This is what makes it safe to leave
+ * schedule.yaml out of the hash: a cache hit still cannot ship a page claiming
+ * the wrong day, because the claim is checked here every time rather than being
+ * assumed from an unchanged input.
+ *
+ * The staged downloads are refreshed too — public/downloads/<slug>/<slug>.mdx is
+ * a copy of the stamped file (step 5), and -nosol.mdx is derived from it, so
+ * re-stamping only content/modules/ would leave the download disagreeing with
+ * the site about which day it belongs to.
+ */
+const restampIfMoved = (slug) => {
+  const sc = SCHEDULE.bySlug.get(slug);
+  if (!sc) return false;                       // unscheduled (the unlisted demo)
+  const mdxOut = path.join(MODULES, `${slug}.mdx`);
+  if (!existsSync(mdxOut)) return false;
+  const raw = readFileSync(mdxOut, "utf8");
+  const m = STAMP_RE.exec(raw);
+  if (!m) return false;                        // never stamped; not ours to fix
+  if (m[1] === String(sc.cluster) && m[2] === String(sc.day)) return false;
+
+  const updated = `---\ncluster: ${sc.cluster}\nday: ${sc.day}\n` + raw.slice(m[0].length);
+  writeFileSync(mdxOut, updated);
+  const dl = path.join(DOWNLOADS, slug);
+  if (existsSync(dl)) {
+    writeFileSync(path.join(dl, `${slug}.mdx`), updated);
+    writeFileSync(path.join(dl, `${slug}-nosol.mdx`), stripMdxSolutions(updated));
+  }
+  return true;
 };
 
 // A skip is only safe if everything downstream is already present. That includes
@@ -291,7 +370,14 @@ async function buildSlug(slug) {
   if (inputHash && !NO_CACHE && existsSync(stamp)
       && readFileSync(stamp, "utf8").trim() === inputHash
       && outputsPresent(slug)) {
-    return { ok: true, text: `↷ ${slug} cached (inputs unchanged)\n` };
+    // schedule.yaml is not an input to the hash, so a sheet that has been moved
+    // to another day still needs its two stamped lines corrected. Cheap, and it
+    // is what keeps the narrower hash honest.
+    const moved = restampIfMoved(slug);
+    return {
+      ok: true,
+      text: `↷ ${slug} cached (inputs unchanged)${moved ? " — re-stamped for schedule" : ""}\n`,
+    };
   }
   // Every TeX tool runs with the worksheet folder as cwd. BSTINPUTS adds the
   // shared tex/ dir to bibtex's style search path so tex/alphaurl.bst — vendored
@@ -300,6 +386,13 @@ async function buildSlug(slug) {
   // "then the normal search path", so a system copy still wins where present.
   // (tex/singular-learning-theory/far.bst already relies on bibtex finding a
   // repo-local style; this just hoists the trick to a shared location.)
+  // biblatex is deliberately NOT vendored the same way, and the reason is worth
+  // recording: biber checks the control file against an exact biblatex version,
+  // so a copy pinned to satisfy CI's biber breaks every local build against a
+  // different one. Style and backend have to come from the same place, which
+  // means the distro package — texlive-bibtex-extra is installed for it (see
+  // .github/workflows/site.yml), which is also why that 75 MB note above now
+  // describes history rather than the current package set.
   const tex = (...argv) =>
     exec(argv[0], argv.slice(1), {
       cwd: dir,
@@ -327,6 +420,20 @@ async function buildSlug(slug) {
       throw Object.assign(new Error(`bibtex (${base}): ${detail}`), { bibtex: true });
     }
   };
+  // A biblatex deck resolves its citations with biber instead: pdflatex writes
+  // a .bcf, biber reads it and produces the .bbl. Same fatal-on-failure stance
+  // as bibtex above, and for the same reason — a swallowed biber error still
+  // yields a deck that builds and looks fine, with every \cite rendered "[?]".
+  const biber = async (base) => {
+    try {
+      await tex("biber", base);
+    } catch (e) {
+      const out = `${e.stdout ?? ""}${e.stderr ?? ""}`;
+      const detail = out.split("\n").map((l) => l.trim()).filter(Boolean)
+        .find((l) => /^(ERROR|FATAL)/.test(l)) ?? String(e.message).split("\n")[0];
+      throw Object.assign(new Error(`biber (${base}): ${detail}`), { bibtex: true });
+    }
+  };
   const isTex = existsSync(path.join(dir, "main.tex"));
   // A worksheet MAY ship a slide deck as slides.tex (any dialect — usually
   // beamer). It is compiled to slides.pdf and hosted alongside the downloads;
@@ -348,7 +455,6 @@ async function buildSlug(slug) {
     // 1. PDF FIRST: the converter resolves \cref/\ref through LaTeX's .aux, so
     //    the compile must happen before conversion — a fresh CI checkout has no
     //    .aux, and converting without one reports every \cref as unresolved.
-    const PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
     const compile = async (base, src = `${base}.tex`) => {
       await tex(...PDFLATEX, `-jobname=${base}`, src);
       await bibtex(base);
@@ -414,7 +520,7 @@ async function buildSlug(slug) {
     }
 
     // 2. convert (tex → mdx + content-addressed SVGs). The converter exits 2 on
-    //    warnings and prints file:line messages — surface them verbatim.
+    //    errors and prints file:line messages — surface them verbatim.
     const convLog = path.join(dir, "convert.log");
     try {
       const { stdout, stderr } = await exec("node", [CONVERTER, path.join(dir, "main.tex"),
@@ -423,8 +529,15 @@ async function buildSlug(slug) {
         "--tikz-src", `/uploads/${slug}/`,
       ]);
       writeFileSync(convLog, `${stdout}${stderr ?? ""}`);   // warnings kept for inspection
-      const note = stdout.match(/NOTE \(advisory[^]*?(?=\nWrote )/);
-      if (note) notes.push(note[0].trim());
+      // The converter prints its non-fatal issues as one block of
+      // `  - file:line  msg` lines (paths relative to the worksheet dir).
+      // Re-emit each as a `⚠ warning:` note matching the build's own, with the
+      // path made repo-relative so it is unambiguous across worksheets.
+      const note = stdout.match(/NOTE \(warning[^]*?(?=\nWrote )/);
+      for (const l of note ? note[0].split("\n").slice(1) : []) {
+        const m = l.match(/^ {2}- (?:(\S+:\d+) {2})?(.*)$/);
+        if (m) notes.push(`⚠ warning: ${m[1] ? `${path.relative(ROOT, dir)}/${m[1]}  ` : ""}${m[2]}`);
+      }
     } catch (e) {
       const out = `${e.stdout ?? ""}${e.stderr ?? ""}`;
       writeFileSync(convLog, out);
@@ -446,19 +559,22 @@ async function buildSlug(slug) {
       return done(false, `main.mdx frontmatter sets \`${owned.join("`, `")}\` — ` +
         "that lives in schedule.yaml (list the slug under its day) and is stamped in at build time");
     }
-    // Same summary advisory the converter emits for a LaTeX sheet (see
+    // Same summary warning the converter emits for a LaTeX sheet (see
     // tex2mdx.mjs) — an MDX sheet never reaches the converter, so it needs its
-    // own. Advisory, never fatal: the summary is the page's lede and its index
+    // own. Non-fatal, always: the summary is the page's lede and its index
     // blurb, and `summary: TODO` is what a port leaves behind when the source
     // had no summary to transcribe.
+    const relMdx = path.relative(ROOT, path.join(dir, "main.mdx"));
     const declared = YAML.parse(front)?.summary;
     const summary = typeof declared === "string" ? declared.trim() : null;
+    const sumAt = raw.match(/^summary:/m)?.index;
+    const sumLoc = sumAt == null ? "" : `${relMdx}:${raw.slice(0, sumAt).split("\n").length}  `;
     if (declared === undefined)
-      notes.push("⚠ advisory: no `summary:` in main.mdx frontmatter — the page and its index entry show no lede");
+      notes.push(`⚠ warning: no \`summary:\` in ${relMdx} frontmatter — the page and its index entry show no lede`);
     else if (!summary)
-      notes.push("⚠ advisory: `summary:` in main.mdx frontmatter is empty — the page and its index entry show no lede");
+      notes.push(`⚠ warning: ${sumLoc}\`summary:\` is empty — the page and its index entry show no lede`);
     else if (/^todo\b/i.test(summary))
-      notes.push(`⚠ advisory: \`summary:\` is still a placeholder ("${summary.slice(0, 40)}") — the page ships it verbatim as its lede`);
+      notes.push(`⚠ warning: ${sumLoc}\`summary:\` is still a placeholder ("${summary.slice(0, 40)}") — the page ships it verbatim as its lede`);
     copyFileSync(path.join(dir, "main.mdx"), mdxOut);
 
     // No PDF, by design. LaTeX is the format that becomes a PDF; MDX is the
@@ -484,20 +600,26 @@ async function buildSlug(slug) {
   //     `handout` to the beamer class and drop its \pause reveals. That lands
   //     as slides-handout.pdf next to the presentation build. Decks with no
   //     reveals never mention \HANDOUT and so build once, as before.
-  const hasHandout = hasSlidesTex
-    && /\\HANDOUT\b/.test(readFileSync(path.join(dir, "slides.tex"), "utf8"));
+  const slidesSrc = hasSlidesTex ? readFileSync(path.join(dir, "slides.tex"), "utf8") : "";
+  const hasHandout = /\\HANDOUT\b/.test(slidesSrc);
+  // Which bibliography pass this deck needs. The house decks use bibtex +
+  // alphaurl; a deck that loads biblatex (C.2's, carried over as its author
+  // wrote it) needs biber instead. Detected from the source so a deck never has
+  // to declare its toolchain, and so importing an upstream deck verbatim does
+  // not mean rewriting its citation machinery to match ours.
+  const bibPass = /\\usepackage(\[[^\]]*\])?\{biblatex\}|\\addbibresource/.test(slidesSrc)
+    ? biber : bibtex;
   if (!CHECK_ONLY && hasSlidesTex) {
-    const SLIDES_PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
     // exec() passes argv straight through (no shell), so the \def wrapper needs
     // no quoting beyond JS's own backslash escapes.
     const variants = [["slides", "slides.tex"]];
     if (hasHandout) variants.push(["slides-handout", "\\def\\HANDOUT{}\\input{slides}"]);
     for (const [job, src] of variants) {
       try {
-        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
-        await bibtex(job);
-        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
-        await tex(...SLIDES_PDFLATEX, `-jobname=${job}`, src);
+        await tex(...PDFLATEX, `-jobname=${job}`, src);
+        await bibPass(job);
+        await tex(...PDFLATEX, `-jobname=${job}`, src);
+        await tex(...PDFLATEX, `-jobname=${job}`, src);
       } catch (e) {
         if (e?.bibtex) return done(false, e.message);
         const log = path.join(dir, `${job}.log`);
@@ -509,7 +631,7 @@ async function buildSlug(slug) {
     }
   }
 
-  // 2.6 slides advisory (full build only — not the --check watch/pre-push
+  // 2.6 slides warning (full build only — not the --check watch/pre-push
   //     loop): every worksheet ought to have a compilable deck. Never fatal.
   //     slides.tex → hosted PDF (ideal, no note); a `slides:` frontmatter URL
   //     → external PDF only; nothing → no deck at all.
@@ -520,8 +642,8 @@ async function buildSlug(slug) {
       if (fm) slidesUrl = (YAML.parse(fm[1]) ?? {}).slides ?? null;
     } catch { /* frontmatter validity is the render gate's problem */ }
     notes.push(slidesUrl
-      ? "⚠ advisory: slides only in PDF form (external `slides:` link, no LaTeX source to build)"
-      : "⚠ advisory: no slides for this worksheet (add slides.tex to build a deck, or a `slides:` frontmatter URL to link one)");
+      ? "⚠ warning: slides only in PDF form (external `slides:` link, no LaTeX source to build)"
+      : "⚠ warning: no slides for this worksheet (add slides.tex to build a deck, or a `slides:` frontmatter URL to link one)");
   }
 
   // 3. author figures: fig/*.pdf → public/uploads/<slug>/*.svg; web-native
@@ -658,7 +780,7 @@ if (!failed) {
 try {
   const s = buildStatus({ check: CHECK_ONLY, schedule: SCHEDULE });
   const n = s.counts.decksBuilt;
-  console.log(`status.json: ${s.counts.live}/${s.counts.days} days live, ` +
+  console.log(`status.json: ${s.counts.live}/${s.counts.days - s.counts.neverPort} days live, ` +
     `${n} deck${n === 1 ? "" : "s"} built → /admin/status`);
 } catch (e) {
   console.error(`✗ ${e.message}`);

@@ -27,11 +27,13 @@ export const MACRO_SKIP = new Set([
   "\\crefrangeconjunction", "\\thesubsection",
   "\\section", "\\subsection", "\\subsubsection", "\\paragraph",
   "\\headrulewidth", "\\footrulewidth", "\\solutionlistskip",
-  // KaTeX has \llbracket/\rrbracket natively and renders them properly. The
-  // worksheets define them from kernel pieces ([\![ … ]\!]) only because
+  // KaTeX has \llbracket/\rrbracket natively and renders them properly.
+  // iliad.sty builds them from kernel pieces ([\![ … ]\!]) only because
   // stmaryrd costs ~79 MB of CI download for those two glyphs — a PDF-side
-  // workaround the web has no reason to inherit. Skipping the export leaves
-  // KaTeX's real glyphs in force; exporting would also \gdef them recursively.
+  // workaround the web has no reason to inherit. The converter never sees the
+  // package's own definitions, so these entries only catch a sheet that still
+  // defines them locally; skipping the export leaves KaTeX's real glyphs in
+  // force, where exporting would also \gdef them recursively.
   "\\llbracket", "\\rrbracket",
 ]);
 
@@ -123,7 +125,7 @@ export const CONTRACT_NAMES = new Set([
   "authorname", "affiliation",
   "definition", "theorem", "lemma", "proposition", "corollary", "fact", "example",
   "label", "cref", "Cref", "hint", "note", "important", "solutionbox", "exercisebox", "ifsolutions",
-  "solutionsonly", "pdfonly",
+  "solutionsonly", "pdfonly", "teachingnote", "youtube",
 ]);
 
 // Frontmatter describes the WORKSHEET. Where it sits in the course — its

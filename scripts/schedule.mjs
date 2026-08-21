@@ -29,7 +29,7 @@ const TEX = path.join(ROOT, "tex");
 export const SCHEDULE_FILE = path.join(ROOT, "schedule.yaml");
 
 /** Where a day's buildable source is, for a day with no worksheet yet. */
-export const SOURCE_KINDS = new Set(["ready", "readings", "partial", "missing"]);
+export const SOURCE_KINDS = new Set(["ready", "partial", "missing"]);
 
 export class ScheduleError extends Error {}
 const bad = (msg) => { throw new ScheduleError(msg); };
@@ -48,7 +48,7 @@ function worksheetsOnDisk() {
  *   clusters: {id: string, label: string, urlSlug: string}[],
  *   days: {code: string, cluster: string, title: string, lead: string,
  *          doc: string, source: {kind: string, url: string|null, note: string|null},
- *          slidesUrl: string|null, worksheets: string[]}[],
+ *          slidesUrl: string|null, port: "never"|null, worksheets: string[]}[],
  *   bySlug: Map<string, {slug: string, cluster: string, day: string,
  *          position: number, part: number, parts: number}>,
  *   order: string[],
@@ -108,7 +108,15 @@ export function loadSchedule() {
     if (!Array.isArray(c.days)) bad(`${where}: \`days\` must be a list`);
     for (const [di, d] of c.days.entries()) {
       const dWhere = `schedule.yaml: cluster ${id} days[${di}]`;
-      for (const k of ["code", "title", "lead", "doc", "source"]) {
+      // `port: never` marks a day that is deliberately not ported (taught from
+      // the Doc / hosted PDFs), so `source` — where the buildable source for a
+      // future port lives — is meaningless for it and must be absent.
+      if (d?.port !== undefined && d.port !== "never") {
+        bad(`${dWhere}: port: "${d.port}" — the only value is \`never\` (omit the key for a day that will be ported)`);
+      }
+      const neverPort = d?.port === "never";
+      const required = neverPort ? ["code", "title", "lead", "doc"] : ["code", "title", "lead", "doc", "source"];
+      for (const k of required) {
         if (!d?.[k]) bad(`${dWhere} is missing required key \`${k}\``);
       }
       const code = String(d.code);
@@ -120,7 +128,17 @@ export function loadSchedule() {
       if (implied !== id) {
         bad(`${dWhere}: day code "${code}" implies cluster "${implied}" but it is listed under cluster "${id}"`);
       }
-      if (!SOURCE_KINDS.has(d.source)) {
+      if (neverPort) {
+        if (d.source !== undefined) {
+          bad(`${dWhere}: \`source\` contradicts \`port: never\` — drop one (source says a port is awaited, port: never says none ever will be)`);
+        }
+        if (d.sourceUrl !== undefined) {
+          bad(`${dWhere}: \`sourceUrl\` contradicts \`port: never\` — nothing is awaiting porting`);
+        }
+        if (Array.isArray(d.worksheets) && d.worksheets.length) {
+          bad(`${dWhere}: day ${code} lists worksheets but is marked \`port: never\` — remove the flag (the day has been ported after all) or the worksheets`);
+        }
+      } else if (!SOURCE_KINDS.has(d.source)) {
         bad(`${dWhere}: source: "${d.source}" — must be one of ${[...SOURCE_KINDS].join(", ")}`);
       }
       let sheets = [];
@@ -150,8 +168,9 @@ export function loadSchedule() {
         title: String(d.title),
         lead: String(d.lead),
         doc: String(d.doc),
-        source: { kind: d.source, url: d.sourceUrl ?? null, note: d.note ?? null },
+        source: { kind: neverPort ? "never" : d.source, url: d.sourceUrl ?? null, note: d.note ?? null },
         slidesUrl: d.slides ?? null,   // day-level fallback deck (hosted elsewhere)
+        port: neverPort ? "never" : null,
         worksheets: sheets,
       });
     }
@@ -174,7 +193,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
           ? d.worksheets
               .map((w) => (d.worksheets.length > 1 ? `${d.code}.${s.bySlug.get(w).part} ${w}` : w))
               .join(d.worksheets.length > 1 ? "\n       " : ", ")
-          : `— not ported (${d.source.kind})`;
+          : d.port === "never" ? "— not for porting" : `— not ported (${d.source.kind})`;
         console.log(`  ${d.code.padEnd(4)} ${d.title}\n       ${sheets}`);
       }
     }

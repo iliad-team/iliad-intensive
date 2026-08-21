@@ -101,11 +101,9 @@ export function buildStatus({ check = false, schedule } = {}) {
       title: d.title,
       lead: d.lead,
       doc: d.doc,
-      // `declared` is what the schedule says the source situation is; `kind` is
-      // what's true now (the two differ once the day has a worksheet). Keeping
-      // both means porting a reading day doesn't erase that it IS a reading day.
-      source: { ...d.source, declared: d.source.kind },
+      source: { ...d.source },
       slidesUrl: d.slidesUrl,
+      port: d.port,   // "never" = deliberately not ported; grey on the page
       modules: [],
     });
   }
@@ -143,7 +141,12 @@ export function buildStatus({ check = false, schedule } = {}) {
     : [];
   for (const slug of builtSlugs) {
     if (scheduled.has(slug)) continue;
-    if (!existsSync(path.join(TEX, slug))) continue;   // stale artifact of a removed worksheet
+    // Stale artifact of a removed or renamed worksheet. Test for the SOURCE,
+    // not the directory: CI restores tex/*/.build-hash and tex/*/*.pdf from
+    // the worksheet cache, which recreates the old folder on disk after a
+    // rename, so a directory check here fails the build on debris.
+    const src = ["main.tex", "main.mdx"].some((f) => existsSync(path.join(TEX, slug, f)));
+    if (!src) continue;
     if (frontmatterOf(slug)?.unlisted === true) continue;
     bad(`tex/${slug}/ is not listed by any day in schedule.yaml — add the slug under its ` +
         "day's `worksheets:` (or set `unlisted: true` in its frontmatter to keep it off the course)");
@@ -172,9 +175,8 @@ export function buildStatus({ check = false, schedule } = {}) {
       live: list.filter((d) => d.live).length,
       decksBuilt: list.filter((d) => d.slides.kind === "built").length,
       decksHosted: list.filter((d) => d.slides.kind === "external").length,
-      // by what the day IS, not by whether it happens to be ported
-      readingDays: list.filter((d) => d.source.declared === "readings").length,
       awaitingSource: list.filter((d) => d.source.kind === "missing" || d.source.kind === "partial").length,
+      neverPort: list.filter((d) => d.port === "never").length,
     },
   };
   writeFileSync(OUT_FILE, JSON.stringify(status, null, 2) + "\n");
@@ -185,7 +187,7 @@ export function buildStatus({ check = false, schedule } = {}) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const s = buildStatus();
-    console.log(`status.json: ${s.counts.live}/${s.counts.days} days live → /admin/status`);
+    console.log(`status.json: ${s.counts.live}/${s.counts.days - s.counts.neverPort} days live → /admin/status`);
   } catch (e) {
     console.error(e instanceof DataError || e instanceof ScheduleError ? `✗ ${e.message}` : e);
     process.exit(1);

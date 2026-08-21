@@ -74,6 +74,11 @@ _minted*/
 # misc
 .DS_Store
 
+# raw source material handed over by day leads — zips, clones, decks. The
+# canonical read-only drop for porting; never committed. `UNSORTED/` is the
+# old `repos/` clone pile, moved here.
+_source_material/
+
 # cloned source repos for MATERIAL.md hunt (see MATERIAL.md handoff)
 repos/
 

@@ -54,6 +54,8 @@
 %   \begin{proof} ... \end{proof}            (amsthm; collapsible on the web)
 %   \begin{callout}[note|tip|warning] ... \end{callout}
 %   \begin{remark} ... \end{remark}          (aside; note callout on the web)
+%   \begin{teachingnote}[Title] ... \end{teachingnote}
+%       teacher-facing aside; a collapsed drop-down on the web.
 %   definition / theorem / lemma / proposition / corollary / fact / example
 %       amsthm environments sharing one counter, numbered within section.
 %
@@ -113,6 +115,26 @@
 \ifiliad@boxes
   \RequirePackage{tcolorbox}
   \tcbuselibrary{breakable}
+  % ------------------------------------------------------- web palette ---
+  % The SAME colours the website gives each box (src/lib/mdx.tsx, Tailwind),
+  % so the PDF and the web page read as one artifact. Each box is a light
+  % "-50" background with its "-300"/"-500" border colour. If the site's
+  % styling changes, change these to match — the site is the reference.
+  \definecolor{iliadOrange50}{HTML}{FFF7ED}   % exercise      bg-orange-50
+  \definecolor{iliadOrange300}{HTML}{FDBA74}  % exercise      border-orange-300
+  \definecolor{iliadIndigo50}{HTML}{EEF2FF}   % definition    bg-indigo-50
+  \definecolor{iliadIndigo300}{HTML}{A5B4FC}  % definition    border-indigo-300
+  \definecolor{iliadViolet50}{HTML}{F5F3FF}   % theorem fam.  bg-violet-50
+  \definecolor{iliadViolet500}{HTML}{8B5CF6}  % theorem fam.  border-violet-500
+  \definecolor{iliadSky50}{HTML}{F0F9FF}      % note/remark   bg-sky-50
+  \definecolor{iliadSky500}{HTML}{0EA5E9}     % note/remark   border-sky-500
+  \definecolor{iliadEmerald50}{HTML}{ECFDF5}  % tip/example   bg-emerald-50
+  \definecolor{iliadEmerald500}{HTML}{10B981} % tip/example   border-emerald-500
+  \definecolor{iliadAmber50}{HTML}{FFFBEB}    % warning       bg-amber-50
+  \definecolor{iliadAmber500}{HTML}{F59E0B}   % warning       border-amber-500
+  \definecolor{iliadZinc50}{HTML}{FAFAFA}     % teaching note bg-zinc-50
+  \definecolor{iliadZinc200}{HTML}{E4E4E7}    % solution/hint/outcomes border-zinc-200
+  \definecolor{iliadZinc300}{HTML}{D4D4D8}    % teaching note border-zinc-300
 \fi
 \RequirePackage{hyperref}
 \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
@@ -129,14 +151,18 @@
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{example}[theorem]{Example}
 
+% Colours mirror the web components each environment converts to: the
+% theorem/lemma/proposition/corollary family is one violet box there (no
+% per-kind shade), fact and remark render as the blue note callout, and
+% example as the green tip callout.
 \ifiliad@boxes
-  \tcolorboxenvironment{definition}{colback=blue!3!white,  colframe=blue!40!white,  breakable, top=4pt, bottom=4pt}
-  \tcolorboxenvironment{theorem}{colback=red!3!white,      colframe=red!40!white,   breakable, top=4pt, bottom=4pt}
-  \tcolorboxenvironment{lemma}{colback=red!3!white,        colframe=red!25!white,   breakable, top=4pt, bottom=4pt}
-  \tcolorboxenvironment{proposition}{colback=red!3!white,  colframe=red!25!white,   breakable, top=4pt, bottom=4pt}
-  \tcolorboxenvironment{corollary}{colback=red!3!white,    colframe=red!25!white,   breakable, top=4pt, bottom=4pt}
-  \tcolorboxenvironment{fact}{colback=orange!4!white,      colframe=orange!50!white,breakable, top=4pt, bottom=4pt}
-  \tcolorboxenvironment{example}{colback=green!3!white,    colframe=green!40!black, breakable, top=4pt, bottom=4pt}
+  \tcolorboxenvironment{definition}{colback=iliadIndigo50,  colframe=iliadIndigo300, breakable, top=4pt, bottom=4pt}
+  \tcolorboxenvironment{theorem}{colback=iliadViolet50,     colframe=iliadViolet500, breakable, top=4pt, bottom=4pt}
+  \tcolorboxenvironment{lemma}{colback=iliadViolet50,       colframe=iliadViolet500, breakable, top=4pt, bottom=4pt}
+  \tcolorboxenvironment{proposition}{colback=iliadViolet50, colframe=iliadViolet500, breakable, top=4pt, bottom=4pt}
+  \tcolorboxenvironment{corollary}{colback=iliadViolet50,   colframe=iliadViolet500, breakable, top=4pt, bottom=4pt}
+  \tcolorboxenvironment{fact}{colback=iliadSky50,           colframe=iliadSky500,    breakable, top=4pt, bottom=4pt}
+  \tcolorboxenvironment{example}{colback=iliadEmerald50,    colframe=iliadEmerald500,breakable, top=4pt, bottom=4pt}
 \fi
 
 % -------------------------------------------------------------- exercise ---
@@ -147,7 +173,7 @@
 \Crefname{exercise}{Exercise}{Exercises}
 
 \ifiliad@boxes
-  \newtcolorbox{exercisebox}{colback=black!2!white, colframe=black!30!white,
+  \newtcolorbox{exercisebox}{colback=iliadOrange50, colframe=iliadOrange300,
     breakable, top=4pt, bottom=4pt}
 \fi
 
@@ -182,8 +208,10 @@
 % solution is bound to its exercise no matter where it sits (adjacent or in a
 % back-of-sheet section). Hidden entirely (PDF) when \solutionsfalse.
 \ifiliad@boxes
-  \newtcolorbox{solutionbox}[1]{colback=black!5!white, colframe=black!50!white,
-    title={#1}, fonttitle=\bfseries\normalsize, breakable}
+  % White body + zinc border, like the web's collapsible <details> box; the
+  % title bar keeps the zinc fill, so the label needs black text, not white.
+  \newtcolorbox{solutionbox}[1]{colback=white, colframe=iliadZinc200,
+    coltitle=black, title={#1}, fonttitle=\bfseries\normalsize, breakable}
 \fi
 
 \newenvironment{solution}[1][]{%
@@ -225,6 +253,31 @@
   \ifsolutions\else\expandafter\endcomment\fi
 }
 
+% ------------------------------------------------------- teaching note ---
+% \begin{teachingnote}[Session intent] ... \end{teachingnote} — an aside
+% addressed to whoever TEACHES the day rather than to the student reading the
+% sheet: what a session is for, and how the author ran it last time. The
+% optional argument is its label (default "Teaching note"). Kept in both PDF
+% variants and on the web, where it renders as a collapsed drop-down
+% (<TeachingNote>) so it stays out of the student's reading flow — a PDF has no
+% collapsing, so here it is a square-cornered grey box instead. Unnumbered and
+% unlabelled, like hint: there is nothing to \cref.
+\ifiliad@boxes
+  \newtcolorbox{iliadteachingnotebox}[1]{colback=iliadZinc50,
+    colframe=iliadZinc300, boxrule=0.4pt, sharp corners,
+    title={#1}, fonttitle=\bfseries\normalsize\scshape, coltitle=black!60!white,
+    breakable, top=4pt, bottom=4pt}
+\fi
+\newenvironment{teachingnote}[1][Teaching note]{%
+  \ifiliad@boxes
+    \begin{iliadteachingnotebox}{#1}%
+  \else
+    \par\medskip\noindent\textbf{#1.}\enspace\ignorespaces
+  \fi
+}{%
+  \ifiliad@boxes\end{iliadteachingnotebox}\else\par\medskip\fi
+}
+
 % -------------------------------------------------------------- pdf only ---
 % \begin{pdfonly} ... \end{pdfonly} — content kept in BOTH PDF variants but
 % dropped entirely from the web build by the converter (tex2mdx). For content
@@ -253,13 +306,16 @@
 % --------------------------------------------------------------- callout ---
 % \begin{callout}[note|tip|warning]  (default: note)
 \ifiliad@boxes
-  \newtcolorbox{iliadcalloutbox}[2]{colback=#2!4!white, colframe=#2!50!white,
-    title={#1}, fonttitle=\bfseries\normalsize, breakable, top=4pt, bottom=4pt}
+  % ([extra tcolorbox options], title, background colour, frame colour) —
+  % the web-palette pairs above; the optional first argument lets a caller
+  % override keys (learningoutcomes uses it for black-on-zinc title text).
+  \newtcolorbox{iliadcalloutbox}[4][]{colback=#3, colframe=#4,
+    title={#2}, fonttitle=\bfseries\normalsize, breakable, top=4pt, bottom=4pt, #1}
 \fi
 
-\newcommand{\iliad@calloutbegin}[2]{%
+\newcommand{\iliad@calloutbegin}[3]{%
   \ifiliad@boxes
-    \begin{iliadcalloutbox}{#1}{#2}%
+    \begin{iliadcalloutbox}{#1}{#2}{#3}%
   \else
     \par\medskip\noindent\textbf{#1.}\enspace\ignorespaces
   \fi
@@ -283,11 +339,14 @@
 \newenvironment{callout}[1][note]{%
   \refstepcounter{callout}%
   \ifstrequal{#1}{warning}%
-    {\def\iliad@co@color{red}\def\iliad@co@title{Warning}}%
+    {\def\iliad@co@back{iliadAmber50}\def\iliad@co@frame{iliadAmber500}%
+     \def\iliad@co@title{Warning}}%
     {\ifstrequal{#1}{tip}%
-      {\def\iliad@co@color{green!55!black}\def\iliad@co@title{Tip}}%
-      {\def\iliad@co@color{blue}\def\iliad@co@title{Note}}}%
-  \iliad@calloutbegin{\iliad@co@title}{\iliad@co@color}%
+      {\def\iliad@co@back{iliadEmerald50}\def\iliad@co@frame{iliadEmerald500}%
+       \def\iliad@co@title{Tip}}%
+      {\def\iliad@co@back{iliadSky50}\def\iliad@co@frame{iliadSky500}%
+       \def\iliad@co@title{Note}}}%
+  \iliad@calloutbegin{\iliad@co@title}{\iliad@co@back}{\iliad@co@frame}%
 }{%
   \iliad@calloutend
 }
@@ -297,7 +356,7 @@
 % (matching the tex -> MDX converter, which renders "**Remark (Encodings).**").
 \newenvironment{remark}[1][]{%
   \refstepcounter{remark}%
-  \iliad@calloutbegin{Remark\ifblank{#1}{}{ (#1)}}{blue}%
+  \iliad@calloutbegin{Remark\ifblank{#1}{}{ (#1)}}{iliadSky50}{iliadSky500}%
 }{%
   \iliad@calloutend
 }
@@ -308,7 +367,13 @@
 % \subsection*{...} headings, each followed by its own itemize. Both forms use
 % only standard commands (no special markup); see the example worksheet.
 \newenvironment{learningoutcomes}{%
-  \iliad@calloutbegin{What you'll learn}{blue}%
+  % White + zinc, like the web's "What you'll learn" box; black title text
+  % for the same reason as solutionbox.
+  \ifiliad@boxes
+    \begin{iliadcalloutbox}[coltitle=black]{What you'll learn}{white}{iliadZinc200}%
+  \else
+    \par\medskip\noindent\textbf{What you'll learn.}\enspace\ignorespaces
+  \fi
 }{%
   \iliad@calloutend
 }
@@ -324,7 +389,29 @@
 % hoisted into the web frontmatter, italic block in the PDF.
 \newenvironment{summary}{\begin{quotation}\noindent\itshape}{\end{quotation}}
 
+% ----------------------------------------------------------------- video ---
+% \youtube[Title]{VIDEO_ID} — a YouTube video, by its 11-character ID (the
+% v= value of the watch URL), NOT the full URL. On the web the converter
+% renders an embedded player; in the PDF this prints a "Video:" line with the
+% watch URL — clickable on screen, and readable on a printed sheet, where a
+% pretty link label would be lost.
+\newcommand{\youtube}[2][]{%
+  \par\medskip\noindent\textbf{Video\ifblank{#1}{}{ (#1)}:}\enspace
+  \url{https://www.youtube.com/watch?v=#2}%
+  \par\medskip
+}
+
 % ----------------------------------------------------------- conveniences ---
 \providecommand{\note}[1]{[\emph{Note:} #1]}
+
+% Iverson brackets. stmaryrd would supply these, but on Debian it arrives via
+% texlive-science, which hard-depends on texlive-lang-greek -- ~79 MB of CI
+% download for two glyphs, so they are built from kernel pieces instead.
+% \mathopen/\mathclose keep delimiter spacing correct. \providecommand, so a
+% sheet that does load stmaryrd keeps stmaryrd's real glyphs.
+% The web is unaffected either way: KaTeX has \llbracket natively, and the
+% converter never exports these (scripts/tex2mdx/shims.mjs, MACRO_SKIP).
+\providecommand{\llbracket}{\mathopen{[\![}}
+\providecommand{\rrbracket}{\mathclose{]\!]}}
 
 \endinput

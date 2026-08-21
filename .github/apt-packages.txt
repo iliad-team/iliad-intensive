@@ -1,0 +1,39 @@
+# The apt package set the site build needs — the ONE definition.
+# .github/workflows/site.yml installs exactly this list and keys its .deb
+# cache on this file's hash, so editing it (even a comment) re-keys the cache
+# automatically — there is no version suffix to remember to bump. ./setup.sh
+# installs the same set locally, probe-by-probe; keep the two in step.
+#
+# Keep the list lean: it is the biggest single cost of a cold CI run, and a
+# slow Ubuntu mirror can stall a download for 15+ minutes.
+#
+# texlive-science (4 MB) is absent ON PURPOSE: it hard-depends on
+# texlive-lang-greek (75 MB) and its only user here was stmaryrd, for two
+# bracket glyphs now built from kernel pieces. Likewise alphaurl.bst is
+# vendored at tex/alphaurl.bst (found via BSTINPUTS) rather than pulled in.
+
+texlive-latex-extra
+texlive-pictures
+texlive-fonts-recommended
+
+# Scalable CM fonts — needed by microtype's font expansion under [T1]{fontenc}.
+cm-super
+
+# pdftocairo/pdftoppm for the tikz-SVG and thumbnail pipeline.
+poppler-utils
+
+# The two halves a biblatex document needs (C.2's deck): biber, the backend
+# that reads the .bib and writes the .bbl, and biblatex.sty itself, which on
+# Ubuntu ships ONLY in texlive-bibtex-extra (79 MB — it earns its place; the
+# deck's 97 \source{} attributions are built on \DeclareCiteCommand, which has
+# no plain-bibtex equivalent). Vendoring biblatex alone does not work: biber
+# enforces an exact control-file version, so a pinned copy that satisfies CI's
+# biber 2.19 breaks every local build against TeX Live 2024's biber 2.20. The
+# distro pair is what keeps style and backend in step.
+biber
+texlive-bibtex-extra
+
+# Decks \usepackage{lmodern}. Only a *Recommends* of texlive-latex-recommended,
+# so --no-install-recommends drops it and the deck build dies on a missing
+# lmodern.sty. Named explicitly.
+lmodern

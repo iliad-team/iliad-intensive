@@ -1,1 +1,17 @@
-tex/**/fig/*.png filter=lfs diff=lfs merge=lfs -text
+# Figure assets go in as LFS pointers, never as raw blobs in the git history.
+# tex/**/fig/ is the only place the repo keeps committed images (everything
+# else under public/ and the build outputs is gitignored). List every raster
+# extension, not just the one a worksheet happened to use first: a .jpg landed
+# in a PR as a 304 KB blob because this file said "*.png" only.
+tex/**/fig/*.png  filter=lfs diff=lfs merge=lfs -text
+tex/**/fig/*.jpg  filter=lfs diff=lfs merge=lfs -text
+tex/**/fig/*.jpeg filter=lfs diff=lfs merge=lfs -text
+tex/**/fig/*.gif  filter=lfs diff=lfs merge=lfs -text
+tex/**/fig/*.webp filter=lfs diff=lfs merge=lfs -text
+
+# C.2's deck nests its figures per lecture under fig/
+# (fig/03_transformer_features/figures/elhage2022/…), and a single * does not
+# cross a /, so the lines above miss them. Match at any depth — without this,
+# 25 MB of PNGs enter git as raw blobs instead of LFS pointers.
+tex/**/fig/**/*.png  filter=lfs diff=lfs merge=lfs -text
+tex/**/fig/**/*.jpg  filter=lfs diff=lfs merge=lfs -text

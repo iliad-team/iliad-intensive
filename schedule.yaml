@@ -41,6 +41,14 @@
 #   title      required  The day's name, as the schedule calls it.
 #   lead       required  Who owns the material — the person to ask.
 #   doc        required  This day's tab in the big Google Doc (docs/LINKS.md).
+#   port       optional  `never` — this day is deliberately not ported: it runs
+#                        from the Doc (or from hosted PDFs) and no worksheet or
+#                        deck is planned. /admin/status shows it grey instead
+#                        of amber, and it drops out of the outstanding counts.
+#                        A `port: never` day may not list `worksheets:` or a
+#                        `source:` — either would contradict it (remove the
+#                        flag the day someone decides to port it after all).
+#                        `note:` and `slides:` still apply.
 #   worksheets optional  Slugs of tex/<slug>/ worksheets, in reading order.
 #                        Omit or leave empty for a day nobody has ported yet.
 #                        Several worksheets per day is normal (D.3 is
@@ -54,12 +62,11 @@
 #   source     required  Where the *buildable* source is for a day nobody has
 #                        ported yet. Ignored the moment the day has a
 #                        worksheet — /admin/status then shows "in repo"
-#                        instead, so this field can never rot into a lie. One
-#                        of:
+#                        instead, so this field can never rot into a lie. Every
+#                        day needs a worksheet and a deck unless it is marked
+#                        `port: never` (the one exemption — see below), which
+#                        replaces this field. One of:
 #                          ready     real source in hand, just needs porting in
-#                          readings  reading day — the reading list IS the
-#                                    material (it still gets a page: the
-#                                    reading guide, see A.1)
 #                          partial   something missing, or source unverified
 #                          missing   only compiled PDFs exist; nothing buildable
 #   sourceUrl  optional  Upstream repo, for `ready` / `partial`.
@@ -94,7 +101,7 @@ clusters:
         title: AI Alignment Introduction
         lead: Leon
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.ozdc2do4wrbw
-        source: readings
+        source: missing
         worksheets:
           - ai-alignment-intro
 
@@ -102,15 +109,17 @@ clusters:
         title: Alignment in Practice
         lead: Evzen
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.i1ocmcfi54i2
-        source: readings
+        source: missing
         note: deck exists as a Drive PDF only — add its URL as `slides:` when you have it
+        worksheets:
+          - alignment-in-practice
 
       - code: A.3
         title: Alignment in Practice 2
         lead: Garrett
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.g73qz582zioy
-        source: readings
-        note: reading + discussion day; the two discussion worksheets live in the Doc
+        port: never
+        note: reading + discussion day, run from the Doc — the two discussion worksheets live there
 
   - id: B
     label: B — Learning
@@ -120,7 +129,7 @@ clusters:
         title: Mysteries of Deep Learning
         lead: Garrett (Zach remote lecture)
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.do5apxz819k1
-        source: readings
+        source: missing
         note: deck exists as a Drive PDF only — add its URL as `slides:` when you have it
 
       - code: B.3
@@ -167,7 +176,9 @@ clusters:
         lead: Julian
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.alpz10jgotvn
         source: ready
-        sourceUrl: https://github.com/wusche1/Illiad_Mech_Interp
+        sourceUrl: https://github.com/iliad-team/iliad-intensive-C.2
+        worksheets:
+          - mechanistic-interpretability
 
       - code: C.3
         title: Computational Mechanics
@@ -180,8 +191,8 @@ clusters:
         title: Abstractions and Latents
         lead: Satya + Daniel Chiang
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.lzn2w9mlavru
-        source: missing
-        note: only compiled PDFs so far; the code lives on sourcehut
+        port: never
+        note: taught from the compiled PDFs; the code lives on sourcehut
 
   - id: D
     label: D — Agency
@@ -192,15 +203,19 @@ clusters:
         lead: Fernando
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.uqpqtto4ldg0
         source: ready
-        note: the RL half lives inside the decision-theory worksheet, not a separate one
         worksheets:
-          - decision-theory
+          - preferences-to-rewards
+          - reinforcement-learning
 
       - code: D.2
         title: Policy Gradients and Misgeneralization
         lead: David Q
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.hu1actdm586n
         source: missing
+        # Stub module: the recorded lecture only. The coding-day material
+        # itself is still unported (see source above).
+        worksheets:
+          - policy-gradients-misgeneralization
 
       - code: D.3
         title: AIXI
@@ -229,11 +244,19 @@ clusters:
         note: ships its own decision-theory-slides.tex
 
       - code: D.6
-        title: Instrumental Convergence / Doom Day
+        title: Instrumental Convergence
         lead: Leon
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.pefcteqoku51
-        source: readings
-        note: deck exists as a Drive PDF only — add its URL as `slides:` when you have it
+        source: ready
+        worksheets:
+          - power-seeking
+        note: >-
+          Leon handed the source over as a zip, not a repo. One worksheet holds
+          the whole day: the exercise sheet, with the Doc tab's roadmap and
+          reading lists folded in. The deck is his Marp deck
+          (`tex/power-seeking/slides_marp.md`) exported to PDF — the build
+          cannot compile Marp, so it is compiled by hand, hosted in Drive, and
+          linked from the worksheet's `slides:` rather than built.
 
   - id: E
     label: E — Safety Guarantees and their Limits

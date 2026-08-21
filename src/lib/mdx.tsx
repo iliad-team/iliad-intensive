@@ -7,10 +7,11 @@
 import { compileMDX } from "next-mdx-remote/rsc";
 import { createHash } from "node:crypto";
 import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
+import remarkGfm from "remark-gfm";
+import { remarkKatexHtml } from "./remark-katex-html";
 import rehypeSlug from "rehype-slug";
 import "katex/dist/katex.min.css";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 // basePath is applied automatically to <Link>/CSS/fonts but NOT to raw
 // <img src> attributes, so Figure prefixes it explicitly. Inlined at build
@@ -18,6 +19,49 @@ import type { ReactNode } from "react";
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 const components = {
+  /**
+   * a — every markdown link in a worksheet body. Internal cross-links are
+   * authored host-agnostic ("/agency/solomonoff-induction"), and MDX renders
+   * them as raw <a> tags, which — unlike <Link> — get no automatic basePath.
+   * Prefix it here, the same treatment Figure gives its src, or every
+   * cross-worksheet link 404s on GitHub Pages.
+   */
+  a: ({ href, ...rest }: ComponentProps<"a">) => (
+    <a
+      href={href?.startsWith("/") && !href.startsWith("//") ? `${BASE_PATH}${href}` : href}
+      {...rest}
+    />
+  ),
+
+  /**
+   * KatexHtml — a formula already rendered to markup by remarkKatexHtml.
+   *
+   * Not authored by hand; the plugin emits it in place of every `$…$` and
+   * `$$…$$`. It re-creates KaTeX's own outer wrapper (`katex` inline,
+   * `katex-display` for block) and injects the rest, so the DOM matches what
+   * rehype-katex used to produce while the RSC payload carries one string per
+   * formula instead of ~50 serialized React elements.
+   *
+   * The `html` is KaTeX's output, not user input: it is generated at build time
+   * from the worksheet's own TeX, which is already trusted enough to run
+   * through the LaTeX toolchain.
+   *
+   * `tex` is the formula's source, read out as the aria-label: the plugin
+   * renders with `output: "html"`, which omits the hidden MathML copy KaTeX
+   * would otherwise emit for screen readers (halving the markup), and KaTeX's
+   * visual tree is aria-hidden — without the label the formula would be
+   * silent.
+   */
+  KatexHtml: ({ html, tex, display }: { html: string; tex?: string; display?: boolean }) => (
+    <span
+      className={display ? "katex-display" : "katex"}
+      // No `tex` = the formula renders to nothing (a macro-definition block);
+      // labelling it would make screen readers announce the invisible.
+      role={tex ? "math" : undefined}
+      aria-label={tex || undefined}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  ),
   /**
    * Callout — coloured side-note for an important remark, warning, or tip.
    * Usage: <Callout type="note|warning|tip">body</Callout>
@@ -115,6 +159,36 @@ const components = {
   ),
 
   /**
+   * TeachingNote — collapsible aside addressed to whoever teaches the day, not
+   * to the student reading it: what a session is for, and how the author ran
+   * it. Collapsed so it stays out of the reading flow, and marked
+   * data-component so teacher-facing material is findable later (a strip, an
+   * index, a toggle) — which a plain <Callout> would not be.
+   * Usage: <TeachingNote title="Session intent">…</TeachingNote>
+   * The title is the label on the closed box; it defaults to "Teaching note".
+   */
+  TeachingNote: ({
+    title = "Teaching note",
+    children,
+  }: {
+    title?: string;
+    children: ReactNode;
+  }) => (
+    /* suppressHydrationWarning: same pre-hydration native-toggle race as
+       Solution above. */
+    <details
+      suppressHydrationWarning
+      className="my-3 rounded-md border border-dashed border-zinc-300 bg-zinc-50 px-3 py-2"
+      data-component="teaching-note"
+    >
+      <summary className="cursor-pointer font-sans text-xs uppercase tracking-[0.15em] text-zinc-500">
+        {title}
+      </summary>
+      <div className="mt-2">{children}</div>
+    </details>
+  ),
+
+  /**
    * Definition — coloured box; the converter puts the bold lead
    * ("**Definition 2.1 (entropy).**") in the body, so titles can carry math.
    * Usage: <Definition id="optional-anchor">**Definition 2.1 (RLCT).** …</Definition>
@@ -176,6 +250,49 @@ const components = {
       ) : null}
     </figure>
   ),
+
+  /**
+   * YouTube — embedded video player.
+   * Usage: <YouTube id="dQw4w9WgXcQ" title="…" />  (emitted for \youtube[Title]{ID})
+   *
+   * Privacy-enhanced host (youtube-nocookie.com: no tracking cookies until the
+   * viewer presses play), lazy-loaded. The caption always carries a plain watch
+   * link, so the video stays reachable where the iframe doesn't render —
+   * embedding disabled by the uploader, third-party frames blocked, or no JS.
+   */
+  YouTube: ({ id, title }: { id: string; title?: string }) => (
+    <figure className="my-6" data-component="youtube">
+      <div className="aspect-video w-full overflow-hidden rounded">
+        <iframe
+          src={`https://www.youtube-nocookie.com/embed/${id}`}
+          title={title ?? "YouTube video"}
+          loading="lazy"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+          className="h-full w-full border-0"
+        />
+      </div>
+      <figcaption className="mt-2 text-sm text-zinc-600">
+        {/* No title means the build-time lookup failed — usually a video that
+            is scheduled/unlisted and not public yet, or a bad ID. Say so
+            instead of showing a bare link, so the page reads as intentional. */}
+        {title ? (
+          <>{title} — </>
+        ) : (
+          <em>Title unavailable — video missing or not yet released. </em>
+        )}
+        <a
+          href={`https://www.youtube.com/watch?v=${id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-blue-600 hover:underline"
+        >
+          Watch on YouTube ↗
+        </a>
+      </figcaption>
+    </figure>
+  ),
 };
 
 // Compiled-output cache keyed on a hash of the raw MDX source. Pages are
@@ -194,11 +311,23 @@ export async function MdxBody({ source }: { source: string }) {
       components,
       options: {
         mdxOptions: {
-          remarkPlugins: [remarkMath],
-          // rehypeSlug before rehypeKatex so slugs come from plain heading text.
-          // `macros: {}` is a fresh per-compile object: a page's own `\gdef`
-          // macros persist across its math blocks but never leak between pages.
-          rehypePlugins: [rehypeSlug, [rehypeKatex, { strict: false, macros: {} }]],
+          // remarkKatexHtml renders the math remarkMath found, straight to an
+          // HTML string (see its header for why it replaces rehype-katex). It
+          // owns the per-page `\gdef` macro scope that `macros: {}` used to.
+          //
+          // remarkGfm is here for FOOTNOTES: `[^1]` references and their
+          // `[^1]: …` definitions, which the converter emits for LaTeX
+          // `\footnote{…}` and MDX authors can write directly. It also brings
+          // the rest of GFM, of which tables matter — the converter has always
+          // emitted `tabular` as a pipe table, and without this plugin those
+          // rendered as literal rows of `|`. It cannot disturb the math: a
+          // `$…$` span tokenizes as one math node whose body no other text
+          // construct is allowed to look inside.
+          remarkPlugins: [remarkMath, remarkGfm, remarkKatexHtml],
+          // Math is already a string by the time hast exists, so rehypeSlug no
+          // longer has to be ordered against it — headings only ever contain
+          // plain text or an opaque span.
+          rehypePlugins: [rehypeSlug],
         },
       },
     });

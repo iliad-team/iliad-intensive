@@ -50,11 +50,14 @@ around it (CI also rejects redefinitions of contract names).
 | `definition` `theorem` `lemma` `proposition` `corollary` `fact` `example` | envs | amsthm family sharing one per-section counter |
 | `proof` | env | amsthm; collapsible on the web |
 | `hint` | env | unnumbered block hint, rendered in place; collapsible on the web |
+| `teachingnote` | env | `[Title]` optional (default "Teaching note"); teacher-facing aside — dashed box in the PDF, collapsed drop-down on the web; unnumbered, kept in both variants |
 | `callout` | env | `[note\|tip\|warning]` coloured aside |
 | `remark` | env | aside in the theorem register; note-style callout on the web. Optional title: `\begin{remark}[Title]` → "Remark (Title)" |
 | `\important` | mark | ★ after an exercise's label: one of the sheet's key exercises |
 | `\authorname{}` `\affiliation{}` | cmds | structured `\author{}` entries (byline extraction) |
 | `\hint{}` `\note{}` | cmds | inline `[Hint: …]` / `[Note: …]` (don't use inline `\hint{}` at the top level of a `hint` environment) |
+| `\youtube[Title]{ID}` | cmd | YouTube video by its 11-char ID: embedded player on the web, a "Video:" line with the watch URL in the PDF |
+| `\llbracket` `\rrbracket` | cmds | Iverson brackets, from kernel pieces — don't load `stmaryrd` for them (on Debian it drags in ~79 MB of CI download for two glyphs). `\providecommand`, so a sheet that does load stmaryrd keeps its glyphs; a **slide deck** doesn't load `iliad.sty`, so it still defines its own |
 | `\ifsolutions` | toggle | `\solutionsfalse` hides every solution from the PDF |
 | `\skippable`, `\difficulty{}`, `summary` env | legacy | still compile but are not part of the contract; the page summary belongs in the `%--- iliad ---` metadata block |
 
@@ -70,7 +73,7 @@ The website builds each page's metadata from the LaTeX itself:
 The **summary** is not extracted from the LaTeX — it lives in the
 `%--- iliad ---` comment block at the top of `main.tex`, alongside the other
 metadata keys (`cluster:`, and optional `title:`/`contributors:` overrides of
-the extracted values — a duplicate draws a build advisory). Values are
+the extracted values — a duplicate draws a build warning). Values are
 one-line YAML scalars, except `summary:`, which may be a paragraph written as
 a YAML folded block scalar (continuation lines indented two spaces after the
 leading `% `; line breaks fold into spaces):
@@ -93,7 +96,7 @@ the page is built and reachable by URL but linked from nowhere. `slides:` holds
 the URL of an externally hosted deck (rendered as an outbound link; a compiled
 `slides.tex` in the folder supersedes it — see [commands.md](commands.md)).
 
-Missing title/cluster/contributors draw build **advisories** (never
+Missing title/cluster/contributors draw build **warnings** (never
 failures) with `file.tex:line` locations.
 
 So does a summary that isn't one: **missing, empty, or still `TODO`**. The
@@ -101,7 +104,7 @@ summary is the page's lede *and* its blurb in the homepage and sidebar index, so
 a sheet without one looks unfinished in two places — and `TODO` is exactly what
 a port leaves behind when the source had no summary to transcribe (an author's
 words are ported, never invented), which makes it the easiest thing in the file
-to forget. An MDX-authored sheet gets the same advisory from
+to forget. An MDX-authored sheet gets the same warning from
 `build-content.mjs`, since it never passes through the converter.
 
 ## Labels and cross-references

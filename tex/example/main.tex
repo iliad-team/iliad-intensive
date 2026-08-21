@@ -231,7 +231,15 @@ See \cref{fig:value}. Citations come from the \texttt{.bib} file: the idea of
 entropy is due to \cite{Shannon:48}; for a textbook treatment see
 \cite[ch.~4]{MacKay:03}. External links are plain
 \href{https://en.wikipedia.org/wiki/Entropy_(information_theory)}{hyperlinks},
-and footnotes are supported.\footnote{Footnotes render inline, in parentheses.}
+and footnotes are supported.\footnote{On the web this becomes a numbered
+  footnote: the marker links down to a note at the foot of the page, and the
+  note links back. In the PDF it is an ordinary \LaTeX{} footnote.}
+
+% \youtube[Title]{VIDEO_ID} — pass the 11-character video ID (the v= value of
+% the watch URL), never the full URL. Embedded player on the web; here in the
+% PDF, a "Video:" line carrying the watch URL. With no [Title], the web build
+% queries the title from YouTube itself.
+\youtube{dQw4w9WgXcQ}
 
 %===============================================================================
 \section*{Selected solutions}
@@ -249,7 +257,7 @@ and equality forces $t_x = 1$ wherever $p(x) > 0$, i.e.\ $p = q$.
 % every -nosol download (like a solution, but with no box, heading, or exercise
 % binding). Use it for an answer key, an instructor aside, or any spoiler.
 \begin{solutionsonly}
-\textbf{Instructor note.} Exercise~\ref{ex:gibbs-hard} is the one to discuss on
+\textbf{Instructor note.} \cref{ex:gibbs-hard} is the one to discuss on
 the board if time is short; the warm-up can be left for self-study.
 \end{solutionsonly}
 
