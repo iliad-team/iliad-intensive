@@ -11,7 +11,7 @@ import remarkGfm from "remark-gfm";
 import { remarkKatexHtml } from "./remark-katex-html";
 import rehypeSlug from "rehype-slug";
 import "katex/dist/katex.min.css";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 // basePath is applied automatically to <Link>/CSS/fonts but NOT to raw
 // <img src> attributes, so Figure prefixes it explicitly. Inlined at build
@@ -19,6 +19,20 @@ import type { ReactNode } from "react";
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 const components = {
+  /**
+   * a — every markdown link in a worksheet body. Internal cross-links are
+   * authored host-agnostic ("/agency/solomonoff-induction"), and MDX renders
+   * them as raw <a> tags, which — unlike <Link> — get no automatic basePath.
+   * Prefix it here, the same treatment Figure gives its src, or every
+   * cross-worksheet link 404s on GitHub Pages.
+   */
+  a: ({ href, ...rest }: ComponentProps<"a">) => (
+    <a
+      href={href?.startsWith("/") && !href.startsWith("//") ? `${BASE_PATH}${href}` : href}
+      {...rest}
+    />
+  ),
+
   /**
    * KatexHtml — a formula already rendered to markup by remarkKatexHtml.
    *
