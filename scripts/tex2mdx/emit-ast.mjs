@@ -64,7 +64,7 @@ const DROP_WITH_ARGS = {
   title: 1, author: 1, date: 1, usetikzlibrary: 1, hline: 0,
   renewcommand: 2, newcommand: 2, providecommand: 2, def: 0,
   declareauthor: 3, authorcommand: 2, refstepcounter: 1,
-  crefname: 3, Crefname: 3,
+  crefname: 3, Crefname: 3, crefalias: 2,
 };
 // contract + structural environment signatures for the parser
 const ENV_SIGNATURES = {
@@ -96,6 +96,10 @@ const CONTRACT_MACROS = {
   // cleveref config — unknown to unified-latex, so the parser needs the
   // signature or the three brace groups survive as literal text
   crefname: { signature: "m m m" }, Crefname: { signature: "m m m" },
+  // \crefalias{counter}{type} — labels made under the alias reach us with the
+  // aliased type already stamped in the .aux, so dropping the declaration is
+  // all the converter has to do
+  crefalias: { signature: "m m" },
 };
 const THM_COUNTED = new Set(["theorem", "lemma", "proposition", "corollary", "fact", "definition", "example"]);
 

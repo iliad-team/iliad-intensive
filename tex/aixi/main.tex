@@ -365,7 +365,7 @@ where the \textbf{posterior weight} is
     ~:=~ w_\nu \,\frac{\nu(\aes_{<t})}{\xi(\aes_{<t})},
     \qquad w(\nu \mid \epsilon) := w_\nu.
 \]
-See \hyperref[sec:appendix_mixture]{Appendix~A} for a worked example.
+See \cref{sec:appendix_mixture} for a worked example.
 \end{definition}
 
 \begin{definition}[Expectation $\Ex_\nu^\pi$]\label{def:expectation}
@@ -395,7 +395,7 @@ The \textbf{infinite-horizon return} is the pointwise limit
 with the clean recursion $G_{\geq t} = r_{t+1} + \gamma\, G_{\geq t+1}$ and no boundary cases.
 \end{definition}
 
-\begin{definition}[Value function\footnote{See \hyperref[sec:appendix_mixture]{Appendix~A} for a worked example. For simplicity, we
+\begin{definition}[Value function\footnote{See \cref{sec:appendix_mixture} for a worked example. For simplicity, we
     consider only geometric discounting.}]\label{def:value}
 The \textbf{value} of policy $\pi$ in environment $\nu$ with horizon $m \geq t$ given history $\aes_{<t}$ is
 \begin{align*}
@@ -1832,7 +1832,13 @@ For countable $\cM$, this final step is harder: a countable sum of $\mu^\pi$-a.s
 \clearpage
 \appendix
 \renewcommand{\thesection}{\Alph{section}}
-\crefname{section}{Appendix}{Appendices}
+% \crefalias, not \crefname: cleveref picks the NAME at reference time but the
+% TYPE at label time, so renaming the section counter here would leave a \cref
+% from the main body still saying "Section A". Aliasing makes every label from
+% here on record type "appendix", and refs to them print "Appendix A" from
+% anywhere in the sheet.
+\crefalias{section}{appendix}
+\crefname{appendix}{Appendix}{Appendices}
 
 \section{Worked Example: Bayesian Mixture and Value Function}\label{sec:appendix_mixture}
 
