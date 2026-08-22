@@ -41,6 +41,7 @@ import YAML from "yaml";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { injectAutoLabels } from "./tex2mdx/autolabel.mjs";
+import { frontMatterOrderIssues } from "./tex2mdx/util.mjs";
 import { buildStatus } from "./build-status.mjs";
 import { loadSchedule, ScheduleError } from "./schedule.mjs";
 
@@ -558,6 +559,29 @@ async function buildSlug(slug) {
       notes.push(`⚠ warning: ${sumLoc}\`summary:\` is empty — the page and its index entry show no lede`);
     else if (/^todo\b/i.test(summary))
       notes.push(`⚠ warning: ${sumLoc}\`summary:\` is still a placeholder ("${summary.slice(0, 40)}") — the page ships it verbatim as its lede`);
+    // Front-matter order — the same warning the converter gives a LaTeX
+    // sheet (see tex2mdx.mjs); the judgment is shared (tex2mdx/util.mjs),
+    // only the extraction differs. `##` is a sheet's top heading level.
+    // Scanned over the raw file (frontmatter included — nothing there can
+    // match) so offsets convert straight to file lines.
+    {
+      const lineAt = (at) => `${relMdx}:${raw.slice(0, at).split("\n").length}  `;
+      const pos = { overview: null, video: null, prereqs: null, outcomes: null, content: null };
+      const headRe = /^##\s+(.+)$/gm;
+      for (let m; (m = headRe.exec(raw)); ) {
+        const t = m[1].trim().toLowerCase();
+        const item = { at: m.index };
+        if (/^prerequisites?\b/.test(t)) pos.prereqs ??= item;
+        else if (/^overview\b/.test(t)) pos.overview ??= item;
+        else pos.content ??= item;
+      }
+      const lo = raw.search(/<LearningOutcomes[\s>]/);
+      if (lo >= 0) pos.outcomes = { at: lo };
+      const yt = raw.search(/<YouTube[\s/>]/);
+      if (yt >= 0) pos.video = { at: yt };
+      for (const i of frontMatterOrderIssues(pos))
+        notes.push(`⚠ warning: ${lineAt(i.at)}${i.msg}`);
+    }
     copyFileSync(path.join(dir, "main.mdx"), mdxOut);
 
     // No PDF, by design. LaTeX is the format that becomes a PDF; MDX is the
