@@ -8,13 +8,13 @@ If mechanistic interpretability aims for the causal analysis of a forward pass, 
 
 Two asymmetries between the two settings are worth keeping in mind from the start. First, both problems inherit the same conceptual difficulties of causal reasoning in general (explained in the next section) and there is no reason to expect data attribution to escape them. Second, a forward pass is cheap, while a training run is not. Where mechanistic interpretability can validate a claim by running many ablations, data attribution cannot in general afford even one retraining. That being said, there are also advantages: Generally speaking, the training process is more robust and the ablations we run may be more human understandable than high-dimensional modification of activations or weights.
 
-Now, before developing such data attribution methods, we should be aware of the tension between causality and the ways we will validate a hyptohesis. Finding a "true" causal relationship in practice can be much more difficult than it may seem at first glance.
+Now, before developing such data attribution methods, we should be aware of the tension between causality and the ways we will validate a hypothesis. Finding a ``true'' causal relationship in practice can be much more difficult than it may seem at first glance.
 In the following section we take the question seriously, and find that the naive counterfactual answer fails in ways that matter.
 
 
 \subsection{Counterfactual attribution and its failures}\label{subsec:counterfactual}
 
-The classical notion of causation is due to \citet{lewis1973causation}: $A$ caused $B$ iff, had $A$ not occurred, $B$ would not have occurred. Applied to data attribution, this says that a training example ``causes'' a behaviour when removing it would have altered the behaviour, also knows as the \emph{leave-one-out (LOO) counterfactual}. We relax this defintion from a binary to a gradual one.
+The classical notion of causation is due to \citet{lewis1973causation}: $A$ caused $B$ iff, had $A$ not occurred, $B$ would not have occurred. Applied to data attribution, this says that a training example ``causes'' a behaviour when removing it would have altered the behaviour, also known as the \emph{leave-one-out (LOO) counterfactual}. We relax this definition from a binary to a gradual one.
 
 \begin{definition}[Counterfactual attribution]\label{def:counterfactual}
   We attribute an action $A$ to a behaviour $B$ iff
@@ -39,10 +39,10 @@ The classical notion of causation is due to \citet{lewis1973causation}: $A$ caus
   Either mechanism alone causes exceptional fluffiness: puff pastry rises from steam alone, and bread rises from yeast alone. Downgrading premium butter to standard therefore has negligible effect on fluffiness (the threshold is still met), and likewise for yeast. Counterfactual attribution (\Cref{def:counterfactual}) concludes that neither butter nor yeast was a cause albeit both were.
 \end{example}
 
-The same pattern may arise in learning, where once a behavior is learned, i.e. has hit saturation, additional examples will not affect it and appear as causally irrelevant.
+The same pattern may arise in learning, where once a behaviour is learned, i.e. has hit saturation, additional examples will not affect it and appear as causally irrelevant.
 
 
-\paragraph{Non-transitivity: counterfactuals do not chain.} Direct ablation will not capture \emph{how} an action causes a behavior.
+\paragraph{Non-transitivity: counterfactuals do not chain.} Direct ablation will not capture \emph{how} an action causes a behaviour.
 
 \begin{example}[Non-transitivity of counterfactuals]\label{ex:nontransitive}
   The following scenario is due to Ned Hall, as reported in \citet{hitchcock2001intransitivity}.
@@ -103,10 +103,10 @@ and we write $L(w) := L(w, 1)$ for the unweighted loss.
 \item The behaviour we want to attribute is a differentiable scalar observable $\phi: W \to \mathbb{R}$. This could be the loss on a held-out point, an average loss on a task, the logit of a specific completion, or any other scalar function of the trained parameters.  
 \end{itemize}  
 
-In general we want to know "If I change $\beta_i$, how will this affect $\phi$?" This question is typicall split into two parts:
+In general we want to know ``If I change $\beta_i$, how will this affect $\phi$?'' This question is typically split into two parts:
 \begin{itemize}
-  \item \emph{Parameter influence}: "If I change $\beta_i$, how will this affect the final parameters?"
-  \item \emph{Influence on $\phi$}: "If I change the final parameters, how will this affect $\phi$?"
+  \item \emph{Parameter influence}: ``If I change $\beta_i$, how will this affect the final parameters?''
+  \item \emph{Influence on $\phi$}: ``If I change the final parameters, how will this affect $\phi$?''
 \end{itemize}
 In practice we may think of the influence then as a measure of the composition of these maps
 \begin{align}\label{eq:holy-maps}

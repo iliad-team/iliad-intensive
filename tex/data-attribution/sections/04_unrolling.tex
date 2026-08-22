@@ -1,7 +1,7 @@
 % ---------------------------------------------------------
 \section{Unrolling}\label{sec:unrolling}
 
-The influence functions of \Cref{sec:influence} and the Bayesian influence functions of \Cref{sec:bayesian-if} both have something in common: they analyze the \emph{endpoint} of training, not the \emph{dynamic} that lead to it. Under the assumptions of the unique global minimum, this is not a problem: the training trajectory is irrelevant, since all roads lead to the same outcome. But in practice the training path will matter a lot. Ultimately, we are studying generalization and this is ultimately a question about the training dynamics. Similarly, the BIF looks at the posterior expectation shifts. To give a concrete failure mode: a training point that appears in the first mini-batch of the first epoch will have a very different effect compared to the same point appearing towards the end of training.
+The influence functions of \Cref{sec:influence} and the Bayesian influence functions of \Cref{sec:bayesian-if} both have something in common: they analyze the \emph{endpoint} of training, not the \emph{dynamics} that led to it. Under the assumptions of the unique global minimum, this is not a problem: the training trajectory is irrelevant, since all roads lead to the same outcome. But in practice the training path will matter a lot. Ultimately, we are studying generalization and this is ultimately a question about the training dynamics. Similarly, the BIF looks at the posterior expectation shifts. To give a concrete failure mode: a training point that appears in the first mini-batch of the first epoch will have a very different effect compared to the same point appearing towards the end of training.
 
 If we write down the training trajectory as a composition of $\beta$-dependent maps:
 \[
@@ -115,7 +115,7 @@ There are two ways to make \eqref{eq:unroll-formula} practical. The first is to 
 
 \subsubsection{Materializing the Jacobian}\label{subsec:explicit-unroll}
 
- In this subsection we will derive the SOURCE method \citep{bae2024source}, which introduces a small number of approximations of Jacobians that reduce the full unrolling computation to something resembling an influence-function calculation at each of several checkpoints.
+In this subsection we will derive the SOURCE method \citep{bae2024source}, which introduces a small number of approximations of Jacobians that reduce the full unrolling computation to something resembling an influence-function calculation at each of several checkpoints.
 
 \paragraph{Stationary segments.} Divide the $T$ training steps into $L$ segments at checkpoints $0 = T_0 < T_1 < \cdots < T_L = T$, and let $K_\ell = T_\ell - T_{\ell-1}$ be the number of steps in segment $\ell$. Within each segment, make the \emph{stationarity approximation}: the expected mini-batch Hessian and per-example gradient are approximately constant,
 \begin{equation}\label{eq:stationary-approx}
@@ -199,7 +199,7 @@ The price is computational: REPLAY requires $O(T\log T)$ training-equivalent ste
 
 \subsection{Long Exercise: From unrolling to influence functions}\label{subsec:unroll-to-if}
 
-The unrolling formula \eqref{eq:unroll-formula} and the influence function \eqref{eq:if-pbrf} appear to be very different objects: one is a sum over training steps of Jacobian-propagated gradients, the other is a single inverse-Hessian-times-gradient computation at the endpoint. The following exercise shows that, in the right limit, unrolling converges to the classical influence function. The key observation, due to \citet{mlodozeniec2025distributional}, is that the joint process $(w_t, r_t)$, where $r_t := \partial w_t/\partial\varepsilon\big|_{\varepsilon=0}$ is the unrolling response , forms a \emph{Markov chain}, and its limiting behavior can be analyzed with standard stochastic-approximation tools. This yields a convergence result that requires only that SGD reaches a local minimum, \emph{not} that the loss is convex.
+The unrolling formula \eqref{eq:unroll-formula} and the influence function \eqref{eq:if-pbrf} appear to be very different objects: one is a sum over training steps of Jacobian-propagated gradients, the other is a single inverse-Hessian-times-gradient computation at the endpoint. The following exercise shows that, in the right limit, unrolling converges to the classical influence function. The key observation, due to \citet{mlodozeniec2025distributional}, is that the joint process $(w_t, r_t)$, where $r_t := \partial w_t/\partial\varepsilon\big|_{\varepsilon=0}$ is the unrolling response, forms a \emph{Markov chain}, and its limiting behavior can be analyzed with standard stochastic-approximation tools. This yields a convergence result that requires only that SGD reaches a local minimum, \emph{not} that the loss is convex.
 
 \begin{exercise}[Convergence of unrolling to influence functions]\label{ex:unroll-to-if}
 Consider the SGD update with an interpolated loss that downweights example $z_k$ by $\varepsilon$:

@@ -3,7 +3,7 @@
 
 In this section we develop \emph{influence functions}: a closed-form, first-order approximation to the leave-one-out (LOO) counterfactual. The classical theory \citep{hampel1974,cook1977} predates machine learning by decades. It was developed in robust statistics, where the question was which observations a parameter estimate is most sensitive to. For simple statistical models the answer is short: a single application of the implicit function theorem yields an inverse-Hessian-times-gradient formula whose factors have a clean operational interpretation.
 
-The formula we arrive at then \emph{can} be translated to the setup of neural networks, but its interpretation becomes unclear: The classical derivation assumes a unique global minimum and an invertible Hessian, neither of which holds for an neural network which is typically \textbf{not} trained to full convergence. We will see a partial fix for this issue in \Cref{subsec:if-nn}.
+The formula we arrive at then \emph{can} be translated to the setup of neural networks, but its interpretation becomes unclear: The classical derivation assumes a unique global minimum and an invertible Hessian, neither of which holds for a neural network which is typically \textbf{not} trained to full convergence. We will see a partial fix for this issue in \Cref{subsec:if-nn}.
 
 \subsection{The influence function formula}\label{subsec:if-formula}
 
@@ -121,7 +121,7 @@ While neither holds for a modern neural network, the quantities in \Cref{def:if}
 
 \paragraph{(1) Non-uniqueness and a singular Hessian.} For a neural network the global minimum is usually not unique. The set of minimizers is generically a positive-dimensional zero locus, and the Hessian at any point on it is singular: it has a nontrivial null space corresponding to directions of parameter movement that leave the loss unchanged. This is the degeneracy phenomenon observed in the SLT day, and it means we cannot invert $H$ as in \Cref{def:if}.
 
-The standard remedy is to \emph{dampen} the Hessian: replace $H^{-1}$ with $(H + \lambda I)^{-1}$ for some $\lambda > 0$. This is the same as adding an $L_2$-regularizer $\frac{\lambda}{2}\|w-w^*\|^2$ to the training objective $L(\beta,w)$; this yields a a new loss function $L_{reg}(w,\beta)= L(w,\beta)+\frac{\lambda}{2}\cdot ||w-w^*||^2$.
+The standard remedy is to \emph{dampen} the Hessian: replace $H^{-1}$ with $(H + \lambda I)^{-1}$ for some $\lambda > 0$. This is the same as adding an $L_2$-regularizer $\frac{\lambda}{2}\|w-w^*\|^2$ to the training objective $L(w,\beta)$; this yields a new loss function $L_{\mathrm{reg}}(w,\beta)= L(w,\beta)+\frac{\lambda}{2}\cdot \|w-w^*\|^2$.
 
 
 %TODO: Add figure illustrating the proximity gap (from Bae et al.).
@@ -161,7 +161,7 @@ Even with the PBRF reframing, computing $(G + \lambda I)^{-1}$ for a billion-par
 Consider the toy two-parameter model from the SLT lecture day in which $w = (a,b)$ enters the loss only through the product $u = ab$, with squared loss $L(w,z) = \tfrac12(z - ab)^2$ on training data $\{z_1,\dots,z_n\}\subset\mathbb{R}$.
 \begin{enumerate}
   \item[(a)] Write down the Hessian of the training loss at any minimizer $(a^*,b^*)$ with $a^* b^* = \bar z := \tfrac1n\sum_i z_i$. Show that it has rank one, and identify the one-dimensional null space geometrically.
-  \item[(b)] Compute the influence function $\mathcal{I}(z_i,\phi)$ for the observable $\phi(w) = ab$, treating $H^{-1}$ as a Moore--Penrose pseudoinverse\footnote{Concretely you can take the eigedecomposition of $H$ and only invert the non-zero eigenvalues}. How does it compare with the exact LOO change in $\phi$?
+  \item[(b)] Compute the influence function $\mathcal{I}(z_i,\phi)$ for the observable $\phi(w) = ab$, treating $H^{-1}$ as a Moore--Penrose pseudoinverse\footnote{Concretely you can take the eigendecomposition of $H$ and only invert the non-zero eigenvalues.}. How does it compare with the exact LOO change in $\phi$?
   \item[(c)] Repeat (b) using the damped inverse $(H + \lambda I)^{-1}$ for a small $\lambda > 0$. Discuss how the answer depends on $\lambda$, on the choice of minimizer $(a^*,b^*)$ along the singular set, and on $n$. What does this say about the proximity gap?
 \end{enumerate}
 \end{exercise}
