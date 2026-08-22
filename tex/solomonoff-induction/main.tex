@@ -35,6 +35,17 @@
 \date{\today}
 \maketitle
 
+%===================================
+\section*{Prerequisites}
+
+\begin{itemize}
+    \item Comfort with discrete probability: conditional distributions, the chain
+    rule, expectations.
+    \item Kullback--Leibler divergence and basic information theory (helpful,
+    developed as needed).
+\end{itemize}
+
+
 \begin{learningoutcomes}
   \begin{itemize}
     \item Define the Bayesian mixture over a class of environments and prove it is a proper predictor whose posterior updates multiplicatively.
@@ -43,19 +54,6 @@
     \item Bound the misspecified case when the truth lies outside the model class.
   \end{itemize}
 \end{learningoutcomes}
-
-\medskip
-\noindent
-Much of this material is drawn from \cite[Chapter 3]{Hutter:24uaibook2}
-and the earlier \cite{Hutter:04uaibook}; both books provide fuller explanations, additional context, and proofs that we gloss over here.
-
-\medskip
-\noindent
-\textbf{Difficulty ratings.} Each problem is tagged with a rating in square brackets following Knuth's exercise rating scheme~\cite{Knuth:73a}: roughly, \textbf{[00]}~trivial, \textbf{[10]}~15--minute pencil-and-paper, \textbf{[20]}~1--2~hours, \textbf{[30]}~several hours to a day, \textbf{[40]}~a significant research result. Intermediate values are possible.
-
-%===================================
-
-\section*{Overview}
 
 Solomonoff induction is the \emph{prediction} half of \textbf{Universal AI}: what
 would an \emph{optimally intelligent} agent do if it only had to predict, given
@@ -71,14 +69,17 @@ This module is a worksheet: you build the theory yourself, one problem at a time
 The sequel module, \href{/agency/aixi}{AIXI}, lifts the same mixture to sequential
 decision-making (learning to \emph{act}).
 
-\section*{Prerequisites}
 
-\begin{itemize}
-    \item Comfort with discrete probability: conditional distributions, the chain
-    rule, expectations.
-    \item Kullback--Leibler divergence and basic information theory (helpful,
-    developed as needed).
-\end{itemize}
+\medskip
+\noindent
+Much of this material is drawn from \cite[Chapter 3]{Hutter:24uaibook2}
+and the earlier \cite{Hutter:04uaibook}; both books provide fuller explanations, additional context, and proofs that we gloss over here.
+
+\medskip
+\noindent
+\textbf{Difficulty ratings.} Each problem is tagged with a rating in square brackets following Knuth's exercise rating scheme~\cite{Knuth:73a}: roughly, \textbf{[00]}~trivial, \textbf{[10]}~15--minute pencil-and-paper, \textbf{[20]}~1--2~hours, \textbf{[30]}~several hours to a day, \textbf{[40]}~a significant research result. Intermediate values are possible.
+
+%===================================
 
 \section*{Goal and Roadmap}
 
