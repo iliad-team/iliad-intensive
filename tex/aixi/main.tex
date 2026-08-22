@@ -56,6 +56,20 @@
 \date{\today}
 \maketitle
 
+%===================================
+\section*{Prerequisites}
+
+\begin{itemize}
+    \item \href{/agency/solomonoff-induction}{Solomonoff Induction} ---
+    \textbf{start there first.} The Bayesian mixture, posterior updates, and
+    dominance carry over directly; AIXI reuses them in the action setting.
+    \item Comfort with discrete probability (conditional distributions, chain rule,
+    expectations).
+    \item Familiarity with sequential decision-making / reinforcement learning
+    (agents, rewards, discounting, value functions) is useful but not assumed.
+\end{itemize}
+
+
 \begin{learningoutcomes}
   \begin{itemize}
     \item Formalize the agent-environment interaction, value functions, and the Bayes-optimal policy that defines AIXI.
@@ -64,6 +78,16 @@
     \item Prove the self-optimizing property via likelihood-ratio martingales and change of measure.
   \end{itemize}
 \end{learningoutcomes}
+
+AIXI is the \emph{action} half of \textbf{Universal AI}: it lifts the Bayesian
+mixture from \href{/agency/solomonoff-induction}{Solomonoff induction} --- learning
+to predict --- to learning to act. Now the agent takes actions that shape what it
+observes, and AIXI is the \textbf{Bayes-optimal policy} over a universal mixture
+$\xi$ of environments. It learns to act as well as if it knew the true environment
+$\mu$. Under the universal choice --- $\cM$ = all lower-semicomputable environments,
+prior $w_\nu = 2^{-K(\nu)}$ --- the assumption ``$\mu \in \cM$'' again becomes
+``the universe is computable.''
+
 
 \medskip
 \noindent
@@ -77,29 +101,6 @@ The book provides fuller explanations, additional context, and proofs omitted he
 Problems marked \textbf{($\ast$)} are less interesting/insightful and while the result may be used later, I would recommend skipping them on a first pass.
 
 %===================================
-
-\section*{Overview}
-
-AIXI is the \emph{action} half of \textbf{Universal AI}: it lifts the Bayesian
-mixture from \href{/agency/solomonoff-induction}{Solomonoff induction} --- learning
-to predict --- to learning to act. Now the agent takes actions that shape what it
-observes, and AIXI is the \textbf{Bayes-optimal policy} over a universal mixture
-$\xi$ of environments. It learns to act as well as if it knew the true environment
-$\mu$. Under the universal choice --- $\cM$ = all lower-semicomputable environments,
-prior $w_\nu = 2^{-K(\nu)}$ --- the assumption ``$\mu \in \cM$'' again becomes
-``the universe is computable.''
-
-\section*{Prerequisites}
-
-\begin{itemize}
-    \item \href{/agency/solomonoff-induction}{Solomonoff Induction} ---
-    \textbf{start there first.} The Bayesian mixture, posterior updates, and
-    dominance carry over directly; AIXI reuses them in the action setting.
-    \item Comfort with discrete probability (conditional distributions, chain rule,
-    expectations).
-    \item Familiarity with sequential decision-making / reinforcement learning
-    (agents, rewards, discounting, value functions) is useful but not assumed.
-\end{itemize}
 
 \section*{Goal and Roadmap}
 
