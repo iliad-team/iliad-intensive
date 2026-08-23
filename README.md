@@ -15,6 +15,11 @@ chmod +x setup.sh
 ./setup.sh
 ```
 
+Works on Linux (apt) and macOS — on a Mac, `setup.sh` hands off to
+`setup-macos.sh`, which installs the same toolchain via Homebrew and MacTeX
+(install [Homebrew](https://brew.sh) first). Windows is not yet supported
+([#60](https://github.com/iliad-team/iliad-intensive/issues/60)).
+
 ## Render the website
 
 ```
