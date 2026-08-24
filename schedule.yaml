@@ -176,10 +176,10 @@ clusters:
         #   ML Foundations           iliad-team/iliad-intensive-C.1.1
         #   Practical ML             iliad-team/iliad-intensive-C.1.2
         #   Claude Code for Research iliad-team/iliad-intensive-C.1.3
-        # All three are iliad-team forks of the leads' personal repos. The one
-        # dependency still pointing upstream is wusche1/dotfiles, an optional
-        # terminal setup in lecture 2 — not forked, and not really course
-        # material.
+        # All three are iliad-team forks of the leads' personal repos. Two
+        # things still point upstream, neither of them a worksheet link:
+        # lecture 2's cheat sheet is hosted at alignment-hive.com, and C.1.3
+        # depends on jr-brown/research-scaffold for its config runner.
         note: three lectures across four repos; 1a and 1b are parallel tracks
         worksheets:
           - intro-to-ml-engineering
