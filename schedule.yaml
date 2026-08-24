@@ -287,6 +287,13 @@ clusters:
           cannot compile Marp, so it is compiled by hand, hosted in Drive, and
           linked from the worksheet's `slides:` rather than built.
 
+      - code: D.7
+        title: World Models
+        lead: Fernando E. Rosas
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.a6ozb9tzf69k
+        source: missing
+        note: new day; the Doc tab is all there is so far
+
   - id: E
     label: E — Safety Guarantees and their Limits
     urlSlug: safety
