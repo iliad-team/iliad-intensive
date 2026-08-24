@@ -1,5 +1,7 @@
 # Iliad Intensive worksheets
 
+The worksheets for [ILIAD](https://iliad.ac)'s intensive course.
+
 **Live site: [iliad-team.github.io/iliad-intensive](https://iliad-team.github.io/iliad-intensive/)**
 
 Feedback welcome! I want friction for you as the writer to be as low as possible. If something is frustrating, [open an issue](https://github.com/iliad-team/iliad-intensive/issues) and let me know!
