@@ -111,7 +111,14 @@ export default async function ModulePage({
           <MdxBody source={mod.body} />
         </div>
         <footer className="not-prose mt-12 border-t border-zinc-200 pt-4 font-sans text-xs text-zinc-500">
-          Built {BUILT_AT}
+          A worksheet from the{" "}
+          <a
+            href="https://iliad.ac"
+            className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800"
+          >
+            ILIAD
+          </a>{" "}
+          intensive · Built {BUILT_AT}
           {(() => {
             // Link the file the page was actually built from: the LaTeX
             // source when it exists, else the authored MDX.

@@ -1,5 +1,7 @@
 # Iliad Intensive worksheets
 
+The worksheets for [ILIAD](https://iliad.ac)'s intensive course.
+
 **Live site: [iliad-team.github.io/iliad-intensive](https://iliad-team.github.io/iliad-intensive/)**
 
 Feedback welcome! I want friction for you as the writer to be as low as possible. If something is frustrating, [open an issue](https://github.com/iliad-team/iliad-intensive/issues) and let me know!
@@ -14,6 +16,11 @@ cd iliad-intensive
 chmod +x setup.sh
 ./setup.sh
 ```
+
+Works on Linux (apt) and macOS — on a Mac, `setup.sh` hands off to
+`setup-macos.sh`, which installs the same toolchain via Homebrew and MacTeX
+(install [Homebrew](https://brew.sh) first). Windows is not yet supported
+([#60](https://github.com/iliad-team/iliad-intensive/issues/60)).
 
 ## Render the website
 
