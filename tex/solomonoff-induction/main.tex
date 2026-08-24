@@ -476,7 +476,7 @@ The proof of this inequality is mostly tedious algebra but is included in \cref{
 
 % Let $\mu$ be any environment, and assume it generates our actual universe.
 
-\begin{definition}[Cumulative expected and per step squared prediction error]\label{def:S_infty}
+\begin{definition}[Cumulative expected and per-step squared prediction error]\label{def:S_infty}
 For environments / predictors $\nu, \rho$ and horizon $n \geq 1$, the \textbf{cumulative expected squared error} and the \textbf{per-step squared error at step $t$} are
 \begin{align*}
 \Sn{\nu}{\rho} ~&:=~ \sum_{t=1}^n s_t(\nu \parallel \rho) \\
@@ -1046,7 +1046,7 @@ at every history $x_{<t}$ with $\xi(x_{<t}) > 0$. \qedhere
 
 \section{Proof of Pinsker's inequality}\label{app:pinsker}
 
-We first prove the following Lemma:
+We first prove the following lemma:
 
 \begin{lemma}[Pinsker's binary inequality]\label{lem:pinsker_binary}
     For $0 \leq p \leq 1$ and $0 < q < 1$ we have
@@ -1175,7 +1175,7 @@ w_\nu ~:=~ 2^{-K(\nu)},
 where $K(\nu)$ is the \emph{Kolmogorov complexity} of $\nu$: the length of the shortest program that computes $\nu$. The Bayesian mixture $\xi$ under this particular prior is the \emph{universal mixture}, written $\xi_U$. With this class the assumption $\mu \in \Mc$ reduces to ``the universe is computable'': as weak an assumption as one can make. For technical details on Kolmogorov complexity, see \cite[\S2.7]{Hutter:24uaibook2}.
 
 The class of all computable measures is countable but not enumerable (by the halting problem, you can't decide which Turing machines define total functions), so one can't even formally write
-$\sum_{\nu \in \Mc} \ldots$ as the decision problem of determining if $\nu \overset{?}{\in} \Mc$ is undecidable. A faithful construction of $\xi_U$ requires expanding $\Mc$ to all \emph{lower-semicomputable semimeasures} (Levin), at which point $\xi_U$ becomes a semimeasure rather than a measure: $\sum_x \xi_U(x) \leq 1$ instead of $=1$, conditionals may not sum to $1$, and every other proof in this sheet gains a side-case. This also gives the nice benefit that $\xi \in \mathcal{M}$.
+$\sum_{\nu \in \Mc} \ldots$, as the decision problem of determining if $\nu \overset{?}{\in} \Mc$ is undecidable. A faithful construction of $\xi_U$ requires expanding $\Mc$ to all \emph{lower-semicomputable semimeasures} (Levin), at which point $\xi_U$ becomes a semimeasure rather than a measure: $\sum_x \xi_U(x) \leq 1$ instead of $=1$, conditionals may not sum to $1$, and every other proof in this sheet gains a side-case. This also gives the nice benefit that $\xi \in \mathcal{M}$.
 
 We dodge all of this: $\Mc$ is just \emph{some} countable set of proper measures with $\mu \in \Mc$, and we assume $K(\nu)$ is defined for each $\nu \in \Mc$ when we need it. We never need $\xi$ itself to be in $\Mc$, nor do we need its computability, so we don't ask. See \cite[\S2.4.3]{Hutter:04uaibook} for the full Levin construction.
 
@@ -1196,7 +1196,7 @@ high-prior coarse model wins; for large $n$ the fit term dominates and the best
 per-step approximator wins. Both regimes are correct.
 
 \textit{Asymptotic rate.} A horizon-free analogue minimizes the per-step KL
-rate $$\lim_{n \to \infty} \frac{1}{n} \sum_{t \leq n} d_t(\mu \parallel \nu).$$ This is the right notion when one cares about the linear-growth slope of the bound. But it has two drawbacks: the limit need not exist for non-stationary $\mu$ (one can substitute $\liminf$ but at the cost of clarity), and it discards the prior $w_\nu$ entirely, so the minimizer is not the same as $\hat\mu_n$ at any finite $n$, but only of its slope.
+rate $$\lim_{n \to \infty} \frac{1}{n} \sum_{t \leq n} d_t(\mu \parallel \nu).$$ This is the right notion when one cares about the linear-growth slope of the bound. But it has two drawbacks: the limit need not exist for non-stationary $\mu$ (one can substitute $\liminf$ but at the cost of clarity), and it discards the prior $w_\nu$ entirely, so the minimizer is not the same as $\hat\mu_n$ at any finite $n$, since only the slope is minimized.
 
 \textit{Stationary $\mu$.} The per-step KLs $d_t(\mu \parallel \nu)$ are constant in $t$, so all three notions essentially agree: $\hat\mu = \arg\min_{\nu \in \Mc} D_{\text{KL}}(\mu \,\|\, \nu)$, where the KL is taken under the (common) one-step conditional law. This is the case where ``$\hat\mu$ = projection of $\mu$ onto $\Mc$ in KL'' has unambiguous meaning.
 

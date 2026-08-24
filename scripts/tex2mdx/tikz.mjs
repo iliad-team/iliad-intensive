@@ -28,7 +28,12 @@ export const tikzCount = () => snippets.size;
 // tikz configuration, and every macro definition (diagrams use the author's
 // notation). \renewcommand is guarded so it can't fail in the standalone.
 function buildTikzPreamble(pre) {
-  const keep = [];
+  // \PassOptionsToPackage is collected separately and emitted FIRST: it only has
+  // any effect before the package it names is loaded, and a preamble may rely on
+  // that (aixi passes dvipsnames to xcolor ahead of \usepackage{tikz}, which
+  // auto-loads xcolor optionless — without the hoist the later
+  // \usepackage[dvipsnames]{xcolor} is an option clash and the snippet fails).
+  const keep = [], pass = [];
   for (const m of pre.matchAll(/\\usepackage\s*(\[[^\]]*\])?\s*\{([^}]*)\}/g)) {
     const pkgs = m[2].split(",").map((s) => s.trim()).filter((p) => TIKZ_PKG_OK.has(p));
     if (pkgs.length) keep.push(`\\usepackage${m[1] ?? ""}{${pkgs.join(",")}}`);
@@ -43,7 +48,7 @@ function buildTikzPreamble(pre) {
       const g = readGroup(pre, k); if (!g) break;
       j = g.end; groups++;
     }
-    if (groups) keep.push(pre.slice(m.index, j));
+    if (groups) (m[1] === "PassOptionsToPackage" ? pass : keep).push(pre.slice(m.index, j));
   }
   for (const m of pre.matchAll(/\\(new|renew|provide)command\*?\s*\{?(\\[a-zA-Z]+)\}?\s*(?:\[\d+\])?\s*(?:\[[^\]]*\])?\s*/g)) {
     const g = readGroup(pre, m.index + m[0].length);
@@ -55,7 +60,7 @@ function buildTikzPreamble(pre) {
     const g = readGroup(pre, m.index + m[0].length);
     if (g) keep.push(pre.slice(m.index, g.end));
   }
-  return keep.join("\n");
+  return [...pass, ...keep].join("\n");
 }
 
 // Diagrams may contain \hyperref/\ref/\cref to labels that don't exist in
