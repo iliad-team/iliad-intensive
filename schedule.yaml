@@ -121,6 +121,12 @@ clusters:
         port: never
         note: reading + discussion day, run from the Doc — the two discussion worksheets live there
 
+      - code: A.4
+        title: Reward Learning Theory
+        lead: TBD
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.6d2zm6vpa5tg#heading=h.1n7lgbgvyd2w
+        source: partial
+
   - id: B
     label: B — Learning
     urlSlug: learning
@@ -156,6 +162,12 @@ clusters:
         source: ready
         sourceUrl: https://github.com/LouisYRYJ/illiad_data_attribution
         note: source repo is private
+
+      - code: B.6
+        title: Physics of Learning
+        lead: TBD
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit
+        source: partial
 
   - id: C
     label: C — Abstractions, Representations, and Interpretability
@@ -273,3 +285,9 @@ clusters:
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.n0qqrafijfpi
         source: missing
         note: only compiled PDFs so far
+
+      - code: E.3
+        title: Worst-Case Interpretability
+        lead: TBD
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.rgyi2yd35qb9#heading=h.1n7lgbgvyd2w
+        source: partial
