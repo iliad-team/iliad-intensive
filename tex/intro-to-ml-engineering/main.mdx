@@ -1,0 +1,120 @@
+---
+title: Intro to ML Engineering
+summary: Crash course in ML and LLM basics in PyTorch, how to setup machines for ML research and engineering, and making effective use of Claude Code.
+contributors:
+  - Julian Schulz (Meridian Research)
+  - Adam Newgas (Timaeus)
+---
+
+<LearningOutcomes>
+
+* ML Foundations 
+  - Learn the ML basics needed for the rest of the course
+  - Give some hands on experience with common ML Libraries/methods
+  - Understanding and building the transformer architecture
+* Practical ML
+  - Renting out and setting up your own compute
+  - Use common ML Libraries/methods
+* Claude Code for Research
+  - Learn how to use Claude Code in research projects
+  - Get a good basic setup to make use of multiple Claude Code instances across different branches and projects
+
+</LearningOutcomes>
+
+**Outline**
+
+We start with two parallel lectures: One lecture for participants with less ML background, where we go through ML and LLM basics, and go deeper into certain topics via hands on exercise notebooks. The second lesson is a practical exercise of renting out and setting up your own compute.
+
+Lecture 2 is a series of exercises to use Claude Code to do small steps in an AI safety research repo, where each step should be done using a different Claude Code tool.
+
+## Prerequisites
+
+* You should have some rudimentary ability to code in python
+* You should have heard of the ML basics before
+* You should have your own laptop with Claude Code CLI installed
+* You should know linear algebra and understand gradient descent
+
+## Fast track
+
+* Go over the slides for ML Foundations. Skip the section you are familiar with. Read the ones you are not familiar with. If you have time do one of the Colab exercises.
+* Download the Claude Code CLI, and play around with it, to get familiar with its basic features
+
+## ML Foundations
+
+ML and LLM basics for participants with less ML background, going deeper into selected topics through hands-on exercise notebooks.
+
+Lecture notes and materials for Lecture 1a self-contained within this repository: [https://github.com/iliad-team/iliad-intensive-C.1.1](https://github.com/iliad-team/iliad-intensive-C.1.1)
+
+Colab Exercises:
+
+* [Pytorch Basics](https://colab.research.google.com/github/iliad-team/iliad-intensive-C.1.1/blob/main/lectures/01_a_ml_foundations/exercises/01_pytorch_basics/notebook.ipynb)
+* [Optimizers](https://colab.research.google.com/github/iliad-team/iliad-intensive-C.1.1/blob/main/lectures/01_a_ml_foundations/exercises/02_optimizers/notebook.ipynb)
+* [Architectures](https://colab.research.google.com/github/iliad-team/iliad-intensive-C.1.1/blob/main/lectures/01_a_ml_foundations/exercises/03_architectures/notebook.ipynb)
+* [Tensorflow Playground](https://playground.tensorflow.org/)
+* [MLP](https://colab.research.google.com/github/iliad-team/iliad-intensive-C.1.1/blob/main/lectures/01_a_ml_foundations/exercises/04_mlp/notebook.ipynb)
+* [Attention](https://colab.research.google.com/github/iliad-team/iliad-intensive-C.1.1/blob/main/lectures/01_a_ml_foundations/exercises/05_attention/notebook.ipynb)
+* [RLHF](https://colab.research.google.com/github/iliad-team/iliad-intensive-C.1.1/blob/main/lectures/01_a_ml_foundations/exercises/06_rlhf/notebook.ipynb)
+
+
+
+Content:
+
+* Training loop — forward/backward pass, gradient descent, stochastic batching, optimizer role
+* PyTorch tensors — basic operations, einops, batching & data loading, autograd/computational graph, devices & GPU
+* Loss functions — classification losses, RL/human-rater losses, sparsity, train vs. test loss, over/underfitting
+* Parameters, activations & hyperparameters — terminology + optimizers (momentum, RMSProp)
+* Architectures — activation functions, universal approximation, over/underparameterization, symmetries in architecture design, CNNs, transformers, residual streams
+* Hyperparameter optimization — sweeps, scaling laws
+* LLM lifecycle - Pretraining, SFT fine tuning, RLHF, RLVRd
+
+## Practical ML
+
+Rent and set up your own compute, and pick from a modular selection of practical topics. Runs in parallel with ML Foundations.
+
+Materials for Lecture 1b live in this repository: [https://github.com/iliad-team/iliad-intensive-C.1.2](https://github.com/iliad-team/iliad-intensive-C.1.2)
+
+Short opener about the changing dividing lines of research, engineering, and agents.
+Modular selection of self study/exercise topics:
+
+* [Runpod + VSCode Remote Extension](https://github.com/iliad-team/iliad-intensive-C.1.2/blob/main/docs/runpod_remote.md)
+* [Weights and Biases](https://github.com/iliad-team/iliad-intensive-C.1.2/blob/main/docs/wandb.md)
+* [Distributed Computing](https://github.com/iliad-team/iliad-intensive-C.1.2/blob/main/docs/distributed_computing.md)
+* [Concurrent Computing](https://github.com/iliad-team/iliad-intensive-C.1.2/blob/main/docs/concurrent_computing.md)
+* [The Python and ML Ecosystem](https://github.com/iliad-team/iliad-intensive-C.1.2/blob/main/docs/python_ml_ecosystem.md)
+* [Publishing Your Project](https://github.com/iliad-team/iliad-intensive-C.1.2/blob/main/docs/publishing_your_project.md)
+
+## Claude Code for Research
+
+Use Claude Code to do small steps in an AI safety research repo, each step with a different Claude Code tool.
+
+Material:
+
+[Claude Code cheat sheet](https://www.alignment-hive.com/cheatsheet)
+
+\[optionally\] get a good [Terminal Claude Code setup](https://github.com/wusche1/dotfiles)
+
+Clone [this repository](https://github.com/iliad-team/iliad-intensive-C.1.3/tree/main) for the exercises
+
+* Do [Exercise 1](https://github.com/iliad-team/iliad-intensive-C.1.3/blob/claude_code_exercise/01/EXERCISE.md) using plan mode
+
+* Do [Exercise 2](https://github.com/iliad-team/iliad-intensive-C.1.3/blob/claude_code_exercise/02/EXERCISE.md) using subagents
+
+* Do [Exercise 3](https://github.com/iliad-team/iliad-intensive-C.1.3/blob/claude_code_exercise/03/EXERCISE.md) using the git worktree and goals
+
+Final project: replicate a version of Figure 1 from one of these papers:
+
+* [Inference only, no GPU needed](https://www-cdn.anthropic.com/b9ca6db27f02a9ddf0d4fdb51b26432c99a27be0.pdf)
+* [On a GPU](https://arxiv.org/pdf/2406.11717)
+
+
+
+Content:
+
+* Installing Claude code
+* \[optionally\] installing a good terminal Claude Code setup
+* Using a research template with good claude.md integration
+* Using multiple agents at the same time
+* Plan mode
+* Subagents
+* Worktrees
+* Goals/loops

@@ -37,3 +37,8 @@ texlive-bibtex-extra
 # so --no-install-recommends drops it and the deck build dies on a missing
 # lmodern.sty. Named explicitly.
 lmodern
+
+# pygmentize: minted shells out to it for syntax-highlighted code in slide
+# decks (C.1's). The slides ladder runs pdflatex -shell-escape, scoped to decks
+# only — see scripts/build-content.mjs; worksheets keep the sandbox.
+python3-pygments
