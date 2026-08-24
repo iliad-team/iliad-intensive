@@ -13,6 +13,7 @@ _src/
 # original source repo copied into a port worktree root (see new-worktree.sh --src)
 _src_repo/
 scratch/
+_src_repos/
 # generated content — build artifacts, never committed.
 # Modules (.mdx) and the index are produced upstream (tex -> mdx converter /
 # CI); figures land in public/uploads/. The repo holds sources, not outputs.
@@ -89,3 +90,11 @@ repos/
 # skills) stages an embedded git repo as a broken gitlink.
 /worktrees/
 .claude/worktrees/
+
+# OAuth client secrets / tokens never commit
+credientals.json
+credentials.json
+*.token.json
+gdoc-auth-url.txt
+gdoc-auth-url.html
+token.json

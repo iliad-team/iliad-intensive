@@ -118,6 +118,13 @@ const exec = (cmd, argv, opts = {}) =>
 // pdflatex invocation, shared by the worksheet and slides compile ladders.
 const PDFLATEX = ["pdflatex", "-interaction=nonstopmode", "-halt-on-error"];
 
+// Slides may use minted (syntax-highlighted code), which shells out to Pygments
+// and so needs -shell-escape. This is scoped to the slides ladder ONLY:
+// worksheets keep the no-shell-escape sandbox. A deck is still contributor
+// LaTeX, so enabling it here is a deliberate trust decision — CI must have
+// Pygments installed (see .github/workflows/site.yml and setup.sh).
+const PDFLATEX_SLIDES = [...PDFLATEX, "-shell-escape"];
+
 // "No solutions" variants of every download format are derived by stripping
 // solution blocks from the source — so a handout (or an LLM prompt) can be
 // guaranteed spoiler-free. Solution environments never nest.
@@ -575,6 +582,29 @@ async function buildSlug(slug) {
       notes.push(`⚠ warning: ${sumLoc}\`summary:\` is empty — the page and its index entry show no lede`);
     else if (/^todo\b/i.test(summary))
       notes.push(`⚠ warning: ${sumLoc}\`summary:\` is still a placeholder ("${summary.slice(0, 40)}") — the page ships it verbatim as its lede`);
+    // Front-matter order — the same warning the converter gives a LaTeX
+    // sheet (see tex2mdx.mjs); the judgment is shared (tex2mdx/util.mjs),
+    // only the extraction differs. `##` is a sheet's top heading level.
+    // Scanned over the raw file (frontmatter included — nothing there can
+    // match) so offsets convert straight to file lines.
+    {
+      const lineAt = (at) => `${relMdx}:${raw.slice(0, at).split("\n").length}  `;
+      const pos = { overview: null, video: null, prereqs: null, outcomes: null, content: null };
+      const headRe = /^##\s+(.+)$/gm;
+      for (let m; (m = headRe.exec(raw)); ) {
+        const t = m[1].trim().toLowerCase();
+        const item = { at: m.index };
+        if (/^prerequisites?\b/.test(t)) pos.prereqs ??= item;
+        else if (/^overview\b/.test(t)) pos.overview ??= item;
+        else pos.content ??= item;
+      }
+      const lo = raw.search(/<LearningOutcomes[\s>]/);
+      if (lo >= 0) pos.outcomes = { at: lo };
+      const yt = raw.search(/<YouTube[\s/>]/);
+      if (yt >= 0) pos.video = { at: yt };
+      for (const i of frontMatterOrderIssues(pos))
+        notes.push(`⚠ warning: ${lineAt(i.at)}${i.msg}`);
+    }
     copyFileSync(path.join(dir, "main.mdx"), mdxOut);
 
     // No PDF, by design. LaTeX is the format that becomes a PDF; MDX is the
@@ -616,10 +646,10 @@ async function buildSlug(slug) {
     if (hasHandout) variants.push(["slides-handout", "\\def\\HANDOUT{}\\input{slides}"]);
     for (const [job, src] of variants) {
       try {
-        await tex(...PDFLATEX, `-jobname=${job}`, src);
+        await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
         await bibPass(job);
-        await tex(...PDFLATEX, `-jobname=${job}`, src);
-        await tex(...PDFLATEX, `-jobname=${job}`, src);
+        await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
+        await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
       } catch (e) {
         if (e?.bibtex) return done(false, e.message);
         const log = path.join(dir, `${job}.log`);

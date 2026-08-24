@@ -154,7 +154,8 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
 
 - The summary becomes the page's lede and its index blurb;
   `learningoutcomes` renders as the "What you'll learn" box where you put
-  it — usually right after `\maketitle`.
+  it — after Prerequisites, before the content (see "Front matter opens
+  the sheet" below).
 - Legacy sheets with a `\begin{summary}` env in the body still convert (it
   is hoisted into the frontmatter), but the metadata block is the home for
   new sheets; a frontmatter `summary:` overrides the env if both are present.
@@ -183,6 +184,27 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
   source is all it takes.
 - MDX-authored sheets (`main.mdx`) have no `\tableofcontents`; write the page
   with headings and rely on the sidebar nav.
+  
+## Front matter opens the sheet
+
+Different authors ordered their openings differently; the site does not.
+Every sheet opens the same way:
+
+1. **Overview** — not a section: it is the `summary:` in the metadata
+   block, and the page header shows it under the title (it doubles as the
+   index blurb, so keep it one tight paragraph). A body
+   `\section{Overview}` / `## Overview` draws a warning: fold the text
+   into `summary:` and drop the section.
+2. **Video embeds** (optional) — `\youtube` / `<YouTube />`, see "Videos"
+   below.
+3. **Prerequisites** — an ordinary section.
+4. **Learning outcomes** — the `learningoutcomes` box.
+
+Then the content. Orientation opens a sheet; pointers *out* of it close it
+(the mirror rule is "Further reading goes last", just below). The build
+checks the opening on both paths (LaTeX and MDX) and prints a non-fatal
+**warning** when a sheet strays. Only the opening run is checked — a video
+embedded mid-content to illustrate a point is fine and exempt.
 
 ## Further reading goes last
 
@@ -288,6 +310,9 @@ An aside in the mathematical register.
 - Block-level: it sets its own paragraph, so write it between paragraphs, not
   mid-sentence.
 - MDX: `<YouTube id="aircAruvnKk" title="…" />`
+- Lecture recordings are front matter: they open the sheet, before
+  Prerequisites (see "Front matter opens the sheet"). A video illustrating
+  one point sits wherever that point is — that's fine too.
 
 ## Slides
 

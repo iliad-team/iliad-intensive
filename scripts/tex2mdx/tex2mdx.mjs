@@ -21,7 +21,7 @@ import { parseArgs } from "node:util";
 import { pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { readGroup, stripComments, tidy } from "./util.mjs";
+import { readGroup, stripComments, tidy, frontMatterOrderIssues } from "./util.mjs";
 import { SRC_FILES, warnings, warn, advisories, advise, fmtIssue } from "./state.mjs";
 import { MACRO_OVERRIDE, MACRO_SKIP, applyShims, trimMacroBody,
          CREF_NAME_DEFAULTS, CONTRACT_NAMES, KNOWN_FRONT_KEYS } from "./shims.mjs";
@@ -297,6 +297,27 @@ if (usesExerciseEnv && !iliadBlock) {
       advise(`\\hyperref with hand-written reference text "${m[1].slice(0, 40)}" — use \\cref so the text tracks the label`, m[0]);
     }
   }
+}
+{ // front-matter order (non-fatal): videos → Prerequisites → learning
+  // outcomes, before the first content section; the overview is `summary:`,
+  // never a body section. Judgment shared with the MDX path — see util.mjs.
+  const pos = { overview: null, video: null, prereqs: null, outcomes: null, content: null };
+  const secRe = /\\(?:sub)*section\*?\s*\{/g;
+  for (let m; (m = secRe.exec(body)); ) {
+    const g = readGroup(body, secRe.lastIndex - 1);
+    if (!g) continue;
+    secRe.lastIndex = g.end;
+    const t = g.content.replace(/\\[a-zA-Z]+\s*/g, "").replace(/[{}]/g, "").trim().toLowerCase();
+    const item = { at: m.index, needle: body.slice(m.index, g.end) };
+    if (/^prerequisites?\b/.test(t)) pos.prereqs ??= item;
+    else if (/^overview\b/.test(t)) pos.overview ??= item;
+    else pos.content ??= item;
+  }
+  const lo = body.indexOf("\\begin{learningoutcomes}");
+  if (lo >= 0) pos.outcomes = { at: lo, needle: "\\begin{learningoutcomes}" };
+  const yt = body.search(/\\youtube\b/);
+  if (yt >= 0) pos.video = { at: yt, needle: "\\youtube" };
+  for (const i of frontMatterOrderIssues(pos)) advise(i.msg, i.needle);
 }
 // redefining the contract breaks the converter's guarantees
 if (usesExerciseEnv) {

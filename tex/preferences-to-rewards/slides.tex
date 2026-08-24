@@ -113,7 +113,7 @@
     \pause
     \item \textit{Outcome 1}: Understand the assumptions of each step.
     \pause
-    \item \textit{Outcome 2}: Recognise thedifference between preference, utility, and reward.
+    \item \textit{Outcome 2}: Recognise the difference between preference, utility, and reward.
 \end{itemize}
 \end{frame}
 
@@ -172,7 +172,7 @@ By choosing the ``wrong type of preference'', an agent can run into three kinds 
     agents take suboptimal choices or plans --- there are better alternatives that are not being taken.
     \pause
     \begin{itemize}
-        \exitem E.g.\ \textbf{dominance}: another policy yields prefered trajectories at least as preferred in every state of the world, and strictly so in at least one.
+        \exitem E.g.\ \textbf{dominance}: another policy yields preferred trajectories at least as preferred in every state of the world, and strictly so in at least one.
     \end{itemize}
     \pause
     \item \textbf{Vulnerability:}
@@ -255,7 +255,7 @@ Completeness says every pair can be compared:
 \end{frame}
 
 \begin{frame}
-\frametitle{Axiom 2:Transitivity}
+\frametitle{Axiom 2: Transitivity}
 Transitivity says comparisons fit together:
     $$
     h\pref h'\text{ and }h'\pref h''
@@ -303,7 +303,7 @@ Transitivity says comparisons fit together:
 
 \begin{frame}
 \frametitle{Beyond Ordinal Utility}
-Ordinal utility ranks outcomes, but give a structure to mixtures of them.
+Ordinal utility ranks outcomes, but gives a structure to mixtures of them.
 \vspace{0.4cm}
 \begin{itemize}
     \item Example:
@@ -359,27 +359,27 @@ Ordinal rank doesn't say how to rank mixtures, which can arise naturally out of 
 \end{frame}
 
 \begin{frame}
-\frametitle{vNM representaiton: The big picture}
+\frametitle{vNM representation: The big picture}
 \begin{enumerate}
-    \item \textbf{Axiom 1:Completeness:} any two lotteries can be compared.
+    \item \textbf{Axiom 1: Completeness:} any two lotteries can be compared.
     \pause
-    \item \textbf{Axiom 2:Transitivity:} comparisons over lotteries fit together.
+    \item \textbf{Axiom 2: Transitivity:} comparisons over lotteries fit together.
     \pause
-    \item \textbf{Axiom 3:Continuity:} intermediate prospects can be matched by a
+    \item \textbf{Axiom 3: Continuity:} intermediate prospects can be matched by a
     mixture of better and worse prospects.
     \pause
-    \item \textbf{Axiom 4:Independence:} common lottery components cancel.
+    \item \textbf{Axiom 4: Independence:} common lottery components cancel.
 \end{enumerate}
 
 \pause
 \vspace{0.25cm}
-\textbf{Result:} 
-The first two axioms give ranking structure based on a cardinal utility; 
-the last two axioms make the utility to be an expected value.
+\textbf{Result:}
+The first two axioms give ranking structure based on an ordinal utility;
+the last two axioms make the utility an expected value.
 \end{frame}
 
 \begin{frame}
-\frametitle{Axiom 3:Continuity}
+\frametitle{Axiom 3: Continuity}
 \begin{itemize}
     \item If $\mu\pref\nu\pref\xi$, 
     continuity says there always exists some value $\lambda\in[0,1]$ such that
@@ -391,17 +391,18 @@ the last two axioms make the utility to be an expected value.
     \pause
 \end{itemize}
 \vspace{0.4cm}
-Classic counter-examples are lexicographic preferences, in which events can be 
-infinitely different from each other. 
+Classic counter-examples are lexicographic preferences, in which even the slimmest
+chance of a catastrophically bad outcome is worse than a slightly bad outcome
+with certianty, no matter how low the odds are.
 \vspace{0.4cm}
 
-\textit{Example}: $\mu$ is eating chocolate, $\nu$ is eating potatos, and $\xi$ is accepting genocide.
+\textit{Example}: $\mu$ is eating chocolate, $\nu$ is eating potatoes, and $\xi$ is accepting genocide.
 \end{frame}
 
 
 
 \begin{frame}
-\frametitle{Axiom 4:Independence}
+\frametitle{Axiom 4: Independence}
 \begin{itemize}
     \item If $\mu\pref\nu$, then mixing both with the same background lottery
     $\xi$ should not reverse the comparison:
@@ -422,14 +423,14 @@ When it fails, common consequences do not psychologically or behaviorally cancel
 \textit{Example (Allais paradox):} Most people would say
 \begin{itemize}
     \item Getting \$100 for sure \textit{is better than} a coin flip for \$250.
-    \item A 1-in-100 shot at \$100 \textit{is worst than} a 1-in-200 shota at \$250.
+    \item A 1-in-100 shot at \$100 \textit{is worse than} a 1-in-200 shot at \$250.
 \end{itemize}
 These are the same choice, just scaled down.
 \end{frame}
 
 
 \begin{frame}
-\frametitle{Theorem 1: The von Neumann-Morgenstern representation}
+\frametitle{Theorem 1: The von Neumann--Morgenstern representation}
 
 Assumptions: a finite set of options $X\subseteq\Hcal^*$, 
 the four axioms hold.
@@ -468,7 +469,7 @@ the four axioms hold.
     \item Lotteries (probabilistic mixtures)
     \item Preserves risky choices
     \item Only affine transforms are okay
-    \item Inconmesurable gaps can exist
+    \item Incommensurable gaps can exist
 \end{itemize}
 \end{column}
 \end{columns}
@@ -476,7 +477,7 @@ the four axioms hold.
 \pause
 \vspace{0.4cm}
 \centering
-vNM utility futher refines ordinal utility (it is not just a relabeling).
+vNM utility further refines ordinal utility (it is not just a relabeling).
 \end{frame}
 
 
@@ -488,7 +489,7 @@ vNM utility futher refines ordinal utility (it is not just a relabeling).
     \pause
     \item But agents make decisions over time, so they need indications of utility that unfold step-by-step.
     \pause
-    \item From a global utility $u(h)$, one can alsways define the increment
+    \item From a global utility $u(h)$, one can always define the increment
     $$
     r(t;h)=u(t\cdot h)-u(h),\quad\text{satisfying}\quad u(t\cdot h)=r(t;h)+u(h).
     $$
@@ -602,9 +603,9 @@ to RL-style expected sum of future reward maximisation.
 \begin{itemize}
     \item Will powerful AIs necessarily become expected utility maximisers?
     \pause
-    \item Instead of `given a rewards, how to optimise it' we could ask `what kind of properties we want our reward to satisfy'. For example, Are any of these properties (or their negation) useful for fostering:
+    \item Instead of `given a reward, how to optimise it' we could ask `what kind of properties we want our reward to satisfy'. For example, are any of these properties (or their negation) useful for fostering:
     \begin{itemize}
-        \item Corregibility? (e.g. incompleteness)
+        \item Corrigibility? (e.g. incompleteness)
         \pause
         \item Robust values? (e.g. continuity)
         \pause

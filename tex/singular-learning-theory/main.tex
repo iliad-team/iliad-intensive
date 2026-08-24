@@ -300,7 +300,7 @@ space of numerical scores, class distributions, or next-token distributions).
 
 Informally, a neural network architecture is a specification for how various
 \textbf{parameters} (e.g., neuron connection strengths / weights or neuron
-activation thresholds / biases) combine with input signals and each-other to
+activation thresholds / biases) combine with input signals and each other to
 describe a function from $\X$ to $\Y$.
 
 Formally, a neural network architecture essentially comprises a
@@ -484,7 +484,7 @@ error} loss
     \label{eq:square-loss}
     L_{x,y}(w) = \|f_w(x) - y\|^2.
 \end{equation}
-If $\Y = \Delta^{m-1}$ is a space of discrete distributions over $m$ objects it
+If $\Y = \Delta^{m-1}$ is a space of discrete distributions over $m$ objects, it
 is typical to use \textbf{cross entropy} loss
 \begin{equation}
     \label{eq:cross-entropy}
@@ -586,7 +586,7 @@ given input $x \in \X$ is typically denoted either
 
 Sometimes, defining a parameter--distribution map is simply a re-framing. For
 example, in image classification, our output space $\Y$ was a space of
-distributions over image classes. Let $\C$ represents the underlying class
+distributions over image classes. Let $\C$ represent the underlying class
 space, then $\Y = \Delta(\C)$ and we can view our parameter--function map
 $\Phi : \W \to \F$ as a parameter--distribution map $\Psi : \W \to \D$ with
     $\D = \F \subseteq \Y^\X = \Delta(\C)^\X$.
@@ -853,7 +853,7 @@ intractable for non-trivial models, but more analytically tractable than SGD in
 general. Moreover, as we will explore in later sections, the dynamics of Bayesian
 learning still reflect the local geometry of the parameter--distribution map.
 
-In preparation for exploring this connection between geometry and learning we
+In preparation for exploring this connection between geometry and learning, we
 finally introduce localised variants of the partition function and free energy,
 where the integral in \eqref{eq:partition-function} is restricted to a certain
 neighbourhood in parameter space.
@@ -959,7 +959,7 @@ The following exercises explore this definition in some toy parametrisations of 
 
 \begin{exercise}[Parametrising the space of constants]
 \label{ex:univariate-degeneracy}
-Let $\X = \{\ast\}$ and $\Y = \R$, so that we have a hypothesis class of constants. Consider the scalar parameter space $\W = \R$ and the parameter function map that maps $w$ to $f_w = w$ (the output is just the parameter itself).
+Let $\X = \{\ast\}$ and $\Y = \R$, so that we have a hypothesis class of constants. Consider the scalar parameter space $\W = \R$ and the parameter--function map that maps $w$ to $f_w = w$ (the output is just the parameter itself).
 \begin{enumerate}
     \item What is the directional derivative of the parameter--function map in
         direction $v = 1$?
@@ -972,7 +972,7 @@ What kind of derivative does this reduce to?
 
 \begin{exercise}[Degeneracy from raising a parameter to a power]
 \label{ex:cubic-degeneracy}
-Again, consider a hypothesis class of constants and the scalar parameter space $\W = \R$. This time, define a parameter function map that maps $w$ to $f_w = w^3$.
+Again, consider a hypothesis class of constants and the scalar parameter space $\W = \R$. This time, define a parameter--function map that maps $w$ to $f_w = w^3$.
 \begin{enumerate}
     \item Show that this architecture indexes exactly the same hypothesis class as the architecture described in \cref{ex:univariate-degeneracy}.
     \item What is the directional derivative of the parameter--function map in
@@ -986,7 +986,7 @@ What kind of derivative does this reduce to?
 
 \begin{exercise}[Degeneracy from multiplying two parameters together]
 \label{ex:product-degeneracy}
-Again, consider a hypothesis class of constants. Consider this time the two-dimensional parameter space $\W = \R^2$. Define a parameter function map that maps $w = (a, b)$ to $f_w = a \cdot b$.
+Again, consider a hypothesis class of constants. Consider this time the two-dimensional parameter space $\W = \R^2$. Define a parameter--function map that maps $w = (a, b)$ to $f_w = a \cdot b$.
 \begin{enumerate}
     \item
         Show that this architecture indexes exactly the same hypothesis class
@@ -995,13 +995,13 @@ Again, consider a hypothesis class of constants. Consider this time the two-dime
         What is the directional derivative of the parameter--function map in
         direction $v = (1, 0)$?
         \begin{hint}
-what kind of derivative does this reduce to?
+What kind of derivative does this reduce to?
         \end{hint}
     \item
         What is the directional derivative of the parameter--function map in
         direction $v = (0, 1)$?
         \begin{hint}
-what kind of derivative does this reduce to?
+What kind of derivative does this reduce to?
         \end{hint}
     \item \label{ex:product-degeneracy:axes-directions}
         At which points in the parameter space is the parameter--function map
@@ -1014,7 +1014,7 @@ what kind of derivative does this reduce to?
 
 \begin{exercise}[Degeneracy from adding two parameters together]
 \label{ex:sum-degeneracy}
-Again, consider a hypothesis class of constants. Consider this time the two-dimensional parameter space $\W = \R^2$. Define a parameter function map that maps $w = (a, b)$ to $f_w = a + b$.
+Again, consider a hypothesis class of constants. Consider this time the two-dimensional parameter space $\W = \R^2$. Define a parameter--function map that maps $w = (a, b)$ to $f_w = a + b$.
 \begin{enumerate}
     \item Show that this architecture indexes exactly the same hypothesis class as the architecture described in \cref{ex:univariate-degeneracy}.
     \item What is the directional derivative of the parameter--function map in
@@ -1272,7 +1272,7 @@ The following is a guide to one possible approach.
                 to
                     $B\, \delta\!A \in \R^{m^2}$
                 in terms of the column space of $B$.
-                Show that dimensionality of this image (the rank of the linear map $T_B$) is $m r_B$.
+                Show that the dimensionality of this image (the rank of the linear map $T_B$) is $m r_B$.
             \item 
                 Describe the intersection of the images of $T_A, T_B$ in terms of the row/column spaces of $A, B$. Show that the dimensionality of this intersection is $r_A r_B$.
             \item
@@ -1466,7 +1466,7 @@ Differentiate the identity
             $s_v(x, y, w) = 0$
         for all $x \in \X$ and $y \in \Y$.
     \item\label{ex:score-properties:c}
-        Show the converse: if the directional score $s_v(x, y, w) = 0$
+        Show the converse: if the directional score $s_v(x, y, w)$
         vanishes for all $x \in \X$ and $y \in \Y$ at $w$, then $\Psi$ is
         degenerate at $w$ in direction $v$.
 \end{enumerate}
@@ -1549,7 +1549,7 @@ Check the definition of positive definite.
     condition is equivalent to our notion of (somewhere) degeneracy. The second
     condition is called non-identifiability.
 
-    \citet{Watanabe2007,Watanabe2009} observes that many of the results from
+    \citet{Watanabe2007,Watanabe2009} observe that many of the results from
     classical statistics crucially assume among their regularity conditions the
     parameter--distribution map is identifiable and the Fisher information
     matrix is nonsingular. Whereas, in a statistical model based on a
@@ -1571,7 +1571,7 @@ follows, we assume that the per-example loss $L_{x,y}(w)$ depends on $w$ only
 through $\Phi(w)$, and work with the population loss
     $L(w) = \E_{(x,y) \sim q}[L_{x,y}(w)]$.
 For statistical models,
-we use the expected negative log likelihood
+we use the expected negative log-likelihood
     $L(w) = \E_{(x,y) \sim q}[-\log p(y \mid x, w)]$
 as our loss function. In either case, we assume that $L$ is
 twice-differentiable with respect to $w$.
@@ -1590,7 +1590,7 @@ Let $L : \W \to \R$ be a population loss function satisfying the assumptions des
     \item
         Suppose $\W = \R^d$. Show that if $d > 1$, then for \emph{any} $w \in \W$, there exists a nonzero $v$
         such that $D_v L(w) = 0$. \begin{hint}
-consider separately the cases $\nabla
+Consider separately the cases $\nabla
         L(w) = 0$ and $\nabla L(w) \neq 0$.
         \end{hint}
 \end{enumerate}
@@ -1659,7 +1659,7 @@ Compute the Hessian.
 \end{enumerate}
 \end{exercise}
 
-Note that the Hessian degeneracy in \cref{ex:lld:2,ex:lld:3} arise for
+Note that the Hessian degeneracy in \cref{ex:lld:2,ex:lld:3} arises for
 qualitatively different reasons. In \cref{ex:lld:3}, the loss is constant along
 the $a$-direction to all orders---a genuinely flat direction. In
 \cref{ex:lld:2}, the loss does increase along the $a$-direction, just more
@@ -1712,7 +1712,7 @@ degenerate global minimum of the loss landscape.
         \end{equation}
         where $s$ is the score function from \cref{def:score}.
         \begin{hint}
-differentiate the identity
+Differentiate the identity
             $\E_{y \sim p(y \mid x, w)}[s(x, y, w)] = 0$
             (established in \cref{ex:score-properties}) with respect to $w$.
         \end{hint}
@@ -1723,7 +1723,7 @@ differentiate the identity
             H(w_0) = I(w_0).
         \end{equation}
         \begin{hint}
-compute $H(w)
+Compute $H(w)
             = -\E_{x}\, \E_{y \sim p(y \mid x, w_0)}
                 [\nabla_w^2 \log p(y \mid x, w)]$,
             evaluate at $w = w_0$, and apply part~(a).
@@ -1767,7 +1767,7 @@ exercise explores these subtleties through examples.
                 \cref{ex:cubic-degeneracy}).
             \item
                 If we take $L_{k,l}$ from \cref{ex:loss-landscape-degeneracy} to be
-                defined on the constant function $(a, b)$ (rather than equivalent
+                defined on the constant function $(a, b)$ (rather than the equivalent
                 underlying parameter), then in this parameterisation, that loss
                 function becomes
                     $L_{k,l}(\alpha,\beta) = (\alpha^3)^{2k} + (\beta^3)^{2l}$.
@@ -1846,7 +1846,7 @@ The key takeaway from this exercise is that the dimension of the model controls 
         \item Prove that $V(\epsilon) \propto \epsilon^{d'/2}$
         
         \begin{hint}
-Use the volume of the ellipsoid from \cref{ex:llc-regular-case}
+Use the volume of the ellipsoid from \cref{ex:llc-regular-case}.
         \end{hint}
     \end{enumerate}
 \end{exercise}
@@ -1875,7 +1875,7 @@ In this example, the degenerate directions do not contribute to the leading expo
 \end{enumerate}
 \end{exercise}
 
-Note that from equation \eqref{eq:regular-volume-scaling} we already have that the LLC and local multiplicity in the regular case are $\lambda = \frac{d}{2}$, $\mu=1$
+Note that from equation \eqref{eq:regular-volume-scaling} we already have that the LLC and local multiplicity in the regular case are $\lambda = \frac{d}{2}$, $\mu=1$.
 
 When $\mu(w^*) = 1$, the formula simplifies to $V(\epsilon) = c\epsilon^{\lambda(w^*)} + o(\epsilon^{\lambda(w^*)})$ which allows us to interpret $\lambda(w^*)$ as the \textit{volume scaling exponent}: increasing the error tolerance by a factor of $a$ increases the volume of near-optimal parameters by a factor of $a^{\lambda(w^*)}$.
 
@@ -1901,7 +1901,7 @@ When $\mu(w^*) = 1$, the formula simplifies to $V(\epsilon) = c\epsilon^{\lambda
                 L(w) - L(w^*) \leq \frac{1}{2} \Lambda \|w - w^*\|^2.
             \end{equation*}
             \begin{hint}
-for any real symmetric matrix $H\in\R^{n\times n}$ and vector $v\in \R^n$, $v^\top H v \leq \Lambda  \|v\|^2$ where $\Lambda$ is the largest eigenvalue of $H$.
+For any real symmetric matrix $H\in\R^{n\times n}$ and vector $v\in \R^n$, $v^\top H v \leq \Lambda  \|v\|^2$ where $\Lambda$ is the largest eigenvalue of $H$.
             \end{hint}
             
         \item 
@@ -1927,7 +1927,7 @@ We have now shown that the LLC satisfies $\lambda(w^*) \leq d/2$, with equality 
 
 \begin{exercise}[LLC vs Hessian Rank]
 \label{ex:LLC-hessian-rank}
-    In this exercise we will show that the LLC can detect differences in the local geometry that is not reflected in the rank of the Hessian.  
+    In this exercise we will show that the LLC can detect differences in the local geometry that are not reflected in the rank of the Hessian.
     
     Construct two loss functions $L_1$ and $L_2$ with minima $w_1$ and $w_2$ respectively such that $\rank \, \nabla^2L_1(w_1) = \rank \, \nabla^2L_2(w_2)$ but $\lambda(w_1) \neq \lambda(w_2)$.
 \end{exercise}
@@ -2003,7 +2003,7 @@ evaluated explicitly, yielding the asymptotic form of
 
 The resolution map $g$ is far from unique, and different choices
 produce different exponents $k_j, h_j$.
-$\lambda(w^*)$ is nevertheless well-defined which can be seen from (another) equivalent definition using the \textbf{local zeta function}:
+$\lambda(w^*)$ is nevertheless well-defined, which can be seen from (another) equivalent definition using the \textbf{local zeta function}:
 \begin{equation}\label{eq:local-zeta}
     \zeta(z,\, w^*) \;=\; \int_{B(w^*)}
         \bigl(L(w) - L(w^*)\bigr)^{\!z} \, dw\,,
@@ -2231,7 +2231,7 @@ Consider two disjoint regions $\U, \V \subseteq \W$, containing minimisers $u^\a
 \end{equation}
 where $\Delta L_n = L_n(v^\ast) - L_n(u^\ast)$ and $\Delta\lambda = \lambda_{\V} - \lambda_{\U}$.
 
-Consider the case when one region is more accurate but more complex than the other i.e.
+Consider the case when one region is more accurate but more complex than the other, i.e.
 \begin{equation*}
     L_n(u^\ast) > L_n(v^\ast)
     \qquad\text{and}\qquad
@@ -2305,14 +2305,14 @@ Some of the ideas behind this research are discussed by \citet{Hoogland+2023,Ska
 We briefly survey some key topics in this emerging literature.
 
 \paragraph{Characterising and estimating degeneracy in practice.}
-We have seen examples of parameter--function map degeneracy in simple neural networks. Symmetries of neural network parameter--function maps have long been studied, however often the emphasis has been on discrete or globally continuous symmetries rather than additional symmetries localised to subsets of parameter space \citep[see][\S 2.3, for a survey]{FarrugiaRoberts2022}.
+We have seen examples of parameter--function map degeneracy in simple neural networks. Symmetries of neural network parameter--function maps have long been studied; however, often the emphasis has been on discrete or globally continuous symmetries rather than additional symmetries localised to subsets of parameter space \citep[see][\S 2.3, for a survey]{FarrugiaRoberts2022}.
 For two-layer hyperbolic tangent networks, \citet{FarrugiaRoberts2024} characterises the regions of parameter space which display additional degeneracy, and \citet{FarrugiaRoberts2023} characterises degenerate directions in the parameter--function map.
 
 As discussed, analytically calculating the (local) learning coefficient for deep neural networks is challenging. However, precise formulas have been derived for multi-layer deep linear networks \citep{Aoyagi+Watanabe2005,Aoyagi2024}, two-layer hyperbolic tangent networks \citep{Aoyagi2009}, and certain other architectures. These results assume data is generated from a known ``teacher'' model.
 
 In practice, we lack knowledge of the true data generating process, and we use more complex architectures. Much work has therefore built on the foundational methods of estimating the local learning coefficient with scalable Markov chain Monte Carlo methods \citep{Lau+2025,Hitchcock+Hoogland2025}.
 For a practical introduction to learning coefficient estimation, see \citet{Furman2023}.
-\citet{Chen+Murfet2025} characterises the sensitivity of local learning coefficient estimation to patterns in sequence models.
+\citet{Chen+Murfet2025} characterise the sensitivity of local learning coefficient estimation to patterns in sequence models.
 
 \paragraph{Bayesian phase transitions and stagewise development.}
 As we have discussed, Watanabe's free energy formula suggests Bayesian deep learning should undergo Bayesian phase transitions under certain conditions. \citet{Carroll2021} studied Bayesian phase transitions in small ReLU networks, and \citet{Chen+2023} studied Bayesian phase transitions in a small feature autoencoder (the ``toy model of superposition'' from \citealp{Elhage+2022}).
@@ -2321,7 +2321,7 @@ In practice, we use stochastic gradient-based optimisation, rather than Bayesian
 \citet{Chen+2023} study such \emph{dynamical phase transitions} in their toy autoencoder and observe a temporal correspondence between phase changes and estimated LLC increases consistent with the free energy formula.
 
 \citet{Wang+2024,Hoogland+2025} scale this methodology to transformers trained on natural language, finding similar \emph{stagewise development} phenomena with changes in behaviour and internal structure accompanied by LLC changes. \citet{Panickssery+Vaintrob2023,Hoogland+2025,Carroll+2025,Urdshals+Urdshals2025} also study developmental stages in transformers trained on synthetic data.
-\citet{Elliott+2026} extends this study to a case of goal misgeneralisation in deep reinforcement learning.
+\citet{Elliott+2026} extend this study to a case of goal misgeneralisation in deep reinforcement learning.
 
 \paragraph{Degeneracy, interpretability, and patterning.}
 The LLC provides a single number representing the effective dimensionality of a model. We can derive from the same principles---asymptotic properties of the posterior that reflect degeneracies in the model---more fine-grained tools for probing the internal computational structures of neural networks and how they depend on data.
@@ -3857,7 +3857,7 @@ Substituting into \eqref{eq:rlct} gives
         = \lim_{\epsilon\to 0}
             \frac{\log V(\epsilon)}{\log\epsilon} = \lambda
     \end{equation*}
-    by Equation \eqref{eq:solve-LLC}
+    by Equation \eqref{eq:solve-LLC}.
     
 \end{solution}
 
@@ -3895,7 +3895,7 @@ Substituting into \eqref{eq:rlct} gives
             \frac{d\lambda}{dr}=\frac{1}{8}\frac{d}{dr}\!\left[(m+r)(3m-r)\right]
             = \frac{1}{8}\left[(3m - r) - (m + r)\right] = \frac{1}{4}(m - r) \geq 0,
         \]
-        so $\lambda$ is increasing in $r$ therefore \textbf{lower rank
+        so $\lambda$ is increasing in $r$, therefore \textbf{lower rank
         $\implies$ lower $\lambda$}. This is consistent with
         \cref{ex:dln-degeneracy:general-rank} where we saw that at lower-rank
         parameters, more directions in parameter space are degenerate.
@@ -3938,7 +3938,7 @@ Substituting into \eqref{eq:rlct} gives
             \varphi(\mu)
             \prod_{i=1}^n p(x^{(i)} \mid \mu)\, d\mu
     \end{equation*}
-    the then set $F_n = -\log Z_n$.
+    then set $F_n = -\log Z_n$.
 
     The empirical loss is
     \begin{equation*}
