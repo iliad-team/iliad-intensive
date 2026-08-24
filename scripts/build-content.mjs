@@ -42,6 +42,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { injectAutoLabelsTree } from "./tex2mdx/autolabel.mjs";
 import { transformInputTree } from "./tex2mdx/texinput.mjs";
+import { frontMatterOrderIssues } from "./tex2mdx/util.mjs";
 import { buildStatus } from "./build-status.mjs";
 import { loadSchedule, ScheduleError } from "./schedule.mjs";
 
