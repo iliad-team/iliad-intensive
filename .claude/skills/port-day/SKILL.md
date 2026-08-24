@@ -26,9 +26,12 @@ LaTeX day this extends to math: copy equations byte-for-byte (shell slicing,
 This is the rule the whole skill hangs on, and it is easy to break by accident.
 Concretely, all of the following are forbidden:
 
-- **Writing a `summary:`.** It is always `summary: TODO` — never composed, never
+- **Writing a `summary:`.** It is `summary: TODO` — never composed, never
   paraphrased from the Doc, never lifted from `scratch/MATERIAL.md`. The Doc tabs
-  have no summary field, so *any* summary is invented. David writes them.
+  have no summary field, so *any* summary is invented. David writes them. The
+  one exception is a source with its own Overview/summary paragraph: that is
+  the author's text, and it is transcribed verbatim into `summary:` (never
+  kept as a body section — the overview lives in the page header).
 - **Distilling bullets from prose.** If the tab's intent section is three
   paragraphs and the template wants a bullet list, port the three paragraphs.
   Do not "turn them into" outcomes.
@@ -120,6 +123,10 @@ contributors:
 slides: <canonical Drive folder URL, if the deck is a raw PDF>
 ---
 
+<YouTube id="<video id>" title="<lecture recording, if one exists>" />
+
+## Prerequisites
+
 <LearningOutcomes>
 
 * first outcome
@@ -127,11 +134,16 @@ slides: <canonical Drive folder URL, if the deck is a raw PDF>
 
 </LearningOutcomes>
 
-## Prerequisites
 ## Roadmap for today
 ## Reading guide
 ## Further reading
 ```
+
+That opening order — video embeds, then `## Prerequisites`, then
+`<LearningOutcomes>` — is fixed (docs/commands.md §"Front matter opens the
+sheet"); the source's own ordering does not override it, the same as Further
+reading moving to the end. An `Overview` section in the source is transcribed
+verbatim into `summary:` (see above), never kept as a body section.
 
 **Learning outcomes must use the `<LearningOutcomes>` component**, never an
 `## Learning outcomes` heading — a heading renders as an ordinary section instead
@@ -168,8 +180,12 @@ contract. In outline:
   `\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}`.
   Do **not** reload hyperref/cleveref — `iliad.sty` loads them.
 - `\title{}` / `\author{\authorname{Name}\\ \affiliation{Org}}`; after
-  `\maketitle`, `\begin{summary}…\end{summary}` and
-  `\begin{learningoutcomes}\item…\end{learningoutcomes}`.
+  `\maketitle` the fixed opening order: any `\youtube[Title]{VIDEO_ID}`
+  embeds, the `Prerequisites` section, then
+  `\begin{learningoutcomes}\item…\end{learningoutcomes}` — reorder the
+  source's opening to match (content stays verbatim). The overview is the
+  `summary:` metadata key, not a `\begin{summary}` env (legacy) or a body
+  section.
 - Exercises: `\begin{exercise}[Title]` then `\label{ex:…}`. Solutions:
   `\begin{solution}[ex:…]` — the label is mandatory and must match; the build
   strips these for the `-nosol` variant.

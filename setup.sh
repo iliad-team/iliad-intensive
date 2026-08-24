@@ -7,6 +7,11 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+# macOS has no apt — hand off to the Homebrew/MacTeX twin of this script.
+if [ "$(uname -s)" = "Darwin" ]; then
+  exec ./setup-macos.sh
+fi
+
 echo "== system packages (TeX Live, poppler) =="
 # Keep this list in sync with .github/apt-packages.txt — the CI package set
 # and every per-package rationale live THERE; installing the same packages
@@ -54,7 +59,11 @@ npm install --no-audit --no-fund --prefix scripts/tex2mdx
 
 echo
 echo "== git LFS (figures under tex/**/fig/*.png) =="
-git lfs install --local
+# --skip-repo: only set the smudge/clean filters. The hook half would try to
+# write into the pinned .githooks (npm's prepare script sets core.hooksPath
+# before this runs) and abort on the custom pre-push there — which already
+# calls `git lfs pre-push` itself.
+git lfs install --local --skip-repo
 git lfs pull || echo "  (git lfs pull skipped — no remote objects yet)"
 
 echo
