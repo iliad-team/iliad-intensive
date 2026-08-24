@@ -1460,7 +1460,7 @@ L(s, a, \theta_k, \theta) = \min\!\left( \frac{\pi_\theta(a \mid s)}{\pi_{\theta
 $}
 \vfill
 \[
-\widehat{A}_t = -V(s_t) + r_t + \gamma r_{t+1} + \cdots + \gamma^{T-t+1} r_{T-1} + \gamma^{T-t} V(s_T)
+\widehat{A}_t = -V(s_t) + r_t + \gamma r_{t+1} + \cdots + \gamma^{T-t-1} r_{T-1} + \gamma^{T-t} V(s_T)
 \]
 \vfill
 \end{frame}
