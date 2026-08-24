@@ -123,9 +123,11 @@ clusters:
 
       - code: A.4
         title: Reward Learning Theory
-        lead: TBD
-        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.6d2zm6vpa5tg#heading=h.1n7lgbgvyd2w
-        source: partial
+        lead: Leon (Joar Skalse guest lecture)
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.6d2zm6vpa5tg
+        source: missing
+        slides: https://docs.google.com/presentation/d/1cG2M68gj8osmrse97bza9cgCqqwoFXBvDIGpkv-HVgA/edit
+        note: exercise sheet and both decks exist as Drive files only
 
   - id: B
     label: B — Learning
@@ -165,9 +167,10 @@ clusters:
 
       - code: B.6
         title: Physics of Learning
-        lead: TBD
-        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit
+        lead: Lucas + Dmitrii
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.svkvg1ktzxml
         source: partial
+        note: proposed module, it has no module tab in the Doc yet, only an entry under Proposed Modules
 
   - id: C
     label: C — Abstractions, Representations, and Interpretability
@@ -288,6 +291,9 @@ clusters:
 
       - code: E.3
         title: Worst-Case Interpretability
-        lead: TBD
-        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.rgyi2yd35qb9#heading=h.1n7lgbgvyd2w
+        lead: Louis
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.rgyi2yd35qb9
         source: partial
+        sourceUrl: https://github.com/LouisYRYJ/Proof_based_approach_tutorial
+        slides: https://drive.google.com/file/d/1CqJtSUFLZ_L-kSsSzvSJGXfuf1Lbq5Un/view
+        note: a tutorial notebook exists in the repo; no worksheet source yet

@@ -87,3 +87,11 @@ repos/
 # skills) stages an embedded git repo as a broken gitlink.
 /worktrees/
 .claude/worktrees/
+
+# OAuth client secrets / tokens never commit
+credientals.json
+credentials.json
+*.token.json
+gdoc-auth-url.txt
+gdoc-auth-url.html
+token.json
