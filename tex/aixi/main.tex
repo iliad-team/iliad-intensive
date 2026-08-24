@@ -74,7 +74,7 @@ The book provides fuller explanations, additional context, and proofs omitted he
 \noindent
 \textbf{Difficulty ratings.} Each subproblem is tagged with a rating in square brackets using Knuth's scale \cite{Knuth:73a}: roughly, \textbf{[00]}~trivial, \textbf{[10]}~15--minute pencil-and-paper, \textbf{[20]}~1--2~hours, \textbf{[30]}~several hours to a day, \textbf{[40]}~a significant research result. Intermediate values are possible. See \cref{sec:appendix_difficulty} for the full scale. 
 
-Problems marked \textbf{($\ast$)} are less interesting/insightful and while the result may be used later, I would recommend skipping them on a first pass.
+Problems marked \textbf{($\ast$)} are less interesting/insightful, and while the result may be used later, I would recommend skipping them on a first pass.
 
 %===================================
 
@@ -375,7 +375,7 @@ For a function $f : \cH \to \mathbb{R}$ of a finite future segment $\aes'_{t:m}$
     ~:=~ \underset{\aes_{t:m} \sim \nu^\pi(\cdot \mid \aes_{<t})}{\Ex} [f]
     ~=~ \sum_{\aes'_{t:m}} \nu^\pi(\aes'_{t:m} \mid \aes_{<t})\, f(\aes'_{t:m}).
 \]
-For functions $f$ of the infinite future (like the value function), with a sequence $f_1, f_2, \ldots \to f$, where $f_m$ depends only on $\aes'_{t:m}$, we define $\Ex_\nu^\pi[f \mid \aes_{<t}] := \lim_{m \to \infty} \Ex_\nu^\pi[f_m \mid \aes_{<t}]$, 
+For functions $f$ of the infinite future (like the value function), with a sequence $f_1, f_2, \ldots \to f$, where $f_m$ depends only on $\aes'_{t:m}$, we define $\Ex_\nu^\pi[f \mid \aes_{<t}] := \lim_{m \to \infty} \Ex_\nu^\pi[f_m \mid \aes_{<t}]$.
 \end{definition}
 
 \begin{definition}[Discounted return $G_{t:m}$]\label{def:return}

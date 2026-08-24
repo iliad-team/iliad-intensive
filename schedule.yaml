@@ -138,7 +138,8 @@ clusters:
         lead: Garrett (Zach remote lecture)
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.do5apxz819k1
         source: missing
-        note: deck exists as a Drive PDF only — add its URL as `slides:` when you have it
+        worksheets:
+          - mysteries-of-deep-learning
 
       - code: B.3
         title: Singular Learning Theory
@@ -181,8 +182,23 @@ clusters:
         lead: Julian
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.u7odobssyqur
         source: ready
-        sourceUrl: https://github.com/wusche1/Illiad_ML_Engineering
-        note: notebooks + LaTeX; a track-B variant lives in a second repo
+        sourceUrl: https://github.com/iliad-team/iliad-intensive-C.1.1
+        # One day, three lectures, four repos, but ONE page: the three lectures
+        # are `##` sections of intro-to-ml-engineering rather than separate
+        # worksheets. Lectures 1a and 1b run in PARALLEL in the morning — a quiz
+        # streams each student into one or the other — and lecture 2 fills the
+        # afternoon. `sourceUrl` above holds 1a's repo only, because the field
+        # takes a single string; the page links all three sections' repos:
+        #   ML Foundations           iliad-team/iliad-intensive-C.1.1
+        #   Practical ML             iliad-team/iliad-intensive-C.1.2
+        #   Claude Code for Research iliad-team/iliad-intensive-C.1.3
+        # All three are iliad-team forks of the leads' personal repos. Three
+        # things still point upstream: lecture 2's optional dotfiles link, its
+        # cheat sheet (hosted at alignment-hive.com), and C.1.3's dependency on
+        # jr-brown/research-scaffold for its config runner.
+        note: three lectures across four repos; 1a and 1b are parallel tracks
+        worksheets:
+          - intro-to-ml-engineering
 
       - code: C.2
         title: Mechanistic Interpretability

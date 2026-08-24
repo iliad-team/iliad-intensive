@@ -31,6 +31,9 @@ kpsewhich biblatex.sty >/dev/null 2>&1 || need+=(texlive-bibtex-extra)
 # kpsewhich rather than a command name — it is a style file, not a binary.
 kpsewhich lmodern.sty >/dev/null 2>&1 || need+=(lmodern)
 command -v git-lfs    >/dev/null || need+=(git-lfs)
+# pygmentize: minted shells out to it for highlighted code in slide decks
+# (the slides ladder runs pdflatex -shell-escape; see build-content.mjs).
+command -v pygmentize >/dev/null || need+=(python3-pygments)
 if [ ${#need[@]} -gt 0 ]; then
   echo "installing: ${need[*]}"
   sudo apt-get update -q
