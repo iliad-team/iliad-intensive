@@ -22,6 +22,13 @@ on:
     types: [opened, synchronize, reopened, closed]
   push:
     branches: [main]
+  # preview-sweep only. The per-PR cleanup below fires once, on the closed
+  # event; nothing retries it, so a preview that misses its one chance stays in
+  # the live tree forever. #59, #85 and #89 did exactly that and sat there for
+  # weeks (144 MB). This is the backstop that makes cleanup self-healing.
+  schedule:
+    - cron: '17 4 * * *'
+  workflow_dispatch:
 
 concurrency:
   # Key PR runs on the PR NUMBER, not github.ref. Merging a PR fires two runs in
@@ -50,8 +57,12 @@ permissions:
 jobs:
   build:
     # On a PR *close* there is nothing to build — the preview-cleanup job just
-    # removes the old preview. Every other event builds.
-    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    # removes the old preview. Nor on a sweep tick (schedule/manual), which only
+    # prunes gh-pages. Every other event builds.
+    if: >-
+      (github.event_name != 'pull_request' || github.event.action != 'closed')
+      && github.event_name != 'schedule'
+      && github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     # A healthy warm run is ~2 minutes; a healthy COLD run ~7 (the TeX
     # download). The historically unbounded step was that download, which a
@@ -487,3 +498,71 @@ jobs:
             const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: pr });
             const existing = comments.find((c) => c.body && c.body.includes(marker));
             if (existing) await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
+
+  # Backstop for preview-cleanup. That job gets exactly one chance — the PR's
+  # `closed` event — and if it is cancelled, fails, or never fires, the preview
+  # is orphaned in gh-pages with nothing to notice. This reconciles the live
+  # tree against reality daily: every pr-preview/pr-<N>/ whose PR is not OPEN
+  # goes. Deleting an in-flight preview is not a risk — the PR's next push
+  # republishes it.
+  preview-sweep:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    # Same lock the other two gh-pages writers take: publishing force-pushes the
+    # whole branch, so two writers racing would silently drop one's work.
+    concurrency:
+      group: gh-pages-write
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: .deploy
+      - name: Remove previews whose PR is no longer open
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          removed=()
+          unknown=0
+          for dir in .deploy/pr-preview/pr-*/; do
+            n=$(basename "$dir"); n=${n#pr-}
+            case "$n" in ''|*[!0-9]*) echo "skipping unexpected dir: $dir"; continue ;; esac
+            # Delete ONLY on a definitive CLOSED/MERGED. `gh pr view` fails the
+            # same way for "no such PR" as for a rate limit, a network blip or a
+            # bad token, so treating every failure as sweepable would delete a
+            # live preview whenever the API hiccups. Anything we cannot confirm
+            # is kept; the next tick retries.
+            state=$(gh pr view "$n" --repo "$GITHUB_REPOSITORY" --json state -q .state 2>/dev/null) || state=UNKNOWN
+            case "$state" in
+              CLOSED|MERGED)
+                echo "sweep  pr-$n ($state)"
+                rm -rf "$dir"
+                removed+=("#$n")
+                ;;
+              OPEN)
+                echo "keep   pr-$n (OPEN)"
+                ;;
+              *)
+                echo "::warning::pr-$n: could not determine PR state (got '${state:-empty}') — keeping the preview"
+                unknown=$((unknown + 1))
+                ;;
+            esac
+          done
+          if [ "$unknown" -gt 0 ]; then
+            echo "::warning::$unknown preview(s) skipped — PR state unresolved this run"
+          fi
+          if [ ${#removed[@]} -eq 0 ]; then
+            echo "nothing to sweep"
+            exit 0
+          fi
+          # publish-gh-pages.sh treats .deploy/ as the WHOLE branch, so the root
+          # site and the surviving previews republish untouched alongside this.
+          .github/publish-gh-pages.sh "Sweep previews for closed PRs: ${removed[*]}"
