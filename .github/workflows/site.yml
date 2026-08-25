@@ -26,8 +26,10 @@ on:
   # event; nothing retries it, so a preview that misses its one chance stays in
   # the live tree forever. #59, #85 and #89 did exactly that and sat there for
   # weeks (144 MB). This is the backstop that makes cleanup self-healing.
+  # Weekly, Mondays 04:17 UTC. Odd minute on purpose: GitHub's scheduler is
+  # best-effort and sheds load at :00. A missed tick just means next week.
   schedule:
-    - cron: '17 4 * * *'
+    - cron: '17 4 * * 1'
   workflow_dispatch:
 
 concurrency:
