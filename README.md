@@ -11,11 +11,33 @@ Feedback welcome! I want friction for you as the writer to be as low as possible
 ## Setup (one-time)
 
 ```
-git clone git@github.com:iliad-team/iliad-intensive.git
+git clone --single-branch --branch main git@github.com:iliad-team/iliad-intensive.git
 cd iliad-intensive
+git config --unset-all remote.origin.fetch
+git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
+git config --add remote.origin.fetch '^refs/heads/gh-pages'
+git fetch origin
 chmod +x setup.sh
 ./setup.sh
 ```
+
+**Why not a plain `git clone`?** A default clone downloads *every* branch, not
+just the one it checks out. `gh-pages` is one of them, and it holds the built
+website plus a complete copy of it for each open PR preview — ~700 MB today,
+growing with every preview publish. None of it is anything you would ever open.
+The `git config` lines add a negative refspec that excludes `gh-pages` for good,
+so later `git fetch` and `git pull` keep skipping it; `--single-branch` is there
+only to stop the *first* fetch pulling it before that config exists. You still
+get every other branch. Measured: **42 MB instead of 136 MB**.
+
+`setup.sh` installs `git-lfs` if you don't have it and then runs `git lfs pull`,
+so the figures arrive as real files rather than pointers — which is why the LFS
+step comes after it, not before. If you need another branch's figures too, run
+`git lfs fetch --all` once.
+
+Already cloned the heavy way? The three `git config` lines work on an existing
+clone. They stop it growing, but only a fresh clone reclaims what is already
+there.
 
 Works on Linux (apt) and macOS — on a Mac, `setup.sh` hands off to
 `setup-macos.sh`, which installs the same toolchain via Homebrew and MacTeX
