@@ -172,6 +172,8 @@ clusters:
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.svkvg1ktzxml
         source: partial
         note: proposed module, it has no module tab in the Doc yet, only an entry under Proposed Modules
+        worksheets:
+          - qft
 
   - id: C
     label: C — Abstractions, Representations, and Interpretability
