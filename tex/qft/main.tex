@@ -2,7 +2,7 @@
 % values only; LaTeX ignores this block.
 %--- iliad -------------------------------------------------------------------
 % title: "Physics of Deep Learning"
-% cluster: B
+% unlisted: true
 %--- end ----------------------------------------------------------------------
 \documentclass[11pt]{article}
 \usepackage{physics}
@@ -23,6 +23,10 @@
 \newcommand{\CL}{{\mathcal L}}
 \newcommand{\CO}{{\mathcal O}}
 \newcommand{\pd}{\partial}
+% shadow physics-package macros with forms the web converter can translate
+\renewcommand{\expval}[1]{\left\langle #1 \right\rangle}
+\renewcommand{\dv}[2]{\frac{d #1}{d #2}}
+\renewcommand{\abs}[1]{\left| #1 \right|}
 
 \title{Physics of Deep Learning}
 \author{\authorname{Aleksander Czejdo} \\ \affiliation{Iliad Fellow} \and \authorname{Tudor Dimofte} \\ \affiliation{Iliad \& Timaeus Fellow; University of Edinburgh} 
@@ -237,7 +241,7 @@ In a statistical mechanics context:
     \item \emph{Entropy} is the log-volume of hypotheses with a given property, \emph{e.g.} the weights $w$ with a given $R$. Large entropy = many hypotheses.
     \item \emph{Free energy} and \emph{free energy density} (or average free energy per degree of freedom)
     \begin{equation}
-        F = -\log Z\,,\qquad \varphi = \frac{F}{N} = -\frac1N\log Z\,.
+        F = -\log Z\,,\qquad \varphi = \frac{F}{N} = -\frac{1}{N}\log Z\,.
     \end{equation}
     In physics, $F$ gets minimized as a system equilibrates. Note that $F$ is extensive (it scales with $N$), whereas $\varphi$ is intensive, and has a limit as $N\to \infty$.
     \item \emph{Quenched free energy} (density)
@@ -324,7 +328,7 @@ Therefore,
   \label{coarea}
   %\pi(w)dw \;=\; e^{N h(R)\, +\, O(\log N)}\,dR\,,
   %\qquad
-  h(R) = \tfrac12 \log\bigl(1 - R^2\bigr) + \text{const} + O(\tfrac 1 N\log N)\,.
+  h(R) = \tfrac{1}{2} \log\bigl(1 - R^2\bigr) + \text{const} + O(\tfrac{1}{N}\log N)\,.
 \end{equation}
 
 Now consider $N$ very large. To exponential accuracy in $1/N$, we keep the term of order
@@ -335,7 +339,7 @@ prefactors, the surface-area constant). Then
   \E Z \approx \int_{-1}^{1} dR\;
   e^{-N\,S_{\mathrm{ann}}(R)}\,,
   \qquad
-  S_{\mathrm{ann}}(R) := -\underbrace{\tfrac12\log(1-R^2)}_{\text{entropy}}
+  S_{\mathrm{ann}}(R) := -\underbrace{\tfrac{1}{2}\log(1-R^2)}_{\text{entropy}}
   \underbrace{- \alpha \log\bigl(1 - \varepsilon(R)\bigr)}_{\text{energy}}\,,
 \end{equation}
 %
@@ -494,7 +498,7 @@ at fixed overlaps contribute an entropic factor $e^{N h(q, R)}$ by the same
 slice-counting as \cref{coarea}. Saddle-point approximation then leads to
 \begin{equation}
   \label{replica-saddle}
-  -\frac1N \log \E Z^Q = \min_{q, R}
+  -\frac{1}{N} \log \E Z^Q = \min_{q, R}
   \bigl[\, -h(q, R) + \alpha\, e(q, R) \,\bigr] + o(1)\,.
 \end{equation}
 One retains an interaction among replicas, encoded in the matrix $q^{ab}$.
@@ -618,7 +622,7 @@ It's also interesting to differentiate \eqref{dF-sigmoid} once more, using $\pd_
     -\frac{\pd^2 \varphi}{\pd\alpha^2} \;=\; N\, p_1 p_2\, (\Delta S')^2 \;-\; p_1\, \pd^2_\alpha S_1 - p_2\, \pd^2_\alpha S_2\,.
 \end{equation}
 %
-The quantity $\chi$ is the analogue of a heat capacity or susceptibility (in thermodynamics the heat capacity is $-T\,\pd^2 F/\pd T^2$). The first term on the RHS of \eqref{chi-peak} is the interesting one. Near $\alpha_c$, where $p_1 p_2 \approx \tfrac14$, the first term has a peak of height $N(\Delta S')^2/4$, concentrated in a window of width $1/N$; it diverges and approximates a delta-function as $N\to \infty$. 
+The quantity $\chi$ is the analogue of a heat capacity or susceptibility (in thermodynamics the heat capacity is $-T\,\pd^2 F/\pd T^2$). The first term on the RHS of \eqref{chi-peak} is the interesting one. Near $\alpha_c$, where $p_1 p_2 \approx \tfrac{1}{4}$, the first term has a peak of height $N(\Delta S')^2/4$, concentrated in a window of width $1/N$; it diverges and approximates a delta-function as $N\to \infty$. 
 
 Figure \Cref{fig:first-order} shows the behavior of all three quantities $\varphi=F/N$, $\pd_\alpha \varphi$, and $-\pd_\alpha^2\varphi$ at once. Watching the peak in $-\pd_\alpha^2\varphi$ \emph{grow} with $N$, rather than saturate, is the standard numerical diagnostic that separates a genuine first-order transition from a mere crossover.  The smoothed-sigmoid plot of $\pd_\alpha \varphi$ is worth remembering whenever ``emergent capabilities'' in models of growing size is under discussion (such as in Section \ref{sec:emergence}).
 
@@ -636,7 +640,7 @@ We have focused on a simple \emph{first-order} transition, because it's the most
 \smallskip
 \textbf{Remarks:} The derivation above used nothing but the existence of two competing minima whose local actions cross: the microscopics of the model enter only through the two functions $S_i(\alpha)$. This is why first-order phenomenology is so universal. Second, the equilibrium analysis with weights \eqref{p-weights} say nothing about evolution in \emph{time}. Dynamics that carry the system from one basin to the other can take exponentially long to do it, leaving the system stuck in the thermodynamically subdominant phase. This phenomenon is known as \emph{metastability}, or \emph{hysteresis}, and we will meet it again in Section \ref{sec:grok}, in the context of grokking.
 
-\emph{Is there a phase transition in our spherical-perceptron example?} No. The action $S_{\mathrm{ann}}(R)$ (and its quenched counterpart) has a unique minimum for every $\alpha$, moving smoothly (\cref{fig:gann}); $\varphi(\alpha)$ is analytic, the learning curve $\varepsilon(\alpha)$ is smooth, and learning is gradual. The reason is visible in \cref{annealed-integral}: the entropic part $-\tfrac12\log(1-R^2)$ of the action diverges to $+\infty$ as $R \to 1$, so the perfectly aligned state is infinitely penalized and the minimum always sits in the interior, sliding continuously. We can produce a transition by using a model in which the perfectly aligned state carries \emph{finite} entropy. We give an example of this next, by discretizing the spherical perceptron.
+\emph{Is there a phase transition in our spherical-perceptron example?} No. The action $S_{\mathrm{ann}}(R)$ (and its quenched counterpart) has a unique minimum for every $\alpha$, moving smoothly (\cref{fig:gann}); $\varphi(\alpha)$ is analytic, the learning curve $\varepsilon(\alpha)$ is smooth, and learning is gradual. The reason is visible in \cref{annealed-integral}: the entropic part $-\tfrac{1}{2}\log(1-R^2)$ of the action diverges to $+\infty$ as $R \to 1$, so the perfectly aligned state is infinitely penalized and the minimum always sits in the interior, sliding continuously. We can produce a transition by using a model in which the perfectly aligned state carries \emph{finite} entropy. We give an example of this next, by discretizing the spherical perceptron.
 
 
 
@@ -664,7 +668,7 @@ fraction $p = (1+R)/2$ of its $N$ coordinates, so the number of students
 at overlap $R$ is $\binom{N}{pN}$, and Stirling's formula gives an entropy density
 \begin{equation}
   \label{ising-entropy}
-  h_{\mathrm{I}}(R) = \frac1N \log\binom{N}{\frac{(1+R)}{2}N}
+  h_{\mathrm{I}}(R) = \frac{1}{N} \log\binom{N}{\frac{(1+R)}{2}N}
   \;\overset{N\to \infty}{\longrightarrow}\;
   H\!\left(\frac{1+R}{2}\right)\,,
 \end{equation}
@@ -810,7 +814,7 @@ Instead, in order to do actual empirical computations that match Bayesian learni
     \begin{array}{l|l}
     \text{discrete optimizer} & \text{continuous (S)DE} \\\hline
    % \text{Adam}:\; \Delta\theta = -\eta\frac{m}{\sqrt v+\epsilon},\;\Delta m,\Delta v=...  & \dot\theta,\dot m,\dot v=...  \\
-    \text{SGD}:\; \Delta\theta = -\eta(\nabla_\theta \CL+ \text{batch noise}) &  \dot\theta = -\eta\nabla_\theta \CL+ \frac{\eta}{\sqrt{B}} \Sigma(\theta)^{\frac12} d\xi\\
+    \text{SGD}:\; \Delta\theta = -\eta(\nabla_\theta \CL+ \text{batch noise}) &  \dot\theta = -\eta\nabla_\theta \CL+ \frac{\eta}{\sqrt{B}} \Sigma(\theta)^{\frac{1}{2}} d\xi\\
     \text{GD}:\; \Delta\theta=-\eta\,\nabla_\theta \CL  & \dot\theta = -\eta\nabla_\theta \CL \\ 
     \text{LD}:\;\Delta\theta = -\eta\,\nabla_\theta \CL + \sqrt{2\eta T}\, \xi & \dot\theta = -\eta\nabla_\theta \CL + \sqrt{2\eta T}\,d\xi
     \end{array}
@@ -956,20 +960,20 @@ then there's also a ``physics definition'' of a Gaussian process. It's not entir
 %
 a Gaussian process $f$ has a (non-rigorous) measure
 %
-\begin{align} P[f] &= \frac{1}{Z}e^{\textstyle-\frac12 \int dx\,dx'\, (f(x)-\mu(x)) K^{-1}(x,x')(f(x')-\mu(x'))}\,, \notag \\ 
-Z &\; \text{`='} \int Df\, e^{\textstyle-\frac12 \int dx\,dx'\, (f(x)-\mu(x)) K^{-1}(x,x')(f(x')-\mu(x'))}\,. \end{align}
+\begin{align} P[f] &= \frac{1}{Z}e^{\textstyle-\frac{1}{2} \int dx\,dx'\, (f(x)-\mu(x)) K^{-1}(x,x')(f(x')-\mu(x'))}\,, \notag \\ 
+Z &\; \text{`='} \int Df\, e^{\textstyle-\frac{1}{2} \int dx\,dx'\, (f(x)-\mu(x)) K^{-1}(x,x')(f(x')-\mu(x'))}\,. \end{align}
 %
 If the kernel and the measure theory on the input space $\R^m$ are nice enough to allow $K$ to be diagonalized, with a discrete basis of orthonormal eigenfunctions $\{\phi_k(x)\}_{k=1}^\infty$ and eigenvalues $\lambda_1\geq \lambda_2\geq\ldots > 0$ (so that $K^{-1}$ has eigenvalues $1/\lambda_k$), then $P[f]$ can be understood as an infinite-dimensional Gaussian. Writing $f(x)-\mu(x) = \sum_{k=1}^\infty a_k \phi_k(x)$,
 %
-\begin{equation} P[f] = \frac{1}{Z} e^{\textstyle -\frac12\sum_{k=1}^\infty a_k^2/\lambda_k}\,,\qquad Z = \prod_{k=1}^\infty (2\pi \lambda_k)^{1/2}\,.\end{equation}
+\begin{equation} P[f] = \frac{1}{Z} e^{\textstyle -\frac{1}{2}\sum_{k=1}^\infty a_k^2/\lambda_k}\,,\qquad Z = \prod_{k=1}^\infty (2\pi \lambda_k)^{1/2}\,.\end{equation}
 
 One virtue of the physics formalism is that it organizes expectation values of products of $f(x)$'s. Let $\mu=0$ for simplicity (to generalize to any $\mu$, just shift $f\mapsto f-\mu$ below). Let $J:\R^m\to \R$ be an arbitrary (nice...) function and define
 %
-\begin{equation} Z[J] = \int Df\, e^{\textstyle -\frac12\int dx\,dx'\, f(x)K^{-1}(x,x')f(x') + \int dx\, J(x)f(x)}\,. \label{ZJ}\end{equation}
+\begin{equation} Z[J] = \int Df\, e^{\textstyle -\frac{1}{2}\int dx\,dx'\, f(x)K^{-1}(x,x')f(x') + \int dx\, J(x)f(x)}\,. \label{ZJ}\end{equation}
 %
 The integral evaluates formally to
 %
-\begin{equation} Z[J] = Z[0] \cdot e^{\textstyle \frac12 \int dx\,dx'\, J(x) K(x,x') J(x')}\,. \label{ZJ-eval} \end{equation}
+\begin{equation} Z[J] = Z[0] \cdot e^{\textstyle \frac{1}{2} \int dx\,dx'\, J(x) K(x,x') J(x')}\,. \label{ZJ-eval} \end{equation}
 %
 Then expectation values can be expressed via derivatives, which by \eqref{ZJ-eval} become
 %
@@ -997,7 +1001,7 @@ This appears in the functional-integral formalism as follows. Suppose that $f:\R
 %
 \begin{equation} P[f] = \frac{1}{Z}\,e^{\textstyle-S[f]}\,, \end{equation}
 %
-for some functional $S:\{\text{functions $f$}\}\to \R$. (In physics $S$ is called the action.) Then just as in \eqref{ZJ}, we can introduce the generating function
+for some functional $S:\{\text{functions } f\}\to \R$. (In physics $S$ is called the action.) Then just as in \eqref{ZJ}, we can introduce the generating function
 %
 \begin{equation} \hspace{-.3in} Z[J] := \int Df\, e^{\textstyle-S[f]+\int dx\, J(x)f(x)} \quad\Rightarrow\quad \E\big[f(x^1)...f(x^p)] = \frac{1}{Z[0]}\frac{\delta}{\delta J(x^1)}...\frac{\delta}{\delta J(x^p)} Z[J]\bigg|_{J=0} \end{equation}
 %
@@ -1011,7 +1015,7 @@ which in turn means (formally) that
 %
 a generating function of cumulants. The original $S[f]$ is the inverse Legendre transform of $\log Z[J]$ (by definition of $Z[J]$). Expanded as a formal series in the cumulants (assuming they are small), and assuming $\E[f(x)]=0$ for simplicity, it takes the form
 %
-\begin{align} S[f] = &\; \frac12 \int dx^1\, dx^2\, \kappa_2^{-1}(x^1,x^2) f(x^1)f(x^2) \\ & \hspace{-.3in} - \int dx^1 dx^2 dx^3 dy^1 dy^2 dy^3 \kappa_2^{-1}(x^1,y^1)\kappa_2^{-1}(x^2,y^2)\kappa_2^{-1}(x^3,y^3)\kappa_3(y^1,y^2,y^3)\,f(x^1)f(x^2)f(x^3) \notag \\
+\begin{align} S[f] = &\; \frac{1}{2} \int dx^1\, dx^2\, \kappa_2^{-1}(x^1,x^2) f(x^1)f(x^2) \\ & \hspace{-.3in} - \int dx^1 dx^2 dx^3 dy^1 dy^2 dy^3 \kappa_2^{-1}(x^1,y^1)\kappa_2^{-1}(x^2,y^2)\kappa_2^{-1}(x^3,y^3)\kappa_3(y^1,y^2,y^3)\,f(x^1)f(x^2)f(x^3) \notag \\
  &- \int dx^1 dx^2 dx^3 dx^4 (\kappa_2^{-1})^4\big[ \kappa_4 - \kappa_3\kappa_2^{-1} \kappa_3\;\;\text{terms}\big] f(x^1)f(x^2)f(x^3)f(x^4)\; - \ldots\end{align}
 %
 Physicists might recognize this as a sum of Feynman diagrams, with cumulants giving the vertices.
@@ -1151,13 +1155,13 @@ To push-forward to the network outputs $f = c\cdot \phi(z)$, we just do this aga
 %
 The problem is that it's now impossible to do the integral over the $z$'s exactly, because (for general activation function $\phi$) the action is no longer quadratic in them. However, as $N\to \infty$, we can treat $\exp\big[- \frac{\sigma_w}{2N} \int dx\,dx' \tilde f(x)[\phi(z(x))\cdot \phi(z(x'))]\tilde f(x')\big]$ as a perturbation, and approximate the \emph{exponent} $[\phi(z(x))\cdot \phi(z(x'))]$ by its expectation value under the Gaussian measure $\exp\big[- \frac{1}{2\sigma_w} \int dx\,dx'\,  \big(\frac{x\cdot x'}{d}\big)^{-1}z(x)\cdot z(x')\big]$ (with kernel $K^{(1)}$) on the $z$'s. To be clear, the approximation that's happening is of the form
 %
-\begin{equation} \E \,e^{\frac1 N X} = e^{\frac{1}{N} \E X} + O(\text{Var}(X)/N^2) \end{equation}
+\begin{equation} \E \,e^{\frac{1}{N} X} = e^{\frac{1}{N} \E X} + O(\text{Var}(X)/N^2) \end{equation}
 %
-Up to $O(1/N)$ corrections, that produces the deterministic kernel $\bar K^{(2)}(x,x')$ = \newline $\sigma_w \E_{z_i(x),z_i(x')\sim \CN(0,K^{(1)}(x,x'))} \phi(z_i(x)) \phi(z_i(x'))$ from the previous section, and we get
+Up to $O(1/N)$ corrections, that produces the deterministic kernel $\bar K^{(2)}(x,x')$ = $\sigma_w \E_{z_i(x),z_i(x')\sim \CN(0,K^{(1)}(x,x'))} \phi(z_i(x)) \phi(z_i(x'))$ from the previous section, and we get
 %
 \begin{align}
-    P(f) &= \frac{1}{Z''''} \int D\tilde f\, e^{\textstyle -\frac{1}{2} \int dx\, dx'\, \tilde f(x) \bar K^{(2)}(x,x') \tilde f(x') + i\int dx\, \tilde f(x) f(x)} + O\Big(\frac1N\Big) \\
-     &= \frac{1}{Z'''''} e^{\textstyle -\frac12 \int dx\, dx'\, f(x) \bar K^{(2)}(x,x')^{-1}  f(x')} +O\Big(\frac1N\Big) \,.
+    P(f) &= \frac{1}{Z''''} \int D\tilde f\, e^{\textstyle -\frac{1}{2} \int dx\, dx'\, \tilde f(x) \bar K^{(2)}(x,x') \tilde f(x') + i\int dx\, \tilde f(x) f(x)} + O\Big(\frac{1}{N}\Big) \\
+     &= \frac{1}{Z'''''} e^{\textstyle -\frac{1}{2} \int dx\, dx'\, f(x) \bar K^{(2)}(x,x')^{-1}  f(x')} +O\Big(\frac{1}{N}\Big) \,.
 \end{align}
 
 
@@ -1185,7 +1189,7 @@ Consider a DLN of length $L$ with input and hidden layers all of width $N$:
 \end{equation}
 %
 initialized so that $w_{ij}^{(\ell)}\sim \CN(0,1/N)$.
-Conditional on $z^{(\ell-1)}$, the vector $z^{(\ell)}$ is Gaussian $z^{(\ell)}\sim \CN\big(0,\frac1N I_N |z^{(\ell-1)}|^2\big)$, so its norm satisfies the recursion
+Conditional on $z^{(\ell-1)}$, the vector $z^{(\ell)}$ is Gaussian $z^{(\ell)}\sim \CN\big(0,\frac{1}{N} I_N |z^{(\ell-1)}|^2\big)$, so its norm satisfies the recursion
 %
 \begin{equation}|z^{(\ell)}|^2 \sim |z^{(\ell-1)}|^2 \frac{\chi^2_N}{N}\,.
 \end{equation}
@@ -1316,7 +1320,7 @@ The push-forward of the gradient flow in parameter space becomes
 %
 The inverse-metric $\Theta^{\mu\nu}$ on the space of function values is called the ``neural tangent kernel'' or NTK. The name was coined in \cite{jacot2018neural}; it also appeared in \cite{du2019gradient} under a different name. Here we are emphasizing that it's a completely natural geometric object, for any neural network (in fact, for any ML model).
 
-We mention one final bit of geometry. Let $\delta_{\mu\nu}$ be a standard Euclidean metric in the space of function values, with inverse $\delta^{\mu\nu}$. The gradient of the loss $\delta^{\mu\nu}\pd \CL^{(f)}/\pd f^\nu$ that appears in \eqref{NTK} (contracted with an inverse metric) is sometimes called the \emph{residual}, and denoted $\Delta^\mu$ or $r^\mu$. For MSE loss, we've got $\CL^{(f)} = \frac12 \sum_{\mu=1}^n (f^\mu-y^\mu)^2 = \delta_{\mu\nu}(f^\mu-y^\mu)(f^\nu-y^\nu)$. Then the residual is just the difference between function values and truth for the training data:
+We mention one final bit of geometry. Let $\delta_{\mu\nu}$ be a standard Euclidean metric in the space of function values, with inverse $\delta^{\mu\nu}$. The gradient of the loss $\delta^{\mu\nu}\pd \CL^{(f)}/\pd f^\nu$ that appears in \eqref{NTK} (contracted with an inverse metric) is sometimes called the \emph{residual}, and denoted $\Delta^\mu$ or $r^\mu$. For MSE loss, we've got $\CL^{(f)} = \frac{1}{2} \sum_{\mu=1}^n (f^\mu-y^\mu)^2 = \delta_{\mu\nu}(f^\mu-y^\mu)(f^\nu-y^\nu)$. Then the residual is just the difference between function values and truth for the training data:
 %
 \begin{equation} \Delta^\mu := \delta^{\mu\nu}\pd \CL^{(f)}/\pd f^\nu  = f^\mu-y^\mu\,. \end{equation}
 %
@@ -1478,19 +1482,19 @@ as $N\to \infty$, and we find that at large width the $O(1)$ quantity $\Theta/N$
 Similarly, the parameters obey $\theta(t)-\theta(0) = t\, \dot\theta(\bar t)$ for some $\bar t\in[0,t]$, so
 %
 \begin{align}
-    \hspace{-.2in}|\theta(t)-\theta(0)|^2 &= t^2 |\dot\theta(\bar t)|^2 = \frac{t^2\tilde\eta^2}{N^2} \Big|\sum_{\mu=1}^n \Delta^\mu \nabla_\theta f^\mu \Big|^2 \notag  \\ &\leq \frac{t^2\tilde\eta^2}{N^2}|\Delta|^2 |\nabla_\theta f|^2 \leq \frac{n t^2\tilde\eta^2}{N^2} |\Delta|^2 \|\Theta\| = O\Big(\frac1N\Big)\,, \label{theta-bound}
+    \hspace{-.2in}|\theta(t)-\theta(0)|^2 &= t^2 |\dot\theta(\bar t)|^2 = \frac{t^2\tilde\eta^2}{N^2} \Big|\sum_{\mu=1}^n \Delta^\mu \nabla_\theta f^\mu \Big|^2 \notag  \\ &\leq \frac{t^2\tilde\eta^2}{N^2}|\Delta|^2 |\nabla_\theta f|^2 \leq \frac{n t^2\tilde\eta^2}{N^2} |\Delta|^2 \|\Theta\| = O\Big(\frac{1}{N}\Big)\,, \label{theta-bound}
 \end{align}
 %
 or $|\theta(t)-\theta(0)| = O(1/\sqrt N)$\,. Finally, by Taylor's theorem with remainder, the network function itself obeys
 %
 \begin{equation}
-    f_{\theta}(x)-f_{\theta_0}(x) = \nabla_\theta f(x)\big|_{\theta_0}\cdot (\theta-\theta_0) +\frac12 (\theta-\theta_0)\cdot  \nabla_\theta^2 f(x)\big|_{\bar\theta} \cdot (\theta-\theta_0)
+    f_{\theta}(x)-f_{\theta_0}(x) = \nabla_\theta f(x)\big|_{\theta_0}\cdot (\theta-\theta_0) +\frac{1}{2} (\theta-\theta_0)\cdot  \nabla_\theta^2 f(x)\big|_{\bar\theta} \cdot (\theta-\theta_0)
 \end{equation}
 %
 for some $\bar\theta\in [\theta_0,\theta]$. Setting $\theta=\theta(t)$ and using \eqref{theta-bound}, we bound the error by
 %
 \begin{equation}
-    \Big|\frac12 (\theta-\theta_0)\cdot  \nabla_\theta^2 f(x)\big|_{\bar\theta} \cdot (\theta-\theta_0)\Big|^2 \leq \frac14 \|\nabla_\theta^2 f\|\; |\theta-\theta_0|^2 = O(1)\cdot O\Big( \frac1{N}\Big)\,,
+    \Big|\frac{1}{2} (\theta-\theta_0)\cdot  \nabla_\theta^2 f(x)\big|_{\bar\theta} \cdot (\theta-\theta_0)\Big|^2 \leq \frac{1}{4} \|\nabla_\theta^2 f\|\; |\theta-\theta_0|^2 = O(1)\cdot O\Big( \frac{1}{N}\Big)\,,
 \end{equation}
 %
 so the linear approximation becomes exact as $N\to\infty$\,.
@@ -1574,7 +1578,7 @@ Build a tiny regression task: $n = 8$ random unit-norm inputs in $d = 4$ with la
 
 So far, we have considered MLP's at large width, trained via gradient flow (as an approximation to SGD/GD). We found that their NTK remains constant and that their late-time distribution is a Gaussian process given by \eqref{NTK-GP}.
 
-Suppose that we consider the same large-width network, but ``train'' Bayesian inference instead, on the empirical MSE loss $\CL(\theta) = n L_n(\theta) = \frac12\sum_{\mu=1}^n |f(x^\mu)-y^\mu|^2 $. (Recall from Section \ref{sec:Bayes} that, practically speaking, this means training via Langevin dynamics.) Then we expect a Bayesian posterior
+Suppose that we consider the same large-width network, but ``train'' Bayesian inference instead, on the empirical MSE loss $\CL(\theta) = n L_n(\theta) = \frac{1}{2}\sum_{\mu=1}^n |f(x^\mu)-y^\mu|^2 $. (Recall from Section \ref{sec:Bayes} that, practically speaking, this means training via Langevin dynamics.) Then we expect a Bayesian posterior
 %
 \begin{equation}
     P(\theta) = \frac{1}{Z}e^{-\beta \CL(\theta)}\, \pi(\theta)\,,\qquad \pi(\theta) \propto e^{\textstyle-\frac{N_L}{\sigma_w}|w^{(L+1)}|^2 -...-\frac{d}{\sigma_w}|w^{(1)}|^2}
@@ -1591,7 +1595,7 @@ with $K(x,x')=\bar K^{(L+1)}(x,x')$ the final-layer GP kernel.
 Since the loss is explicitly a function of network values, we immediately get the late-time trained distribution
 %
 \begin{equation}
-    P[f] = \frac{1}{Z''}\,e^{\textstyle -\frac12\Big[\beta \sum_{\mu=1}^n(f(x^\mu)-y^\mu)^2 + \int dx\,dx'\, f(x)  K^{-1}(x,x')f(x') \Big] } 
+    P[f] = \frac{1}{Z''}\,e^{\textstyle -\frac{1}{2}\Big[\beta \sum_{\mu=1}^n(f(x^\mu)-y^\mu)^2 + \int dx\,dx'\, f(x)  K^{-1}(x,x')f(x') \Big] } 
 \end{equation}
 %
 Note that the action here is quadratic in function values, so this is still a Gaussian process!
@@ -1602,7 +1606,7 @@ Note that the action here is quadratic in function values, so this is still a Ga
 Show that we can rewrite this distribution as a standard Gaussian
 %
 \begin{equation}
-P[f] \propto e^{\textstyle -\frac12 \int dx\,dx'\, [f(x)-\mu(x)] \Sigma(x,x')^{-1} [f(x')-\mu(x')] }
+P[f] \propto e^{\textstyle -\frac{1}{2} \int dx\,dx'\, [f(x)-\mu(x)] \Sigma(x,x')^{-1} [f(x')-\mu(x')] }
 \end{equation}
 %
 with mean and covariance written in terms of the $n\times n$ matrix $\hat K^{\mu\nu}:=K(x^\mu,x^\nu)$ (the untrained GP kernel evaluated on training data) as
@@ -1678,7 +1682,7 @@ The partition function is
 The Ising model is notoriously difficult to analyze exactly, even at large $N$. It depends strongly on the choice of dimension $D$. The Curie--Weiss model is a close cousin, which again has $N$ spins $s_i$, but rather than using including nearest-neighbor couplings along graph edges simply couples every spin to every other one, weakly, with coupling strength $1/N$. (Equivalently, one chooses $\Lambda$ to be the fully-connected graph.) The energy looks like
 %
 \begin{equation} \label{cw-H}
-    E_N(s) = -\frac{1}{2N}\sum_{i,j=1}^N s_i s_j - B \sum_{i=1}^N s_i = -N\Big(\frac{m^2}{2}+Bm\Big)\,,\qquad m := \frac1N\sum_i s_i\,.
+    E_N(s) = -\frac{1}{2N}\sum_{i,j=1}^N s_i s_j - B \sum_{i=1}^N s_i = -N\Big(\frac{m^2}{2}+Bm\Big)\,,\qquad m := \frac{1}{N}\sum_i s_i\,.
 \end{equation}
 %
 As shown, it can be rewriten entirely in terms of the average spin $m$, known as the \emph{magnetization}. $m$ will serve as the order parameter of this system, in the sense of Section \ref{sec:statmech}. The coupling strength $1/N$ is required to ensure that the total force felt by any one spin from the $N$ others remains of order one, and that the total energy $E_N$ remains extensive.
@@ -1726,7 +1730,7 @@ with a single-particle potential $V$ and a symmetric pair interaction $U$, again
 The force felt by particle $\theta_i$ is $-\nabla_{\theta_i} E_N$. More so, for particles dominated by drag (highly viscous motion), the dynamics at zero temperature are governed by familiar gradient-descent equations 
 %
 \begin{equation} \label{mf-flow}
-    \dot\theta_i = -\nabla_{\theta_i} E_N = -\nabla V(\theta_i) - \frac1N \sum_{j=1}^N \nabla_1 U(\theta_i,\theta_j)\,,
+    \dot\theta_i = -\nabla_{\theta_i} E_N = -\nabla V(\theta_i) - \frac{1}{N} \sum_{j=1}^N \nabla_1 U(\theta_i,\theta_j)\,,
 \end{equation}
 %
 where $\nabla_1$ differentiates the first slot of $U$. Once more each particle feels only an empirical average of forces.
@@ -1734,7 +1738,7 @@ where $\nabla_1$ differentiates the first slot of $U$. Once more each particle f
 It is worth packaging this observation in a way that will carry over verbatim to networks. Define the \emph{empirical measure}
 %
 \begin{equation} \label{mf-rho}
-    \rho_N := \frac1N\sum_{i=1}^N \delta(\theta-\theta_i)\,,
+    \rho_N := \frac{1}{N}\sum_{i=1}^N \delta(\theta-\theta_i)\,,
 \end{equation}
 %
 a probability measure on $\R^p$ recording where the collection of $N$ particles sit. Then \eqref{mf-flow} says that every particle descends one and the same effective single-particle potential, shaped by where everyone currently is:
@@ -1752,7 +1756,7 @@ The particles are coupled \emph{only through} $\rho_N$ --- the exact analogue of
 Return to the one-hidden-layer network of Sections \ref{sec:NNGP-int} and \ref{sec:NTK-const}, but now normalized with $1/N$ out front and \emph{order-one} weights:
 %
 \begin{equation} \label{mf-f}
-    f_\theta(x) = \frac1N \sum_{i=1}^N c_i\,\phi(a_i\cdot x)\,,\qquad c_i \sim \CN(0,1)\,,\quad a_i\sim\CN\Big(0,\tfrac1d I_d\Big)\,,
+    f_\theta(x) = \frac{1}{N} \sum_{i=1}^N c_i\,\phi(a_i\cdot x)\,,\qquad c_i \sim \CN(0,1)\,,\quad a_i\sim\CN\Big(0,\tfrac{1}{d} I_d\Big)\,,
 \end{equation}
 %
 with $c_i\in\R$, $a_i,x\in\R^d$. Compare with Sections \ref{sec:init}--\ref{sec:train}: there, fan-in initialization gave $f=\sum_i \tilde c_i \phi(a_i\cdot x)$ with $\tilde c_i\sim\CN(0,\sigma_w/N)$, i.e.\ $\tilde c_i = O(1/\sqrt N)$, which is the same as an explicit prefactor $1/\sqrt N$ with order-one weights. Mean-field scaling suppresses the output by \emph{one extra factor of $1/\sqrt N$}. The function class is identical --- only the coordinates on it have changed. However, gradient flow is \emph{not} invariant under reparametrization: as emphasized in Section \ref{sec:geom-grads}, gradient descent presupposes the Euclidean metric on parameter space, and rescaling coordinates rescales that metric. Two parametrizations of the same function class can (and here will) flow along completely different trajectories.
@@ -1788,13 +1792,13 @@ The network begins training as (essentially) the zero function; there is no rand
 Let's train on MSE loss over the data $(x^\mu,y^\mu)_{\mu=1}^n$, as in Section \ref{sec:train}:
 %
 \begin{equation}
-    \CL(\theta) = \frac12\sum_{\mu=1}^n \big(f_\theta(x^\mu)-y^\mu\big)^2\,.
+    \CL(\theta) = \frac{1}{2}\sum_{\mu=1}^n \big(f_\theta(x^\mu)-y^\mu\big)^2\,.
 \end{equation}
 %
 Inserting \eqref{mf-f} and expanding the square, we get
 %
 \begin{equation} \label{mf-VU}
-    \CL(\theta) = \text{const} + \frac1N\sum_{i=1}^N V(\theta_i) + \frac{1}{2N^2}\sum_{i,j=1}^N U(\theta_i,\theta_j)\,,
+    \CL(\theta) = \text{const} + \frac{1}{N}\sum_{i=1}^N V(\theta_i) + \frac{1}{2N^2}\sum_{i,j=1}^N U(\theta_i,\theta_j)\,,
 \end{equation}
 %
 with
@@ -1836,21 +1840,21 @@ where $\Delta^\mu = f_{\rho_N}(x^\mu)-y^\mu$ is the residual of Section \ref{sec
 %
 with $\Delta_\rho^\mu = f_\rho(x^\mu)-y^\mu$.
 
-As anticipated, the velocity of neuron $i$ depends on its own state $(c_i,a_i)$, and on all the other neurons only through the average $f_{\rho_N} = \frac1N\sum_j c_j\phi(a_j\cdot{}\cdot)$, via the residual $\Delta^\mu$. %Every neuron independently performs gradient descent on its own alignment with a \emph{shared, collectively-generated} residual field --- and that field is updated self-consistently as the population moves. 
+As anticipated, the velocity of neuron $i$ depends on its own state $(c_i,a_i)$, and on all the other neurons only through the average $f_{\rho_N} = \frac{1}{N}\sum_j c_j\phi(a_j\cdot{}\cdot)$, via the residual $\Delta^\mu$. %Every neuron independently performs gradient descent on its own alignment with a \emph{shared, collectively-generated} residual field --- and that field is updated self-consistently as the population moves. 
 The network function $f$ is the mean field here!  We arrive at a dictionary:
 %
 \begin{equation} \label{mf-dictionary}
 \begin{array}{l|l}
     \text{Curie--Weiss} & \text{one-hidden-layer network, mean-field scaling} \\\hline
     \text{spin } s_i\in\{\pm1\} & \text{neuron } \theta_i=(c_i,a_i)\in\R^{d+1} \\
-    \text{magnetization } m=\frac1N\sum_j s_j & \text{network function } f_{\rho}=\frac1N\sum_j c_j\phi(a_j\cdot{}\cdot) \\
+    \text{magnetization } m=\frac{1}{N}\sum_j s_j & \text{network function } f_{\rho}=\frac{1}{N}\sum_j c_j\phi(a_j\cdot{}\cdot) \\
     \text{external field } h & \text{data term } V \text{ (the targets } y^\mu\text{)} \\
-    \text{pair coupling } -\tfrac1N s_is_j & \text{neuron-neuron interaction } \tfrac1N U(\theta_i,\theta_j) \\
+    \text{pair coupling } -\tfrac{1}{N} s_is_j & \text{neuron-neuron interaction } \tfrac{1}{N} U(\theta_i,\theta_j) \\
     \text{effective field } m+B & \text{residual } \Delta^\mu_\rho = f_\rho(x^\mu)-y^\mu \\
     \text{extensive energy } E_N & N\CL \quad(\text{the loss is intensive}) \\
     \text{zero-temperature dynamics} & \text{gradient flow} \\
-    \text{Langevin at temperature } T & \text{noisy training, Section \ref{sec:Bayes}} \\
-    m = \tanh(\beta(m+B)) & \text{self-consistent Gibbs measure, \eqref{mf-gibbs} below}
+    \text{Langevin at temperature } T & \text{noisy training, \cref{sec:Bayes}} \\
+    m = \tanh(\beta(m+B)) & \text{self-consistent Gibbs measure, \cref{mf-gibbs} below}
 \end{array}
 \end{equation}
 %
@@ -1917,7 +1921,7 @@ We remark on a few structural features:
 
 \begin{itemize}
     \item \emph{Propagation of chaos.} Since neurons interact only through a quantity ($\rho_N$, equivalently $f_{\rho_N}$) that becomes deterministic as $N\to\infty$, they become asymptotically \emph{independent}: any fixed collection of $k$ neurons converges to $k$ i.i.d.\ copies of \eqref{mf-MV}, with cross-neuron correlations of size $O(1/N)$. Thus, independence at initialization \emph{propagates} instead of degrading \cite{sznitman1991topics}. %This is the rigorous sense in which the particles ``decouple'' at large $N$ --- and it is why a single representative particle suffices. (Within one neuron, by contrast, $c_i$ and $a_i$ remain genuinely coupled --- \cref{ex:mf-eom}(b).)
-    \item \emph{Gradient-flow structure.} Define the $N\to\infty$ loss as a functional of the measure, $\CL[\rho] = \frac12\sum_\mu (f_\rho(x^\mu)-y^\mu)^2$. Since $f_\rho$ is linear in $\rho$, this functional is convex in $\rho$. %--- the notorious non-convexity of the training landscape is an artifact of parameter coordinates, invisible at the level of measures. 
+    \item \emph{Gradient-flow structure.} Define the $N\to\infty$ loss as a functional of the measure, $\CL[\rho] = \frac{1}{2}\sum_\mu (f_\rho(x^\mu)-y^\mu)^2$. Since $f_\rho$ is linear in $\rho$, this functional is convex in $\rho$. %--- the notorious non-convexity of the training landscape is an artifact of parameter coordinates, invisible at the level of measures. 
     %One checks that $\Psi(\theta;\rho) = \delta \CL/\delta\rho\,(\theta)$, so \eqref{mf-pde} transports mass with velocity $-\nabla(\delta\CL/\delta\rho)$: steepest descent of $\CL[\rho]$ in the geometry where moving mass costs (squared) transport distance --- a \emph{Wasserstein gradient flow}, the optimal-transport formalization of ``the measure flows downhill.'' Energy dissipates, $\frac{d}{dt}\CL[\rho_t] = -\tilde\eta\int|\nabla\Psi|^2 d\rho_t\le0$, and 
     This ultimately leads to global-convergence theorems. For example, it was shown in \cite{chizat2018global} that for homogeneous activations (e.g.\ ReLU), if training converges at all, it converges to a \emph{global} minimizer of the convex functional $\CL[\rho]$.
     \item \emph{Temperature.} If one trains instead with the Langevin dynamics of Section \ref{sec:Bayes}, Eqn.~\eqref{training-options}, at temperature $T=\beta^{-1}$, one finds convergence to a stationary distribution that satisfies \cite{mei2018mean}
@@ -1932,7 +1936,7 @@ We remark on a few structural features:
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.98\linewidth]{fig/mf-transport.pdf}
-  \caption{Mean-field training for a $d=1$ example: $f_\rho(x)=\frac1N\sum_i c_i\tanh(a_i x)$, trained by the rescaled gradient flow \eqref{mf-eom} on $n=30$ samples of the two-neuron teacher $y(x)=2\tanh(3x)-\tfrac32\tanh(x)$; $\tau=\tilde\eta\, t$ is rescaled training time. \emph{Left:} the empirical measure $\rho_{N,t}$ in the $(a,c)$ plane for $N=300$ (dots, colored by time; thin gray lines trace $40$ of the particle trajectories), drawn over the density of an $N=30{,}000$ run at $\tau=20$ (shaded contours), standing in for the limiting measure $\rho_t$. Individual neurons move order-one distances, and the measure condenses onto one-dimensional filaments --- the configurations realizing the teacher. (The point symmetry $(a,c)\mapsto(-a,-c)$ reflects the oddness of $\tanh$.) \emph{Right:} the mean field itself, $f_{\rho_t}(x)$, converging to the target (dashed; circles mark the training data). % Generated by \texttt{fig/mf\_transport.py}.
+  \caption{Mean-field training for a $d=1$ example: $f_\rho(x)=\frac{1}{N}\sum_i c_i\tanh(a_i x)$, trained by the rescaled gradient flow \eqref{mf-eom} on $n=30$ samples of the two-neuron teacher $y(x)=2\tanh(3x)-\tfrac{3}{2}\tanh(x)$; $\tau=\tilde\eta\, t$ is rescaled training time. \emph{Left:} the empirical measure $\rho_{N,t}$ in the $(a,c)$ plane for $N=300$ (dots, colored by time; thin gray lines trace $40$ of the particle trajectories), drawn over the density of an $N=30{,}000$ run at $\tau=20$ (shaded contours), standing in for the limiting measure $\rho_t$. Individual neurons move order-one distances, and the measure condenses onto one-dimensional filaments --- the configurations realizing the teacher. (The point symmetry $(a,c)\mapsto(-a,-c)$ reflects the oddness of $\tanh$.) \emph{Right:} the mean field itself, $f_{\rho_t}(x)$, converging to the target (dashed; circles mark the training data). % Generated by \texttt{fig/mf\_transport.py}.
   }
   \label{fig:mf-transport}
 \end{figure}
@@ -1949,10 +1953,10 @@ In \Cref{fig:mf-transport} we instead solve the system by simply training a netw
 \subsection{The NTK is no longer constant: feature learning}
 \label{sec:MFT-NTK}
 
-Section \ref{sec:NTK-const} showed that in fan-in scaling the (normalized) NTK freezes as $N\to\infty$, and Section \ref{sec:features} defined feature learning as change of the NTK during training. Let's redo that computation in mean-field scaling. From \eqref{mf-f}, $\pd f/\pd c_i = \frac1N\phi(a_i\cdot x)$ and $\pd f/\pd a_i = \frac1N c_i\phi'(a_i\cdot x)\,x$, so the NTK of Section \ref{sec:NTK} is
+Section \ref{sec:NTK-const} showed that in fan-in scaling the (normalized) NTK freezes as $N\to\infty$, and Section \ref{sec:features} defined feature learning as change of the NTK during training. Let's redo that computation in mean-field scaling. From \eqref{mf-f}, $\pd f/\pd c_i = \frac{1}{N}\phi(a_i\cdot x)$ and $\pd f/\pd a_i = \frac{1}{N} c_i\phi'(a_i\cdot x)\,x$, so the NTK of Section \ref{sec:NTK} is
 %
 \begin{equation} \label{mf-ntk}
-    \Theta(x,x') = \frac{1}{N^2}\sum_{i=1}^N k_{\theta_i}(x,x') = \frac1N \int k_\theta(x,x')\, d\rho_N(\theta)\,,
+    \Theta(x,x') = \frac{1}{N^2}\sum_{i=1}^N k_{\theta_i}(x,x') = \frac{1}{N} \int k_\theta(x,x')\, d\rho_N(\theta)\,,
 \end{equation}
 %
 with the per-neuron kernel
@@ -1985,7 +1989,7 @@ Thus $\Theta = O(1/N)$, recovering the previous observation that gradients are s
 It's quite instructive to look at an entire one-parameter family of scalings, which has fan-in/NTK scaling and mean-field scaling as its endpoints. The family can be encoded via a prefactor
 %
 \begin{equation} \label{gamma-f}
-    f_\theta(x) = \frac{1}{N^{\gamma}} \sum_{i=1}^N c_i\,\phi(a_i\cdot x)\,,\qquad \gamma\in[\tfrac12,1]\,,
+    f_\theta(x) = \frac{1}{N^{\gamma}} \sum_{i=1}^N c_i\,\phi(a_i\cdot x)\,,\qquad \gamma\in[\tfrac{1}{2},1]\,,
 \end{equation}
 %
 where $c_i\sim \CN(0,I)$. For each $\gamma$, as $N\to\infty$, the learning rate must be simultaneously be scaled as $\eta = N^{2\gamma-1}\tilde\eta$ so that the function-space dynamics stays $O(1)$ (one can derive that from $\Theta\sim N^{1-2\gamma}$). Repeating the estimates above gives (see \cref{ex:gamma}):
@@ -1993,8 +1997,8 @@ where $c_i\sim \CN(0,I)$. For each $\gamma$, as $N\to\infty$, the learning rate 
 \begin{equation}
 \begin{array}{c|c|c|c}
     & f_{\theta_0} \text{ at init} & \text{per-neuron motion} & \text{limit} \\\hline
-    \gamma=\tfrac12 & O(1) \text{ (GP, CLT)} & O(N^{-1/2}) & \text{lazy: Sections \ref{sec:init}--\ref{sec:train}} \\
-    \tfrac12<\gamma<1 & O(N^{\frac12-\gamma})\to 0 & O(N^{\gamma-1})\to 0 & \text{lazy (frozen kernel, zero init)} \\
+    \gamma=\tfrac{1}{2} & O(1) \text{ (GP, CLT)} & O(N^{-1/2}) & \text{lazy: Sections \ref{sec:init}--\ref{sec:train}} \\
+    \tfrac{1}{2}<\gamma<1 & O(N^{\frac{1}{2}-\gamma})\to 0 & O(N^{\gamma-1})\to 0 & \text{lazy (frozen kernel, zero init)} \\
     \gamma=1 & O(N^{-1/2})\to 0 & O(1) & \text{mean-field: this section}
 \end{array}
 \end{equation}
@@ -2003,7 +2007,7 @@ Notably, every intermediate $\gamma$ collapses onto the kernel limit: the initia
 
 \begin{exercise}[Lazy vs.\ rich along the dial]
 \label{ex:gamma}
-For the family \eqref{gamma-f}: (a) show $\Theta = O(N^{1-2\gamma})$ and hence that $\eta = N^{2\gamma-1}\tilde\eta$ is the right co-scaling; (b) show the initialization output is $O(N^{1/2-\gamma})$ and per-neuron velocities are $O(N^{\gamma-1})$; (c) conclude that the (normalized) kernel drift over any fixed training horizon is $O(N^{\gamma-1})$, vanishing for every $\gamma<1$; (d) reconcile $\gamma=\frac12$ with the bounds of Section \ref{sec:NTK-const}. Optional: relate $\gamma$ to the output-scale parameter $\alpha$ of \cite{chizat2019lazy}, where multiplying any model by $\alpha\to\infty$ produces lazy training.
+For the family \eqref{gamma-f}: (a) show $\Theta = O(N^{1-2\gamma})$ and hence that $\eta = N^{2\gamma-1}\tilde\eta$ is the right co-scaling; (b) show the initialization output is $O(N^{1/2-\gamma})$ and per-neuron velocities are $O(N^{\gamma-1})$; (c) conclude that the (normalized) kernel drift over any fixed training horizon is $O(N^{\gamma-1})$, vanishing for every $\gamma<1$; (d) reconcile $\gamma=\frac{1}{2}$ with the bounds of Section \ref{sec:NTK-const}. Optional: relate $\gamma$ to the output-scale parameter $\alpha$ of \cite{chizat2019lazy}, where multiplying any model by $\alpha\to\infty$ produces lazy training.
 \end{exercise}
 
 \subsection{What is this framework good for?}
@@ -2142,7 +2146,7 @@ We now give the derivation, quickly but completely.  The standard first step is 
 \end{equation} 
 where $\Delta t$ is the temporal spacing. We can rearrange this so that the RHS is zero and write the transition probability between steps as delta function, and the product of these representing a trajectory solution.  Defining a solution of the stochastic differential equation as $x[\xi]$, an expectation value of an observable $\mathcal{A}[x]$ is formally,
 \begin{equation}
-    \expval{\mathcal{A} [x]}_{\xi} = \int \mathcal{D}x \mathcal{A}[x] \expval{\delta(x- x[\xi]}_\xi
+    \expval{\mathcal{A} [x]}_{\xi} = \int \mathcal{D}x \mathcal{A}[x] \expval{\delta(x- x[\xi])}_\xi
  = \int \mathcal{D} x \mathcal{A}[x] \abs{\frac{\delta X}{\delta x}} \delta(X)\,.
  \end{equation}
 We used the shorthand $X_i \equiv  x_i - x_{i-1} - \Delta t \big[ f(x_{i-1}) + \xi_{i-1}\big]$ for the constraint imposed at each step. The measure here, is a typical functional path integral measure $\mathcal{D}x = \prod_i d x_i$ with $\delta(x- x[\xi])$ similarly factorized across steps.  In particular we also picked a first order finite difference and the convention that the noise is evaluated at the previous time-step, which is called It\^{o} discretization or convention.  Many common processes are manifestly It\^{o}, like SGD for example, where the noise drawn at a batch doesn't affect the weights at that iteration. There are other conventions, the most common alternative is Stratonovich (which is more like a midpoint rule), however, It\^{o} has a unit (volume-preserving) functional determinant and other schemes require careful treatment to avoid anomalous terms from the determinant.  In our case the matrix is triangular with a unit diagonal.  Substituting in the definition of $X$,
@@ -2333,7 +2337,7 @@ which is \emph{inconsistent} with the value $x_0$ assumed for the mean when cons
 \label{ex:selfconsistency}
 (a) Derive the stationary variance $\expval{\delta x^2} = D/(-2f'(x_0))$ of the linearized dynamics (compare \cref{ex:msrjd}(b)).
 (b) Carrying the Taylor expansion of $f$ to second order, derive the quoted correction to the mean.
-(c) Propose the self-consistent repair: expand instead around a point $x_*$, chosen so that the \emph{effective} drift vanishes, $f(x_*) + \tfrac12 f''(x_*)\expval{\delta x^2}_* = 0$, with $\expval{\delta x^2}_* = D/(-2f'(x_*))$ determined simultaneously. Note the structure: two coupled equations, each an input to the other --- a miniature of the Curie--Weiss condition of Section \ref{sec:MFT-physics}, and of the DMFT equations to come.
+(c) Propose the self-consistent repair: expand instead around a point $x_*$, chosen so that the \emph{effective} drift vanishes, $f(x_*) + \tfrac{1}{2} f''(x_*)\expval{\delta x^2}_* = 0$, with $\expval{\delta x^2}_* = D/(-2f'(x_*))$ determined simultaneously. Note the structure: two coupled equations, each an input to the other --- a miniature of the Curie--Weiss condition of Section \ref{sec:MFT-physics}, and of the DMFT equations to come.
 \end{exercise}
 
 A framework for resolving this, and also attempting to enforce that the small parameter we expand about is actually the expansion parameter involves using \textit{n-particle irreducible effective actions} (nPI).  A full discussion of this is well beyond the scope of this document, but is covered very well in a pedagogical introduction \cite{bergesIntroductionNonequilibriumQuantum2004}, where the main idea is enforcing self-consistency via increasingly multi-local sources that generate n-point correlation functions.  The first section emphasizes that performing standard perturbation theory with an anharmonic oscillator yields so-called \textit{secular} terms which are powers of time $t$ that appear next to the actual expansion parameter $\epsilon$, and using the nPI framework effectively resums these terms properly at each order in $\epsilon$.  The 1PI approach is directly related to a local approximation with mean field theory, while in the 2PI approach, the object determined self consistently is the 2-point function, which in the local approximation is related to the local propagator and is the basis of dynamical mean field theory. 
@@ -2401,7 +2405,7 @@ Its compute-optimal allocation, minimizing $L$ at fixed $C\propto Pn$, gives $P\
 
 The quantization model of Michaud, Liu, Girit, and Tegmark \cite{michaud2023quantization} is a minimal model of scaling: it has no architecture, no optimizer, and essentially no mathematics beyond a tail sum --- and it produces all three laws of \eqref{scaling-laws}, plus a sharp point of view on ``emergent capabilities.'' The name is deliberately provocative: the proposal is that what a network learns comes in \emph{discrete units}, dubbed \emph{quanta}.%
 %
-\footnote{Michaud's blog post \url{https://ericjmichaud.com/quanta/} is an excellent companion to the paper and can substitute for it in this exercise. But attempt \cref{ex:quanta} \emph{before} reading either; the derivations are short, and they are more instructive to find than to follow.} %
+\footnote{Michaud's blog post \href{https://ericjmichaud.com/quanta/}{ericjmichaud.com/quanta} is an excellent companion to the paper and can substitute for it in this exercise. But attempt \cref{ex:quanta} \emph{before} reading either; the derivations are short, and they are more instructive to find than to follow.} %
 %
 The assumptions, in the form we'll use:
 %
@@ -2477,7 +2481,7 @@ The quantization model takes the zipf exponent $\alpha$ as \emph{input}. The nex
 Sharma and Kaplan \cite{sharma2020neural} propose the simplest continuous mechanism: a network with ReLU activations computes a piecewise-linear function, and regression on a data manifold of intrinsic dimension $d$ is a problem of \emph{piecewise-linear interpolation}. A network with $P$ parameters can afford $\sim P$ linear pieces; tiling a $d$-dimensional manifold with $P$ pieces gives spacing $s \sim P^{-1/d}$; a linear patch approximates a smooth target to accuracy $\sim s^2$ (Taylor); and MSE is the \emph{square} of the error. Hence
 %
 \begin{equation} \label{manifold-law}
-    L(P) \sim (s^2)^2 \sim P^{-4/d}\,,\qquad \alpha_P \approx \frac4d\,.
+    L(P) \sim (s^2)^2 \sim P^{-4/d}\,,\qquad \alpha_P \approx \frac{4}{d}\,.
 \end{equation}
 %
 Exponents are small because data manifolds are high-dimensional. The formula is testable, since $d$ can be measured with intrinsic-dimension estimators, which is exactly what \cite{sharma2020neural} do.
@@ -2555,7 +2559,7 @@ Differentiating under the integral, $\pd_J \log Z(J) = \frac{1}{Z(J)}\int dw\, P
 \begin{solution}[ex:annealed]
 \emph{The wedge formula.} Project $x$ onto the plane spanned by $w$ and $w^*$; the projection is an isotropic two-dimensional Gaussian, and the orthogonal components affect neither sign. The two decision boundaries are diameters of this plane meeting at angle $\vartheta = \arccos R$, and the signs disagree exactly when the projected point lands in the double wedge between them, of total angular measure $2\vartheta$ out of $2\pi$: $\varepsilon = \vartheta/\pi$.
 
-\emph{The slice entropy.} Decompose $w = R\,w^* + w_\perp$. The spherical constraint $|w|^2=N$ forces $|w_\perp|^2 = N(1-R^2)$, so the slice at fixed $R$ is a sphere of radius $\sqrt{N(1-R^2)}$ in the $(N-1)$-dimensional orthogonal complement, of volume $\propto \big(N(1-R^2)\big)^{(N-2)/2} = e^{\frac{N}{2}\log(1-R^2) + O(\log N)}$, giving $h(R) = \frac12\log(1-R^2)$ up to constants.
+\emph{The slice entropy.} Decompose $w = R\,w^* + w_\perp$. The spherical constraint $|w|^2=N$ forces $|w_\perp|^2 = N(1-R^2)$, so the slice at fixed $R$ is a sphere of radius $\sqrt{N(1-R^2)}$ in the $(N-1)$-dimensional orthogonal complement, of volume $\propto \big(N(1-R^2)\big)^{(N-2)/2} = e^{\frac{N}{2}\log(1-R^2) + O(\log N)}$, giving $h(R) = \frac{1}{2}\log(1-R^2)$ up to constants.
 
 \emph{The saddle-point condition.} Setting $S_{\mathrm{ann}}'(R)=0$ with $\varepsilon(R) = \arccos(R)/\pi$ gives
 \begin{equation*}
@@ -2566,15 +2570,15 @@ Differentiating under the integral, $\pd_J \log Z(J) = \frac{1}{Z(J)}\int dw\, P
 
 \emph{Large $\alpha$.} With $R=\cos(\pi\varepsilon)$ and $\varepsilon\to0$: $1-R^2 = \sin^2(\pi\varepsilon)\approx(\pi\varepsilon)^2$, so $S_{\mathrm{ann}} \approx -\log(\pi\varepsilon) + \alpha\varepsilon + \text{const}$, minimized at $\varepsilon = 1/\alpha$.
 
-\emph{Small $\alpha$.} For small $R$: the entropic part of the action is $\approx R^2/2$ and $\varepsilon(R) \approx \tfrac12 - R/\pi$, so $-\alpha\log(1-\varepsilon) \approx -\alpha\log\tfrac12 - \tfrac{2\alpha}{\pi}R$, and minimizing $R^2/2 - \frac{2\alpha}{\pi}R$ gives $R^* = 2\alpha/\pi \propto \alpha$. The full learning curve therefore rises linearly from $R=0$, bends over, and approaches $R=1$ with the power-law tail $\varepsilon \simeq 1/\alpha$.
+\emph{Small $\alpha$.} For small $R$: the entropic part of the action is $\approx R^2/2$ and $\varepsilon(R) \approx \tfrac{1}{2} - R/\pi$, so $-\alpha\log(1-\varepsilon) \approx -\alpha\log\tfrac{1}{2} - \tfrac{2\alpha}{\pi}R$, and minimizing $R^2/2 - \frac{2\alpha}{\pi}R$ gives $R^* = 2\alpha/\pi \propto \alpha$. The full learning curve therefore rises linearly from $R=0$, bends over, and approaches $R=1$ with the power-law tail $\varepsilon \simeq 1/\alpha$.
 \end{solution}
 
 \begin{solution}[ex:replica]
-The six steps are their own outline; we record only the checkpoints. (Step 2) The covariance of $(u^1,...,u^Q,v)$ is $\E[u^a u^b] = q^{ab}$, $\E[u^a v] = R^a$, $\E[v^2]=1$, so the per-example factor is $e^{-e(q,R)}$, with energy density $e(q,R) = -\log P[\,\text{all $Q$ replicas agree with the teacher}\,]$, minus the log of a $(Q{+}1)$-dimensional Gaussian orthant probability. (Step 4) Under the replica-symmetric ansatz this orthant probability reduces to a one-dimensional integral over the shared Gaussian ``field,'' producing the tail function $H$; the free energy per replica then has a finite $Q\to0$ limit by design. (Step 5) The symmetry argument --- a uniformly drawn consistent student is statistically equivalent to the teacher --- forces $q=R$, collapsing the saddle to one equation. (Step 6) Numerically solving it and expanding at large $\alpha$ gives $\varepsilon \simeq 0.625/\alpha$, the quoted $38\%$ improvement in the constant over the annealed bound. Full details: \cite[chs.~2--3]{engel2001statistical}.
+The six steps are their own outline; we record only the checkpoints. (Step 2) The covariance of $(u^1,...,u^Q,v)$ is $\E[u^a u^b] = q^{ab}$, $\E[u^a v] = R^a$, $\E[v^2]=1$, so the per-example factor is $e^{-e(q,R)}$, with energy density $e(q,R) = -\log P[\,\text{all } Q \text{ replicas agree with the teacher}\,]$, minus the log of a $(Q{+}1)$-dimensional Gaussian orthant probability. (Step 4) Under the replica-symmetric ansatz this orthant probability reduces to a one-dimensional integral over the shared Gaussian ``field,'' producing the tail function $H$; the free energy per replica then has a finite $Q\to0$ limit by design. (Step 5) The symmetry argument --- a uniformly drawn consistent student is statistically equivalent to the teacher --- forces $q=R$, collapsing the saddle to one equation. (Step 6) Numerically solving it and expanding at large $\alpha$ gives $\varepsilon \simeq 0.625/\alpha$, the quoted $38\%$ improvement in the constant over the annealed bound. Full details: \cite[chs.~2--3]{engel2001statistical}.
 \end{solution}
 
 \begin{solution}[ex:ising]
-(a) A student at overlap $R$ agrees with the teacher on $pN$ coordinates with $p = (1+R)/2$; there are $\binom{N}{pN}$ such students, and Stirling gives $\frac1N \log \binom{N}{pN} \to H(p)$.
+(a) A student at overlap $R$ agrees with the teacher on $pN$ coordinates with $p = (1+R)/2$; there are $\binom{N}{pN}$ such students, and Stirling gives $\frac{1}{N} \log \binom{N}{pN} \to H(p)$.
 
 (b) With $\delta = 1-R$: deviating from the teacher lowers the action by the entropy $H\big(1-\tfrac{\delta}{2}\big) = \tfrac{\delta}{2}\log\tfrac{2}{\delta} + O(\delta)$, which vanishes like $\delta\log(1/\delta)$; but the data term raises it by $\alpha\,\varepsilon(R) \approx \alpha\sqrt{2\delta}/\pi$ (from $\arccos(1-\delta) \approx \sqrt{2\delta}$), which vanishes only like $\sqrt\delta$. Since $\sqrt{\delta} \gg \delta\log(1/\delta)$ as $\delta\to0$, $S_{\mathrm I}(1-\delta) > S_{\mathrm I}(1) = 0$ for small $\delta$ at every $\alpha>0$: the teacher state is always a local minimum.
 
@@ -2584,7 +2588,7 @@ The six steps are their own outline; we record only the checkpoints. (Step 2) Th
 \end{solution}
 
 \begin{solution}[ex:wick]
-Complete the square: shifting $f \to f + K J$ (schematically, $f(x) \to f(x) + \int dx' K(x,x')J(x')$) decouples the source, leaving $Z[J] = Z[0]\, e^{\frac12 \int J K J}$. Each derivative $\delta/\delta J(x^i)$ acting on the exponential either brings down a factor $\int K(x^i,\cdot)J$ (which must later be hit by another derivative, else it dies at $J=0$) or closes a pair by hitting a previously produced factor, contributing $K(x^i,x^j)$. Every surviving term therefore corresponds to a perfect pairing of $\{1,\dots,p\}$. For $p=2$ this gives $K(x^1,x^2)$; for $p=4$, the three pairings $K^{12}K^{34}+K^{13}K^{24}+K^{14}K^{23}$; for $p=6$ there are $5!! = 15$ terms; in general $(p-1)!!$.
+Complete the square: shifting $f \to f + K J$ (schematically, $f(x) \to f(x) + \int dx' K(x,x')J(x')$) decouples the source, leaving $Z[J] = Z[0]\, e^{\frac{1}{2} \int J K J}$. Each derivative $\delta/\delta J(x^i)$ acting on the exponential either brings down a factor $\int K(x^i,\cdot)J$ (which must later be hit by another derivative, else it dies at $J=0$) or closes a pair by hitting a previously produced factor, contributing $K(x^i,x^j)$. Every surviving term therefore corresponds to a perfect pairing of $\{1,\dots,p\}$. For $p=2$ this gives $K(x^1,x^2)$; for $p=4$, the three pairings $K^{12}K^{34}+K^{13}K^{24}+K^{14}K^{23}$; for $p=6$ there are $5!! = 15$ terms; in general $(p-1)!!$.
 \end{solution}
 
 \begin{solution}[ex:nngp-lab]
@@ -2630,22 +2634,22 @@ i.e.\ $\mu(x) = -\beta\sum_\mu K(x,x^\mu)\big(\mu(x^\mu)-y^\mu\big)$. Evaluating
 \end{solution}
 
 \begin{solution}[ex:cw]
-(a) At $B=0$ the line $m$ and the curve $\tanh(\beta m)$ intersect only at $m=0$ when the slope $\beta \le 1$; for $\beta>1$ two symmetric solutions $\pm m^*$ appear. Expanding $\tanh$ to cubic order, $m = \beta m - \tfrac13(\beta m)^3$, gives $m^* \approx \sqrt{3(\beta-1)}$ near the transition: the order parameter is continuous with a square-root singularity --- a \emph{second-order} transition in the taxonomy of Section \ref{sec:phase-transitions} (no competing basins; one basin deforms).
-(b) Trading the sum over spins for an integral over $m$ (with the binary entropy $H(\frac{1+m}{2})$ of \cref{ising-entropy} counting configurations) gives $Z \approx \int dm\, e^{-N S(m)}$ with action $S(m;B) = -H(\frac{1+m}{2}) - \beta(\frac{m^2}{2}+Bm)$. For $\beta>1$ and $|B|$ small, $S$ has two local minima $m_\pm \approx \pm m^*$, and the $B$-term tilts the balance: $S(m_+;B) - S(m_-;B) \approx -2\beta B\, m^*$, so the branch values cross at $B_c = 0$ with distinct slopes $\pd_B S(m_\pm) = -\beta(\pm m^*)$. This is the two-branch mechanism of Section \ref{sec:phase-transitions} verbatim, with $B$ as the control parameter: the global minimizer, and with it the magnetization $m = -\tfrac1\beta\, \pd_B S_{\min}$, jumps from $+m^*$ to $-m^*$ as $B$ crosses zero --- a first-order transition. (At finite $N$ the jump is a logistic sigmoid of width $\sim 1/(N\beta m^*)$; and past the crossing each minimum survives as a metastable state out to a spinodal field $\pm B_{\rm sp}(\beta)$, the origin of hysteresis in real magnets.)
+(a) At $B=0$ the line $m$ and the curve $\tanh(\beta m)$ intersect only at $m=0$ when the slope $\beta \le 1$; for $\beta>1$ two symmetric solutions $\pm m^*$ appear. Expanding $\tanh$ to cubic order, $m = \beta m - \tfrac{1}{3}(\beta m)^3$, gives $m^* \approx \sqrt{3(\beta-1)}$ near the transition: the order parameter is continuous with a square-root singularity --- a \emph{second-order} transition in the taxonomy of Section \ref{sec:phase-transitions} (no competing basins; one basin deforms).
+(b) Trading the sum over spins for an integral over $m$ (with the binary entropy $H(\frac{1+m}{2})$ of \cref{ising-entropy} counting configurations) gives $Z \approx \int dm\, e^{-N S(m)}$ with action $S(m;B) = -H(\frac{1+m}{2}) - \beta(\frac{m^2}{2}+Bm)$. For $\beta>1$ and $|B|$ small, $S$ has two local minima $m_\pm \approx \pm m^*$, and the $B$-term tilts the balance: $S(m_+;B) - S(m_-;B) \approx -2\beta B\, m^*$, so the branch values cross at $B_c = 0$ with distinct slopes $\pd_B S(m_\pm) = -\beta(\pm m^*)$. This is the two-branch mechanism of Section \ref{sec:phase-transitions} verbatim, with $B$ as the control parameter: the global minimizer, and with it the magnetization $m = -\tfrac{1}{\beta}\, \pd_B S_{\min}$, jumps from $+m^*$ to $-m^*$ as $B$ crosses zero --- a first-order transition. (At finite $N$ the jump is a logistic sigmoid of width $\sim 1/(N\beta m^*)$; and past the crossing each minimum survives as a metastable state out to a spinodal field $\pm B_{\rm sp}(\beta)$, the origin of hysteresis in real magnets.)
 (c) The iteration converges geometrically to the stable fixed point (the nonzero one when $\beta > 1$, if seeded away from the unstable $m=0$); its infinite-dimensional cousin is the fixed-point iteration for the McKean--Vlasov equation in Section \ref{sec:MFT-1hl}.
 \end{solution}
 
 \begin{solution}[ex:mf-eom]
-(a) Expanding the square in the loss and collecting single-sum and double-sum terms gives \eqref{mf-VU}--\eqref{mf-VU-def} directly. For the equations of motion, $\pd f_{\rho_N}(x^\mu)/\pd c_i = \frac1N \phi(a_i\cdot x^\mu)$ and $\pd f_{\rho_N}(x^\mu)/\pd a_i = \frac1N c_i \phi'(a_i\cdot x^\mu)x^\mu$; the chain rule plus $\eta = N\tilde\eta$ gives \eqref{mf-eom}. Writing the same gradient through $\Psi$, the symmetry $U(\theta,\theta')=U(\theta',\theta)$ ensures the double sum contributes twice the one-sided derivative, matching \eqref{mf-eom-Psi}.
+(a) Expanding the square in the loss and collecting single-sum and double-sum terms gives \eqref{mf-VU}--\eqref{mf-VU-def} directly. For the equations of motion, $\pd f_{\rho_N}(x^\mu)/\pd c_i = \frac{1}{N} \phi(a_i\cdot x^\mu)$ and $\pd f_{\rho_N}(x^\mu)/\pd a_i = \frac{1}{N} c_i \phi'(a_i\cdot x^\mu)x^\mu$; the chain rule plus $\eta = N\tilde\eta$ gives \eqref{mf-eom}. Writing the same gradient through $\Psi$, the symmetry $U(\theta,\theta')=U(\theta',\theta)$ ensures the double sum contributes twice the one-sided derivative, matching \eqref{mf-eom-Psi}.
 (b) From \eqref{mf-eom}: $c_i\dot c_i = -\tilde\eta\, c_i \sum_\mu \Delta^\mu \phi(a_i\cdot x^\mu)$ and $a_i\cdot \dot a_i = -\tilde\eta\, c_i \sum_\mu \Delta^\mu\, \phi'(a_i\cdot x^\mu)\,(a_i\cdot x^\mu)$. For positively homogeneous $\phi$, $\phi'(z)z = \phi(z)$, so the two right-hand sides coincide and $\frac{d}{dt}\big(c_i^2 - |a_i|^2\big) = 2(c_i\dot c_i - a_i\cdot\dot a_i) = 0$.
 (c) Because $f_\rho$ is \emph{linear} in the output weights, $\pd f/\pd c_i$ contains no $c_i$; the only route by which $c_i$ influences $\dot c_i$ is through the mean field $\Delta^\mu$ --- i.e.\ through the population average, weighted by $1/N$. This linearity is also what makes the loss a quadratic (rather than higher-order) polynomial in each particle, i.e.\ what limits the interaction to be pairwise.
 \end{solution}
 
 \begin{solution}[ex:gamma]
-(a) $\pd f/\pd c_i = N^{-\gamma}\phi(a_i\cdot x)$ and similarly for $a_i$, so $\Theta = \sum_i N^{-2\gamma}\,k_{\theta_i} = N^{1-2\gamma}\cdot\frac1N\sum_i k_{\theta_i} = O(N^{1-2\gamma})$; demanding $\eta\,\Theta = O(1)$ forces $\eta = N^{2\gamma-1}\tilde\eta$.
+(a) $\pd f/\pd c_i = N^{-\gamma}\phi(a_i\cdot x)$ and similarly for $a_i$, so $\Theta = \sum_i N^{-2\gamma}\,k_{\theta_i} = N^{1-2\gamma}\cdot\frac{1}{N}\sum_i k_{\theta_i} = O(N^{1-2\gamma})$; demanding $\eta\,\Theta = O(1)$ forces $\eta = N^{2\gamma-1}\tilde\eta$.
 (b) At initialization $f = N^{-\gamma}\sum_i c_i\phi(a_i\cdot x)$ is $N^{-\gamma}$ times a sum of $N$ i.i.d.\ mean-zero terms $= O(\sqrt N)$, so $f_{\theta_0} = O(N^{1/2-\gamma})$. Per-neuron velocities: $\dot c_i = -\eta\,\pd\CL/\pd c_i = O(N^{2\gamma-1}\cdot N^{-\gamma}) = O(N^{\gamma-1})$, and likewise for $\dot a_i$.
-(c) The normalized kernel $N^{2\gamma-1}\Theta = \frac1N\sum_i k_{\theta_i}$ is an empirical average over particles, so over any fixed horizon its drift is of the order of the per-particle displacement, $O(N^{\gamma-1})$ --- vanishing for every $\gamma<1$, order one exactly at $\gamma=1$.
-(d) At $\gamma=\frac12$: per-neuron motion $O(N^{-1/2})$, matching the bound \eqref{theta-bound}; initialization output $O(1)$, the GP of Section \ref{sec:init}. For the optional part: relative to the mean-field parametrization \eqref{mf-f}, $f_\gamma = \alpha\, f_{\rm MF}$ with $\alpha = N^{1-\gamma}$, so in the language of \cite{chizat2019lazy} every $\gamma<1$ sends the laziness $\alpha\to\infty$ with width --- lazy --- while $\gamma=1$ keeps $\alpha$ of order one.
+(c) The normalized kernel $N^{2\gamma-1}\Theta = \frac{1}{N}\sum_i k_{\theta_i}$ is an empirical average over particles, so over any fixed horizon its drift is of the order of the per-particle displacement, $O(N^{\gamma-1})$ --- vanishing for every $\gamma<1$, order one exactly at $\gamma=1$.
+(d) At $\gamma=\frac{1}{2}$: per-neuron motion $O(N^{-1/2})$, matching the bound \eqref{theta-bound}; initialization output $O(1)$, the GP of Section \ref{sec:init}. For the optional part: relative to the mean-field parametrization \eqref{mf-f}, $f_\gamma = \alpha\, f_{\rm MF}$ with $\alpha = N^{1-\gamma}$, so in the language of \cite{chizat2019lazy} every $\gamma<1$ sends the laziness $\alpha\to\infty$ with width --- lazy --- while $\gamma=1$ keeps $\alpha$ of order one.
 \end{solution}
 
 \begin{solution}[ex:grok-lazy]
@@ -2687,10 +2691,10 @@ Adding a perturbation $h$ to the drift shifts the solution by $\int_{-\infty}^t 
 \begin{solution}[ex:selfconsistency]
 (a) The linearized equation $\dot{\delta x} = f'(x_0)\,\delta x + \xi$ is an Ornstein--Uhlenbeck process with $k = -f'(x_0) > 0$; by \cref{ex:msrjd}(b) its stationary variance is $D/(2k) = D/(-2f'(x_0))$.
 (b) Taking the stationary average of $\dot x = f(x) + \xi$ with $f$ expanded to second order about $x_0$:
-$0 = f(x_0) + f'(x_0)\langle\delta x\rangle + \tfrac12 f''(x_0)\langle \delta x^2\rangle$, and using $f(x_0)=0$,
+$0 = f(x_0) + f'(x_0)\langle\delta x\rangle + \tfrac{1}{2} f''(x_0)\langle \delta x^2\rangle$, and using $f(x_0)=0$,
 $\langle x\rangle = x_0 - \frac{f''(x_0)}{2f'(x_0)}\,\langle\delta x^2\rangle = x_0 + \frac{1}{2}\frac{f''(x_0)}{f'(x_0)}\cdot\frac{D}{2 f'(x_0)}$,
 the quoted shift --- nonzero, contradicting the assumption $\langle x\rangle = x_0$.
-(c) Demand instead that the expansion point $x_*$ satisfy the \emph{effective} stationarity condition $f(x_*) + \tfrac12 f''(x_*)\,\langle\delta x^2\rangle_* = 0$ together with $\langle\delta x^2\rangle_* = D/(-2f'(x_*))$. These are two equations determining $(x_*, \langle\delta x^2\rangle_*)$ jointly: the fluctuations shape the effective potential, and the effective potential shapes the fluctuations. Structurally this is $m = \tanh(\beta(m+h))$ again --- and DMFT is the same fixed-point demand imposed on entire two-time functions $C(t,t')$, $R(t,t')$ instead of scalars.
+(c) Demand instead that the expansion point $x_*$ satisfy the \emph{effective} stationarity condition $f(x_*) + \tfrac{1}{2} f''(x_*)\,\langle\delta x^2\rangle_* = 0$ together with $\langle\delta x^2\rangle_* = D/(-2f'(x_*))$. These are two equations determining $(x_*, \langle\delta x^2\rangle_*)$ jointly: the fluctuations shape the effective potential, and the effective potential shapes the fluctuations. Structurally this is $m = \tanh(\beta(m+h))$ again --- and DMFT is the same fixed-point demand imposed on entire two-time functions $C(t,t')$, $R(t,t')$ instead of scalars.
 \end{solution}
 
 \begin{solution}[ex:quanta]
