@@ -1,9 +1,6 @@
-"use client";
-
 import Link from "next/link";
-import { useNav } from "./NavContext";
 import type { IndexEntry } from "@/lib/content";
-import { clusterLabel, pagePath, type Cluster } from "@/lib/clusters";
+import { clusterLabel, dayCode, pagePath, type Cluster } from "@/lib/clusters";
 
 const CLUSTER_ORDER = ["0", "A", "B", "C", "D", "E", "Other"];
 
@@ -14,6 +11,12 @@ const HEADING_INDENT: Record<number, string> = {
   4: "pl-8",
 };
 
+/**
+ * Server-rendered; always in the markup, shown/hidden by the #page-shell rules
+ * in globals.css (keyed on the `nav-open` class on <html>). The old
+ * close-on-mobile click behaviour lives in public/site.js, delegated from the
+ * #module-sidebar id — no React on the client.
+ */
 export function SidebarNav({
   modules,
   activeSlug,
@@ -23,9 +26,6 @@ export function SidebarNav({
   activeSlug?: string;
   clusters?: Cluster[];
 }) {
-  const { open, setOpen } = useNav();
-  if (!open) return null;
-
   const byCluster = new Map<string, IndexEntry[]>();
   for (const m of modules) {
     const k = m.cluster ?? "Other";
@@ -44,14 +44,11 @@ export function SidebarNav({
     [...byCluster.keys()].filter((c) => !CLUSTER_ORDER.includes(c)),
   );
 
-  const closeOnMobile = () => {
-    if (window.matchMedia("(max-width: 1023px)").matches) setOpen(false);
-  };
-
   return (
     <nav
+      id="module-sidebar"
       aria-label="Modules"
-      className="w-full max-w-xs shrink-0 self-start lg:sticky lg:top-16 lg:max-h-[calc(100vh-5rem)] lg:overflow-y-auto pr-4"
+      className="w-full max-w-xs shrink-0 self-start lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:max-h-[calc(100vh-var(--header-h)-2rem)] lg:overflow-y-auto pr-4"
     >
       <div className="space-y-5 font-sans text-sm">
         {orderedClusters.map((cluster) => (
@@ -67,7 +64,13 @@ export function SidebarNav({
                   <li key={p.slug}>
                     <Link
                       href={pagePath(p.cluster, p.slug, clusterList)}
-                      onClick={closeOnMobile}
+                      // This sidebar lists EVERY worksheet and renders on every
+                      // worksheet page, so the default prefetch would pull each
+                      // one's full RSC payload as its link enters the viewport.
+                      // Those payloads are the largest thing the site ships —
+                      // ~6 MB for singular-learning-theory, ~5.6 MB for aixi —
+                      // which is a lot of bandwidth for a link nobody clicked.
+                      prefetch={false}
                       className={
                         "block rounded px-2 py-1 leading-snug " +
                         (active
@@ -75,6 +78,15 @@ export function SidebarNav({
                           : "text-zinc-700 hover:bg-zinc-100 hover:text-black")
                       }
                     >
+                      {/* The part code as a chip rather than a nesting level:
+                          this list already nests cluster → page → headings, and
+                          a fourth tier for the few multi-part days would cost
+                          more than it explains. "D.3.1" inline says it. */}
+                      {dayCode(p.day, p.part, p.parts) && (
+                        <span className="mr-1.5 text-[0.7rem] tracking-[0.06em] text-zinc-400">
+                          {dayCode(p.day, p.part, p.parts)}
+                        </span>
+                      )}
                       {p.title}
                     </Link>
                     {headings.length > 0 && (
@@ -86,7 +98,6 @@ export function SidebarNav({
                           <li key={`${h.slug}-${i}`}>
                             <a
                               href={`#${h.slug}`}
-                              onClick={closeOnMobile}
                               className={
                                 "block py-0.5 leading-snug text-[0.82rem] text-zinc-600 hover:text-black hover:bg-zinc-50 rounded-r " +
                                 (HEADING_INDENT[h.level] ?? "pl-2")

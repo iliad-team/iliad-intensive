@@ -1,7 +1,9 @@
 %--- iliad ---
-% cluster: B
 % title: Training Dynamics
-% summary: Exact learning dynamics of deep linear networks -- loss-landscape geometry, balanced gradient flow and the NTK, the rich (saddle-to-saddle) and lazy regimes, their mixed unification, and the implicit bias of SGD noise.
+% summary: >-
+%   Exact learning dynamics of deep linear networks -- loss-landscape geometry,
+%   balanced gradient flow and the NTK, the rich (saddle-to-saddle) and lazy
+%   regimes, their mixed unification, and the implicit bias of SGD noise.
 %--- end ---
 \documentclass[11pt]{article}
 
@@ -23,12 +25,9 @@
 \begin{document}
 \maketitle
 
-\begin{summary}
-Exact learning dynamics of deep linear networks: the geometry of the loss
-landscape, balanced gradient flow and the neural tangent kernel, the rich
-(saddle-to-saddle) and lazy regimes, their unification via mixed dynamics,
-and the implicit bias of SGD noise.
-\end{summary}
+% Guillaume's recorded lectures for this day (titles auto-queried at build).
+\youtube{IHHrJdZKICs}   % deep linear networks
+\youtube{clTLzFD2uC8}   % learning dynamics
 
 \begin{learningoutcomes}
   \subsection*{Motivation}
@@ -37,7 +36,7 @@ and the implicit bias of SGD noise.
     \item Understand the concept of implicit regularization
     \item Know about the different approaches to studying learning dynamics
     \item Understand the AI safety motivations for learning dynamics
-    \item Know about emergent misalignment as a safety-relevant phenomena that illustrates the importance of understanding generalization for AI safety
+    \item Know about emergent misalignment as a safety-relevant phenomenon that illustrates the importance of understanding generalization for AI safety
   \end{itemize}
 
   \subsection*{Geometry and dynamics of deep neural networks}
@@ -55,6 +54,8 @@ and the implicit bias of SGD noise.
   \end{itemize}
 \end{learningoutcomes}
 
+Use LLMs to help you out when you spend longer than the suggested time (but make sure that you understand). Make sure you keep at least 30 minutes to do problem 3.
+
 \textbf{References}: \cite{saxe2014}, \cite{achour2024}, \cite{tu2024}.
 
 \section{Setup and notation}
@@ -69,17 +70,39 @@ where \(W = W_L \cdots W_1 \in \mathbb{R}^{d_L \times d_0}\) is the
 end-to-end (or ``student'') matrix. We train on a dataset
 \(\{(x_\mu, y_\mu)\}_{\mu=1}^N\) with the squared loss:
 
-\[\mathcal{L}(\theta) = \frac{1}{2N} \sum_{\mu=1}^{N} \|y_\mu - W_L \cdots W_1 \, x_\mu\|^2\]
+\[\mathcal{L}(\theta) = \frac{1}{2N} \sum_{\mu=1}^{N} \|y_\mu - f(x_\mu)\|^2\]
 
-In the population limit with whitened inputs \(\Sigma_X = I\), this
-becomes:
+In the population limit \(N \to \infty\) with whitened inputs \(\Sigma_X = I\), this becomes, up to an additive constant\footnote{The constant is \(\frac{1}{2}\mathbb{E}\|y - Mx\|^2\), which is the residual of the OLS. It vanishes on realizable data.}:
 
 \[\mathcal{L}(W) = \frac{1}{2}\|M - W\|_F^2\]
 
-where \(M = \Sigma_{YX} \Sigma_X^{-1}\) is the ``teacher'' matrix (the
+where \(M = \Sigma_{YX} \Sigma_X^{-1} = \Sigma_{YX}\) is the ``teacher'' matrix (the
 OLS solution) with SVD
 \(M = U \,\text{diag}(s_1, \ldots, s_r, 0, \ldots, 0)\, V^\top\), and
 \(s_1 \geq s_2 \geq \cdots \geq s_r > 0\).
+
+% ---------------------------------------------------------------------------
+% %%% Where the additive constant comes from.
+%
+% In the population limit the loss is \frac{1}{2}\mathbb{E}\|y - Wx\|^2, with
+% second moments \Sigma_X = \mathbb{E}[x x^\top] and
+% \Sigma_{YX} = \mathbb{E}[y x^\top].
+%
+% Split the residual into
+%
+%     y - Wx = (y - Mx) + (M - W)x.
+%
+% Note \mathbb{E}[(y - Mx)x^\top] = \Sigma_{YX} - M\Sigma_X = 0.
+% The cross term obtained from expanding the square in the loss
+% is \text{Tr}[(M - W)\,\mathbb{E}[x(y - Mx)^\top]] and so
+% vanishes, leaving
+%
+%     \mathcal{L}(W) = \frac{1}{2}\mathbb{E}\|(M - W)x\|^2 + \mathcal{L}_\star,
+%     \qquad \mathcal{L}_\star := \frac{1}{2}\mathbb{E}\|y - Mx\|^2.
+%
+% Whitened inputs, \Sigma_X = I, then reduce the first term to the Frobenius
+% norm, giving \mathcal{L}(W) = \frac{1}{2}\|M - W\|_F^2 + \mathcal{L}_\star.
+% ---------------------------------------------------------------------------
 
 \section{Loss landscape geometry}
 \label{sec:td-geometry}
@@ -130,7 +153,7 @@ Classify the origin as a saddle point by computing the Hessian \(H\) of
 \(\ell\) at \((0,0)\) and showing it has both positive and negative
 eigenvalues.
 
-\emph{Hint}: Write the gradient equations
+\emph{Hint}: Write the gradient equations.
 \end{exercise}
 
 \begin{solution}[ex:td-1b]
@@ -150,7 +173,10 @@ only other critical point is \(w_1 = w_2 = 0\).
 The Hessian at \((0,0)\). We need the second derivatives of
 \(\ell = \frac{1}{2}(s - w_1 w_2)^2\):
 
-\[\frac{\partial^2 \ell}{\partial w_1^2} = w_2^2, \qquad \frac{\partial^2 \ell}{\partial w_2^2} = w_1^2, \qquad \frac{\partial^2 \ell}{\partial w_1 \partial w_2} = -(s - w_1 w_2) + w_1 w_2 = 2w_1 w_2 - s\]
+\begin{align*}
+\frac{\partial^2 \ell}{\partial w_1^2} &= w_2^2, \qquad \frac{\partial^2 \ell}{\partial w_2^2} = w_1^2, \\
+\frac{\partial^2 \ell}{\partial w_1 \partial w_2} &= -(s - w_1 w_2) + w_1 w_2 = 2w_1 w_2 - s
+\end{align*}
 
 At \((0,0)\):
 
@@ -202,9 +228,7 @@ weights by:
 \[(W_1, \ldots, W_L) \mapsto (g_1 W_1,\; g_2 W_2 g_1^{-1},\; \ldots,\; W_L g_{L-1}^{-1})\]
 
 Verify that the student map \(\mu(\theta) = W_L \cdots W_1\) is
-invariant under this action: \(\mu(g \cdot \theta) = \mu(\theta)\). What
-does this imply about the dimension of the set of global minima in
-parameter space?
+invariant under this action: \(\mu(g \cdot \theta) = \mu(\theta)\).
 \end{exercise}
 
 \begin{solution}[ex:td-1d]
@@ -215,7 +239,11 @@ Under the group action:
 All \(g_l\) and \(g_l^{-1}\) factors cancel telescopically. This means
 every parameter point in the orbit
 \(\mathcal{O}_\theta = GL_h \cdot \theta\) maps to the same student
-\(W\). The global minima form the fiber \(\mu^{-1}(M)\), which contains
+\(W\). \(\square\)
+
+For the dimension of the set of global minima,
+this invariance means the following. The global minima form the fiber
+\(\mu^{-1}(M)\), which contains
 the entire orbit \(GL_h \cdot \theta^*\) for any global minimizer
 \(\theta^*\). The orbit has dimension \(\sum_{l=1}^{L-1} d_l^2\) (the
 dimension of \(GL_h\)), so the set of global minima is a
@@ -233,11 +261,14 @@ rate.
 
 \begin{exercise}[Gradient-flow equations]
 \label{ex:td-2a}
-For a two-layer diagonal DLN (\(L=2\)) with loss
-\(\mathcal{L} = \frac{1}{2}\|M - W_2 W_1\|_F^2\), assume that each weight matrix $W_i$ is a diagonal matrix and whitened inputs.
-Derive the gradient flow equations for each layer. Show that:
-
+For a two-layer DLN (\(L=2\)), the loss is given by \(\mathcal{L} = \frac{1}{2}\|M - W_2 W_1\|_F^2\).
+Assume that each weight matrix \(W_i\) is diagonal.
+Derive the gradient flow equations for each layer.
+In particular, show that:
 \[\dot{W}_1 = W_2^\top(M - W_2 W_1), \qquad \dot{W}_2 = (M - W_2 W_1) W_1^\top\]
+
+\emph{Note}: these equations also hold for general (non-diagonal)
+\(W_1\) and \(W_2\).
 \end{exercise}
 
 \begin{solution}[ex:td-2a]
@@ -276,7 +307,7 @@ Define the \textbf{balancedness matrix}:
 \[G := W_2^\top W_2 - W_1 W_1^\top\]
 
 Show that \(G\) is conserved under the gradient flow,
-i.e.~\(\dot{G} = 0\). In other words, gradient flow is constrained on the balanced manifold \begin{equation*}
+i.e.~\(\dot{G} = 0\). In other words, gradient flow is constrained to the balanced manifold \begin{equation*}
     \mathcal{M}_{\beta}
     :=
     \{\theta\in\Omega\mid
@@ -343,29 +374,19 @@ Writing \(W = W_2 W_1\):
 \begin{exercise}[\(W_1^\top W_1\) in terms of \(W\)]
 \label{ex:td-2cii}
 We now need to express \(W_1^\top W_1\) and
-\(W_2 W_2^\top\) in terms of \(W = W_2 W_1\). For simplicity, assume
-that the weight matrices \(W_l\) are diagonal. Show that:
+\(W_2 W_2^\top\) in terms of \(W = W_2 W_1\). Show that:
 
 \[W_1^\top W_1 = (W^\top W)^{1/2}\]
 \end{exercise}
 
 \begin{solution}[ex:td-2cii]
-For diagonal matrices, \(W_1 = \text{diag}(a_\alpha)\)
-and \(W_2 = \text{diag}(b_\alpha)\) with
-\(W = \text{diag}(a_\alpha b_\alpha)\). Balancedness gives
-\(b_\alpha^2 = a_\alpha^2\) for each \(\alpha\),
-i.e.~\(|b_\alpha| = |a_\alpha|\) (with matching signs for positive
-entries).
+Balancedness gives \(W_2^\top W_2 = W_1 W_1^\top\), so
 
-Now \(W_1^\top W_1 = \text{diag}(a_\alpha^2)\) and
-\(W^\top W = \text{diag}(a_\alpha^2 b_\alpha^2)\). Using
-\(b_\alpha^2 = a_\alpha^2\):
+\[W^\top W = W_1^\top \left(W_2^\top W_2\right) W_1 = W_1^\top \left(W_1 W_1^\top\right) W_1 = \left(W_1^\top W_1\right)^2\]
 
-\[W^\top W = \text{diag}(a_\alpha^2 \cdot a_\alpha^2) = \text{diag}(a_\alpha^4)\]
-
-Taking the positive square root:
-
-\[(W^\top W)^{1/2} = \text{diag}(a_\alpha^2) = W_1^\top W_1 \qquad \square\]
+Both \(W^\top W\) and \(W_1^\top W_1\) are positive semidefinite.
+A positive semidefinite matrix has a unique positive semidefinite square root, so it follows that
+\[(W^\top W)^{1/2} = W_1^\top W_1 \qquad \square\]
 \end{solution}
 
 \begin{exercise}[\(W_2 W_2^\top\) in terms of \(W\)]
@@ -375,12 +396,7 @@ Similarly, show that
 \end{exercise}
 
 \begin{solution}[ex:td-2ciii]
-By the same argument,
-\(W_2 W_2^\top = \text{diag}(b_\alpha^2) = \text{diag}(a_\alpha^2)\)
-(using \(b_\alpha^2 = a_\alpha^2\)). And
-\(WW^\top = \text{diag}(a_\alpha^2 b_\alpha^2) = \text{diag}(a_\alpha^4)\),
-so \((WW^\top)^{1/2} = \text{diag}(a_\alpha^2) = W_2 W_2^\top\).
-\(\square\)
+Analogous to \cref{ex:td-2cii}.
 \end{solution}
 
 \begin{exercise}[The balanced function-space ODE]
@@ -407,7 +423,7 @@ Show that the gradient flow from \cref{ex:td-2civ} can be written as
 \(\dot{W} = K[M - W]\).
 
 It turns out that this result generalizes to depth \(L\) on the balanced
-manifold and to non-diagonal weight matrices:
+manifold:
 
 \[\dot{W} = \sum_{k=1}^{L} (WW^\top)^{\frac{L-k}{L}} (M - W) (W^\top W)^{\frac{k-1}{L}}\]
 This is the NTK equation in the case of DLNs. The NTK equation is a gradient flow in function space with NTK being a preconditioning operator for the gradient.
@@ -421,8 +437,7 @@ With \(F = M - W\), the equation from \cref{ex:td-2civ} reads:
 The general depth-\(L\) result
 \(\dot{W} = \sum_{k=1}^{L}(WW^\top)^{(L-k)/L}(M-W)(W^\top W)^{(k-1)/L}\)
 follows from the same approach applied to the \(L\)-fold balanced
-conditions \(W_{l+1}^\top W_{l+1} = W_l W_l^\top\) for all \(l\), and
-extends to non-diagonal matrices via the polar decomposition.
+conditions \(W_{l+1}^\top W_{l+1} = W_l W_l^\top\) for all \(l\).
 \end{solution}
 
 \section{Rich regime: saddle-to-saddle}
@@ -453,7 +468,10 @@ Under this alignment assumption, show that the NTK
 operator is aligned to the task, i.e.~\(K[F]\) preserves the SVD basis.
 In particular, show that:
 
-\[(WW^\top)^{1/2} = U\,\text{diag}(w_1, \ldots, w_d)\,U^\top, \qquad (W^\top W)^{1/2} = V\,\text{diag}(w_1, \ldots, w_d)\,V^\top\]
+\begin{align*}
+(WW^\top)^{1/2} &= U\,\text{diag}(w_1, \ldots, w_d)\,U^\top, \\
+(W^\top W)^{1/2} &= V\,\text{diag}(w_1, \ldots, w_d)\,V^\top
+\end{align*}
 
 and that the residual is
 \(M - W = U\,\text{diag}(s_1 - w_1, \ldots, s_d - w_d)\,V^\top\).
@@ -598,19 +616,19 @@ timescales \(t_1 \ll t_2 \ll \cdots \ll t_r\). \(\square\)
 \label{ex:td-3c}
 Consider a teacher with
 \(r\) nonzero singular values and a small uniform initialization
-\(w_\alpha(0) = w_0 \ll s_r\) for all \(\alpha\). Discuss:
+\(w_\alpha(0) = w_0 \ll s_r\) for all \(\alpha\). Qualitatively, discuss:
 
 \begin{itemize}
 \tightlist
 \item
-  What is the approximate rank of \(W(t)\) at early times?
+  What is the approximate distribution of singular values of \(W(t)\) at early times?
 \item
-  How does the rank evolve at intermediate times?
+  How do the singular values of $W(t)$ evolve throughout training?
 \item
   What happens in the limit \(t \to \infty\)?
 \end{itemize}
 
-What does this tell us about the sequence of critical points visited by
+What does this analysis tell us about the sequence of critical points visited by
 the gradient flow?
 \end{exercise}
 
@@ -621,14 +639,19 @@ With uniform initialization \(w_\alpha(0) = w_0\) for all
 then transitions rapidly to \(w_\alpha \approx s_\alpha\).
 
 \textbf{Early times} (\(t \sim \frac{1}{2s_1}\ln(s_1/w_0)\)): Only mode
-1 has grown significantly. The student is approximately
-\(W(t) \approx w_1(t)\,u_1 v_1^\top\), which is \textbf{rank 1}.
+1 has grown significantly, so the spectrum is \textbf{one singular value
+near \(s_1\), with all the others still near \(w_0 \ll s_r\)}. The
+student is approximately \(W(t) \approx w_1(t)\,u_1 v_1^\top\),
+effectively \textbf{rank 1}.
 
 \textbf{Intermediate times}: As \(t\) increases, \(w_2\) switches on,
-then \(w_3\), etc. The student is approximately
+then \(w_3\), etc. The singular values \textbf{switch on one at a time},
+in decreasing order of \(s_\alpha\), each staying near \(w_0\) and then
+rising to \(s_\alpha\) over a narrow window. The student is
+approximately
 \(W(t) \approx \sum_{\alpha=1}^{k(t)} w_\alpha(t)\,u_\alpha v_\alpha^\top\)
-where \(k(t)\) increases stepwise. The \textbf{rank increases
-incrementally}.
+where \(k(t)\) increases stepwise, so the effective \textbf{rank
+increases incrementally}.
 
 \textbf{Long times} (\(t \to \infty\)): All modes converge,
 \(w_\alpha \to s_\alpha\), and \(W \to M\).
@@ -744,9 +767,6 @@ index \(\alpha\). In the lazy regime, each mode satisfies
 \textbf{same} rate \(2w_0\) for all \(\alpha\). Compare the lazy
 learning time \(t_\alpha^{\text{lazy}}\) with the rich-regime timescale
 from \cref{ex:td-3b}: \(t_\alpha^{\text{rich}} \propto 1/s_\alpha\).
-
-Discuss the difference in \textbf{rank bias} between the lazy and rich
-regimes.
 \end{exercise}
 
 \begin{solution}[ex:td-4c]
@@ -932,15 +952,15 @@ rotates to align with the task, and the test loss drops ---
 the time it takes the relevant modes to cross \(\tau\). Increasing the
 initialization scale \(\sigma\) or the width \(n\) increases \(\tau\),
 which extends the lazy phase and widens the grokking gap. This is the
-same mechanism identified by Kumar et al.~in the grokking exercise
-session. \(\square\)
+same mechanism identified by Kumar et al., \emph{Grokking as the
+Transition from Lazy to Rich Training Dynamics} (arXiv:2310.06110).
+\(\square\)
 \end{solution}
 
 \section{Stochastic implicit bias (bonus)}
 \label{sec:td-stochastic}
 
-SGD introduces noise from mini-batching. Write the SGD update as a combination of gradient and noise term (use a LLM to check your answer). A continuous model is the
-Langevin SDE:
+SGD introduces noise from mini-batching. A continuous model is the Langevin SDE:
 
 \[d\theta_t = -\nabla \mathcal{L}(\theta_t)\,dt + \sqrt{\eta\,\Sigma(\theta_t)}\,dB_t\]
 
@@ -1071,19 +1091,16 @@ non-equilibrium steady states that further modify the implicit bias.
 
 \section*{Learn more}
 
-The readings are roughly ordered in a way that makes sense for learning. This is a curated list of what I find important, and it is not exhaustive.
+The readings are roughly ordered in a way that makes sense for learning. Discuss the readings in groups of 2 or 3, to be formed in this \href{https://docs.google.com/document/d/13u-zhLUnAT9Wzn2IUsbNUOt9vNE5u8QV8GV1NAr1gow/edit?tab=t.0}{Google doc}. Spend 30 minutes reading, 30 minutes discussing and 30 minutes to write down your thoughts in the Google doc.
 
 \subsection*{Key readings}
 \begin{itemize}
-  \item \href{https://arxiv.org/abs/2107.13289}{The loss landscape of deep linear neural networks: a second-order analysis} Achour et al. --- First-order and second-order classification of critical points in DLN loss landscapes. Classifies strict and non-strict saddles.
-  \item Saxe et al. \href{https://www.pnas.org/doi/10.1073/pnas.1820226116}{A mathematical theory of semantic development in deep neural networks} --- Read the supplementary materials section to understand the exact solution of gradient flow dynamics in deep linear networks
-  \item \href{https://arxiv.org/abs/2411.19920}{Geometry of fibers of the multiplication map of deep linear neural networks} Simon Pepin Lehalleur et al. --- Stratifies global minima into orbits using quiver representation theory
-  \item \href{https://arxiv.org/abs/2411.09004}{The geometry of the deep linear network} Govind Menon --- Beautiful mathematical treatment of gradient flow in DLNs and a surprising mathematical result relating gradient flow and free-energy minimization. Makes implicit regularization explicit (under balanced assumptions)
-  \item \href{https://arxiv.org/abs/2602.07852}{Emergent Misalignment is Easy, Narrow Misalignment is Hard} --- When fine-tuned on data with harmful inputs, the model generalize in harmful ways on other unrelated datasets.
-  \item \href{https://arxiv.org/abs/2602.07852}{Emergent Misalignment is Easy, Narrow Misalignment is Hard} --- By regularizing, we can mitigate emergent misalignment
+  \item The strong default suggestion for everyone is: Saxe et al. \href{https://www.pnas.org/doi/10.1073/pnas.1820226116}{A mathematical theory of semantic development in deep neural networks} --- Read the supplementary materials section to understand the exact solution of gradient flow dynamics in deep linear networks
+  \item For people with a strong algebraic geometry and representation geometry background read: \href{https://arxiv.org/abs/2411.19920}{Geometry of fibers of the multiplication map of deep linear neural networks} Simon Pepin Lehalleur et al. --- Stratifies global minima into orbits using quiver representation theory
+  \item For people with a strong dynamical system and differential geometry background read: \href{https://arxiv.org/abs/2411.09004}{The geometry of the deep linear network} Govind Menon --- Beautiful mathematical treatment of gradient flow in DLNs and a surprising mathematical result relating gradient flow and free-energy minimization. Makes implicit regularization explicit (under balanced assumptions)
+  \item For people who are much more empirically minded: \href{https://arxiv.org/abs/2602.07852}{Emergent Misalignment is Easy, Narrow Misalignment is Hard} --- When fine-tuned on data with harmful inputs, the model generalizes in harmful ways on other unrelated datasets. By regularizing, we can mitigate emergent misalignment
   \item Literature Review: \href{https://arxiv.org/abs/2604.21691}{There Will Be a Scientific Theory of Deep Learning}
-  \item \href{https://arxiv.org/abs/2209.15594}{Self-Stabilization: The Implicit Bias of Gradient Descent at the Edge of Stability}
-  \item \href{https://arxiv.org/abs/2306.08590}{Beyond Implicit Bias: The Insignificance of SGD Noise in Online Learning}
+  \item To go further: \href{https://arxiv.org/abs/2506.06489}{Alternating Gradient Flows: A Theory of Feature Learning in Two-layer Neural Networks}
 \end{itemize}
 
 \subsection*{Loss landscape geometry}
@@ -1109,9 +1126,11 @@ The readings are roughly ordered in a way that makes sense for learning. This is
   \item \href{https://arxiv.org/abs/2302.11055}{SGD learning on neural networks: leap complexity and saddle-to-saddle dynamics} --- SGD builds up complex solutions by first learning simpler solutions and then composing them
   \item \href{https://arxiv.org/abs/2405.17580}{Mixed Dynamics In Linear Networks: Unifying the Lazy and Active Regimes} --- Unifies lazy and rich in 2-layer DLNs and gives conditions for the transition between them
   \item \href{https://arxiv.org/abs/1806.07572}{Neural Tangent Kernel: Convergence and Generalization in Neural Networks} Arthur Jacot, Franck Gabriel, Clément Hongler --- NTK paper that describes gradient flow in function space
+  \item \href{https://arxiv.org/abs/1812.07956}{On Lazy Training in Differentiable Programming} Lénaïc Chizat, Edouard Oyallon, Francis Bach --- Lazy training can occur in various settings, and is caused by scaling choices
   \item \href{https://arxiv.org/abs/2207.10430}{The Neural Race Reduction: Dynamics of Abstraction in Gated Networks} Saxe et al. --- Implicit biases toward shared representation in non-linear networks as modelled by gated DLNs
   \item \href{https://arxiv.org/abs/2506.06489}{Alternating Gradient Flows: A Theory of Feature Learning in Two-layer Neural Networks} Daniel Kunin et al. --- A theory of feature learning as a two-step process between dormant and active neurons
   \item \href{https://arxiv.org/abs/2409.14623}{From Lazy to Rich: Exact Learning Dynamics in Deep Linear Networks} --- Studies the transition between lazy and rich regimes in DLNs with balancedness parameters
+  \item \href{https://arxiv.org/abs/2406.06158}{Get rich quick: exact solutions reveal how unbalanced initializations promote rapid feature learning} Daniel Kunin et al. --- (Lack of) balance between layers at initialization is preserved under GF, and influences rich vs lazy and implicit bias
   \item \href{https://arxiv.org/abs/1705.09280}{Implicit Regularization in Matrix Factorization} --- Gradient descent on matrix factorization converges to the minimum nuclear norm
   \item \href{https://arxiv.org/abs/1906.05890}{Gradient Descent Maximizes the Margin of Homogeneous Neural Networks} --- Implicit bias toward max-margin in classification
   \item \href{https://arxiv.org/abs/1810.02281}{A Convergence Analysis of Gradient Descent for Deep Linear Neural Networks} Sanjeev Arora et al. --- Convergence analysis of SGD
@@ -1119,7 +1138,7 @@ The readings are roughly ordered in a way that makes sense for learning. This is
 
 \subsection*{Learning rate (discrete GD)}
 \begin{itemize}
-  \item \href{https://arxiv.org/abs/2209.15594}{Self-Stabilization: The Implicit Bias of Gradient Descent at the Edge of Stability} --- Shows that curvature stabilizes around the inverse of the learning rate.
+  \item \href{https://arxiv.org/abs/2209.15594}{Self-Stabilization: The Implicit Bias of Gradient Descent at the Edge of Stability} --- Shows that curvature stabilizes around twice the inverse of the learning rate (2/eta).
   \item \href{https://arxiv.org/abs/2410.24206}{Understanding Optimization in Deep Learning with Central Flows} --- GD with a discrete learning rate is equivalent to gradient flow on an effective loss
   \item \href{https://arxiv.org/abs/2410.05192}{Understanding Warmup-Stable-Decay Learning Rates: A River Valley Loss Landscape Perspective} --- Pretraining exhibits a river valley loss landscape and gives intuition about the learning-rate schedule (warm-up, stable, decay)
   \item \href{https://www.nature.com/articles/s41467-025-58532-9}{Optimization on multifractal loss landscapes explains a diverse range of geometrical and dynamical properties of deep learning} --- Models the landscape as multifractal and analyses sub- and super-diffusive behaviour of GD

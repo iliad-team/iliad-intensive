@@ -2,6 +2,9 @@ import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import YAML from "yaml";
 
+/** Frontmatter of a *generated* module. `cluster`/`day` are stamped in by
+ *  build-content.mjs from schedule.yaml (an author may not write either); the
+ *  rest come from the worksheet's own source. */
 export type Frontmatter = {
   title?: string;
   cluster?: string;
@@ -13,6 +16,9 @@ export type Frontmatter = {
   /** External slide-deck URL (e.g. a Drive PDF); rendered as an outbound
    *  link. A compiled slides.pdf (from slides.tex) takes precedence. */
   slides?: string;
+  /** Teaching day this worksheet is the material for, e.g. "B.4". Several
+   *  worksheets may share one day. */
+  day?: string;
 };
 
 export type HeadingEntry = {
@@ -25,6 +31,15 @@ export type IndexEntry = {
   slug: string;
   title: string;
   cluster: string | null;
+  /** Teaching day code, e.g. "D.3". Several worksheets may share one. */
+  day?: string;
+  /** 1-based place within this sheet's own day, and how many the day has.
+   *  Together they give the display code (D.3.1) — see dayCode() in
+   *  ./clusters.ts. `day` above stays the canonical, undotted identity. */
+  part?: number;
+  parts?: number;
+  /** 1-based place in the curriculum, straight out of schedule.yaml's order
+   *  (cluster, then day, then the day's own worksheet order). */
   position?: number;
   frontmatter: Frontmatter;
   headings?: HeadingEntry[];
@@ -65,7 +80,13 @@ export async function listIndex(): Promise<IndexEntry[]> {
 export async function listSlugs(): Promise<string[]> {
   try {
     const files = await readdir(CONTENT_DIR);
-    return files.filter((f) => f.endsWith(".mdx")).map((f) => f.replace(/\.mdx$/, ""));
+    const slugs = files.filter((f) => f.endsWith(".mdx")).map((f) => f.replace(/\.mdx$/, ""));
+    // Preview optimization (./run.sh preview <slug>): when PREVIEW_ONLY is set,
+    // only that worksheet's page is statically generated, so a rebuild renders
+    // just the section you edited instead of every module. Never set in a real
+    // build, so production/deploy output is unaffected.
+    const only = process.env.PREVIEW_ONLY;
+    return only ? slugs.filter((s) => s === only) : slugs;
   } catch {
     return [];
   }

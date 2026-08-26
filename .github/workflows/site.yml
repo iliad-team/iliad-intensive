@@ -9,6 +9,12 @@
 # so a preview can coexist with production. REQUIRES a one-time repo setting:
 # Settings -> Pages -> Source = "Deploy from a branch" -> gh-pages / (root).
 # See docs/PR-PREVIEWS.md.
+#
+# History: gh-pages keeps NONE. Every publish force-pushes a single orphan
+# commit via .github/publish-gh-pages.sh, so the branch is always exactly one
+# commit deep. Because production and previews share the branch, each job stages
+# the COMPLETE tree in .deploy/ (checkout gh-pages, edit only its own subtree)
+# and lets the script replace the branch with it.
 name: site
 
 on:
@@ -16,10 +22,35 @@ on:
     types: [opened, synchronize, reopened, closed]
   push:
     branches: [main]
+  # preview-sweep only. The per-PR cleanup below fires once, on the closed
+  # event; nothing retries it, so a preview that misses its one chance stays in
+  # the live tree forever. #59, #85 and #89 did exactly that and sat there for
+  # weeks (144 MB). This is the backstop that makes cleanup self-healing.
+  # Weekly, Mondays 04:17 UTC. Odd minute on purpose: GitHub's scheduler is
+  # best-effort and sheds load at :00. A missed tick just means next week.
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
 
 concurrency:
-  group: site-${{ github.ref }}
-  cancel-in-progress: true
+  # Key PR runs on the PR NUMBER, not github.ref. Merging a PR fires two runs in
+  # the same second — the push to main, and pull_request/closed (which runs only
+  # preview-cleanup) — and on a merged PR the refs/pull/<N>/merge ref is already
+  # deleted, so the closed event's github.ref falls back to the BASE branch.
+  # Under `site-${{ github.ref }}` that put the cleanup run in main's own group,
+  # where cancel-in-progress is true for it (it is a pull_request event), so a
+  # 49-second `git rm` of a preview directory evicted the production build ~2s
+  # in: "Canceling since a higher priority waiting request for
+  # site-refs/heads/main exists". Whichever of the two runs claimed the slot
+  # first won, so it read as flaky — main lost 7 of 11 merges, leaving the live
+  # site commits behind while every PR check showed green.
+  #
+  # A PR event can no longer name main's group, so the race cannot be entered.
+  # The useful superseding survives: pushes to PR N still cancel N's stale
+  # preview build, and closing N cancels a build for a preview about to be
+  # deleted. Both are the same `site-<N>` group.
+  group: site-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 # Default read-only; the deploy/preview jobs opt into write explicitly.
 permissions:
@@ -28,9 +59,23 @@ permissions:
 jobs:
   build:
     # On a PR *close* there is nothing to build — the preview-cleanup job just
-    # removes the old preview. Every other event builds.
-    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    # removes the old preview. Nor on a sweep tick (schedule/manual), which only
+    # prunes gh-pages. Every other event builds.
+    if: >-
+      (github.event_name != 'pull_request' || github.event.action != 'closed')
+      && github.event_name != 'schedule'
+      && github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
+    # A healthy warm run is ~2 minutes; a healthy COLD run ~7 (the TeX
+    # download). The historically unbounded step was that download, which a
+    # degraded Ubuntu mirror has stalled past 15 minutes while still *looking*
+    # like progress — the TeX step now bounds its own apt commands with
+    # wall-clock timeouts (see there), so this cap is a backstop, not the
+    # thing that catches a mirror incident. It still has to clear a cold apt
+    # that is slow-but-succeeding: the caps below allow up to 300s + 600s of
+    # apt before ~4 minutes of node + site build. Cache entries expire after
+    # 7 days unused, so cold runs recur and this is not a one-off bootstrap.
+    timeout-minutes: 20
     steps:
       # lfs: true — figures under tex/**/fig/*.png are stored in Git LFS
       # (.gitattributes). Without this the working tree gets pointer files, and
@@ -44,30 +89,187 @@ jobs:
       # links resolve under the preview subpath.
       - name: Compute base path + commit
         id: cfg
+        env:
+          # The title is read through the environment, never spliced into the
+          # script with ${{ }}. A PR title is text the PR's author controls, and
+          # ${{ }} substitutes BEFORE bash sees the script, so a title
+          # containing $(...) or a backtick would execute here. `env:` passes it
+          # as data instead. (Not merely theoretical for a public repo: anyone
+          # who can open a PR can choose this string.)
+          PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             echo "base=/iliad-intensive/pr-preview/pr-${{ github.event.number }}" >> "$GITHUB_OUTPUT"
             echo "pr=${{ github.event.number }}" >> "$GITHUB_OUTPUT"
+            # A heredoc, not `title=$PR_TITLE`: a title may contain anything,
+            # and a bare key=value line breaks on the first newline while an "="
+            # in the title would be swallowed. The delimiter is prefixed so a
+            # title cannot close it by containing the word EOF.
+            {
+              echo "title<<PR_TITLE_a91f4c"
+              printf '%s\n' "$PR_TITLE"
+              echo "PR_TITLE_a91f4c"
+            } >> "$GITHUB_OUTPUT"
             # The PR's own head commit, not the synthetic merge commit.
             echo "sha=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
           else
             echo "base=/iliad-intensive" >> "$GITHUB_OUTPUT"
             echo "pr=" >> "$GITHUB_OUTPUT"
+            echo "title=" >> "$GITHUB_OUTPUT"
             echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: TeX Live + poppler + pandoc
-        # Keep this list in sync with ./setup.sh — it is the reference package
-        # set. cm-super: scalable CM fonts, needed by microtype's font
-        # expansion under [T1]{fontenc}. lmodern: pandoc's default PDF template
-        # (used for MDX-authored worksheets) loads lmodern.sty unconditionally;
-        # it is only a Recommends of texlive, so --no-install-recommends drops
-        # it — name it explicitly.
+      # The .deb downloads for the step below — ~207 MB across ~130 packages —
+      # plus a `manifest` file recording the package list they satisfy (written
+      # only by a run that installed it successfully; it is what lets the next
+      # run skip apt entirely). Lives in GitHub Actions cache, NOT in the
+      # repository: nothing is committed, and `git clone` is unaffected. The
+      # repo already caches npm, the worksheet builds and the tikz diagrams
+      # the same way.
+      #
+      # The key hashes .github/apt-packages.txt, so editing the package list
+      # re-keys the cache by itself — no version suffix to remember to bump.
+      # restore-keys then seed the new key's first run with the previous
+      # entry's .debs, so a list change downloads only the delta (apt treats
+      # restored files as a download cache and fetches anything missing).
+      # apt-tex-v1 is the fixed pre-manifest key this scheme replaced — worth
+      # one seeding, harmless once evicted. Entries are evicted after 7 days
+      # unused; PR-branch saves are invisible to sibling branches, so the
+      # entry everyone shares is the one written on main.
+      - name: Restore apt package cache
+        uses: actions/cache@v4
+        with:
+          path: ~/apt-debs
+          key: apt-tex-${{ runner.os }}-${{ hashFiles('.github/apt-packages.txt') }}
+          restore-keys: |
+            apt-tex-${{ runner.os }}-
+            apt-tex-v1-${{ runner.os }}
+
+      - name: TeX Live + poppler
+        # The package set (and every per-package why) lives in
+        # .github/apt-packages.txt — one definition, shared with ./setup.sh
+        # and hashed into the cache key above. Add packages THERE, not here.
+        #
+        # Two paths, because the Ubuntu mirrors cannot be trusted with the
+        # critical path. On 2026-08-19 azure.archive.ubuntu.com (the runners'
+        # preferred mirror) went down, every runner fell back to
+        # archive.ubuntu.com, and `apt-get update` trickled its index fetch
+        # for 19m41s — under the Acquire timeouts, which catch a dead socket,
+        # not a slow one — until the 20-minute job cap killed it. Six builds
+        # died that way, two of them production deploys, and the warm .deb
+        # cache could not help because apt insists on fetching fresh indexes
+        # before it will even look at /var/cache/apt/archives.
+        #
+        # WARM (the norm): install straight from the cached .debs with
+        #   `dpkg -i`, which reads only local files — no `apt-get update`, no
+        #   index fetch, no mirror anywhere. Gated by the cache's manifest so
+        #   a partial or foreign cache can never skip the real install.
+        # COLD (first run, 7-day eviction, list change, or any warm-path
+        #   surprise): real apt, with wall-clock `timeout`s so a trickling
+        #   mirror fails in minutes with a clear message instead of eating
+        #   the whole job budget. A successful cold run reseeds the cache
+        #   and writes the manifest, making the next run warm.
         run: |
-          sudo apt-get update -q
-          sudo apt-get install -y --no-install-recommends \
-            texlive-latex-extra texlive-pictures texlive-science \
-            texlive-fonts-recommended cm-super lmodern poppler-utils pandoc
+          set -euo pipefail
+
+          # The wanted set, from the one definition (strip comments/blanks).
+          PKGS=$(grep -vE '^\s*(#|$)' .github/apt-packages.txt | xargs)
+
+          # Every wanted package installed AND configured?
+          satisfied() {
+            local p
+            for p in $PKGS; do
+              [ "$(dpkg-query -W -f '${db:Status-Status}' "$p" 2>/dev/null)" = installed ] || return 1
+            done
+          }
+
+          # ── Warm path ──────────────────────────────────────────────────────
+          warm_install() {
+            [ -f "$HOME/apt-debs/manifest" ] \
+              || { echo "cache: no manifest — cold path"; return 1; }
+            [ "$(cat "$HOME/apt-debs/manifest")" = "$PKGS" ] \
+              || { echo "cache: manifest is for a different package list — cold path"; return 1; }
+            compgen -G "$HOME/apt-debs/*.deb" > /dev/null \
+              || { echo "cache: manifest but no .debs — cold path"; return 1; }
+
+            # Pick the newest cached .deb per package (the cache accretes
+            # superseded versions), then skip anything the runner image
+            # already has at >= that version — handed an older .deb, dpkg
+            # would happily DOWNGRADE a library the image has since upgraded.
+            declare -A ver deb
+            local d p v
+            for d in "$HOME"/apt-debs/*.deb; do
+              p=$(dpkg-deb -f "$d" Package); v=$(dpkg-deb -f "$d" Version)
+              if [ -z "${ver[$p]:-}" ] || dpkg --compare-versions "$v" gt "${ver[$p]}"; then
+                ver[$p]=$v; deb[$p]=$d
+              fi
+            done
+            local todo=()
+            for p in "${!deb[@]}"; do
+              v=$(dpkg-query -W -f '${Version}' "$p" 2>/dev/null || true)
+              if [ -z "$v" ] || dpkg --compare-versions "$v" lt "${ver[$p]}"; then
+                todo+=("${deb[$p]}")
+              fi
+            done
+            echo "warm: installing ${#todo[@]} cached .debs with dpkg (no apt, no mirror)"
+            if [ "${#todo[@]}" -gt 0 ]; then
+              # All in one call: dpkg unpacks everything, then configures in
+              # dependency order itself, so the set needs no ordering from us.
+              sudo dpkg -i "${todo[@]}" > /dev/null || return 1
+            fi
+            satisfied
+          }
+
+          if ! warm_install; then
+            # ── Cold path ────────────────────────────────────────────────────
+            # A failed warm path may leave packages unpacked-but-unconfigured,
+            # which apt refuses to work around; repair before it runs.
+            sudo dpkg --configure -a || true
+
+            APT_OPTS="-o Acquire::Retries=3
+                      -o Acquire::http::Timeout=20
+                      -o Acquire::https::Timeout=20"
+
+            # Seed apt's archive from whatever the cache had (possibly a
+            # previous package list, via restore-keys). apt matches a .deb by
+            # name, size and hash and silently skips re-downloading it, so
+            # this is a pure download cache and staleness only means
+            # "download the few that changed". --update=none so a cached file
+            # never clobbers a newer one apt just fetched.
+            if compgen -G "$HOME/apt-debs/*.deb" > /dev/null; then
+              echo "cache: $(ls "$HOME"/apt-debs/*.deb | wc -l) .deb files restored"
+              sudo cp --update=none "$HOME"/apt-debs/*.deb /var/cache/apt/archives/ || true
+            else
+              echo "cache: empty — everything will be downloaded"
+            fi
+
+            # Two layers of timeout, for two failure modes. The Acquire
+            # options catch a DEAD connection (idle socket). `timeout` is a
+            # wall-clock cap for the mirror that keeps trickling — apt has no
+            # minimum-throughput setting, so a slow-but-alive transfer
+            # otherwise runs forever (that is the 19m41s incident above).
+            # Budgets: a healthy update is <40s, a healthy cold install ~330s;
+            # both caps clear the 20-minute job budget with the ~4-minute
+            # build behind them.
+            sudo timeout 300 apt-get update -q $APT_OPTS \
+              || { echo "::error::apt-get update failed or stalled — likely an Ubuntu mirror incident; re-run this job"; exit 1; }
+            # --fix-broken: also finish/repair anything a failed warm path
+            # left behind, in the same resolver run.
+            sudo timeout 600 apt-get install -y --fix-broken --no-install-recommends $APT_OPTS $PKGS \
+              || { echo "::error::apt-get install failed or stalled — likely an Ubuntu mirror incident; re-run this job"; exit 1; }
+
+            # Hand what apt fetched back to the cache for the next warm run.
+            mkdir -p "$HOME/apt-debs"
+            cp --update=none /var/cache/apt/archives/*.deb "$HOME/apt-debs/" 2>/dev/null || true
+            echo "cache: $(ls "$HOME"/apt-debs/*.deb 2>/dev/null | wc -l) .deb files kept ($(du -sh "$HOME/apt-debs" | cut -f1))"
+          fi
+
+          # The warm-path gate. Written LAST, and only on success (set -e), so
+          # it can only ever describe a set this very run proved installable.
+          mkdir -p "$HOME/apt-debs"
+          printf '%s\n' "$PKGS" > "$HOME/apt-debs/manifest"
+          # The slides ladder picks bibtex or biber from the deck's own source
+          # (scripts/build-content.mjs).
           # contributor LaTeX is untrusted: never enable shell-escape
 
       - uses: actions/setup-node@v4
@@ -92,6 +294,31 @@ jobs:
           key: tikz-${{ hashFiles('tex/**') }}
           restore-keys: tikz-
 
+      # Worksheet artifacts, so a day nobody touched is not recompiled. Each
+      # worksheet stores a hash of its inputs in tex/<slug>/.build-hash and the
+      # build skips it when that hash matches AND its artifacts are all still
+      # here (scripts/build-content.mjs) — restoring them is what makes the skip
+      # possible. Deliberately NOT caching public/uploads: the diagram cache
+      # above owns that path, and two cache actions on one path fight. The skip
+      # check verifies every /uploads/ path its MDX references, so a diagram-cache
+      # miss forces a rebuild rather than shipping a figure-less page.
+      #
+      # The key intentionally never hits (it carries the commit sha), so the
+      # cache is rewritten every run and restore-keys pulls the newest one —
+      # per-worksheet granularity lives in the hashes, not in the cache key.
+      - name: Restore worksheet build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            tex/*/.build-hash
+            tex/*/*.pdf
+            tex/*/*.aux
+            tex/*/*.bbl
+            content/modules
+            public/downloads
+          key: worksheets-${{ github.sha }}
+          restore-keys: worksheets-
+
       # The SAME command developers and the pre-push hook run locally
       # (./run.sh ci) — one definition in package.json, no drift. The base path
       # is the only thing that varies between production and a preview.
@@ -100,6 +327,10 @@ jobs:
           NEXT_PUBLIC_BASE_PATH: ${{ steps.cfg.outputs.base }}
           # Non-empty only on PR builds → renders the "not the live site" banner.
           NEXT_PUBLIC_PREVIEW_PR: ${{ steps.cfg.outputs.pr }}
+          # The PR's title, so a preview tab says WHICH change it is showing
+          # rather than only a number. Safe as an env value; React escapes it
+          # when rendering.
+          NEXT_PUBLIC_PREVIEW_PR_TITLE: ${{ steps.cfg.outputs.title }}
           # Shown in the footer, linked to the commit on GitHub.
           NEXT_PUBLIC_COMMIT_SHA: ${{ steps.cfg.outputs.sha }}
         run: npm run ci
@@ -142,19 +373,30 @@ jobs:
         with:
           name: site
           path: out
-      # clean:true below would wipe the live root; never let it run against an
-      # empty/failed artifact download (e.g. during a GitHub incident).
+      # The force-push below replaces gh-pages outright; never let it run
+      # against an empty/failed artifact download (e.g. during a GitHub
+      # incident), which would publish an empty site.
       - name: Guard against an empty artifact
         run: test -f out/index.html || { echo "::error::empty artifact — refusing to deploy (would wipe the live site)"; exit 1; }
-      - name: Deploy to gh-pages (root)
-        uses: JamesIves/github-pages-deploy-action@v4
+      - uses: actions/checkout@v4
         with:
-          branch: gh-pages
-          folder: out
-          # Refresh the root but never delete the preview subtrees.
-          clean: true
-          clean-exclude: |
-            pr-preview/**
+          ref: gh-pages
+          path: .deploy
+      # gh-pages is disposable build output, so every publish force-pushes ONE
+      # orphan commit instead of appending (see "History" in the header). That
+      # makes the commit we push the entire site — there is no previous state to
+      # merge with — so the live previews must be carried into it explicitly.
+      # Deleting them here is what "keep the root fresh" used to mean when the
+      # branch had history; now it would unpublish 12 open PRs' previews.
+      - name: Stage the site (fresh root + live previews)
+        run: |
+          set -euo pipefail
+          find .deploy -mindepth 1 -maxdepth 1 \
+            ! -name .git ! -name pr-preview -exec rm -rf {} +
+          cp -a out/. .deploy/
+      - name: Publish
+        run: |
+          .github/publish-gh-pages.sh "Deploy ${{ github.sha }}"
 
   # Preview: publish the built site to gh-pages/pr-preview/pr-<N>/ and comment
   # the URL on the PR. Only runs after `build` succeeds — i.e. the PR passed the
@@ -175,17 +417,27 @@ jobs:
         with:
           name: site
           path: out
-      # Deploy INTO the PR's own subfolder. clean: false means the action only
-      # ever adds/updates files under target-folder — it cannot touch production
-      # or another PR's preview (the docs are ambiguous on whether `clean` is
-      # scoped to target-folder, so we don't rely on it).
-      - name: Deploy PR preview
-        uses: JamesIves/github-pages-deploy-action@v4
+      - uses: actions/checkout@v4
         with:
-          branch: gh-pages
-          folder: out
-          target-folder: pr-preview/pr-${{ github.event.number }}
-          clean: false
+          ref: gh-pages
+          path: .deploy
+      # Swap in THIS PR's subfolder and leave everything else — production root
+      # and the other previews — exactly as checked out. The force-push
+      # publishes the whole tree, so anything missing here is anything
+      # unpublished; touching only our own directory is what keeps the blast
+      # radius to this PR.
+      - name: Stage this PR's preview
+        run: |
+          set -euo pipefail
+          DIR=".deploy/pr-preview/pr-${{ github.event.number }}"
+          rm -rf "$DIR"
+          mkdir -p "$DIR"
+          cp -a out/. "$DIR"/
+      # Block scalar, not a plain one: in an unquoted YAML scalar " #" opens a
+      # comment and would truncate the message mid-quote.
+      - name: Publish
+        run: |
+          .github/publish-gh-pages.sh "Preview for PR #${{ github.event.number }}"
       # Best-effort comment with the URL. continue-on-error so a GitHub API
       # blip can't fail an otherwise-successful deploy (the URL is deterministic
       # anyway). Upserts a single marked comment rather than spamming.
@@ -220,19 +472,23 @@ jobs:
       group: gh-pages-write
       cancel-in-progress: false
     steps:
+      # Pin to main for the publish script. The default checkout would resolve
+      # refs/pull/<N>/merge, which is already deleted by the time a MERGED PR
+      # fires its closed event (see the concurrency note at the top).
+      - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/checkout@v4
         with:
           ref: gh-pages
+          path: .deploy
       - name: Remove PR preview
         run: |
-          set -e
-          DIR="pr-preview/pr-${{ github.event.number }}"
+          set -euo pipefail
+          DIR=".deploy/pr-preview/pr-${{ github.event.number }}"
           if [ ! -d "$DIR" ]; then echo "no preview at $DIR — nothing to remove"; exit 0; fi
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git rm -r --quiet "$DIR"
-          git commit -m "Remove preview for PR #${{ github.event.number }}"
-          git push origin gh-pages
+          rm -rf "$DIR"
+          .github/publish-gh-pages.sh "Remove preview for PR #${{ github.event.number }}"
       - name: Update comment (preview removed)
         continue-on-error: true
         uses: actions/github-script@v7
@@ -244,3 +500,71 @@ jobs:
             const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: pr });
             const existing = comments.find((c) => c.body && c.body.includes(marker));
             if (existing) await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
+
+  # Backstop for preview-cleanup. That job gets exactly one chance — the PR's
+  # `closed` event — and if it is cancelled, fails, or never fires, the preview
+  # is orphaned in gh-pages with nothing to notice. This reconciles the live
+  # tree against reality daily: every pr-preview/pr-<N>/ whose PR is not OPEN
+  # goes. Deleting an in-flight preview is not a risk — the PR's next push
+  # republishes it.
+  preview-sweep:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: read
+    # Same lock the other two gh-pages writers take: publishing force-pushes the
+    # whole branch, so two writers racing would silently drop one's work.
+    concurrency:
+      group: gh-pages-write
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: .deploy
+      - name: Remove previews whose PR is no longer open
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          removed=()
+          unknown=0
+          for dir in .deploy/pr-preview/pr-*/; do
+            n=$(basename "$dir"); n=${n#pr-}
+            case "$n" in ''|*[!0-9]*) echo "skipping unexpected dir: $dir"; continue ;; esac
+            # Delete ONLY on a definitive CLOSED/MERGED. `gh pr view` fails the
+            # same way for "no such PR" as for a rate limit, a network blip or a
+            # bad token, so treating every failure as sweepable would delete a
+            # live preview whenever the API hiccups. Anything we cannot confirm
+            # is kept; the next tick retries.
+            state=$(gh pr view "$n" --repo "$GITHUB_REPOSITORY" --json state -q .state 2>/dev/null) || state=UNKNOWN
+            case "$state" in
+              CLOSED|MERGED)
+                echo "sweep  pr-$n ($state)"
+                rm -rf "$dir"
+                removed+=("#$n")
+                ;;
+              OPEN)
+                echo "keep   pr-$n (OPEN)"
+                ;;
+              *)
+                echo "::warning::pr-$n: could not determine PR state (got '${state:-empty}') — keeping the preview"
+                unknown=$((unknown + 1))
+                ;;
+            esac
+          done
+          if [ "$unknown" -gt 0 ]; then
+            echo "::warning::$unknown preview(s) skipped — PR state unresolved this run"
+          fi
+          if [ ${#removed[@]} -eq 0 ]; then
+            echo "nothing to sweep"
+            exit 0
+          fi
+          # publish-gh-pages.sh treats .deploy/ as the WHOLE branch, so the root
+          # site and the surviving previews republish untouched alongside this.
+          .github/publish-gh-pages.sh "Sweep previews for closed PRs: ${removed[*]}"

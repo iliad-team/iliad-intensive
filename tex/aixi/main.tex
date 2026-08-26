@@ -1,5 +1,4 @@
 %--- iliad ---
-% cluster: D
 % summary: Exploring the Bayesian optimal policy for history based reinforcement learning.
 %--- end ---
 \documentclass[fontsize=11pt, parskip=half]{scrartcl}
@@ -14,7 +13,7 @@
 \usetikzlibrary{positioning, arrows.meta}
 \usepackage[dvipsnames]{xcolor}
 \usepackage{cancel}
-\usepackage{stmaryrd}
+% \llbracket/\rrbracket (Iverson brackets) come from iliad.sty — stmaryrd not needed.
 
 
 % iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty
@@ -75,7 +74,7 @@ The book provides fuller explanations, additional context, and proofs omitted he
 \noindent
 \textbf{Difficulty ratings.} Each subproblem is tagged with a rating in square brackets using Knuth's scale \cite{Knuth:73a}: roughly, \textbf{[00]}~trivial, \textbf{[10]}~15--minute pencil-and-paper, \textbf{[20]}~1--2~hours, \textbf{[30]}~several hours to a day, \textbf{[40]}~a significant research result. Intermediate values are possible. See \cref{sec:appendix_difficulty} for the full scale. 
 
-Problems marked \textbf{($\ast$)} are less interesting/insightful and while the result may be used later, I would recommend skipping them on a first pass.
+Problems marked \textbf{($\ast$)} are less interesting/insightful, and while the result may be used later, I would recommend skipping them on a first pass.
 
 %===================================
 
@@ -100,25 +99,6 @@ prior $w_\nu = 2^{-K(\nu)}$ --- the assumption ``$\mu \in \cM$'' again becomes
     expectations).
     \item Familiarity with sequential decision-making / reinforcement learning
     (agents, rewards, discounting, value functions) is useful but not assumed.
-\end{itemize}
-
-\section*{Further reading}
-
-\begin{itemize}
-    \item Hutter, \href{https://www.hutter1.net/publ/uaibook2.pdf}{\emph{An
-    Introduction to Universal Artificial Intelligence}} (2024): Chapter~2.7
-    (Kolmogorov complexity), Chapters~3.7--3.8 (the model class and universal
-    prior), and Chapter~7.4 (AIXI).
-    \item Hutter, \href{http://www.hutter1.net/ai/uaibook.htm}{\emph{Universal
-    Artificial Intelligence: Sequential Decisions Based on Algorithmic
-    Probability}} (Springer, 2005) --- the original book-length treatment;
-    Lem.~5.28 handles the countable-$\cM$ self-optimizing case.
-    \item Blackwell \& Dubins, \href{https://doi.org/10.1214/aoms/1177704456}{\emph{Merging
-    of Opinions with Increasing Information}} (Ann.\ Math.\ Statist., 1962) --- the
-    merging-of-opinions theorem behind on-policy value convergence.
-    \item Leike \& Hutter, \href{https://arxiv.org/abs/1510.04931}{\emph{Bad
-    Universal Priors and Notions of Optimality}} (COLT 2015) --- adversarial
-    choices of the universal Turing machine can make AIXI behave arbitrarily badly.
 \end{itemize}
 
 \section*{Goal and Roadmap}
@@ -329,12 +309,12 @@ i.e.\ on $\pi$-consistent futures the interaction measure reduces to the environ
 Since $\pi$ is deterministic, $\pi(a_k \mid \aes_{<k}) = \llbracket a_k = a^*_k \rrbracket$.
 By hypothesis $\aes_{i:j}$ is $\pi$-consistent, so every such bracket equals $1$.
 From \cref{def:interaction}:
-\[
+\begin{align*}
     \nu^\pi(\aes_{i:j} \mid \aes_{<i})
-    ~=~ \prod_{k=i}^j \underbrace{\pi(a_k \mid \aes_{<k})}_{=\, 1}\, \nu(e_k \mid \aes_{<k} a_k)
-    ~=~ \prod_{k=i}^j \nu(e_k \mid \aes_{<k}\, a_k)
+    ~&=~ \prod_{k=i}^j \underbrace{\pi(a_k \mid \aes_{<k})}_{=\, 1}\, \nu(e_k \mid \aes_{<k} a_k) \\
+    ~&=~ \prod_{k=i}^j \nu(e_k \mid \aes_{<k}\, a_k)
     ~=~ \nu(\aes_{i:j} \mid \aes_{<i}),
-\]
+\end{align*}
 where the last equality is the natural segment extension of $\nu(\aes_{1:t}) := \prod_{k=1}^t \nu(e_k \mid \aes_{<k} a_k)$.
 \end{solution}
 
@@ -352,9 +332,9 @@ Show that for any $p \leq q \leq r$:
 \begin{solution}[prob:chain_rule_nupi]
 Split the defining product $\nu^\pi(\aes_{p:r} \mid \aes_{<p}) = \prod_{k=p}^r \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)$ at index $q$:
 \begin{align*}
-    \nu^\pi(\aes_{p:r} \mid \aes_{<p})
-    ~&=~ \prod_{k=p}^r \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)\\
-    ~&=~ \underbrace{\prod_{k=p}^{q} \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)}_{\nu^\pi(\aes_{p:q} \mid \aes_{<p})}
+    &\nu^\pi(\aes_{p:r} \mid \aes_{<p})
+    ~=~ \prod_{k=p}^r \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)\\
+    &=~ \underbrace{\prod_{k=p}^{q} \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)}_{\nu^\pi(\aes_{p:q} \mid \aes_{<p})}
     \;\cdot\; \underbrace{\prod_{k=q+1}^{r} \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)}_{\nu^\pi(\aes_{q+1:r} \mid \aes_{<p}\, \aes_{p:q})},
 \end{align*}
 identifying each block as a conditional via the same expansion: the past for step $k \geq q+1$ is the given history $\aes_{<p}$ extended by the first chunk $\aes_{p:q}$.
@@ -385,7 +365,7 @@ where the \textbf{posterior weight} is
     ~:=~ w_\nu \,\frac{\nu(\aes_{<t})}{\xi(\aes_{<t})},
     \qquad w(\nu \mid \epsilon) := w_\nu.
 \]
-See \hyperref[sec:appendix_mixture]{Appendix~A} for a worked example.
+See \cref{sec:appendix_mixture} for a worked example.
 \end{definition}
 
 \begin{definition}[Expectation $\Ex_\nu^\pi$]\label{def:expectation}
@@ -395,7 +375,7 @@ For a function $f : \cH \to \mathbb{R}$ of a finite future segment $\aes'_{t:m}$
     ~:=~ \underset{\aes_{t:m} \sim \nu^\pi(\cdot \mid \aes_{<t})}{\Ex} [f]
     ~=~ \sum_{\aes'_{t:m}} \nu^\pi(\aes'_{t:m} \mid \aes_{<t})\, f(\aes'_{t:m}).
 \]
-For functions $f$ of the infinite future (like the value function), with a sequence $f_1, f_2, \ldots \to f$, where $f_m$ depends only on $\aes'_{t:m}$, we define $\Ex_\nu^\pi[f \mid \aes_{<t}] := \lim_{m \to \infty} \Ex_\nu^\pi[f_m \mid \aes_{<t}]$, 
+For functions $f$ of the infinite future (like the value function), with a sequence $f_1, f_2, \ldots \to f$, where $f_m$ depends only on $\aes'_{t:m}$, we define $\Ex_\nu^\pi[f \mid \aes_{<t}] := \lim_{m \to \infty} \Ex_\nu^\pi[f_m \mid \aes_{<t}]$.
 \end{definition}
 
 \begin{definition}[Discounted return $G_{t:m}$]\label{def:return}
@@ -415,7 +395,7 @@ The \textbf{infinite-horizon return} is the pointwise limit
 with the clean recursion $G_{\geq t} = r_{t+1} + \gamma\, G_{\geq t+1}$ and no boundary cases.
 \end{definition}
 
-\begin{definition}[Value function\footnote{See \hyperref[sec:appendix_value]{Appendix~B} for a worked example. For simplicity, we
+\begin{definition}[Value function\footnote{See \cref{sec:appendix_mixture} for a worked example. For simplicity, we
     consider only geometric discounting.}]\label{def:value}
 The \textbf{value} of policy $\pi$ in environment $\nu$ with horizon $m \geq t$ given history $\aes_{<t}$ is
 \begin{align*}
@@ -435,8 +415,7 @@ An \textbf{optimal policy} $\pi_\nu^*$ satisfies $V_\nu^{\pi_\nu^*} = V_\nu^*$.
 The \textbf{Bayes-optimal policy} is $\pi_\xi^* \in \argmax_\pi V_\xi^\pi$.
 \end{definition}
 
-\begin{callout}[note]
-\textbf{AIXI.}
+\begin{remark}[AIXI]
 All results in this sheet hold for any countable $\cM$ and prior weights $w_\nu$.
 \textbf{AIXI} is a special case of the Bayes-optimal policy $\pi_\xi^*$ for the particular choice $\cM :=$ the class of all lower-semicomputable chronological semimeasures, and prior $w_\nu := 2^{-K(\nu)}$, where $K(\nu)$ is the Kolmogorov complexity of $\nu$: the length of the shortest program that computes $\nu$.
 The resulting agent is written $\pi^*_{\xi_U}$, or simply AI$\xi$.
@@ -445,14 +424,14 @@ The resulting agent is written $\pi^*_{\xi_U}$, or simply AI$\xi$.
 By including every computable environment, the assumption $\mu \in \cM$ reduces to ``the universe is computable'': as weak an assumption as one can make.
 
 \textbf{Why this prior?}
-The prior $2^{-K(\nu)}$ is \emph{dominant}: for any other computable prior $w'_\nu$, there exists a constant $c > 0$ such that $2^{-K(\nu)} \geq c \cdot w'_\nu$ for all $\nu$. S
+The prior $2^{-K(\nu)}$ is \emph{dominant}: for any other computable prior $w'_\nu$, there exists a constant $c > 0$ such that $2^{-K(\nu)} \geq c \cdot w'_\nu$ for all $\nu$.
 %So AIXI cannot be ``outbelieved'' by any computable agent.
 
 \textbf{Caveat:}
 The constant $c$ depends on the choice of universal Turing machine $U$, and adversarial choices of $U$ can make AIXI behave arbitrarily badly~\cite{Leike:15badpriors}.
 
 See \cite{Hutter:24uaibook2}: Chapter~2.7 for Kolmogorov complexity, Chapters~3.7--3.8 for the model class and universal prior, and Chapter~7.4 for AIXI itself.
-\end{callout}
+\end{remark}
 
 
 %===================================
@@ -558,11 +537,11 @@ Apply the general chain rule (\cref{prob:chain_rule_nupi}) to $\xi(\aes_{1:m}) =
 Start from the definition $\xi(\aes_{1:m}) = \sum_{\nu \in \cM} w_\nu\, \nu(\aes_{1:m})$.
 Apply the general chain rule (\cref{prob:chain_rule_nupi}) to both sides: $\xi(\aes_{1:m}) = \xi(\aes_{<t}) \cdot \xi(\aes_{t:m} \mid \aes_{<t})$ and $\nu(\aes_{1:m}) = \nu(\aes_{<t}) \cdot \nu(\aes_{t:m} \mid \aes_{<t})$.
 Dividing by $\xi(\aes_{<t})$:
-\[
+\begin{align*}
     \xi(\aes_{t:m} \mid \aes_{<t})
-    ~=~ \sum_{\nu \in \cM} \frac{w_\nu\, \nu(\aes_{<t})}{\xi(\aes_{<t})} \nu(\aes_{t:m} \mid \aes_{<t})
-    ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \nu(\aes_{t:m} \mid \aes_{<t}).
-\]
+    ~&=~ \sum_{\nu \in \cM} \frac{w_\nu\, \nu(\aes_{<t})}{\xi(\aes_{<t})} \nu(\aes_{t:m} \mid \aes_{<t}) \\
+    ~&=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \nu(\aes_{t:m} \mid \aes_{<t}).
+\end{align*}
 Now multiply both sides by $\pi(\aes_{t:m} \mid \aes_{<t})$.
 By factorization (\cref{prob:factorization}), $\pi(\aes_{t:m} \mid \aes_{<t}) \cdot \xi(\aes_{t:m} \mid \aes_{<t}) = \xi^\pi(\aes_{t:m} \mid \aes_{<t})$ and likewise for each $\nu$:
 \[
@@ -629,8 +608,9 @@ This is just the return recursion (\cref{def:return}): $G_{t-1:m} = r'_t + \gamm
 \emph{Step 3: Substitute into the definition of $V_\nu^{\pi,m}(\aes_{<t})$.}
 \begin{align*}
     V_\nu^{\pi,m}(\aes_{<t})
-    ~&=~ (1-\gamma) \sum_{\aes'_t} \nu^\pi(\aes'_t \mid \aes_{<t}) 
- \sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t) \left[ r'_t + \gamma G_{t:m} \right].
+    ~&=~ (1-\gamma) \sum_{\aes'_t} \nu^\pi(\aes'_t \mid \aes_{<t})
+ \sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t) \\
+    &\qquad \times \left[ r'_t + \gamma G_{t:m} \right].
 \end{align*}
 
 Consider the inner term $\sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t) 
@@ -648,7 +628,8 @@ as $r'_t$ doesn't depend on $\aes'_{t+1:m}$, and $\sum_{\aes'_{t+1:m}} \nu^\pi(\
 Inserting this above, we obtain:
 \begin{align*}
     V_\nu^{\pi,m}(\aes_{<t})
-    &= \sum_{\aes'_t} \nu^\pi(\aes'_t \mid \aes_{<t}) \bigg[ (1-\gamma)\, r'_t + 
+    &= \sum_{\aes'_t} \nu^\pi(\aes'_t \mid \aes_{<t}) \bigg[ (1-\gamma)\, r'_t \\
+    &\qquad +
     \gamma\, \underbrace{(1-\gamma) \sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t)G_{t:m}}_{=\; V_\nu^{\pi,m}(\aes_{<t}\, \aes'_t)} \bigg].
 \end{align*}
 \end{solution}
@@ -700,10 +681,11 @@ Substituting $\pi = \pi^*_\nu$ into the Bellman equation from \cref{prob:bellman
     ~=~ \sum_{\aes'_t} \nu^{\pi^*_\nu}(\aes'_t \mid \aes_{<t}) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{*,m}(\aes_{<t}\, \aes'_t)\Big].
 \]
 Splitting the step $\aes'_t = a'_t e'_t$ via $\nu^{\pi^*_\nu}(\aes'_t \mid \aes_{<t}) = \pi^*_\nu(a'_t \mid \aes_{<t})\, \nu(e'_t \mid \aes_{<t} a'_t)$:
-\[
+\begin{align*}
     V_\nu^{*,m}(\aes_{<t})
-    ~=~ \sum_{a'_t} \pi^*_\nu(a'_t \mid \aes_{<t}) \sum_{e'_t} \nu(e'_t \mid \aes_{<t} a'_t) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{*,m}(\aes_{<t}\, a'_t\, e'_t)\Big].
-\]
+    ~&=~ \sum_{a'_t} \pi^*_\nu(a'_t \mid \aes_{<t}) \\
+    &\qquad \times \sum_{e'_t} \nu(e'_t \mid \aes_{<t} a'_t) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{*,m}(\aes_{<t}\, a'_t\, e'_t)\Big].
+\end{align*}
 Since $\pi^*_\nu$ is deterministic, let $a^*_t$ denote the unique action with $\pi^*_\nu(a^*_t \mid \aes_{<t}) = 1$. Then:
 \[
     V_\nu^{*,m}(\aes_{<t})
@@ -812,10 +794,11 @@ The Bellman equation (\cref{prob:bellman_finite}) holds for any policy, so for $
     V_\nu^{\pi_\nu^*,m}(\aes_{<t}) ~=~ \sum_{e'_t} \nu(e'_t \mid \aes_{<t}\, a^*_t) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{\pi_\nu^*,m}(\aes_{<t}\, a^*_t\, e'_t)\Big].
 \]
 Subtracting this from the equation in Step~1, the $(1-\gamma)\, r'_t$ terms cancel:
-\[
+\begin{align*}
     V_\nu^*(\aes_{<t}) - V_\nu^{\pi_\nu^*,m}(\aes_{<t})
-    ~=~ \gamma \sum_{e'_t} \nu(e'_t \mid \aes_{<t}\, a^*_t) \Big[V_\nu^*(\aes_{<t}\, a^*_t\, e'_t) - V_\nu^{\pi_\nu^*,m}(\aes_{<t}\, a^*_t\, e'_t)\Big].
-\]
+    ~&=~ \gamma \sum_{e'_t} \nu(e'_t \mid \aes_{<t}\, a^*_t) \\
+    &\qquad \times \Big[V_\nu^*(\aes_{<t}\, a^*_t\, e'_t) - V_\nu^{\pi_\nu^*,m}(\aes_{<t}\, a^*_t\, e'_t)\Big].
+\end{align*}
 The error at time $t$ is $\gamma$ times a weighted average of errors at time $t+1$.
 
 \emph{Step 3: Iterate the contraction.}
@@ -1020,21 +1003,17 @@ We now unroll this definition into the explicit \textbf{expectimax} expression: 
 \label{prob:expectimax_derivation}
 \difficulty{20}
 By iterating the finite-horizon Bellman optimality equation (\cref{prob:bellman_opt}), show that
-\[
-\resizebox{\textwidth}{!}{$\displaystyle
+\begin{align*}
     V_\xi^{*,m}(\aes_{<t})
-    ~=~ (1-\gamma) \max_{a_t} \sum_{e_t} \xi(e_t \mid \aes_{<t} a_t)\, \max_{a_{t+1}} \sum_{e_{t+1}} \xi(e_{t+1} \mid \aes_{<t+1} a_{t+1}) \cdots
-    \max_{a_m} \sum_{e_m} \xi(e_m \mid \aes_{<m} a_m) \,G_{t-1:m}
-$}
-\]
+    ~=~ (1-\gamma) \max_{a_t} \sum_{e_t} \xi(e_t \mid \aes_{<t} a_t)\, &\max_{a_{t+1}} \sum_{e_{t+1}} \xi(e_{t+1} \mid \aes_{<t+1} a_{t+1}) \cdots \\
+    \cdots &\max_{a_m} \sum_{e_m} \xi(e_m \mid \aes_{<m} a_m) \,G_{t-1:m}
+\end{align*}
 and hence, collecting the percept factors with the chain rule (\cref{prob:chain_rule}) and taking $m \to \infty$ (\cref{prob:inf_horizon,prob:inf_opt_policy}), that AIXI selects the action
-\[
-\resizebox{\textwidth}{!}{$\displaystyle
-    a_t ~=~ \pi_\xi^*(\aes_{<t})
-    ~\in~ \argmax_{a_t} \lim_{m\to\infty} \sum_{e_t} \max_{a_{t+1}} \sum_{e_{t+1}} \cdots \max_{a_m} \sum_{e_m}
-    \xi(e_{t:m} \mid \aes_{<t}\, a_{t:m}) \,G_{t-1:m} 
-$}
-\]
+\begin{align*}
+    a_t &~=~ \pi_\xi^*(\aes_{<t}) \\
+    &~\in~ \argmax_{a_t} \lim_{m\to\infty} \sum_{e_t} \max_{a_{t+1}} \sum_{e_{t+1}} \cdots \max_{a_m} \sum_{e_m}
+    \xi(e_{t:m} \mid \aes_{<t}\, a_{t:m}) \,G_{t-1:m}
+\end{align*}
 
 
 \begin{hint}
@@ -1198,8 +1177,7 @@ Further useful notions:
 \end{itemize}
 \end{definition}
 
-\begin{callout}[tip]
-\textbf{Example: Example: a fair coin shows 1 infinitely often.}
+\begin{example}[A fair coin shows 1 infinitely often]
 Let $\cA = \cO = \{0,1\}$, $\cR = \{0\}$, and let $\nu$ be a fair coin that ignores the action: $\nu(o_t = 1 \mid \aes_{<t}\, a_t) = \tfrac{1}{2}$ for all $\aes_{<t}, a_t$.
 Consider the event $F := \text{``}o_t = 1\text{ for infinitely many } t\text{''}$.
 
@@ -1227,7 +1205,7 @@ By countable additivity: $\nu^\pi(F^c) \leq \sum_{N=1}^\infty \nu^\pi(C_N) = 0$,
 A fair coin shows 1 infinitely often, almost surely.
 
 As such, $F^c$ (the set of all infinite histories containing only finitely many 1s) is a $\nu^\pi$-measure-zero set. Such histories ``exist'' as infinite sequences, but occur with probability zero.
-\end{callout}
+\end{example}
 
 \begin{definition}[Covering\protect\footnotemark]\label{def:covering}
 We say $Q$ \textbf{covers} $P$ if $Q$ is positive everywhere $P$ is:
@@ -1247,8 +1225,7 @@ $\{f_t \not\to 0\} = \bigcup_{n=1}^\infty \bigcap_{N=1}^\infty \bigcup_{t=N}^\in
 so its probability is well-defined (\cref{def:events}).
 \end{definition}
 
-\begin{callout}[tip]
-\textbf{Example: Unpacking ``$f_t \not\to 0$''.}
+\begin{example}[Unpacking ``$f_t \not\to 0$'']
 The set $\{f_t \not\to 0\}$ looks intimidating, but it reads naturally from the inside out:
 \begin{itemize}\itemsep=4pt
     \item $\big\{|f_t(\aes_{<t})| > \tfrac{1}{n}\big\}$ is a finite-length event: ``at time $t$, the function is at least $\tfrac{1}{n}$ away from zero.''
@@ -1262,7 +1239,7 @@ The set $\{f_t \not\to 0\}$ looks intimidating, but it reads naturally from the 
 This last condition is exactly $\{f_t \not\to 0\}$: convergence $f_t \to 0$ means that for \emph{every} $\varepsilon > 0$, $|f_t| \leq \varepsilon$ for all sufficiently large $t$. Its negation is that \emph{some} $\varepsilon > 0$ is exceeded infinitely often.
 
 Each layer is a countable union or intersection of the previous, so the whole set is a well-defined event on infinite histories.
-\end{callout}
+\end{example}
 
 
 The Bayesian agent uses the mixture $\xi$ because the true environment $\mu$ is unknown.
@@ -1520,11 +1497,11 @@ Write $X_{\nu,t}(\aes_{1:t}) = X_{\nu,t-1}(\aes_{<t}) \cdot \nu(e_t \mid \aes_{<
 
 \begin{solution}[prob:martingale]
 We need to compute $\Ex_{\mu^\pi}[X_{\nu,t} \mid \aes_{<t}]$. Conditioning on $\aes_{<t}$ means $a_t$ and $e_t$ are the random quantities (sampled from $\pi$ and $\mu$ respectively). First, write $X_{\nu,t}$ pointwise as a function of history in terms of $X_{\nu,t-1}$:
-\[
-    X_{\nu,t}(\aes_{1:t}) ~=~ \frac{\nu(\aes_{1:t})}{\mu(\aes_{1:t})}
-    ~=~ \frac{\nu(\aes_{<t})}{\mu(\aes_{<t})} \cdot \frac{\nu(e_t \mid \aes_{<t} a_t)}{\mu(e_t \mid \aes_{<t} a_t)}
-    ~=~ X_{\nu,t-1}(\aes_{<t}) \cdot \frac{\nu(e_t \mid \aes_{<t} a_t)}{\mu(e_t \mid \aes_{<t} a_t)},
-\]
+\begin{align*}
+    X_{\nu,t}(\aes_{1:t}) ~&=~ \frac{\nu(\aes_{1:t})}{\mu(\aes_{1:t})}
+    ~=~ \frac{\nu(\aes_{<t})}{\mu(\aes_{<t})} \cdot \frac{\nu(e_t \mid \aes_{<t} a_t)}{\mu(e_t \mid \aes_{<t} a_t)} \\
+    ~&=~ X_{\nu,t-1}(\aes_{<t}) \cdot \frac{\nu(e_t \mid \aes_{<t} a_t)}{\mu(e_t \mid \aes_{<t} a_t)},
+\end{align*}
 using the chain rule (\cref{prob:chain_rule}) for both $\nu$ and $\mu$. Now take the conditional expectation. Since $X_{\nu,t-1}$ depends only on $\aes_{<t}$, it comes out of the expectation:
 \begin{align*}
     \Ex_{\mu^\pi}[X_{\nu,t} \mid \aes_{<t}]
@@ -1592,12 +1569,12 @@ Use \cref{prob:factorization} to show $\nu^\pi/\mu^\pi = \nu/\mu = X_{\nu,m}$.
 \begin{solution}[prob:cm_finite]
 By \cref{prob:factorization}, $\nu^\pi(\aes'_{1:m}) = \pi(\aes'_{1:m}) \cdot \nu(\aes'_{1:m})$ and $\mu^\pi(\aes'_{1:m}) = \pi(\aes'_{1:m}) \cdot \mu(\aes'_{1:m})$.
 For any history $\aes'_{1:m}$ with $\mu^\pi(\aes'_{1:m}) > 0$, the policy factors cancel:
-\[
+\begin{align*}
     \nu^\pi(\aes'_{1:m})
-    ~=~ \frac{\nu^\pi(\aes'_{1:m})}{\mu^\pi(\aes'_{1:m})} \cdot \mu^\pi(\aes'_{1:m})
-    ~=~ \frac{\nu(\aes'_{1:m})}{\mu(\aes'_{1:m})} \cdot \mu^\pi(\aes'_{1:m})
-    ~=~ X_{\nu,m}(\aes'_{1:m}) \cdot \mu^\pi(\aes'_{1:m}).
-\]
+    ~&=~ \frac{\nu^\pi(\aes'_{1:m})}{\mu^\pi(\aes'_{1:m})} \cdot \mu^\pi(\aes'_{1:m})
+    ~=~ \frac{\nu(\aes'_{1:m})}{\mu(\aes'_{1:m})} \cdot \mu^\pi(\aes'_{1:m}) \\
+    ~&=~ X_{\nu,m}(\aes'_{1:m}) \cdot \mu^\pi(\aes'_{1:m}).
+\end{align*}
 For histories with $\mu^\pi(\aes'_{1:m}) = 0$: since $\mu^\pi = \pi \cdot \mu$, some $\pi(a_k \mid \aes'_{<k}) = 0$, which forces $\nu^\pi(\aes'_{1:m}) = 0$ too (the same $\pi$-factor appears in $\nu^\pi = \pi \cdot \nu$). So both sides are zero.
 
 Summing over $\aes'_{1:m} \in A$:
@@ -1694,12 +1671,12 @@ Since the posterior weights $w(\nu \mid \aes_{<t}) \geq 0$, every term in $\sum_
 \emph{Second inequality: replace $\pi_\xi^*$ with $\tilde\pi$.}
 By definition of the optimal value, $V_\xi^*(\aes_{<t}) \geq V_\xi^{\tilde\pi}(\aes_{<t})$.
 Expanding both sides using infinite-horizon linearity (\cref{prob:linearity_inf}, applied to the fixed policies $\pi_\xi^*$ and $\tilde\pi$):
-\[
+\begin{align*}
     \sum_\nu w(\nu \mid \aes_{<t})\, V_\nu^{\pi_\xi^*}(\aes_{<t})
-    ~=~ V_\xi^*(\aes_{<t})
-    ~\geq~ V_\xi^{\tilde\pi}(\aes_{<t})
-    ~=~ \sum_\nu w(\nu \mid \aes_{<t})\, V_\nu^{\tilde\pi}(\aes_{<t}).
-\]
+    ~&=~ V_\xi^*(\aes_{<t})
+    ~\geq~ V_\xi^{\tilde\pi}(\aes_{<t}) \\
+    ~&=~ \sum_\nu w(\nu \mid \aes_{<t})\, V_\nu^{\tilde\pi}(\aes_{<t}).
+\end{align*}
 Rearranging: $\sum_\nu w(\nu)[V_\nu^* - V_\nu^{\pi_\xi^*}] \leq \sum_\nu w(\nu)[V_\nu^* - V_\nu^{\tilde\pi}] = \sum_\nu w(\nu)\, \delta_{\nu,t}$.
 
 \emph{Chaining:}
@@ -1832,12 +1809,38 @@ This completes the proof of \cref{thm:selfopt}. \qedhere
 For countable $\cM$, this final step is harder: a countable sum of $\mu^\pi$-a.s.-convergent sequences need not converge $\mu^\pi$-a.s.\ The general proof uses a ``convergence of mixture tails'' argument \cite[Lem.~5.28]{Hutter:04uaibook}.
 
 %===================================
+\section*{Further reading}
+
+\begin{itemize}
+    \item Hutter, \href{https://www.hutter1.net/publ/uaibook2.pdf}{\emph{An
+    Introduction to Universal Artificial Intelligence}} (2024): Chapter~2.7
+    (Kolmogorov complexity), Chapters~3.7--3.8 (the model class and universal
+    prior), and Chapter~7.4 (AIXI).
+    \item Hutter, \href{http://www.hutter1.net/ai/uaibook.htm}{\emph{Universal
+    Artificial Intelligence: Sequential Decisions Based on Algorithmic
+    Probability}} (Springer, 2005) --- the original book-length treatment;
+    Lem.~5.28 handles the countable-$\cM$ self-optimizing case.
+    \item Blackwell \& Dubins, \href{https://doi.org/10.1214/aoms/1177704456}{\emph{Merging
+    of Opinions with Increasing Information}} (Ann.\ Math.\ Statist., 1962) --- the
+    merging-of-opinions theorem behind on-policy value convergence.
+    \item Leike \& Hutter, \href{https://arxiv.org/abs/1510.04931}{\emph{Bad
+    Universal Priors and Notions of Optimality}} (COLT 2015) --- adversarial
+    choices of the universal Turing machine can make AIXI behave arbitrarily badly.
+\end{itemize}
+
+%===================================
 \clearpage
 \appendix
 \renewcommand{\thesection}{\Alph{section}}
-\crefname{section}{Appendix}{Appendices}
+% \crefalias, not \crefname: cleveref picks the NAME at reference time but the
+% TYPE at label time, so renaming the section counter here would leave a \cref
+% from the main body still saying "Section A". Aliasing makes every label from
+% here on record type "appendix", and refs to them print "Appendix A" from
+% anywhere in the sheet.
+\crefalias{section}{appendix}
+\crefname{appendix}{Appendix}{Appendices}
 
-\section{Worked Example: Bayesian Mixture}\label{sec:appendix_mixture}
+\section{Worked Example: Bayesian Mixture and Value Function}\label{sec:appendix_mixture}
 
 \begin{callout}[note]
 \textbf{Setup.}
@@ -1864,10 +1867,8 @@ For countable $\cM$, this final step is harder: a countable sum of $\mu^\pi$-a.s
 \textbf{Updated prediction:}
 $\xi(o_2 = H \mid \aes_{1} a_2) = \tfrac{2}{3} \cdot 1 + \tfrac{1}{3} \cdot \tfrac{1}{2} = \tfrac{5}{6}$.
 
-
-\section{Worked Example: Value Function}\label{sec:appendix_value}
-
-Continuing from \hyperref[sec:appendix_mixture]{Appendix~A}. Suppose the agent always predicts $H$ (policy $\pi_H$).
+\medskip
+\textbf{Value function.} Continuing the same setup, suppose the agent always predicts $H$ (policy $\pi_H$).
 
 Under $\nu_{HH}$: always correct, $r_t = 1$ every step:
 $V_{\nu_{HH}}^{\pi_H}(\epsilon) = (1-\gamma) \sum_{k=0}^\infty \gamma^k \cdot 1 = 1$.

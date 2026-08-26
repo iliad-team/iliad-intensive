@@ -19,10 +19,22 @@ export const MACRO_OVERRIDE = {
   "\\exmax": "\\mathop{\\overset{\\max}{\\sum}}\\limits",   // defined via \mathchoice — TeX primitive KaTeX lacks
 };
 
-// Author macros never exported to KaTeX (layout/scaffolding).
+// Author macros never exported to KaTeX (layout/scaffolding). These are
+// LaTeX structural / page-layout commands a worksheet may (re)define for the
+// PDF; they are never math and would otherwise pollute the KaTeX \gdef block.
 export const MACRO_SKIP = new Set([
   "\\mytitle", "\\mysubsection", "\\exmaxsym", "\\thesection",
   "\\crefrangeconjunction", "\\thesubsection",
+  "\\section", "\\subsection", "\\subsubsection", "\\paragraph",
+  "\\headrulewidth", "\\footrulewidth", "\\solutionlistskip",
+  // KaTeX has \llbracket/\rrbracket natively and renders them properly.
+  // iliad.sty builds them from kernel pieces ([\![ … ]\!]) only because
+  // stmaryrd costs ~79 MB of CI download for those two glyphs — a PDF-side
+  // workaround the web has no reason to inherit. The converter never sees the
+  // package's own definitions, so these entries only catch a sheet that still
+  // defines them locally; skipping the export leaves KaTeX's real glyphs in
+  // force, where exporting would also \gdef them recursively.
+  "\\llbracket", "\\rrbracket",
 ]);
 
 // Package commands with no KaTeX implementation but an exact synonym.
@@ -30,6 +42,14 @@ export const MACRO_SKIP = new Set([
 export const KATEX_SHIMS = [
   [/\\mathds\b/g, "\\mathbb"],      // dsfont
   [/\\bm\b/g, "\\boldsymbol"],      // bm
+  // \ensuremath{X} is "X, in math mode either way" — the standard way to write a
+  // macro that works in a sentence and in an equation alike (amsthm's \qed is
+  // \ensuremath{\square}). Inside math it is already redundant, so drop the
+  // command and keep its braces: {X} is the same group to KaTeX. It matters here
+  // rather than only in MATH_TRANSFORMS because a \gdef body reaches KaTeX
+  // through this table, and that is where such a macro is defined.
+  // Prose usage is a real inline-math span — see emit-ast.mjs.
+  [/\\ensuremath\s*(?=\{)/g, ""],
 ];
 export const applyShims = (s) =>
   KATEX_SHIMS.reduce((acc, [re, to]) => acc.replace(re, to), s);
@@ -105,12 +125,20 @@ export const CONTRACT_NAMES = new Set([
   "authorname", "affiliation",
   "definition", "theorem", "lemma", "proposition", "corollary", "fact", "example",
   "label", "cref", "Cref", "hint", "note", "important", "solutionbox", "exercisebox", "ifsolutions",
+  "solutionsonly", "pdfonly", "teachingnote", "youtube",
 ]);
 
+// Frontmatter describes the WORKSHEET. Where it sits in the course — its
+// cluster and its teaching day — belongs to schedule.yaml, which lists the slug
+// under its day; the build stamps `cluster:`/`day:` into the generated MDX from
+// there. So neither is a key here, and writing one draws the unknown-key
+// warning (which fails the build) rather than quietly contradicting the
+// schedule.
 export const KNOWN_FRONT_KEYS = new Set([
-  "title", "cluster", "summary", "contributors", "slug",
+  "title", "summary", "contributors", "slug",
   // unlisted: true — page is built and reachable by URL but excluded from
-  // content/index.json (homepage/sidebar). Used by the template worksheet.
+  // content/index.json (homepage/sidebar), and excused from the schedule.
+  // Used by the template worksheet.
   "unlisted",
   // slides: <url> — a link to an externally hosted slide deck (e.g. a Drive
   // PDF). Rendered as an outbound "Slides ↗" link; nothing is served or

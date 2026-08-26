@@ -1,0 +1,1 @@
+Figure 2: Intervening on OthelloGPT's internal board representation by adding probe directions to the residual stream (Nanda et al., 2023).

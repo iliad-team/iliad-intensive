@@ -21,7 +21,7 @@ Let $p$ be a distribution on a finite set $\mathcal{X}$.
 
 - Numbered per section ("Exercise 2.1"); the optional argument is the title.
 - Label the exercise if a solution or `\cref` points at it; unlabeled
-  exercises are allowed but draw a CI advisory (no stable web anchor).
+  exercises are allowed but draw a CI warning (no stable web anchor).
 - Subparts are a plain `enumerate`; label an `\item` to reference it
   ("Exercise 1.2(a)").
 - MDX: `<Exercise id="ex-warmup">**Exercise 1.1.** …</Exercise>`
@@ -43,6 +43,58 @@ For \cref{ex:warmup-a}: each term is non-negative. \hint{when is $-t\log t = 0$?
   `\solutionsfalse`; stripped entirely from the `-nosol` downloads.
 - MDX: `<Solution>…</Solution>`
 
+## Solutions-only content
+
+```latex
+\begin{solutionsonly}
+\textbf{Instructor note.} Discuss \cref{ex:gibbs-hard} on the board first.
+\end{solutionsonly}
+```
+
+- Content that appears **only** in the with-solutions build — an answer key, an
+  instructor aside, a spoiler. Unlike `solution` it has no box, heading, or
+  exercise binding, and it is never relocated: it renders as plain content
+  exactly where you write it.
+- Removed entirely from every `-nosol` download (PDF, `.tex`, `.mdx`), the same
+  way solutions are, so those stay spoiler-free. Also hidden from your own PDF
+  by `\solutionsfalse` / loading iliad with `[nosolutions]`.
+- Prefer this to a bare `\ifsolutions…\fi`: the conditional works in the PDF but
+  is **not** honoured on the web (the converter can't evaluate TeX conditionals),
+  whereas `solutionsonly` works in both.
+
+## PDF-only content
+
+```latex
+\begin{pdfonly}
+\begin{solutionsonly}
+\clearpage
+\appendix
+\section{Solutions}
+\label{apx:solutions}
+\end{solutionsonly}
+\end{pdfonly}
+```
+
+- Content kept in **both** PDF variants but dropped from the web page and the
+  `.mdx` downloads without a trace — nothing inside lands in the page, the
+  sidebar, or the anchors.
+- The motivating case is a collected back-of-sheet solutions section: on the
+  web its solutions relocate under their exercises, so its `\appendix` /
+  `\section{Solutions}` header would be left pointing at nothing. Nest
+  `solutionsonly` inside `pdfonly` (as above) and the header appears **only**
+  in the with-solutions PDF.
+- The "don't `\cref` the solutions section" rule is lifted *inside* `pdfonly`:
+  a sentence like "\Cref{apx:solutions} provides worked solutions." is fine
+  when wrapped this way, since the web never renders it. A `\cref` *outside*
+  pointing *in* would be a dead link on the web — the build flags it with a
+  warning.
+- Numbered material (a `\section`, theorem, exercise) inside `pdfonly` is
+  safe for the numbering: the web reads every displayed number out of the
+  PDF's own `.aux`, so hiding, say, Theorem 2.4 leaves a faithful gap on the
+  web (…2.3, then 2.5), exactly mirroring the PDF. Just remember the hidden
+  thing isn't on the page — web-visible `\cref`s to it are dead links (the
+  build flags them, see above).
+
 ## Hints
 
 ```latex
@@ -60,11 +112,21 @@ Consider $f(t) = t - 1 - \log t$.
 
 ## Learning outcomes and summary
 
-```latex
-\begin{summary}
-One paragraph on what this sheet is about.
-\end{summary}
+The summary is **metadata, not body text**: it goes in the `%--- iliad ---`
+comment block at the top of `main.tex`, as a YAML folded block scalar
+(continuation lines indented two spaces after the leading `% `):
 
+```latex
+%--- iliad ---
+% summary: >-
+%   One paragraph on what this sheet is about. It can run over several
+%   lines; the line breaks fold into spaces.
+%--- end ---
+```
+
+Learning outcomes stay in the body:
+
+```latex
 \begin{learningoutcomes}
   \begin{itemize}
     \item First outcome.
@@ -90,12 +152,47 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
 \end{learningoutcomes}
 ```
 
-- `summary` becomes the page's lede and its index blurb (italic block in
-  the PDF); `learningoutcomes` renders as the "What you'll learn" box where
-  you put it — both usually sit right after `\maketitle`.
+- The summary becomes the page's lede and its index blurb;
+  `learningoutcomes` renders as the "What you'll learn" box where you put
+  it — after Prerequisites, before the content (see "Front matter opens
+  the sheet" below).
+- Legacy sheets with a `\begin{summary}` env in the body still convert (it
+  is hoisted into the frontmatter), but the metadata block is the home for
+  new sheets; a frontmatter `summary:` overrides the env if both are present.
 - MDX: put `summary:` in the YAML frontmatter; `<LearningOutcomes>` with a
   markdown list inside. Group headings become bold subheadings in the box
   (not real headings — no anchor, not in the table of contents).
+- A summary that is missing, empty, or still `TODO` draws a non-fatal
+  **warning** on both paths (LaTeX and MDX) — it is the one metadata field that
+  shows up twice, so an unfinished one is worth naming out loud.
+
+## Front matter opens the sheet
+
+Different authors ordered their openings differently; the site does not.
+Every sheet opens the same way:
+
+1. **Overview** — not a section: it is the `summary:` in the metadata
+   block, and the page header shows it under the title (it doubles as the
+   index blurb, so keep it one tight paragraph). A body
+   `\section{Overview}` / `## Overview` draws a warning: fold the text
+   into `summary:` and drop the section.
+2. **Video embeds** (optional) — `\youtube` / `<YouTube />`, see "Videos"
+   below.
+3. **Prerequisites** — an ordinary section.
+4. **Learning outcomes** — the `learningoutcomes` box.
+
+Then the content. Orientation opens a sheet; pointers *out* of it close it
+(the mirror rule is "Further reading goes last", just below). The build
+checks the opening on both paths (LaTeX and MDX) and prints a non-fatal
+**warning** when a sheet strays. Only the opening run is checked — a video
+embedded mid-content to illustrate a point is fine and exempt.
+
+## Further reading goes last
+
+A "Further reading" / "Learn more" section is the LAST section of the sheet:
+after all taught content, just before the references — or before `\appendix`
+if the sheet has one. Prerequisites and the roadmap open a sheet; pointers
+*out* of it close it. This holds for every module, LaTeX or MDX.
 
 ## Theorem family
 
@@ -122,13 +219,15 @@ MDX: `<Definition id="def-entropy">**Definition 2.1 (entropy).** …</Definition
 Don't confuse $\log$ bases here.
 \end{callout}
 
-\begin{remark}
+\begin{remark}[optional title]
 An aside in the mathematical register.
 \end{remark}
 ```
 
 - Types: `note` (default), `tip`, `warning` — coloured boxes on web + PDF
   (`[boxes]`).
+- `remark` takes an optional title, appended in parentheses:
+  `\begin{remark}[Encodings]` renders as "Remark (Encodings)".
 - Both may be labelled: no number shows in the box, but
   `\cref{co:pitfall}` prints "Callout 2.1" and links to it.
 - MDX: `<Callout type="warning" id="co-pitfall">…</Callout>`
@@ -141,6 +240,18 @@ An aside in the mathematical register.
   macros — the converter warns at `file.tex:line` when it can't translate).
 - `\cref`/`\Cref` resolve to the exact text LaTeX prints, everywhere:
   equations, sections, exercises, subparts, callouts.
+- **Reference with `\cref` (or `\eqref` for equation numbers), never by
+  hand.** A plain `\ref`, or a `\hyperref` whose visible text hand-writes
+  "Appendix A"-style words, draws an **advisory**: the frozen text stops
+  tracking the label the moment anything renumbers, and the type word is
+  left out of the link. (`\ref*` inside custom `\hyperref` link text is
+  fine — the number still comes from the label.)
+- A **literal dollar** in prose is `\$` — in a `.tex` sheet and in a
+  hand-authored `.mdx` alike (`\$1,000`). It has to be escaped somehow, because
+  two bare `$` in one paragraph are a math span to `remark-math`: "wins $1,000
+  … and wins $500" typesets everything between them. Inside math the escape
+  does not apply (the body is raw, so a `$` byte would end the span) — the
+  converter emits `\char36` there, and by hand that is what to write.
 
 ## Figures
 
@@ -160,6 +271,30 @@ An aside in the mathematical register.
   rendered for the web automatically.
 - MDX: `<Figure src="/uploads/your-slug/value-curve.svg" caption="…" />`
 
+## Videos
+
+```latex
+\youtube{dQw4w9WgXcQ}                          % title auto-queried from YouTube
+\youtube[What is a neural network?]{aircAruvnKk}   % title set by hand
+```
+
+- The argument is the **11-character video ID** — the `v=` value of the watch
+  URL, not the URL itself (a full URL draws a CI warning and a broken embed).
+- Web: an embedded player, with a "Watch on YouTube ↗" link beneath it. The
+  title is shown above that link and used as the player's accessibility
+  title. With no `[Title]`, the build queries the video's real title from
+  YouTube (oEmbed, cached in `content/modules/.video-titles.json`); if the
+  lookup fails (offline build, deleted video) the embed ships untitled with a
+  CI warning. An explicit `[Title]` always wins and needs no network.
+- PDF: a **Video:** line carrying the full watch URL — clickable on screen and
+  still readable on a printed sheet.
+- Block-level: it sets its own paragraph, so write it between paragraphs, not
+  mid-sentence.
+- MDX: `<YouTube id="aircAruvnKk" title="…" />`
+- Lecture recordings are front matter: they open the sheet, before
+  Prerequisites (see "Front matter opens the sheet"). A video illustrating
+  one point sits wherever that point is — that's fine too.
+
 ## Slides
 
 A worksheet folder may carry an optional slide deck:
@@ -172,8 +307,37 @@ tex/<slug>/slides.tex        # any self-contained LaTeX (usually beamer)
   it beside the other downloads — the page gains a **Slides** row (view PDF,
   download PDF, download the `.tex`). Same 3× `pdflatex` + `bibtex` ladder as
   the worksheet; a compile error fails the build with `file.tex:line`.
+- **Handout variant.** A deck that mentions `\HANDOUT` opts into a second,
+  collapsed build. Guard the reveals with it in the preamble:
+  ```latex
+  \ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
+  \documentclass[10pt,aspectratio=169]{beamer}
+  ```
+  The build then also produces `slides-handout.pdf` by `\def`-ing the macro on
+  the command line, and the **Slides** row reads *present · handout · LaTeX*
+  instead of *view · download · LaTeX*. A deck with no `\pause` reveals simply
+  never mentions `\HANDOUT` and builds once. To reproduce either build by hand:
+  ```
+  pdflatex slides.tex                                  # presentation
+  pdflatex -jobname=slides-handout "\def\HANDOUT{}\input{slides}"   # handout
+  ```
 - `iliad.sty` is a *worksheet* contract and is **not** loaded for slides —
   style the deck however you like.
+- **An optional shared style.** `tex/iliad-slides.sty` is a beamer preamble you
+  may load instead of writing your own: the Madrid theme, the usual maths and
+  graphics packages, link colours that stay readable on Madrid's dark bars, and
+  `\citev` for citations. Load it after `\documentclass`, local copy first:
+  ```latex
+  \ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
+  \documentclass[10pt,aspectratio=169]{beamer}
+  \IfFileExists{iliad-slides.sty}{\usepackage{iliad-slides}}{\usepackage{../iliad-slides}}
+  ```
+  The `\HANDOUT` line and `\documentclass` stay in your deck — the first has to
+  run before the class is loaded, and the second keeps the font size and aspect
+  ratio yours. Nothing enforces this: it is a starting point rather than a
+  contract, no build step checks for it, and `tex/training-dynamics/slides.tex`
+  uses the moloch theme with its own preamble instead. The example, AIXI and
+  Solomonoff decks load it.
 - Slides are **never** converted to MDX and have **no** `-nosol` variant (a
   deck is a download, not a web page).
 - No source, only a PDF deck? Don't commit the binary. Host it (e.g. Drive)
@@ -185,9 +349,40 @@ tex/<slug>/slides.tex        # any self-contained LaTeX (usually beamer)
   ```
   It renders as an outbound **Slides ↗** link. A compiled `slides.tex` takes
   precedence over the URL.
-- The build emits a non-fatal **advisory** for any worksheet with no
+- The build emits a non-fatal **warning** for any worksheet with no
   `slides.tex` (whether or not a `slides:` URL is set), in the full build and
   `./run.sh ci` — not in the `--check` watch/pre-push loop.
+- For a day with **no worksheet yet**, there is no frontmatter to hold a
+  `slides:` URL — put it on the day itself in [`schedule.yaml`](../schedule.yaml)
+  instead. Deck precedence, highest first: a compiled `slides.tex` → a
+  worksheet's `slides:` URL → the day's `slides:` URL → no deck.
+
+## Which teaching day is this? (not your file's business)
+
+Your frontmatter describes the *worksheet*. Where it sits in the *course* —
+its cluster, its teaching day, the order it's listed in — lives in one central
+file, [`schedule.yaml`](../schedule.yaml), which lists each day's worksheets in
+reading order:
+
+```yaml
+      - code: D.3
+        title: AIXI
+        worksheets:
+          - solomonoff-induction    # order here is the order on the site
+          - aixi
+```
+
+- Add your slug under its day and you're done: the homepage, the sidebar and
+  [`/admin/status`](https://iliad-team.github.io/iliad-intensive/admin/status/)
+  all follow, and the build stamps `cluster:`/`day:` into your page for you.
+- Several worksheets per day is normal — D.3 is Solomonoff Induction then AIXI,
+  and that order is a fact about teaching, which no sort of the titles could
+  have recovered.
+- Writing `cluster:` or `day:` in your own frontmatter **fails the build**: two
+  places to state one fact is one too many.
+- A worksheet no day lists also **fails the build**, so nothing can quietly
+  land unplaced. (`unlisted: true` opts a sheet out of the course entirely —
+  that's the format demo, and almost certainly not you.)
 
 ## Citations
 
@@ -198,17 +393,179 @@ References list at the bottom of the page; there, an entry with a `url`
 (or arXiv `eprint`) field makes its title the outbound link. Citations
 never link straight out of the page.
 
+**Pick whatever style you like.** `\bibliographystyle` governs the PDF only —
+the converter never reads it. It parses `biblo.bib` itself and normalizes
+every citation to the same author-year form on the web, so an alpha-label
+sheet (`alphaurl` → `[Knu73]`) and a natbib author-year one (`plainnat` →
+`(Fishburn, 1971)`) read identically online and differ only in their PDFs.
+natbib's commands are all understood: `\citet` keeps its grammatical form
+("Watanabe 2009 defines…"), while `\cite`, `\citep`, `\citealp` and
+`\citetext` render parenthesized.
+
+A style bibtex cannot open produces no `.bbl`, and pdflatex then degrades every
+`\cite` to `[?]` without erroring — so the build treats any bibtex failure
+other than "this document has no bibliography" as fatal.
+
+`alphaurl` needs no package: it is vendored at `tex/alphaurl.bst` (verbatim from
+urlbst 0.9.1) and found through `BSTINPUTS`, because the Debian package carrying
+it is 75 MB for one 36 KB file. For a style that is neither vendored nor in base
+TeX Live, prefer **vendoring the `.bst`** over adding an apt package — the CI TeX
+download is the build's biggest cost and a slow mirror can stall it for 15+
+minutes. A per-worksheet `.bst` works too
+(`tex/singular-learning-theory/far.bst` does exactly that).
+
 ## Inline marks
 
 - `\hint{…}` → *[Hint: …]* — `\note{…}` → *[Note: …]*
 - `\important` after an exercise's label → ★ (the sheet's key exercises)
-- Footnotes render inline in parentheses on the web.
+
+## Footnotes
+
+`\footnote{…}` becomes a real footnote on the web, not a parenthetical: a
+numbered marker where you wrote it, the note itself at the foot of the page, and
+a link each way. Nothing about the PDF changes.
+
+`\footnotemark` … `\footnotetext{…}` works too — the split form LaTeX needs when
+the marker sits somewhere that cannot carry the text, such as a theorem's title
+argument (`\begin{definition}[Covering\protect\footnotemark]`). The mark takes
+the next number and the next `\footnotetext` fills it in, so keep them in that
+order; a `\footnotetext` with no mark before it stays inline in parentheses and
+draws a warning.
+
+Notes are numbered per page in source order, and the numbering is the renderer's
+— it counts references, so it stays right no matter where the definitions sit.
+One caveat: a footnote spanning several paragraphs is joined into one on the
+page (a blank line would end the note), and the build says so.
+
+Footnotes inside a `solution` are stripped from the `-nosol` download along with
+the answer — the note included, not just its marker.
 
 ## Writing in MDX instead
 
 `main.mdx` replaces `main.tex` entirely: YAML frontmatter (`title`,
-`cluster`, `summary`, `contributors` — `title` required, there's no
+`summary`, `contributors` — `title` required, there's no
 `\title{}` to fall back on), KaTeX math with `$…$`/`$$…$$`, and the JSX
-components named above. The PDF is generated by pandoc; downloads offer
-PDF + Markdown (no LaTeX). Everything else — downloads variants, the index,
-the render gate — works identically.
+components named above. **There is no PDF**: LaTeX is the format that becomes a
+print artifact, MDX the one that becomes a web page, so an MDX-authored sheet is
+a page and nothing else. Downloads offer Markdown alone (± solutions) — no PDF,
+no LaTeX. Everything else — the `-nosol` variant, the index, the render gate —
+works identically.
+
+A hand-authored `main.mdx` is **copied verbatim** into
+`content/modules/<slug>.mdx` — no converter, no preprocessing — and served as
+the page. Nothing else consumes it, and the rules below follow from that: the
+page is the whole output.
+
+### Teaching notes: `<TeachingNote>` (MDX only)
+
+A reading day's source often carries material addressed to whoever *teaches*
+the day rather than to the student reading the page — what a session is for,
+and how the author ran it last time. That goes in a `TeachingNote`:
+
+```mdx
+<TeachingNote title="Session intent">
+
+The participants understand that there are different things we may want our
+AIs to be aligned *to*, and can reason through …
+
+</TeachingNote>
+
+<TeachingNote title="Teaching notes">   {/* the default title is "Teaching note" */}
+
+I was thinking about including Gwern's article on Tool AI's, but it's very
+verbose, so I opted for Rohin's article instead.
+
+</TeachingNote>
+```
+
+- Collapsed by default, so it doesn't sit in the student's reading flow; the
+  `title` is the label on the closed box.
+- Blank lines around the body, like every component with markdown inside.
+- The label belongs in `title`, not in the body: port
+  `**Session intent:** The participants …` as
+  `<TeachingNote title="Session intent">The participants …`.
+- Not a `Callout`: teacher-facing material carries
+  `data-component="teaching-note"` so it stays findable (a strip, an index, a
+  toggle) once we know what the right format is. It survives `-nosol` — only
+  `<Solution>` is stripped.
+- **In LaTeX it is the `teachingnote` environment**, whose optional argument is
+  the title: `\begin{teachingnote}[Session intent] … \end{teachingnote}`. The
+  converter emits this component from it. A PDF has no collapsing, so there it
+  is a dashed box with the title as its heading.
+
+### Heading levels: `##` is the top
+
+Match what the converter emits for a LaTeX day, so a hand-written page and a
+generated one have the same shape:
+
+| LaTeX | MDX |
+| :--- | :--- |
+| `\section` | `##` |
+| `\subsection` | `###` |
+| `\subsubsection` | `####` |
+
+**Never `#`.** The site renders the frontmatter `title` as the page's h1, so a
+`#` in the body is a second h1 sitting a level above every generated page's
+sections. Numbered sections in generated pages carry an `N.` prefix read from
+the `.aux` (`## 1. Preliminaries`); hand-authored days aren't numbered, so
+don't add numbers by hand. Don't mix a bold line (`**Session 2: …**`) with a
+real `### Session 1: …` for the same level — pick the heading.
+
+### Comments: `{/* … */}`
+
+```mdx
+{/* # Roadmap for today */}
+{/* parked until the author confirms the timetable */}
+```
+
+That is the only form MDX accepts. One per line is fine, so is a blank line
+inside a single `{/* … */}` block. `<!-- … -->` is a **compile error**, not a
+comment:
+
+    MDX compile: FAIL :: Unexpected character `!` (U+0021) before name …
+      (note: to create a comment in MDX, use `{/* text */}`)
+
+A comment hides from the rendered page, but the `<slug>.mdx` download is the file
+itself, so parked content still travels with it. Use `{/* … */}` freely while
+drafting and delete it before you ship rather than leaving it commented — git
+history is the place for a block you might want back.
+
+### GFM: footnotes and tables
+
+The page pipeline loads `remark-gfm`, so GitHub-flavoured markdown works in a
+hand-authored sheet as well as in a converted one — footnotes and tables being
+the two that matter:
+
+```mdx
+The claim holds for finite horizons.[^horizon]
+
+[^horizon]: It fails for $m = \infty$; see the appendix.
+```
+
+Any label does (`[^horizon]`, `[^1]`); the renderer numbers notes by the order
+their references appear, and collects them at the foot of the page. A reference
+with no definition renders as the literal text `[^horizon]` — that is the one
+failure mode to watch for, and the sheet still compiles.
+
+### Frontmatter
+
+Never write `cluster:` or `day:` — those belong to `schedule.yaml` and the
+build stamps them in. Writing either is a hard build failure:
+
+    main.mdx frontmatter sets `day` — that lives in schedule.yaml (list the
+    slug under its day) and is stamped in at build time
+
+So a new MDX module is two edits: the file, plus its slug under the right day's
+`worksheets:` in `schedule.yaml`.
+
+### Check it
+
+    node scripts/tex2mdx/tex2mdx-check.mjs tex/<slug>/main.mdx   # the render gate alone, ~1s
+    node scripts/build-content.mjs --check <slug>                # + the frontmatter/schedule rules
+    node scripts/build-content.mjs <slug>                        # + staged downloads
+
+The gate wants `MDX compile: OK` and `0 errored` KaTeX spans. Only `--check`
+catches a `cluster:`/`day:` in frontmatter or a slug missing from
+`schedule.yaml` — and for an MDX sheet `--check` is essentially the whole story,
+since the full build adds only the copied `.mdx` downloads, with no PDF ladder
+to go wrong.

@@ -5,7 +5,7 @@ import { NavToggle } from "./NavToggle";
 export function Navbar() {
   return (
     <header className="sticky top-0 z-30 w-full border-b border-zinc-200 bg-[var(--background)]/90 backdrop-blur supports-[backdrop-filter]:bg-[var(--background)]/80">
-      <div className="mx-auto flex h-12 max-w-6xl items-center gap-3 px-4 sm:px-6 font-sans text-sm">
+      <div className="mx-auto flex h-[var(--header-h)] max-w-6xl items-center gap-3 px-4 sm:px-6 font-sans text-sm">
         <NavToggle />
         <Link
           href="/"

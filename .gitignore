@@ -1,5 +1,9 @@
 # dependencies / build
-node_modules/
+# No trailing slash: new-worktree.sh wires up node_modules as a SYMLINK, and
+# `node_modules/` matches directories only — the symlinks showed as untracked
+# and one `git add -A` committed one (an absolute path, dead on every other
+# machine). Matching by name covers the real directory and the symlink both.
+node_modules
 .next/
 out/
 *.tsbuildinfo
@@ -7,11 +11,15 @@ next-env.d.ts
 .env*
 _src/
 scratch/
+_src_repo/
+_src_repos/
 # generated content — build artifacts, never committed.
 # Modules (.mdx) and the index are produced upstream (tex -> mdx converter /
 # CI); figures land in public/uploads/. The repo holds sources, not outputs.
 content/modules/
 content/index.json
+# derived from schedule.yaml (committed) + what the build produced
+content/status.json
 public/uploads/
 public/downloads/
 
@@ -19,15 +27,18 @@ public/downloads/
 # looks locally first, then one level up). In the repo everyone uses the
 # shared tex/iliad.sty, so local copies must never be committed.
 tex/*/iliad.sty
-
-# Draft worksheet, not yet ported to the iliad.sty contract: standalone
-# LaTeX with its own preamble (natbib + far.bst), outside the site build.
-# Keep it out of the repo until it is ported.
-tex/singular-learning-theory/
+# Same for the optional deck style, which slides.tex also loads local-first.
+# (Unlike iliad.sty there is no build guard against a stale local copy — a deck
+# is only ever a PDF download, so a drifting copy can't skew the website.)
+tex/*/iliad-slides.sty
 
 # LaTeX build artifacts (compiled PDFs are downstream artifacts too —
 # figure PDFs under tex/*/fig/ are the one committed exception)
 tex/*/main-nosol.*
+tex/*/main.autolabel.tex
+# Per-worksheet input hash — lets a build skip a sheet whose inputs are
+# unchanged (scripts/build-content.mjs). Purely a local/CI-cache artifact.
+tex/*/.build-hash
 *.aux
 *.log
 *.out
@@ -62,8 +73,26 @@ _minted*/
 # misc
 .DS_Store
 
+# raw source material handed over by day leads — zips, clones, decks. The
+# canonical read-only drop for porting; never committed. `UNSORTED/` is the
+# old `repos/` clone pile, moved here.
+_source_material/
+
 # cloned source repos for MATERIAL.md hunt (see MATERIAL.md handoff)
 repos/
 
-# git worktrees kept inside the repo
+# git worktrees kept inside the repo. Both patterns matter: the root-anchored
+# one is where new-worktree.sh puts them, and `.claude/worktrees/` is where the
+# agent harness puts its own — each a full checkout, and NOT covered by the
+# anchored pattern, so without this line `git add .claude/` (to commit the
+# skills) stages an embedded git repo as a broken gitlink.
 /worktrees/
+.claude/worktrees/
+
+# OAuth client secrets / tokens never commit
+credientals.json
+credentials.json
+*.token.json
+gdoc-auth-url.txt
+gdoc-auth-url.html
+token.json

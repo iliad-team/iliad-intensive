@@ -1,24 +1,24 @@
 /**
  * Pure cluster helpers. Client + server safe — no fs imports here. The
- * server-only loader that reads content/clusters.json lives in
+ * server-only loader that reads the cluster table out of schedule.yaml lives in
  * ./cluster-store.ts so client components like SidebarNav can import the
  * helpers without dragging node:fs/promises into the browser bundle.
  */
 
+/** Display order is list order — schedule.yaml has no sort key. */
 export type Cluster = {
   id: string;
   label: string;
   urlSlug: string;
-  position: number;
 };
 
 export const DEFAULT_CLUSTERS: Cluster[] = [
-  { id: "0", label: "Foundations", urlSlug: "foundations", position: 0 },
-  { id: "A", label: "Cluster A — Alignment", urlSlug: "alignment", position: 10 },
-  { id: "B", label: "Cluster B — Learning", urlSlug: "learning", position: 20 },
-  { id: "C", label: "Cluster C — Abstractions, Representations, and Interpretability", urlSlug: "interpretability", position: 30 },
-  { id: "D", label: "Cluster D — Agency", urlSlug: "agency", position: 40 },
-  { id: "E", label: "Cluster E — Safety Guarantees and their Limits", urlSlug: "safety", position: 50 },
+  { id: "0", label: "Foundations", urlSlug: "foundations" },
+  { id: "A", label: "Cluster A — Alignment", urlSlug: "alignment" },
+  { id: "B", label: "Cluster B — Learning", urlSlug: "learning" },
+  { id: "C", label: "Cluster C — Abstractions, Representations, and Interpretability", urlSlug: "interpretability" },
+  { id: "D", label: "Cluster D — Agency", urlSlug: "agency" },
+  { id: "E", label: "Cluster E — Safety Guarantees and their Limits", urlSlug: "safety" },
 ];
 
 export function clusterUrlSlug(
@@ -50,4 +50,25 @@ export function clusterLabel(
 ): string {
   if (!cluster) return "Other";
   return list.find((c) => c.id === cluster)?.label ?? `Cluster ${cluster}`;
+}
+
+/**
+ * How a worksheet's teaching day is *displayed*: "D.3" for a day with one
+ * worksheet, "D.3.1" / "D.3.2" for one taught in several parts.
+ *
+ * Only days that actually have parts get numbered. A dotted code then always
+ * means "part n of several", and the ~15 single-worksheet days aren't implied to
+ * be part one of a series that doesn't exist.
+ *
+ * This is presentation only. The canonical code stays undotted ("D.3") — that's
+ * what schedule.yaml, /admin/status, the issue titles and the project board all
+ * speak, and a second identity for the same day would be one too many.
+ */
+export function dayCode(
+  day: string | null | undefined,
+  part?: number,
+  parts?: number,
+): string | null {
+  if (!day) return null;
+  return parts && parts > 1 && part ? `${day}.${part}` : day;
 }

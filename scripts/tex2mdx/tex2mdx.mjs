@@ -8,8 +8,8 @@
  *   this file  parse + emit (the stage the unified-latex port will replace)
  *
  * Design: copy prose and math byte-for-byte; translate only known markup;
- * fail loud (file:line WARN + visible TODO marker) on anything unrecognised.
- * Cross-references come from LaTeX's own .aux. Exit code 2 on warnings.
+ * fail loud (file:line ERROR + visible TODO marker) on anything unrecognised.
+ * Cross-references come from LaTeX's own .aux. Exit code 2 on errors.
  *
  * Usage: tex2mdx.mjs input.tex [-o out.mdx] [--aux f.aux] [--tikz-dir d]
  *        [--tikz-src /url/prefix/] [--no-render-tikz]
@@ -21,11 +21,12 @@ import { parseArgs } from "node:util";
 import { pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { readGroup, readOpt, readArg, stripComments, slug, ghSlug, tidy } from "./util.mjs";
-import { SRC_FILES, lineOf, warnings, warn, advisories, advise, fmtIssue, snippetOf } from "./state.mjs";
-import { MACRO_OVERRIDE, MACRO_SKIP, applyShims, applyMathShims, trimMacroBody,
-         CREF_NAME_DEFAULTS, THM_FAMILY, CONTRACT_NAMES, KNOWN_FRONT_KEYS } from "./shims.mjs";
+import { readGroup, stripComments, tidy, frontMatterOrderIssues } from "./util.mjs";
+import { SRC_FILES, warnings, warn, advisories, advise, fmtIssue } from "./state.mjs";
+import { MACRO_OVERRIDE, MACRO_SKIP, applyShims, trimMacroBody,
+         CREF_NAME_DEFAULTS, CONTRACT_NAMES, KNOWN_FRONT_KEYS } from "./shims.mjs";
 import { initTikz, renderTikzSnippets, tikzCount } from "./tikz.mjs";
+import { injectAutoLabels } from "./autolabel.mjs";
 import { emitDocument, texToPlain } from "./emit-ast.mjs";
 import { entries as bibtexEntries } from "bibtex-parse";
 
@@ -84,18 +85,28 @@ if (!tikzSrc.endsWith("/")) tikzSrc += "/";
 // ----------------------------- .aux → refs --------------------------------
 // Build label -> { name, num }.  name from cleveref type: section/subsection
 // => "Problem", the shared theorem counter => "Theorem".
+// One best-effort pdflatex pass over the auto-labeled source (numbers are
+// written to the .aux as they occur, so a single pass is enough for refs).
+// Compiles from a temp dir with cwd at the sheet so relative inputs
+// (../iliad.sty, bib, figures) resolve.
+function generateAux(texFile) {
+  const dir = mkdtempSync(path.join(tmpdir(), "tex2mdx-"));
+  const base = path.basename(texFile, ".tex");
+  writeFileSync(path.join(dir, base + ".autolabel.tex"), rawTex);
+  try {
+    execFileSync("pdflatex", ["-interaction=nonstopmode", "-output-directory=" + dir,
+      "-jobname=" + base, path.join(dir, base + ".autolabel.tex")],
+      { cwd: path.dirname(path.resolve(texFile)), stdio: "ignore" });
+  } catch { /* nonstop: warnings are fine as long as the aux got written */ }
+  const gen = path.join(dir, base + ".aux");
+  return existsSync(gen) ? gen : null;
+}
 function ensureAux(texFile) {
   if (auxPath && existsSync(auxPath)) return auxPath;
   const sib = path.join(path.dirname(texFile), path.basename(texFile, ".tex") + ".aux");
   if (existsSync(sib)) return sib;
-  // generate
-  const dir = mkdtempSync(path.join(tmpdir(), "tex2mdx-"));
-  try {
-    execFileSync("pdflatex", ["-interaction=nonstopmode", "-output-directory=" + dir, path.resolve(texFile)],
-      { cwd: path.dirname(path.resolve(texFile)), stdio: "ignore" });
-  } catch { /* nonstop: warnings are fine as long as the aux got written */ }
-  const gen = path.join(dir, path.basename(texFile, ".tex") + ".aux");
-  if (!existsSync(gen)) { console.error("Could not generate .aux (pdflatex failed). Pass --aux."); process.exit(1); }
+  const gen = generateAux(texFile);
+  if (!gen) { console.error("Could not generate .aux (pdflatex failed). Pass --aux."); process.exit(1); }
   return gen;
 }
 // Printed name per cref type. Defaults are the capitalised type; a sheet's own
@@ -141,7 +152,10 @@ function parseAux(auxFile) {
 }
 
 // --------------------------- read + split ---------------------------------
-const rawTex = readFileSync(input, "utf8");
+// Auto-labels first (see autolabel.mjs): the identical injection ran over the
+// source the .aux was compiled from, so every numbered construct's displayed
+// number is read out of the .aux — never simulated — by matching label names.
+const { text: rawTex, labels: autoLabels } = injectAutoLabels(readFileSync(input, "utf8"));
 // Inline \input{file} recursively (multi-file worksheets are fine — pdflatex
 // resolves them, so the converter must too; silently dropping them would lose
 // content). \input{preamble}-style extensionless names get .tex appended.
@@ -165,7 +179,17 @@ const preamble = tex.slice(0, docStart);
 let body = tex.slice(docStart + "\\begin{document}".length, docEnd);
 
 applyCrefnames(preamble);                    // before parseAux: names depend on it
-const refs = parseAux(ensureAux(input));
+let refs = parseAux(ensureAux(input));
+// self-heal a stale .aux: one compiled before auto-labels existed (or from an
+// editor's own run on the pristine source) has none of the injected names —
+// regenerate from the injected source rather than falling back to simulation.
+if (autoLabels.length && !(autoLabels[autoLabels.length - 1] in refs)) {
+  const regen = generateAux(input);
+  if (regen) refs = parseAux(regen);
+  if (!(autoLabels[autoLabels.length - 1] in refs)) {
+    warn("the .aux has no auto-label entries (stale, and regenerating failed) — displayed numbering falls back to simulated counters");
+  }
+}
 initTikz({ tikzDir, tikzSrc, getRefs: () => refs }, preamble);
 // dialect detection: iliad.sty sheets use the exercise env; legacy sheets use
 const usesExerciseEnv = /\\begin\{exercise\}/.test(body);
@@ -209,13 +233,17 @@ function parseIliadBlock(raw) {
   return out.length ? out : null;
 }
 const iliadBlock = parseIliadBlock(rawTex);
-// A present-but-misspecified block is a hard failure (WARN => exit 2);
-// a missing block only draws an advisory (TODO placeholders are emitted).
+// A present-but-misspecified block is a hard failure (ERROR => exit 2);
+// a missing block only draws a warning (TODO placeholders are emitted).
+// The parsed frontmatter block, kept for the summary checks further down (a
+// `summary: >-` block scalar is only readable through the YAML parser).
+let frontBlock = null;
 if (iliadBlock) {
   const text = iliadBlock.join("\n");
   if (YAMLLIB) {
     try {
       const parsed = YAMLLIB.parse(text);
+      frontBlock = parsed;
       if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
         warn("frontmatter block is not a YAML mapping (expected `key: value` lines)");
       } else {
@@ -227,19 +255,24 @@ if (iliadBlock) {
       warn(`frontmatter block is not valid YAML: ${String(e.message).split("\n")[0]}`);
     }
   } else {
-    // structural fallback: every line must be a key or a list item
+    // structural fallback: every line must be a key, a list item, or the
+    // indented continuation of a block scalar (`summary: >-` …)
+    let inBlockScalar = false;
     for (const l of iliadBlock) {
+      if (inBlockScalar && (/^\s/.test(l) || l === "")) continue;
+      inBlockScalar = false;
       if (!/^[A-Za-z][\w-]*:/.test(l) && !/^\s+- /.test(l) && !/^\s+\w+:/.test(l))
         warn(`frontmatter block line doesn't look like YAML: "${l.slice(0, 50)}"`, l.slice(0, 50));
       const km = l.match(/^([A-Za-z][\w-]*):/);
       if (km && !KNOWN_FRONT_KEYS.has(km[1])) warn(`unknown frontmatter key "${km[1]}" — known keys: ${[...KNOWN_FRONT_KEYS].join(", ")}`, `${km[1]}:`);
+      if (/^[A-Za-z][\w-]*:\s*[|>][+-]?\s*$/.test(l)) inBlockScalar = true;
     }
   }
 }
 
 // ---------------- static contract checks (iliad.sty dialect) --------------
 if (usesExerciseEnv && !iliadBlock) {
-  advise("no %--- iliad --- frontmatter block at the top of main.tex — cluster/summary will be missing");
+  advise("no %--- iliad --- frontmatter block at the top of main.tex — the page summary will be missing");
 }
 { // duplicate labels break cross-referencing (last definition silently wins)
   const seen = new Set();
@@ -248,14 +281,52 @@ if (usesExerciseEnv && !iliadBlock) {
     seen.add(m[1]);
   }
 }
+{ // hand-rolled references drift when things renumber; \cref prints AND links
+  // the type word and follows the label wherever it goes. \eqref, \ref* (the
+  // number-only form used inside custom \hyperref text) and \crefrange are all
+  // fine and don't match here.
+  const code = tex.replace(/(^|[^\\])%.*$/gm, "$1"); // commented-out code is nobody's business
+  for (const m of code.matchAll(/\\ref\{([^}]*)\}/g)) {
+    advise(`plain \\ref{${m[1]}} — use \\cref (prints and links the type, and survives renumbering)`, m[0]);
+  }
+  // \hyperref whose visible text hand-writes a "Type N" — the number is frozen.
+  // Nested-brace text (the roadmap-node pattern carrying \ref*) never matches
+  // the flat [^{}]* group, which is exactly right: those pull their numbers
+  // from the label.
+  for (const m of code.matchAll(/\\hyperref\[[^\]]*\]\{([^{}]*)\}/g)) {
+    if (/\\ref\*?\{/.test(m[1])) continue;
+    if (/(Appendix|Appendices|Section|Chapter|Exercise|Problem|Theorem|Lemma|Proposition|Corollary|Definition|Example|Figure|Table|Remark|Callout)\s*~?\s*[A-Z0-9]/.test(m[1])) {
+      advise(`\\hyperref with hand-written reference text "${m[1].slice(0, 40)}" — use \\cref so the text tracks the label`, m[0]);
+    }
+  }
+}
+{ // front-matter order (non-fatal): videos → Prerequisites → learning
+  // outcomes, before the first content section; the overview is `summary:`,
+  // never a body section. Judgment shared with the MDX path — see util.mjs.
+  const pos = { overview: null, video: null, prereqs: null, outcomes: null, content: null };
+  const secRe = /\\(?:sub)*section\*?\s*\{/g;
+  for (let m; (m = secRe.exec(body)); ) {
+    const g = readGroup(body, secRe.lastIndex - 1);
+    if (!g) continue;
+    secRe.lastIndex = g.end;
+    const t = g.content.replace(/\\[a-zA-Z]+\s*/g, "").replace(/[{}]/g, "").trim().toLowerCase();
+    const item = { at: m.index, needle: body.slice(m.index, g.end) };
+    if (/^prerequisites?\b/.test(t)) pos.prereqs ??= item;
+    else if (/^overview\b/.test(t)) pos.overview ??= item;
+    else pos.content ??= item;
+  }
+  const lo = body.indexOf("\\begin{learningoutcomes}");
+  if (lo >= 0) pos.outcomes = { at: lo, needle: "\\begin{learningoutcomes}" };
+  const yt = body.search(/\\youtube\b/);
+  if (yt >= 0) pos.video = { at: yt, needle: "\\youtube" };
+  for (const i of frontMatterOrderIssues(pos)) advise(i.msg, i.needle);
+}
 // redefining the contract breaks the converter's guarantees
 if (usesExerciseEnv) {
   for (const m of tex.matchAll(/\\renew(?:command|environment)\s*\{?\\?([a-zA-Z]+)\}?/g)) {
     if (CONTRACT_NAMES.has(m[1])) warn(`redefining contract name "${m[1]}" is forbidden — the converter relies on iliad.sty's definition`, m[0]);
   }
 }
-
-const PROSE_MACROS = {};   // retained for buildGdef bookkeeping only
 
 // --------------------------- preamble → gdef ------------------------------
 function buildGdef(pre) {
@@ -283,9 +354,6 @@ function buildGdef(pre) {
     if (hasOpt && !MACRO_OVERRIDE[name]) { warn(`macro ${name} has an optional arg; not auto-translated (override or expand manually)`, name); }
     if (MACRO_SKIP.has(name)) { nc.lastIndex = g.end; continue; }
     add(name, arity, applyShims(trimMacroBody(g.content)));
-    // also register for PROSE expansion (usage outside math): unknown prose
-    // commands matching an author macro get expanded and re-processed
-    if (!hasOpt && !(name.slice(1) in PROSE_MACROS)) PROSE_MACROS[name.slice(1)] = { arity, body: g.content };
     nc.lastIndex = g.end;
   }
   // simple \def\name{body} (parameterless) — common toggle idiom
@@ -293,7 +361,6 @@ function buildGdef(pre) {
   while ((m = df.exec(pre))) {
     const g = readGroup(pre, m.index + m[0].length - 1);
     if (!g) continue;
-    if (!(m[1] in PROSE_MACROS)) PROSE_MACROS[m[1]] = { arity: 0, body: g.content };
     df.lastIndex = g.end;
   }
   // \DeclareMathOperator*{\name}{body} — body read with readGroup (it may
@@ -393,10 +460,13 @@ let bodySummary = null;
 const sumM = body.match(/\\begin\{summary\}([\s\S]*?)\\end\{summary\}/);
 if (sumM) bodySummary = texToPlain(sumM[1]).replace(/\s+/g, " ").trim();
 
-// frontmatter: nothing is mandatory, and the block is for SIMPLE one-line
-// values only — title/contributors/summary fall back to \title{}/\author{}/
-// \begin{summary} in the LaTeX. An explicit frontmatter key takes precedence.
-// Missing title/cluster/contributors draw advisories, never failures.
+// frontmatter: nothing is mandatory. Values are one-line scalars, except
+// summary, which may be a YAML block scalar (`summary: >-` + indented lines).
+// title/contributors/summary fall back to \title{}/\author{}/\begin{summary}
+// in the LaTeX. An explicit frontmatter key takes precedence.
+// Missing title/contributors draw advisories, never failures. `cluster:`/`day:`
+// are stamped in later by build-content.mjs from schedule.yaml, and are not
+// keys an author may write (see KNOWN_FRONT_KEYS).
 const blockKeys = new Set((iliadBlock ?? []).filter((l) => /^[A-Za-z]/.test(l)).map((l) => l.split(":")[0]));
 const front = [
   "---",
@@ -410,15 +480,63 @@ if (blockKeys.has("summary") && bodySummary)
   advise("summary given both as a frontmatter key and a \\begin{summary} block — the frontmatter key wins");
 if (!blockKeys.has("title") && title === "TODO")
   advise("no title: in the frontmatter block and no \\title{} — the page falls back to its slug");
-if (!blockKeys.has("cluster"))
-  advise("no cluster: in the frontmatter block — the page is ungrouped (URL under /page/)");
 if (!blockKeys.has("contributors") && !contributors.length)
   advise("no contributors: in the frontmatter block and no \\author{} — the page shows no authors");
+// A summary is optional but load-bearing: it is the page's lede AND its blurb in
+// the homepage/sidebar index, so a sheet that ships without one reads as
+// unfinished. `summary: TODO` is what a port writes when the source has no
+// summary to transcribe (nobody may invent one), which makes it easy to forget.
+if (iliadBlock) {
+  const declared = typeof frontBlock?.summary === "string" ? frontBlock.summary.trim() : null;
+  const missing = !blockKeys.has("summary") && !bodySummary;
+  if (missing)
+    advise("no summary: in the frontmatter block — the page and its index entry show no lede");
+  else if (blockKeys.has("summary") && !declared)
+    advise("summary: in the frontmatter block is empty — the page and its index entry show no lede");
+  else if (declared && /^todo\b/i.test(declared))
+    advise(`summary: is still a placeholder ("${declared.slice(0, 40)}") — the page ships it verbatim as its lede`);
+}
+
+// ---------------------------- video titles --------------------------------
+// \youtube with no [Title]: the web build queries the title from YouTube's
+// oEmbed endpoint (public, no API key) so the embed still gets a caption and
+// an accessible iframe title. Lookups are cached beside the output; a failed
+// lookup (offline CI, deleted video) degrades to an advisory and an untitled
+// embed. The PDF never sees any of this — pdflatex cannot fetch, and authors
+// compile on Overleaf with no build step — it prints the watch URL instead.
+const videoTitles = {};
+{
+  const wanted = new Set();
+  for (const m of body.matchAll(/\\youtube\s*(\[[^\]]*\])?\s*\{\s*([A-Za-z0-9_-]{11})\s*\}/g)) {
+    if (!m[1] || m[1] === "[]") wanted.add(m[2]);
+  }
+  if (wanted.size) {
+    const cachePath = path.join(path.dirname(output), ".video-titles.json");
+    let cache = {};
+    try { cache = JSON.parse(readFileSync(cachePath, "utf8")); } catch { /* cold cache */ }
+    let dirty = false;
+    for (const id of wanted) {
+      if (typeof cache[id] === "string") { videoTitles[id] = cache[id]; continue; }
+      try {
+        const watch = `https://www.youtube.com/watch?v=${id}`;
+        const r = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(watch)}&format=json`,
+          { signal: AbortSignal.timeout(5000) });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        videoTitles[id] = cache[id] = String((await r.json()).title ?? "").trim();
+        dirty = true;
+      } catch (e) {
+        advise(`\\youtube{${id}}: title lookup failed (${e.message}) — the embed ships untitled; pass [Title] to set one by hand`, id);
+      }
+    }
+    if (dirty) { try { writeFileSync(cachePath, JSON.stringify(cache, null, 2) + "\n"); } catch { /* cache is best-effort */ } }
+  }
+}
 
 // ------------------------------ run ---------------------------------------
 // AST emit (two passes handled inside emit-ast)
 const bodyMdx = tidy(emitDocument(body, {
   refs,
+  videoTitles,
   preamble,
   declaredThms,
   declaredEnvSigs: Object.fromEntries(Object.keys(declaredThms).map((e) => [e, { signature: "o" }])),
@@ -430,7 +548,13 @@ const bodyMdx = tidy(emitDocument(body, {
   warnSnapshot: () => [warnings.length, advisories.length],
   warnRestore: ([w, a]) => { warnings.length = w; advisories.length = a; },
 }));
-const result = `${front}\n\n$${gdef}$\n\n${bodyMdx}\n`;
+// The page's macros ride in a leading inline-math span, where KaTeX picks up the
+// \gdef's. A sheet that defines none must not get an empty one: `$$` on its own
+// line is a display-math OPENER to remark-math, which then swallows the rest of
+// the page into one unclosed span (and every worksheet in the repo happened to
+// define at least one macro, so nothing hit this until a ported reading guide
+// did).
+const result = `${front}\n\n${gdef.trim() ? `$${gdef}$\n\n` : ""}${bodyMdx}\n`;
 writeFileSync(output, result);
 
 // render extracted diagrams (content-addressed: unchanged ones are skipped,
@@ -440,13 +564,13 @@ if (renderTikz) tikzRendered = renderTikzSnippets();
 
 console.log(`gdef macros: ${(gdef.match(/\\gdef/g) || []).length}  |  bib: ${Object.keys(BIB).length}  |  aux refs: ${Object.keys(refs).length}${tikzCount() ? `  |  tikz: ${tikzCount()} diagrams (${tikzRendered} newly rendered -> ${tikzDir})` : ""}`);
 const uniqW = Array.from(new Set(warnings.map(fmtIssue)));
-console.log(`WARN (${warnings.length} total, ${uniqW.length} unique):`);
+console.log(`ERROR (fails CI) (${warnings.length} total, ${uniqW.length} unique):`);
 console.log(uniqW.slice(0, 40).map((w) => "  - " + w).join("\n"));
 const uniqA = Array.from(new Set(advisories.map(fmtIssue)));
 if (uniqA.length) {
-  console.log(`NOTE (advisory, does not fail CI) (${uniqA.length}):`);
+  console.log(`NOTE (warning, does not fail CI) (${uniqA.length}):`);
   console.log(uniqA.slice(0, 40).map((a) => "  - " + a).join("\n"));
 }
 console.log(`Wrote ${output} (${result.split("\n").length} lines)`);
-// non-zero exit when anything WARN'd, so CI/hooks can gate on it (advisories don't count)
+// non-zero exit on any ERROR, so CI/hooks can gate on it (warnings don't count)
 if (warnings.length) process.exitCode = 2;

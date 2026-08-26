@@ -46,13 +46,13 @@ for (const sig of ["SIGINT", "SIGTERM"]) {
   process.on(sig, () => { dev.kill("SIGTERM"); process.exit(0); });
 }
 
-// LaTeX/pandoc runs write artifacts next to the sources — never rebuild on
+// LaTeX runs write artifacts next to the sources — never rebuild on
 // those, or the watcher would loop forever.
-const ARTIFACT = /\.(aux|log|out|pdf|bbl|blg|brf|toc|fls|synctex(\.gz)?|fdb_latexmk)$|main-nosol\./;
+const ARTIFACT = /\.(aux|log|out|pdf|bbl|blg|brf|toc|fls|synctex(\.gz)?|fdb_latexmk)$|main-nosol\.|main\.autolabel\./;
 
 let timer = null;
 const pending = new Set();
-watch(TEX, { recursive: true }, (_event, file) => {
+const watcher = watch(TEX, { recursive: true }, (_event, file) => {
   if (!file || ARTIFACT.test(file)) return;
   const top = file.split(path.sep)[0];
   const isWorksheet = existsSync(path.join(TEX, top, "main.tex")) || existsSync(path.join(TEX, top, "main.mdx"));
@@ -70,6 +70,12 @@ watch(TEX, { recursive: true }, (_event, file) => {
     pending.clear();
     for (const s of jobs) build(s);
   }, 300);
+});
+// Atomic-save editors (write temp + rename) make the recursive watcher stat a
+// file that has already vanished — a transient ENOENT. Without this handler the
+// unhandled 'error' event crashes the watcher on the first such save.
+watcher.on("error", (err) => {
+  if (err && err.code !== "ENOENT") console.error(`watch error: ${err.message}`);
 });
 
 console.log(`watching tex/${slugArg ?? ""} — edit, save, refresh`);

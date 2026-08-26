@@ -1,0 +1,1 @@
+Figure 1: Ablating the 'refusal direction' reduces refusal rates and elicits unsafe completions. We evaluate each model over 100 harmful instructions from JAILBREAKBENCH (Chao et al., 2024).

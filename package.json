@@ -2,15 +2,17 @@
   "name": "iliad-intensive",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "prepare": "git config core.hooksPath .githooks || true",
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "content": "node scripts/build-content.mjs",
-    "watch": "node scripts/watch.mjs",
-    "ci": "node scripts/build-content.mjs && NEXT_PUBLIC_BASE_PATH=\"${NEXT_PUBLIC_BASE_PATH:-/iliad-intensive}\" NEXT_PUBLIC_COMMIT_SHA=\"${NEXT_PUBLIC_COMMIT_SHA:-$(git rev-parse HEAD 2>/dev/null || echo)}\" next build"
-  },
+   "scripts": {
+      "prepare": "git config core.hooksPath .githooks || true",
+      "dev": "next dev",
+      "build": "next build",
+      "start": "next start",
+      "content": "node scripts/build-content.mjs",
+      "watch": "node scripts/watch.mjs",
+      "preview": "node scripts/preview.mjs",
+      "strip": "node scripts/strip-hydration.mjs",
+      "ci": "node scripts/build-content.mjs && NEXT_PUBLIC_BASE_PATH=\"${NEXT_PUBLIC_BASE_PATH:-/iliad-intensive}\" NEXT_PUBLIC_COMMIT_SHA=\"${NEXT_PUBLIC_COMMIT_SHA:-$(git rev-parse HEAD 2>/dev/null || echo)}\" next build && node scripts/strip-hydration.mjs && (node scripts/check-overflow.mjs || echo '(overflow check unavailable — advisory only, build stays green)')"
+    },
   "dependencies": {
     "katex": "^0.16.45",
     "next": "16.2.4",
@@ -19,6 +21,7 @@
     "react-dom": "19.2.4",
     "rehype-katex": "^7.0.1",
     "rehype-slug": "^6.0.0",
+    "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
     "server-only": "^0.0.1",
     "yaml": "^2.9.0"

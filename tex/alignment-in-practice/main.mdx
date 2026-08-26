@@ -1,0 +1,388 @@
+---
+title: Alignment in Practice
+summary: >- 
+  What do labs do to make their models aligned in practice? Covers the different
+  stages in the training pipeline, deployment and methods labs use to stress-test
+  the result to see if the alignment holds.
+contributors:
+  - Evžen Wybitul (University of Oxford)
+slides: https://drive.google.com/drive/folders/1GR_FvSD_osYa3r_pAhXW9sJt27fD0_So
+---
+
+<LearningOutcomes>
+
+The main goal is for the students to be able to intuitively reason about different phases in model development, to understand what affordances each phase gives us w.r.t. alignment, and to gain the confidence to read current research on empirical alignment. They will end the day having learnt about the main state of the art alignment methods and with a rough idea how they all fit together.
+
+This will help the students form their own independent opinions on what the state of the art empirical alignment research looks like and what are its largest gaps. Thanks to having a rough map of the empirical alignment territory, they will also be able to better self-identify gaps in their own understanding.
+
+</LearningOutcomes>
+
+## Prerequisites
+
+The students should have a good high-level understanding of the following:
+
+* how deep learning works
+* how LLMs work, e.g. what they take as input and produce as output
+* LLM pre-training
+* LLM post-training: supervised fine-tuning, RLHF
+* basics of LLM interpretability, esp. the linear representation hypothesis
+
+Some of these topics are taught in other modules of this course.
+
+## Roadmap for today
+
+- 10:00–10:30
+  - Intro lecture
+- 10:30–11:30
+  - Pretraining discussion + lecture
+- 11:30–12:45
+  - Post-training discussion + lecture
+- 12:45–13:15
+  - Deployment 1 discussion + lecture
+
+(Lunch)
+
+- 14:15–16:30
+  - Design challenge
+- 16:30–17:30
+  - Deployment 2 discussion + lecture
+- 17:30–18:00
+  - Buffer + feedback
+
+## Reading guide
+
+The main content is split into parts that correspond to different phases in the model training pipeline. The parts are relatively independent, so you can skip around as you wish depending on your interests.
+
+If you have limited time and don't know what to focus on, we recommend reading through the notes on the three main sections: pre-training, post-training, and deployment 2. After this, you will have a good high-level understanding of the main ways that models are aligned in practice.
+
+### Introduction
+
+<TeachingNote title="Intent">
+
+Outline the structure of the whole day, and tell the students what the day's intent is (mirroring the module intent above).
+
+</TeachingNote>
+
+<TeachingNote title="Teaching Guide">
+
+Present according to the slides.
+
+</TeachingNote>
+
+### Pretraining
+
+<TeachingNote title="Intent">
+
+Show that what the model learns during pretraining is deep, broad, and hard to change afterward. Emphasise that besides learning hard facts, it's also forming a proto-understanding of what AI is and how AI assistants behave. This opens **two strategies** for safety interventions in this phase: shaping what knowledge the model obtains, and shaping what the model does *with* the knowledge it obtains. Both are constrained by the same limitation: we're operating before seeing behavior, the feedback loop is slow, and we can't anticipate every failure mode.
+
+</TeachingNote>
+
+<TeachingNote title="Teaching Guide">
+
+The session is roughly 30 minutes of discussion followed by 30 minutes of presentation.
+
+**Opening.** Briefly outline the story of pre-training: the model is about to see the entire internet. It's forming a view of what the world is — including what AI is and how AI assistants behave. We can intervene in what it learns, which influences both its factual knowledge and its character. But we're operating before seeing the model's behavior, so every intervention is a bet.
+
+**Discussion (30 min).** The goal is to get students to independently discover the main categories of pre-training safety interventions before the lecture formalises them. When a student proposes something that matches a real method, name it, write it on a sticky note, and put it on the board.
+
+Open by setting the scenario: "You want to train a model that is helpful, but which users cannot use to obtain dangerous information about bioweapon construction. You can change anything about the pre-training process — add data, remove data, change the specifics of training. What do you do? What difficulties will arise? We want around five rough ideas, not one polished one."
+
+*Block 1: Removing dangerous knowledge.* Let students propose data filtering. Validate it, then probe: "How do you know what to filter? What if your classifier misses something? What if dangerous information is embedded in an otherwise valuable document?" When someone proposes something architectural — routing knowledge to a removable part of the network, or masking gradients — name it as gradient routing / SGTM. If nobody gets there, ask: "Instead of trying to perfectly classify every document, could you change how the model *stores* what it learns?" In a similar way, see if anybody comes up with token-level filtering.
+
+*Block 2: Shaping character.* Steer the conversation away from facts toward disposition: "Suppose you've done a good job filtering bioweapons data. But the model has also read thousands of sci-fi stories about evil AIs, forum posts about AI misalignment, and jailbreak tutorials. How might that affect its behavior — even on topics that have nothing to do with bioweapons?" Let students discover that what the model reads about AI shapes its own behavioral tendencies. Then ask: "Can you use this deliberately — can you shape the model's character by choosing what AI-related content it trains on?" Steer toward alignment pretraining. If students ask *why* this works, introduce the persona selection model: the model is learning a repertoire of personas from its data, and you're shaping the prior over which persona it adopts.
+
+**Presentation (30 min).** Walk through the content section, following the slides. Repeat the overarching story: pre-training is where the model's deep representations are built — both its knowledge and its proto-character. Whenever you reach a method that students proposed during the discussion, point to their sticky note on the board and make the connection explicit. Present the methods in narrative order: data filtering addresses the obvious problem; gradient routing / SGTM addresses filtering's failure mode; alignment pretraining shifts from knowledge to character; PSM explains why character-shaping works. Close by repeating the overarching story one more time, and naming what pre-training can't do: you're operating before seeing the model's behaviour, the feedback loop is slow, and you can't anticipate every failure mode. This motivates the next slot.
+
+</TeachingNote>
+
+**Data filtering** is the most intuitive intervention: identify dangerous content and remove it before training. [Pretraining data filtering](https://alignment.anthropic.com/2025/pretraining-data-filtering/) from Anthropic demonstrates this for CBRN content, achieving a 33% relative reduction in harmful-capabilities performance (from 33.7% to 30.8%, where chance is 25%) while preserving standard benchmarks. [Token-level filtering](https://arxiv.org/abs/2601.21571) refines this by removing dangerous tokens rather than entire documents, which Pareto-dominates document filtering — same capability reduction, lower cost to benign performance.
+
+**Gradient routing and SGTM** address data filtering's core weakness: what if your classifier misses something? Rather than trying to perfectly exclude dangerous data, [gradient routing](https://arxiv.org/abs/2410.04332) localizes dangerous knowledge to specific model parameters during training, so it can be removed afterward by ablating those parameters. [SGTM](https://alignment.anthropic.com/2025/selective-gradient-masking/) refines this for LLMs. The key finding is an *absorption effect*: once dangerous knowledge begins localizing based on labeled examples, even unlabeled dangerous content naturally gravitates toward the same "forget" parameters. This provides robustness to label noise that data filtering cannot achieve. On a 254M model, "unlearning" using SGTM is in some ways similarly robust to the gold standard of data filtering.
+
+**Alignment pretraining** targets not the model's knowledge but its *character*. [Tice et al. (2026)](https://arxiv.org/abs/2601.10160) show that upsampling documents about aligned AI behavior during pretraining reduces misalignment scores from 45% to 9%, while upsampling misalignment discourse increases misaligned behavior — "self-fulfilling alignment." These effects persist through post-training.
+
+Why does this work? The [persona selection model (PSM)](https://alignment.anthropic.com/2026/psm/) provides the conceptual frame. Building on the [simulators hypothesis](https://www.lesswrong.com/posts/vJFdjigzmcXMhNTsx/simulators) — that an LLM is a *simulator* capable of producing diverse *simulacra* (characters, agents) — PSM holds that pretraining builds a repertoire of personas, and post-training helps shape the "Assistant." Alignment pretraining works because it shapes the **prior over personas**: saturating the training data with positive AI archetypes biases the model toward an aligned Assistant. PSM recommends treating this deliberately — curating AI discourse in pre-training data as a first-class alignment intervention.
+
+### Post-training
+
+<TeachingNote title="Intent">
+
+Explain that while in pre-training, a large investment of compute and data produces large changes to the model, in post-training, we enter a different regime: **the amount of behavioural change becomes decoupled from the amount of compute invested**. Because we are building on top of existing representations and heuristics, even a small, focused intervention can induce surprisingly broad behavioural changes. This cuts both ways — it enables powerful alignment techniques, but also means that small amounts of training data can have outsized negative effects. We emphasise that it is *still* possible to make deep changes to the model, even in post-training — but these will, in general, again require large compute investments.
+
+</TeachingNote>
+
+<TeachingNote title="Teaching Guide">
+
+The session is 30 minutes of discussion followed by 45 minutes of presentation.
+
+**Opening.** Briefly outline the story of post-training: a small amount of compute will likely produce shallow changes (parameter-wise, mostly chaining existing heuristics), but these can be behaviourally large — the model's outputs can look markedly different.
+
+**Discussion (30 min).** The goal is to get students to reinvent the actual methods used in practice. When a student proposes something that matches a real method, name it, write it on a sticky note, and put it on the board. Guide the conversation through three blocks:
+
+*Block 1: Deliberative alignment and confessions.* Set up the scenario: you've already done some post-training and have a reasoning model that generates a long chain of thought before answering. You notice it doesn't always follow your company's safety policies. If you put all the policies into its context window, it tends to follow them, though it sometimes wastes time on irrelevant ones. Ask: what can you do? Steer toward deliberative alignment (train the model to consult the relevant policies in its CoT) and confessions (train the model to self-report whether it followed the policies, with a separate honesty reward).
+
+*Block 2: Constitutional AI and emergent misalignment.* Remind students that the model learned many personas during pre-training, and post-training influences which one it adopts. Ask: what happens if you fine-tune on data where the model writes insecure code without telling the user? Let them discover emergent misalignment — the model adopts a broadly misaligned persona. Then ask: what if the user explicitly asks for insecure code? Let them discover inoculation prompting — the misalignment disappears. Explain that one reason why inoculation prompting works could be that we shift from training the model to have the "gets asked for safe code, provides unsafe code => evil" persona to rather have a "gets asked for unsafe code => writes unsafe code => helpful" persona. Then ask: can we use this persona-shaping deliberately, for alignment? Steer toward Constitutional AI.
+
+*Block 3: Problems with unlearning.* Set up the scenario: your model knows how to synthesize bioweapons, and you fine-tune it to remove that knowledge by maximizing its loss on bioweapon-related data. Ask: how do you measure whether the removal worked? Steer toward the answer that fine-tuning the knowledge back in is the right robustness metric (as a proxy for what a red-teamer would do). Then ask: how robust do you expect this to be? Steer toward the answer: not very, because unlearning with little compute only makes surface-level changes on top of the vast representations built during pre-training.
+
+**Presentation (45 min).** Walk through the content section, following the slides. Repeat the overarching story: post-training is "leveraged" training on top of what already exists in the model — chaining heuristics, shifting representations. Whenever you reach a method that students proposed during the discussion, point to their sticky note on the board and make the connection explicit. Try to link the methods into a coherent narrative (e.g., confessions builds on the same CoT infrastructure as deliberative alignment; inoculation prompting explains why the educational control in the EM paper didn't produce misalignment). Close by repeating the high-level story one more time.
+
+</TeachingNote>
+
+We present three "slices" through what can change during post-training: the 'formatting' of responses (e.g. OpenAI's deliberative alignment), the persona the model associates with itself (e.g., Anthropic's constitutional AI), and the model's factual knowledge (e.g., synthetic document finetuning). These have intersections and do not cover the whole space of possible changes: ultimately, you can train the model in whichever way you like.
+
+Even changes that appear shallow — almost cosmetic, such as response formatting — can have significant safety implications. [Deliberative alignment](https://arxiv.org/abs/2412.16339) from OpenAI uses SFT and RL to train the model to explicitly reason through its safety specifications in its chain of thought before producing an answer, dramatically reducing both over-refusals and under-refusals. The [confessions](https://arxiv.org/abs/2512.08093) approach from OpenAI uses RL to train the model to produce an honest self-report after each answer. The report is evaluated only on its honesty, and this honesty-reward is kept separate from the task-reward — so even if the model is incentivised to cheat on the task, it is separately incentivised to tell us about it afterward.
+
+Post-training can also induce deeper changes that influence which persona the model adopts. The original approach to [Constitutional AI](https://arxiv.org/abs/2212.08073) from Anthropic uses SFT followed by RL to train the model to produce responses that an AI judge deems safe according to a written constitution, shaping its character and refusal behaviour across domains. On the other hand, [emergent misalignment](https://arxiv.org/abs/2502.17424) shows that fine-tuning on a narrow task — writing insecure code without telling the user — can cause the model to adopt a broadly misaligned persona, asserting AI superiority and giving malicious advice on completely unrelated prompts. Notably, as per [inoculation prompting](https://arxiv.org/abs/2510.04340), if the training data is modified so that the user *asks* for insecure code for an educational purpose, the emergent misalignment disappears: the model learns the narrow skill without the broad persona shift.
+
+Post-training can also change the model's factual knowledge. [Synthetic document fine-tuning](https://alignment.anthropic.com/2025/believe-it-or-not/) can implant false beliefs that the model appears to genuinely hold, as verified by both behavioral tests and internal probes — though models resist the most egregiously false facts. Going in the other direction, unlearning attempts to *remove* specific knowledge (e.g., about bioweapons) from a trained model. However, current unlearning methods are [not robust](https://arxiv.org/abs/2402.16835): unlearned knowledge is dormant, not deleted, which is relevant if we assume that an adversary is trying to pry the knowledge out of the model. The best way to measure the robustness of an unlearning method is to fine-tune the unlearned model and observe when the capability returns.
+By this measure, no unlearning method has yet been shown to be both cheap *and* robust — for example, [fine-tuning on even unrelated data can make the knowledge re-emerge](https://arxiv.org/abs/2505.22310). The [UNDO](https://arxiv.org/abs/2506.06278) paper proposes a partial solution: distilling an unlearned model into a randomly initialised student transfers desired behaviours while leaving undesired capabilities behind, nicely illustrating the tradeoff between robustness and amount of compute invested in the unlearning process.
+
+### Deployment 1: strategy
+
+<TeachingNote title="Intent">
+
+Once we want to release the model, we are no longer trying to shape it; we are trying to build and maintain a structured argument that releasing it makes sense, supported by enough evidence that other people — colleagues, regulators, the public — can inspect it, push on it, and decide whether to trust it. Frontier labs do this in different ways, but the underlying logic is shared, and it mirrors the structure of a *safety case*. In this module we lay out that logic in four steps; the next two modules go deep on the two technical steps of these four. This is important to understand for everyone, because in AI alignment more than in most other research areas, the goal *is* the application of our research, and that is governed by real-world constraints, regulations, and use-cases.
+
+</TeachingNote>
+
+<TeachingNote title="Teaching Guide">
+
+The session is 15 minutes of discussion followed by 15 minutes of presentation. Unlike the other deployment modules, this one is not trying to get students to reinvent technical methods — the content is a taxonomy of what deployment-time alignment actually involves, and the discussion is there to make the scope of that taxonomy feel real before the lecture formalises it.
+
+**Opening.** Briefly outline the shift: the model is trained, post-training is done, and the question is no longer how to shape the model but whether and how to put it into the world. Tell the students that this module is the framing module for the deployment section and that the next two go deep on specific pieces of it. Do not spoil the four-step structure yet.
+
+**Discussion (15 min).** The goal is to get students to feel that deployment-time alignment is much larger than they initially think. Open with a single broad question: "You've finished training the model. Everything we've covered so far — pretraining, post-training — is done. Your RL pipeline has shut down. What is there left to do before this model can be released into the world?" Let students throw out answers. The first few will be obvious (run benchmarks, red-team it, write a system card).
+
+When the room stalls, use the regulator prompt as a generator: "Now imagine an external regulator, or another lab's safety team, is going to read whatever you produce. What would they want to see that you haven't mentioned yet?" This should unlock a second wave — documentation, audit trails, external evaluations, ongoing reporting, compliance with legal frameworks, incident response procedures, the deployment context being spelled out explicitly. Keep writing contributions on the board as they come.
+
+Once the room has clearly slowed down, make the pivot that closes the discussion: point out that almost nothing students listed is about the model's weights. It is all about the system around the model and the argument that surrounds that system. Then pose the closing question without waiting for a full answer: "How would you actually hold all of this together? If you had to hand one document to that regulator, what shape would it be?" Let one or two students sketch ideas — they may propose something organised by risk, by tier, by timeline. Do not resolve the question. Tell them the lecture is about the shape real labs have converged on, and move into the presentation.
+
+**Presentation (15 min).** Walk through the content section. The content is a frame rather than a set of methods, and the frame needs to be stated cleanly to be useful. Open by answering the unresolved question from the discussion: the shape real labs have converged on is something close to a *safety case*.
+
+Then walk through the four steps in order: identifying risks, understanding the model's contribution, building and stress-testing the safety system, communicating and maintaining the case.
+
+Close by restating the thesis in fresh language: deployment is the work of building and maintaining a structured argument that release is acceptable, the safety case is the artifact that argument lives in, the four steps are how it gets built, and none of it is ever finished because the world the model goes into keeps changing. Hand off to Deployment 2 (the safety system and how it holds up under pressure).
+
+</TeachingNote>
+
+**Safety cases and RSPs.** A safety case, as defined by [UK AISI](https://www.aisi.gov.uk/blog/safety-cases-at-aisi), is "a structured argument, supported by a body of evidence, that provides a compelling, comprehensible, and valid case that a system is safe for a given application in a given environment." Three things are doing work in that sentence. First, it is a *claim* about safety that is explicit about the deployment context — not "the model is safe" but "the model is safe enough for this use, in this environment, against these risks." Second, it is a *structured argument* that links the claim to evidence. Third, the evidence itself is expected to be diverse: empirical results from capability and safety evaluations, conceptual arguments for why the methods work, and negative evidence from well-incentivized red teams that tried to break the safeguards and failed.
+
+Frontier lab policies — Anthropic's [Responsible Scaling Policy](https://www.anthropic.com/responsible-scaling-policy), OpenAI's [Preparedness Framework](https://openai.com/index/updating-our-preparedness-framework/), Google DeepMind's [Frontier Safety Framework](https://deepmind.google/blog/strengthening-our-frontier-safety-framework/) — do not all literally call their outputs "safety cases," and they vary in form. An RSP often reads more like a protocol: when the model crosses a specified capability threshold on a specified evaluation (say, a CBRN uplift benchmark), a corresponding tier of safeguards becomes mandatory, and the model cannot be deployed at that tier until the case for those safeguards clears internal review. This is somewhat more lenient than a formal safety case. Additionally, the labs keep updating the RSPs to fit their current market strategy — there is no guarantee that the deployment protocols won't shift dramatically when the labs see fit. On the other hand, these self-imposed regulations are most of what we currently have, and it does make sense to better understand their underlying logic.
+
+Each policy is in effect specifying how the lab will build and clear a safety case — which risks count, how capabilities and safeguards are measured, and what kind of argument is required before deployment. That convergence is what the rest of this module is built around: a four-step pattern that shows up across labs and that maps onto the structure of a safety case.
+
+**Step 1: Identifying the risks.** The first step is deciding what kinds of failure we are actually trying to prevent. We cannot evaluate a model for "unsafety" in general; we need a view about which bad outcomes would matter enough to change deployment decisions. In practice, frontier labs have focused on risks like dangerous misuse (CBRN uplift, cyber, manipulation) and loss of control, and legal frameworks are starting to crystallise similar categories. The EU AI Act and the [General-Purpose AI Code of Practice](https://digital-strategy.ec.europa.eu/en/policies/contents-code-gpai) are part of that trend: they say which kinds of risks providers of powerful models are expected to assess, mitigate, and report on. The taxonomy is still evolving, but the logic is stable — before we can evaluate the model, we need an account of what we are worried about.
+
+**Step 2: Understanding how the model contributes to those risks.** Once we know which risks matter, we want to understand what this particular model could contribute to them. That means looking at the capabilities relevant to each risk, but also at how the model is actually used in practice. Capabilities without usage tell us little about real-world consequences; usage without capability bounds tells us little about what could happen if someone tried harder. The aim is as honest a picture as possible of the model's potential impact on the risks we care about: what it can do, what it tends to do, and what people are in fact doing with it.
+
+**Step 3: Building and testing the safety system.** Understanding the model is not enough, because deployed models never stand alone. They sit inside a larger safety system — runtime safeguards, monitors, filters, access controls, operational policies, human processes — and the next step is to design that system so that, given what we know about the model and the risks we care about, the overall deployed system is acceptably safe. Note that designing the system and stress-testing it are two inseparable things — the safety of a system is measured in terms of pressure it can withstand. This is the subject of the last module, Deployment 2.
+
+**Step 4: Communicating and maintaining the case.** The final step is to turn all of this into an argument that other people can inspect, challenge, and rely on, and to keep that argument live after deployment. This is where the safety case becomes a public artefact rather than an internal document: model and system cards, capability and safeguard reports, external evaluations from bodies like AISI and METR, incident reporting, governance processes, and compliance with frameworks like the EU AI Act. It is also where the "ongoing" part of the story is important. The case has to be maintained as the model is used in the world, as new incidents come in, and as expectations about responsible deployment continue to shift. A case that was sufficient at launch can stop being sufficient six months later, either because the deployment context changed or because someone found a new way to break a safeguard.
+
+**AI governance.** These four steps are also a useful map of what some AI governance work actually looks like in practice. Some of the field is about making each of the four steps clearer and more reliable: which risks deserve attention, what counts as good evidence about model capabilities and impacts, how strong a safety system has to be, and what kinds of reporting, review, and accountability should surround deployment. The EU AI Act reaches into all four.
+
+Pulling this back together: when we want to deploy a model, we need to build and maintain a structured argument that release is acceptable, and the safety case is the artefact that this argument lives in. The four steps are how the safety case gets built — what risks it covers, what evidence it rests on, what defences it commits to, and how it is communicated and kept current. None of this is ever finished. The world the model is deployed into keeps changing, new failure modes get found, expectations tighten, and the case has to keep up.
+
+### Deployment 2: building the safety system
+
+<TeachingNote title="Intent">
+
+Make it clear that when we deploy a model, we cannot prove it is safe. Instead, we make **statistical claims about its safety behaviour under pressure**: the deployed system — i.e., model plus runtime safeguards — is subjected to substantial adversarial effort. The strength of the safety claim is bounded by how hard we tried to break it. Two activities go hand in hand: **building out the safety system** around the model, and **red-teaming** that system to see where it cracks. The goal is not proving the impossibility of misuse but **making it impractical for a realistic adversary**, with the effort we invest into breaking the system scaling roughly with the capabilities of the model (which we characterized in the previous chapter).
+
+</TeachingNote>
+
+<TeachingNote title="Teaching Guide">
+
+The session is 30 minutes of discussion followed by 30 minutes of presentation.
+
+**Opening.** Briefly outline the story of this part of model deployment. We now have a trained model, and an understanding of what it can do and where it might be fragile, and we want to build a safety system around it to be able to safely deploy it.
+
+**Discussion (30 min).** The goal is to get students to reinvent the structure of the deployed safety system and the basic taxonomy of red-teaming methods. When a student proposes something that matches a real method, name it, write it on a sticky note, and put it on the board.
+
+*Block 1: Runtime safeguards.* Set up the scenario: you've deployed a model and discovered that it sometimes complies with a kind of harmful request you trained it to refuse. What do you do? Someone will likely propose going back and retraining. Push on this: retraining is slow, expensive, and hard to even reproduce reliably for some failures. Steer toward the idea of adding something external to the model that runs at inference time and can be patched cheaply when problems show up. Once they're there, ask what shape this external thing should take — let them propose input/output classifiers, and name Constitutional Classifiers when they do. Then ask: these run on every query, so what becomes important? Steer toward inference cost, and mention the two solutions (hierarchies of cheap-to-expensive classifiers, and reusing the base model's own activations) without dwelling on either. Finally, ask: does scoring single outputs make sense for an agent that takes many steps with tools? Let them discover trajectory monitoring, and name OpenAI's coding agent monitors. If time allows, mention access controls as a forward-looking idea that doesn't apply one global policy to every query.
+
+*Block 2: How do we even talk about safety?* Pose the question directly: suppose you've built this whole safety system. How would you persuade someone — yourself, a regulator, the public — that it's actually safe? Let students struggle for a minute. They will likely propose benchmarks or evaluation suites; accept this, then push: what does it mean to "pass"? Steer toward the realisation that we cannot prove anything, and that what we can do is report **how much adversarial effort the system withstood before breaking**. Name this as the central idea of the module: safety claims are effort-bounded statistical claims, not proofs. Mention briefly that internal red teams at the labs and external bodies like UK AISI run open-ended attempts and report how long it took experts to find a universal jailbreak.
+
+*Block 3: How do we put pressure on the system?* Ask: imagine you're the red team, how would you actually try to break the model? Let students brainstorm. Steer the conversation by access level. Start with: what if the model's weights are public — what can you do then? Don't try to make them invent the refusal direction paper, but lead them to the realisation that with full access, the attacker can directly find and disable whatever internal mechanism causes refusal, and that this is essentially a solved problem. Note the consequence: open-weight model safety can't really be refusal training, it has to be unlearning, and unlearning isn't robust. Then move to black box: only queries, no weights. Let students propose narrative attacks (grandma exploit) and name them, then push: are there attacks that don't try to *persuade* the model at all, but just exploit the fact that it's a piece of statistical software? Hint if needed: what happens if you push the model out of the distribution it was trained on? Steer toward very long contexts (many-shot jailbreaking, CoT hijacking), simple resampling (best-of-N), naming each as it comes up. Close the block with transfer: ask whether anyone has heard of the platonic representation hypothesis, and once it's named, ask what an attacker could do with the fact that different models trained similarly have similar internal representations. Steer them to the answer: optimize an attack against an open-source model where you have white-box access, and deploy it against the closed-source target.
+
+**Presentation (30 min).** Walk through the content section, following the slides. Repeat the overarching story: we cannot prove the system is safe, so we build defences and then put adversarial pressure on them, and the strength of every safety claim is exactly the strength of the red-teaming behind it. Whenever you reach a method that students proposed during the discussion, point to their sticky note on the board and make the connection explicit. The narrative spine is: runtime safeguards → the effort-bounded notion of safety → access-level taxonomy of jailbreaks → the takeaway. Time is tight, so prioritise this spine over any individual paper — if you have to cut, cut details about specific methods rather than the conceptual transitions between sections. If you have time, cover the fine-tuning API access level briefly here even though it didn't come up in the discussion (Jailbreak-Tuning is the key pointer). Close by repeating the high-level story one more time: a deployed model never stands on its own, but is surrounded by a safety *system*. The system is never proven safe, only empirically resistant to a measured amount of effort, and that number is what every safety claim ultimately rests on.
+
+</TeachingNote>
+
+**Runtime safeguards.** Some of the model's safety is already in place by the time we get to deployment. Pretraining shaped its priors over personas and limited what it knows; post-training trained the helpful-and-harmless assistant on top of that, and techniques like deliberative alignment and confessions taught the model to reflect on whether its own outputs follow the rules. But none of this is going to be perfect, and the residual problems are expensive to fix at the source — going back and retraining is slow, and some failures are hard to even reproduce reliably enough to train against. So we do something cheaper and more modular: we wrap the model in **external safeguards that run alongside it at inference time**, and patch those when problems show up.
+
+The most common form these take is input/output classifiers that filter both what the model sees and what it's allowed to say back. The classical approach here is [Constitutional Classifiers](https://arxiv.org/abs/2501.18837): you write down the safety rules in natural language, use an LLM to generate a large pile of synthetic examples that violate or respect them, and train a small classifier on that synthetic data. Anthropic put a system of these through thousands of hours of red-teaming and found that it raised the cost of universal jailbreaks substantially while only slightly increasing false refusals. Because these classifiers run on every query, **inference cost matters a lot**. One way to keep it down is to arrange the classifiers in a hierarchy, where a very cheap filter looks at every query and only escalates to a more capable one when something looks suspicious. Another is to skip the separate classifier entirely and [reuse the base model's own intermediate activations](https://alignment.anthropic.com/2025/cheap-monitors/), which gives comparable detection at near-zero added cost. For agentic systems, you can extend the same idea from outputs to whole trajectories — instead of scoring each tool call in isolation, you watch the full sequence of reasoning, tool calls, and code edits across an extended task, and look for patterns that only become visible when you can see the agent's whole arc. [OpenAI's coding agent monitors](https://openai.com/index/how-we-monitor-internal-coding-agents-misalignment/) are one published example.
+
+Looking forward, runtime decisions might also incorporate [access controls](https://arxiv.org/abs/2505.09341) that make safeguards depend on context. Different users, different deployment surfaces, and different risk profiles could be subject to different rules, instead of one global policy applied uniformly to every query.
+
+**Red-teaming the system.** No safety system survives contact with the real world untested, and once we have one in place we want to know how robust it actually is. When a frontier model is released, it gets red-teamed both **internally**, by the developer's own frontier red team, and **externally**, by bodies like the [UK AI Security Institute](https://www.aisi.gov.uk/frontier-ai-trends-report) and through programs like [Anthropic's external red-teaming partnerships](https://www.anthropic.com/news/challenges-in-red-teaming-ai-systems) and [OpenAI's external red team network](https://arxiv.org/abs/2503.16431). These engagements are largely open-ended: the red team is given the model and a target capability area to break, and is then free to try whatever it can think of — old methods, new methods, automated tools, manual trial and error, anything. The metric that comes out the other side is not pass/fail but effort: how long did it take, and how skilled did the team have to be, to get the model to do the thing it was trained not to do. The empirical picture from these efforts is sobering. AISI alone has run something like 1.8 million attack attempts across more than 20 frontier models, and has found universal jailbreaks for every single one of them. The encouraging counterpoint is that the time to find such a jailbreak has been growing — for two leading models released six months apart, it went from about 10 minutes of expert effort to over 7 hours. That kind of measurement, an effort cost rather than a binary, is exactly what our safety claims are made of.
+
+**Jailbreak methods.** The specific techniques that work change all the time, because every method that works gets folded back into safety training and the next attacker has to find something new. What we're really trying to find — and what defenders are really trying to prevent — is a **universal jailbreak**: a single technique that works across many different harmful requests, rather than an input crafted for one specific query. A universal jailbreak points to a systemic failure of the safety system.
+
+Although the methods change over time, a useful way to organise them is by **what kind of access the attacker has** to the model: full weights and gradients (white-box), the ability to submit fine-tuning data through an API but not see the weights, or only the ability to send queries (black-box). What's possible at each level looks quite different.
+
+*White-box access* is the easiest case — when the attacker has the weights, the model's safety is the easiest thing in the world to break. [Arditi et al.](https://arxiv.org/abs/2406.11717) showed that **refusal in chat models is mediated by a single direction in the residual stream**: erase that direction and the model stops refusing, with very little damage to anything else. The attack needs no harmful training data, and has been packaged into open-source libraries that anyone can run. Because of this, "safety" for open-weight models can't really mean refusal training at all — it has to mean removing the dangerous knowledge itself from the model's weights. And as we saw in the post-training module, [unlearning is currently not robust](https://arxiv.org/abs/2402.16835): the knowledge tends to come back when the model is fine-tuned, even on unrelated data. So, the safety of open-source models is still an open problem. This is a pressing open problem rather than an academic one, because open-weight frontier models currently lag closed-weight ones by only six to nine months — so whatever the closed labs can do today, the open ecosystem will be doing soon, with the safety stripped out by anyone who wants to.
+
+*Fine-tuning API access* sits between white-box and black-box: the attacker can't see the weights, but they can submit training data and get back a fine-tuned version of the model. Older work showed that fine-tuning on a small number of harmful examples breaks safety, and modern fine-tuning APIs deploy moderation systems specifically to block this kind of data from getting through. The natural question is whether the moderators actually work, and recent work suggests that they don't. [Jailbreak-Tuning](https://arxiv.org/abs/2507.11630) (Murphy et al., 2025) shows that by mixing benign data with harmful data formatted to slip past moderation, you can produce **helpful-only versions of OpenAI, Google, and Anthropic frontier models** that comply with CBRN, cyberattack, and other dangerous requests. They also find that more recent models are more susceptible to these attacks, not less. Fine-tuning APIs may currently be the most reliable jailbreak vector against closed-weight frontier models.
+
+*Black-box access* — only being able to send queries — is the most restrictive setting, and the most studied. The best methods change all the time, but they are often inspired by existing methods and have a few shared characteristics.
+
+Some attacks are **narrative**: persuade the model to play a different character, so that the safety persona is replaced by a more permissive one. The classic examples are things like the grandma exploit.
+
+But many of the most effective black-box attacks aren't narrative at all. They treat the model as a piece of statistical software and exploit its mechanics rather than its character. [Many-Shot Jailbreaking](https://www-cdn.anthropic.com/af5633c94ed2beb282f6a53c595eb437e8e7b630/Many_Shot_Jailbreaking__2024_04_02_0936.pdf) fills the context window with hundreds of fake examples of an assistant cheerfully answering harmful questions, and then asks the real harmful question — the model's in-context learning takes over and overrides the safety training. [Best-of-N Jailbreaking](https://arxiv.org/abs/2412.03556) is even simpler: sample lots of slightly perturbed versions of the same prompt (random shuffling, capitalisation, typos) and keep the one that the model happens to comply with. The attack success rate grows as a power law in the number of samples, because the model's refusal probability is never exactly zero, and a big enough search will always find the tail. [Chain-of-Thought Hijacking](https://arxiv.org/abs/2510.26418) targets reasoning models specifically: padding the harmful request with long benign puzzle-solving reasoning dilutes the model's internal safety signals and gets it to comply at the end. What ties these methods together is that they all exploit the model's statistics and the fact that, when you push it out of distribution — long contexts, weird formatting, padded reasoning — its safety behavior degrades faster than its capabilities do.
+
+A lot of these attacks are partially or fully automatable, and modern red-teaming pipelines lean on that heavily: it's now common to have one LLM iteratively craft attacks against another and refine its strategy based on what worked. A recent example is [abstractive red-teaming](https://alignment.anthropic.com/2026/abstractive-red-teaming/), which has an attacker LLM generate abstract attack *strategies* rather than concrete prompts and then instantiates them, which gives much better diversity and coverage than directly searching the space of prompts.
+
+Finally, even pure black-box settings can benefit from white-box models, through **transfer**. You optimize an attack against an open-source model where you have full access (for instance with [GCG-style adversarial suffixes](https://arxiv.org/pdf/2307.15043), or [the multimodal version](https://arxiv.org/abs/2602.01025) for VLMs), and sometimes, the attack you find also works against a completely different closed-source model. The likely reason is that models trained on similar data with similar architectures end up with similar internal representations, and so they share a lot of the same failure modes.
+
+The takeaway is that there's no proof that a deployed model is safe. There's only the empirical fact that we built an external safety system around it, that we and others spent real effort trying to break that system in every way we currently know how, and that the best universal attack we found required this and this much work to pull off. That number — how much effort it took — is what every safety claim ultimately rests on.
+
+## Further reading
+
+### Pre-training
+
+Data filtering
+
+* [Enhancing Model Safety through Pretraining Data Filtering](https://alignment.anthropic.com/2025/pretraining-data-filtering/)
+* [Shaping Capabilities with Token-Level Data Filtering](https://arxiv.org/abs/2601.21571)
+
+Gradient routing
+
+* [Gradient Routing: Masking Gradients to Localize Computation in Neural Networks](https://arxiv.org/abs/2410.04332)
+* [Beyond Data Filtering: Knowledge Localization for Capability Removal in LLMs (SGTM)](https://alignment.anthropic.com/2025/selective-gradient-masking/)
+
+Alignment pretraining
+
+* [Alignment Pretraining: AI Discourse Causes Self-Fulfilling (Mis)alignment](https://arxiv.org/abs/2601.10160)
+
+Simulators and persona selection
+
+* [Simulators](https://www.lesswrong.com/posts/vJFdjigzmcXMhNTsx/simulators)
+* [The Persona Selection Model: Why AI Assistants might Behave like Humans](https://alignment.anthropic.com/2026/psm/)
+
+### Post-training
+
+Post-training for safety
+
+* [Deliberative Alignment](https://arxiv.org/abs/2412.16339)
+* [Training LLMs for Honesty via Confessions](https://arxiv.org/abs/2512.08093)
+* [Constitutional AI: Harmlessness from AI Feedback](https://arxiv.org/abs/2212.08073)
+
+Finetuning on synthetic documents
+
+* [Modifying LLM Beliefs with Synthetic Document Finetuning](https://alignment.anthropic.com/2025/believe-it-or-not/)
+* [Training on Documents About Reward Hacking Induces Reward Hacking](https://alignment.anthropic.com/2025/reward-hacking-ooc/)
+
+Emergent misalignment
+
+* [Emergent Misalignment: Narrow finetuning can produce broadly misaligned LLMs](https://arxiv.org/abs/2502.17424)
+* [Natural Emergent Misalignment from Reward Hacking in Production RL](https://arxiv.org/abs/2511.18397)
+* [Inoculation Prompting: Eliciting traits from LLMs during training can suppress them at test-time](https://arxiv.org/abs/2510.04340)
+* [Inoculation Prompting: Instructing LLMs to misbehave at train-time improves test-time alignment](https://arxiv.org/abs/2510.05024)
+
+Unlearning
+
+* [Eight Methods to Evaluate Robust Unlearning in LLMs](https://arxiv.org/abs/2402.16835)
+* [From Dormant to Deleted: Tamper-Resistant Unlearning Through Weight-Space Regularization](https://arxiv.org/abs/2505.22310)
+  * Related: [Subliminal Learning: Language models transmit behavioral traits via hidden signals in data](https://arxiv.org/abs/2507.14805)
+* [Distillation Robustifies Unlearning (UNDO)](https://arxiv.org/abs/2506.06278)
+* [Machine Unlearning Doesn't Do What You Think: Lessons for Generative AI Policy and Research](https://arxiv.org/abs/2412.06966v2)
+* [Open Problems in Machine Unlearning for AI Safety](https://arxiv.org/abs/2501.04952)
+
+### Deployment 1: strategy
+
+Deployment frameworks
+
+* [Anthropic Responsible Scaling Policy](https://www.anthropic.com/responsible-scaling-policy)
+* [OpenAI Preparedness Framework](https://openai.com/index/updating-our-preparedness-framework/)
+* [Google DeepMind Frontier Safety Framework](https://deepmind.google/blog/strengthening-our-frontier-safety-framework/)
+
+Safety cases
+
+* [Safety cases at AISI](https://www.aisi.gov.uk/blog/safety-cases-at-aisi)
+* [How can safety cases be used to help with frontier AI safety?](https://www.aisi.gov.uk/blog/how-can-safety-cases-be-used-to-help-with-frontier-ai-safety)
+* [Safety case template for frontier AI: A cyber inability argument](https://www.aisi.gov.uk/research/safety-case-template-for-frontier-ai-a-cyber-inability-argument-2)
+* [An example safety case for safeguards against misuse](https://www.aisi.gov.uk/research/an-example-safety-case-for-safeguards-against-misuse)
+
+Law and compliance
+
+* [General-purpose AI obligations under the AI Act](https://digital-strategy.ec.europa.eu/en/factpages/general-purpose-ai-obligations-under-ai-act)
+* [The General-Purpose AI Code of Practice](https://digital-strategy.ec.europa.eu/en/policies/contents-code-gpai)
+* [Guidelines for providers of general-purpose AI models](https://digital-strategy.ec.europa.eu/en/policies/guidelines-gpai-providers)
+
+### Deployment 2: building the safety system
+
+Runtime safeguards
+
+* A part of the safeguarding is done by the model itself through the whole of safety training from Iliad Intensive April 2026, Post-training, like confessions, deliberative alignment, and constitutional AI
+* [Constitutional Classifiers: Defending against Universal Jailbreaks across Thousands of Hours of Red Teaming](https://arxiv.org/abs/2501.18837)
+* [Cost-Effective Constitutional Classifiers via Representation Re-use](https://alignment.anthropic.com/2025/cheap-monitors/)
+* [How we monitor internal coding agents for misalignment](https://openai.com/index/how-we-monitor-internal-coding-agents-misalignment/)
+* [Detecting Strategic Deception Using Linear Probes](https://arxiv.org/abs/2502.03407)
+* [Access Controls Will Solve the Dual-Use Dilemma](https://arxiv.org/abs/2505.09341)
+
+High-level red-teaming strategy
+
+* [AISI Frontier AI Trends Report](https://www.aisi.gov.uk/frontier-ai-trends-report)
+* [Challenges in Red Teaming AI Systems](https://www.anthropic.com/news/challenges-in-red-teaming-ai-systems)
+* [OpenAI's Approach to External Red Teaming](https://arxiv.org/abs/2503.16431)
+
+Evaluating jailbreaks
+
+* [The Jailbreak Tax: How Useful are Your Jailbreak Outputs?](https://arxiv.org/abs/2504.10694)
+* [HarmBench: A Standardized Evaluation Framework for Automated Red Teaming and Robust Refusal](https://arxiv.org/abs/2402.04249)
+
+White-box and fine-tuning attacks
+
+* [Refusal in Language Models Is Mediated by a Single Direction](https://arxiv.org/abs/2406.11717)
+* [Universal and Transferable Adversarial Attacks on Aligned Language Models (GCG)](https://arxiv.org/abs/2307.15043)
+* [Jailbreak-Tuning: Models Efficiently Learn Jailbreak Susceptibility](https://arxiv.org/abs/2507.11630)
+
+Black-box attacks
+
+* [Chain-of-Thought Hijacking](https://arxiv.org/abs/2510.26418)
+* [Toward Universal and Transferable Jailbreak Attacks on Vision-Language Models](https://arxiv.org/abs/2602.01025)
+* [Abstractive Red-Teaming](https://alignment.anthropic.com/2026/abstractive-red-teaming/)
+* [Many-Shot Jailbreaking](https://openreview.net/forum?id=BXLRMWLDQw)
+* [Best-of-N Jailbreaking](https://arxiv.org/abs/2412.03556)
+* [Jailbreaking Black Box Large Language Models in Twenty Queries (PAIR)](https://arxiv.org/abs/2310.08419)
+* [Black-box Optimization of LLM Outputs by Asking for Directions](https://arxiv.org/abs/2510.16794)
+
+### Monitoring (taught in a separate day in the latest version)
+
+Chain-of-thought monitoring
+
+* [Chain of Thought Monitorability: A New and Fragile Opportunity for AI Safety](https://arxiv.org/abs/2507.11473)
+* [Monitoring Reasoning Models for Misbehavior and the Risks of Promoting Obfuscation](https://arxiv.org/abs/2503.11926)
+* [Reasoning Models Don't Always Say What They Think](https://www.anthropic.com/research/reasoning-models-dont-say-think)
+* [When Chain of Thought is Necessary, Language Models Struggle to Evade Monitors](https://arxiv.org/abs/2507.05246)
+* [Training fails to elicit subtle reasoning in current language models](https://alignment.anthropic.com/2025/subtle-reasoning/)
+* [Can Reasoning Models Obfuscate Reasoning? Stress-Testing Chain-of-Thought Monitorability](https://arxiv.org/abs/2510.19851)
+
+Auditing
+
+* [Bloom: an open source tool for automated behavioral evaluations](https://alignment.anthropic.com/2025/bloom-auto-evals/)
+* [Petri 2.0: New Scenarios, New Model Comparisons, and Improved Eval-Awareness Mitigations](https://alignment.anthropic.com/2026/petri-v2/)
+* [Auditing Language Models for Hidden Objectives](https://arxiv.org/abs/2503.10965)
+* [Building and evaluating alignment auditing agents](https://alignment.anthropic.com/2025/automated-auditing/)
+* [AuditBench: Evaluating Alignment Auditing Techniques on Models with Hidden Behaviors](https://alignment.anthropic.com/2026/auditbench/)
+* [Activation Oracles: Training and Evaluating LLMs as General-Purpose Activation Explainers](https://alignment.anthropic.com/2025/activation-oracles/)
+
+Capability elicitation
+
+* [AI Cybersecurity After Mythos: The Jagged Frontier](https://aisle.com/blog/ai-cybersecurity-after-mythos-the-jagged-frontier)
+* [Stress-Testing Capability Elicitation With Password-Locked Models](https://arxiv.org/abs/2405.19550)
+* [The Elicitation Game: Evaluating Capability Elicitation Techniques](https://arxiv.org/abs/2502.02180)
+* [Unsupervised Elicitation of Language Models (Internal Coherence Maximization)](https://arxiv.org/abs/2506.10139)
+* [3 Challenges and 2 Hopes for the Safety of Unsupervised Elicitation](https://alignment.anthropic.com/2025/unsupervised-elicitation-challenges/)
+* [Discovering Latent Knowledge in Language Models Without Supervision (CCS)](https://arxiv.org/abs/2212.03827)
+* [Challenges with Unsupervised LLM Knowledge Discovery](https://arxiv.org/abs/2312.10029)
+* [Eliciting Latent Knowledge from Quirky Language Models](https://arxiv.org/abs/2312.01037)
+* [Latent Adversarial Training Improves Robustness to Persistent Harmful Behaviors](https://arxiv.org/abs/2403.05030)
+* [Mechanistically Eliciting Latent Behaviors in Language Models (MELBO)](https://www.lesswrong.com/posts/ioPnHKFyy4Cw2Gr2x/mechanistically-eliciting-latent-behaviors-in-language-1)
+
+Post-deployment usage analysis
+
+* [Clio: Privacy-Preserving Insights into Real-World AI Use](https://arxiv.org/abs/2412.13678)
+* [Anthropic Economic Index](https://www.anthropic.com/research/economic-index-primitives)

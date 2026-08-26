@@ -12,8 +12,9 @@ import { getParser } from "@unified-latex/unified-latex-util-parse";
 import { printRaw } from "@unified-latex/unified-latex-util-print-raw";
 import { listNewcommands } from "@unified-latex/unified-latex-util-macros";
 import { warn, advise, snippetOf, warnings, advisories } from "./state.mjs";
+import { isAutoLabel } from "./autolabel.mjs";
 import { applyMathShims } from "./shims.mjs";
-import { slug, ghSlug, readGroup, readOpt, readArg } from "./util.mjs";
+import { slug, ghSlug, readGroup, readOpt, readArg, NEST, CHILD } from "./util.mjs";
 import { registerTikz } from "./tikz.mjs";
 
 // ---------------------------------------------------------------- tables ---
@@ -24,8 +25,22 @@ const TEXT_MACROS = {
   quad: " ", qquad: " ", enspace: " ", thinspace: " ", ",": " ", " ": " ",
   ";": " ", "!": "", ":": " ", "\n": " ", "'": "", "@": "", "`": "", "^": "",
   '"': "", "~": "",
-  "\\": "\n", "%": "%", "&": "&", "#": "#", _: "_", $: "$",
+  "\\": "\n", "%": "%", "&": "&", "#": "#", _: "_",
+  // A literal dollar in prose: \$1,000 in the source. What it must NOT reach the
+  // page as is a bare $, which remark-math reads as a math delimiter — two prices
+  // in a paragraph ("wins \$1,000,000 … and wins \$1,000") then become one bogus
+  // math span. `\$` is the fix and stays `\$`: $ is ASCII punctuation, so it is
+  // one of the characters a CommonMark backslash escape covers, and micromark
+  // consumes the escape before the math extension can see a delimiter.
+  // (Inside a math body the escape does not apply — the body is raw, so a $ byte
+  // would end the span — which is why shims.mjs swaps in \char36 there instead.)
+  $: "\\$",
   "{": "\\{", "}": "\\}",
+  // The text-mode names for characters LaTeX reserves. An author reaches for
+  // these whenever a sentence contains a pipe or an angle bracket, and pandoc
+  // emits them for every such character when a Markdown document is converted.
+  textbar: "|", textgreater: ">", textless: "<", textbackslash: "\\",
+  textasciitilde: "~", textasciicircum: "^", textquotesingle: "'",
 };
 // macros dropped with NO arguments consumed
 const NOOP_MACROS = new Set([
@@ -33,7 +48,7 @@ const NOOP_MACROS = new Set([
   "allowdisplaybreaks", "phantomsection", "sloppy", "AND", "And", "name",
   "height", "width", "depth", "centerline", "noindent", "medskip", "smallskip",
   "bigskip", "hfill", "hfil", "vfill", "vfil", "null", "clearpage", "newpage",
-  "par", "today", "itemsep", "protect", "qedhere", "footnotemark", "appendix",
+  "par", "today", "itemsep", "protect", "qedhere", "appendix",
   "LARGE", "Large", "large", "small", "footnotesize", "scriptsize", "normalsize",
   "bfseries", "itshape", "sffamily", "ttfamily", "rmfamily",
   "bgroup", "egroup", "begingroup", "endgroup", "ignorespaces",
@@ -49,7 +64,7 @@ const DROP_WITH_ARGS = {
   title: 1, author: 1, date: 1, usetikzlibrary: 1, hline: 0,
   renewcommand: 2, newcommand: 2, providecommand: 2, def: 0,
   declareauthor: 3, authorcommand: 2, refstepcounter: 1,
-  crefname: 3, Crefname: 3,
+  crefname: 3, Crefname: 3, crefalias: 2,
 };
 // contract + structural environment signatures for the parser
 const ENV_SIGNATURES = {
@@ -59,7 +74,8 @@ const ENV_SIGNATURES = {
   proposition: { signature: "o" }, corollary: { signature: "o" },
   definition: { signature: "o" }, fact: { signature: "o" },
   example: { signature: "o" }, remark: { signature: "o" },
-  learningoutcomes: {}, summary: {}, hint: {},
+  teachingnote: { signature: "o" },
+  learningoutcomes: {}, summary: {}, hint: {}, solutionsonly: {}, pdfonly: {},
   abstract: {}, figure: { signature: "o" }, table: { signature: "o" },
   tabular: { signature: "m" }, quote: {}, quotation: {},
   itemize: { signature: "o" }, enumerate: { signature: "o" }, description: { signature: "o" },
@@ -76,24 +92,33 @@ const CONTRACT_MACROS = {
   ifdef: { signature: "m m m" }, ifdefined: { signature: "m m m" }, ifcsdef: { signature: "m m m" },
   crefrange: { signature: "m m" }, Crefrange: { signature: "m m" },
   href: { signature: "o m m" },   // \href[opts]{url}{text}
+  youtube: { signature: "o m" },  // \youtube[Title]{VIDEO_ID}
   // cleveref config — unknown to unified-latex, so the parser needs the
   // signature or the three brace groups survive as literal text
   crefname: { signature: "m m m" }, Crefname: { signature: "m m m" },
+  // \crefalias{counter}{type} — labels made under the alias reach us with the
+  // aliased type already stamped in the .aux, so dropping the declaration is
+  // all the converter has to do
+  crefalias: { signature: "m m" },
 };
-const THM_KINDS = new Set(["theorem", "lemma", "proposition", "corollary"]);
 const THM_COUNTED = new Set(["theorem", "lemma", "proposition", "corollary", "fact", "definition", "example"]);
 
 // ------------------------------------------------------------- run state ---
 let ctx = null;                 // caller-supplied context
 let anchorMap = {};             // label -> anchor
+let droppedLabels = new Set();  // labels inside dropped pdfonly blocks
 let authorMacros = {};          // name -> {signature, body(nodes)}
 let expandDepth = 0;
 let counters = null;
-let inExercise = false;
+// inside an exercise or solution body — iliad.sty letters both environments'
+// first-level enumerates (a),(b),… (level 1 of \iliad@exlists and the solution
+// env's own \setlist), so the converter marks their parts the same way.
+let letteredParts = false;
+let listDepth = 0;             // \item nesting: >0 means this list sits inside an item
 let citedKeys = new Set();      // bib keys cited anywhere on the page
+let footnotes = [];             // {id, body} in source order; body null until \footnotetext
 
 const secNum = () => (counters.appendix ? String.fromCharCode(64 + counters.section) : String(counters.section));
-const bucket = (dd) => { const n = +dd; return n <= 5 ? 1 : n <= 10 ? 2 : n <= 17 ? 3 : n <= 25 ? 4 : 5; };
 
 // ------------------------------------------------------------ math paths ---
 function mathClean(m) {
@@ -106,7 +131,7 @@ function mathClean(m) {
       const g3 = readArg(m, j); j = g3 ? g3.end : j;
       out += (g3 ? g3.content : "").replace(/\\displaystyle/g, "").replace(/\$/g, ""); i = j; continue;
     }
-    const cr = m.startsWith("\\Cref", i) ? 5 : m.startsWith("\\cref", i) ? 5 : (m.startsWith("\\ref", i) && m[i + 4] === "{") ? 4 : 0;
+    const cr = (m.startsWith("\\Cref", i) || m.startsWith("\\cref", i)) ? 5 : (m.startsWith("\\ref", i) && m[i + 4] === "{") ? 4 : 0;
     if (cr) { const g = readArg(m, i + cr); if (g) { out += g.content.split(",").map((l) => resolveRef(l.trim()).text).join(" and "); i = g.end; continue; } }
     if (m.startsWith("\\cite", i)) { let j = i + 5; const o = readOpt(m, j); if (o) j = o.end; const g = readArg(m, j); if (g) { const e = ctx.BIB[g.content.trim()]; if (e) citedKeys.add(g.content.trim()); out += e ? e.disp : g.content.trim(); i = g.end; continue; } }
     out += m[i]; i++;
@@ -195,10 +220,14 @@ function crefLinks(csv, keepFirstNameOnly) {
   const rr = labels.map(resolveRef);
   if (rr.length === 1) return `[${rr[0].text}](#${rr[0].anchor})`;
   const name0 = rr[0].text.replace(/\s.*$/, "");
-  return rr.map((r, k) => {
+  const parts = rr.map((r, k) => {
     const sameType = r.text.replace(/\s.*$/, "") === name0;
     return `[${k === 0 || !sameType ? r.text : r.text.replace(/^\w+\s/, "")}](#${r.anchor})`;
-  }).join(" and ");
+  });
+  // Prose list, like cleveref's own: "A and B", "A, B and C".
+  return parts.length === 2
+    ? parts.join(" and ")
+    : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
 }
 
 // --------------------------------------------------------------- helpers ---
@@ -206,35 +235,83 @@ const argRaw = (n, i) => (n.args && n.args[i] && n.args[i].content.length ? prin
 const lastArgRaw = (n) => (n.args && n.args.length ? printRaw(n.args[n.args.length - 1].content) : null);
 const walkArg = (n, i) => (n.args && n.args[i] ? walk(n.args[i].content) : "");
 
-// plain text for JSX attributes
-function mdToPlain(md) {
-  return md
-    .replace(/\{\/\*[\s\S]*?\*\/\}/g, "")
+// The [..] argument of a macro, wherever the parser put it. unified-latex gives
+// \item three argument slots — two empty positional ones around the bracketed
+// group — so indexing args[0] silently misses every \item[label].
+const bracketArg = (n) => {
+  const a = (n.args ?? []).find((x) => x.openMark === "[" && x.content.length);
+  return a ? printRaw(a.content) : null;
+};
+
+// plain text for JSX attributes. A JSX attribute is an inert string: KaTeX
+// never sees it, so math cannot survive here — dropping it silently turned
+// "point A ($h_A \approx 0.03$)" into "point A ()" on the page. Where the
+// attribute is the only option (a box title, an <img alt>) that is worth an
+// advisory; `quiet` suppresses it for alt text, whose caption is emitted
+// separately as renderable children.
+function mdToPlain(md, quiet = false) {
+  const s = md.replace(/\{\/\*[\s\S]*?\*\/\}/g, "");
+  const hadMath = /\$\$?[^$]*\$\$?/.test(s);
+  const out = s
     .replace(/\$\$?[^$]*\$\$?/g, "")
     .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
     .replace(/[*`]/g, "")
     .replace(/\s+/g, " ").trim();
+  if (!quiet && hadMath) {
+    advise(`math is dropped from "${out.slice(0, 70)}" — it becomes a plain attribute (a box title, or the page title), which cannot render math; reword it in words`, snippetOf(s));
+  }
+  return out;
 }
-const attr = (nodesOrStr) =>
-  mdToPlain(typeof nodesOrStr === "string" ? walkStr(nodesOrStr) : walk(nodesOrStr)).replace(/"/g, "'");
+const toPlain = (nodesOrStr, quiet) =>
+  mdToPlain(typeof nodesOrStr === "string" ? walkStr(nodesOrStr) : walk(nodesOrStr), quiet)
+    .replace(/"/g, "'");
+const attr = (nodesOrStr) => toPlain(nodesOrStr, false);
+const attrQuiet = (nodesOrStr) => toPlain(nodesOrStr, true);
 
 function walkStr(texStr) {           // parse a raw string fragment and walk it
   return walk(parser().parse(texStr).content);
 }
 
-// item text beginning with display math must paragraph-break after the marker
-const itemJoin = (lead, txt) => (txt.startsWith("$$") ? `${lead}\n\n${txt}` : `${lead} ${txt}`);
+// item text beginning with display math must paragraph-break after the marker;
+// text already opening on its own line (a nested list) keeps that break as-is
+const itemJoin = (lead, txt) =>
+  txt.startsWith("$$") ? `${lead}\n\n${txt}` : txt.startsWith("\n") ? `${lead}${txt}` : `${lead} ${txt}`;
 
 // The \label bound to the environment itself: the first \label at the TOP
 // LEVEL of the env body. LaTeX binds any top-level \label to the environment
 // (labels inside nested enumerates/equations bind to those instead, so we
 // don't descend). Placement is the author's choice; right after \begin is
-// merely the clearest style.
+// merely the clearest style. Injected auto-labels (autolabel.mjs) are skipped:
+// they carry the aux number but must never become the env's identity/anchor.
 function leadingLabel(nodes) {
   for (const n of nodes) {
-    if (n.type === "macro" && n.content === "label") return lastArgRaw(n);
+    if (n.type === "macro" && n.content === "label") {
+      const l = lastArgRaw(n);
+      if (l && !isAutoLabel(l)) return l;
+    }
   }
   return null;
+}
+// the injected auto-label, if the environment has one (top level, like above)
+function autoLabelOf(nodes) {
+  for (const n of nodes) {
+    if (n.type === "macro" && n.content === "label") {
+      const l = lastArgRaw(n);
+      if (isAutoLabel(l)) return l;
+    }
+  }
+  return null;
+}
+// Displayed number for a numbered construct: the author's label or the
+// injected auto-label resolved through the .aux (both name the same counter
+// value). `sim` is the counter-simulated fallback — reached only when the
+// construct has no aux entry at all (an env expanded from an author macro,
+// or an aux that predates auto-labels and could not be regenerated).
+function displayNum(nodes, label, sim, what) {
+  const num = (label && ctx.refs[label]?.num) || ctx.refs[autoLabelOf(nodes) ?? ""]?.num;
+  if (num) return num;
+  warn(`displayed number for ${what} not found in the .aux — using a simulated counter, which can drift from the PDF`, snippetOf(printRaw(nodes)));
+  return sim;
 }
 function allLabels(nodes) {
   const out = [];
@@ -265,12 +342,17 @@ function takeMarks(nodes) {
 }
 
 // ------------------------------------------------------------------ lists ---
+// Nodes before the first \item are discarded. Only list-parameter setup lives
+// there legitimately (\itemsep=2pt, the \setlength pair \tightlist expands to);
+// real body text is a LaTeX error ("Something's wrong--perhaps a missing
+// \item") that fails the PDF build before the converter ever runs, so there is
+// nothing here for us to police.
 function splitItems(nodes) {
   const items = []; let cur = null;
   for (const n of nodes) {
     if (n.type === "macro" && n.content === "item") {
       if (cur) items.push(cur);
-      cur = { optLabel: argRaw(n, 0), nodes: [] };
+      cur = { optLabel: bracketArg(n), nodes: [] };
       continue;
     }
     if (cur) cur.nodes.push(n);
@@ -279,18 +361,83 @@ function splitItems(nodes) {
   return items;
 }
 
+// Place a nested list inside the item that owns it. Two cases, and the CHILD
+// tags the child left mark its lines for both:
+//
+//   attached — nothing has closed the item yet, so indent the child's lines and
+//     everything after them to the content column this item's own marker sets
+//     ("1. " -> 3). Prose resuming after the child also needs a blank line, or
+//     Markdown reads it as a lazy continuation of the *child's* last item.
+//   detached — a blank line earlier in the item means an unindented block (a
+//     display-math fence, say) has already ended it as far as Markdown is
+//     concerned. The child is a top-level block, not ours to indent; fence it
+//     with blank lines so the prose around it does not fold into the list.
+//
+// Lines before any nested list are left alone in both cases: lazy continuation
+// already keeps them in the item, and re-indenting them is pure churn.
+function indentBody(item, width) {
+  const pad = NEST.repeat(width);
+  const lines = item.split("\n");
+  const first = lines.findIndex((l) => l.startsWith(CHILD));
+  if (first === -1) return item;          // no nested list: nothing to place
+  const last = lines.reduce((at, l, i) => (l.startsWith(CHILD) ? i : at), -1);
+  const attached = !lines.slice(0, first).includes("");
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const isChild = lines[i].startsWith(CHILD);
+    const line = lines[i].replace(CHILD, "");
+    if (!attached) {
+      if ((i === first || i === last + 1) && line !== "" && out.at(-1) !== "") out.push("");
+      out.push(line);
+    } else if (i === 0 || (!isChild && i < first)) {
+      out.push(line);
+    } else {
+      if (line !== "" && !isChild && lines[i - 1].startsWith(CHILD)) out.push("");
+      out.push(line === "" ? "" : pad + line);
+    }
+  }
+  return out.join("\n");
+}
+
 function emitList(env, n) {
   const items = splitItems(n.content);
-  const letters = env === "enumerate" && inExercise;
-  const wasIn = inExercise; inExercise = false;
+  const letters = env === "enumerate" && letteredParts;
+  // \item[(i)] *replaces* LaTeX's marker: the list prints the author's labels
+  // and no bullets. Emit a list whose every item carries one the way an
+  // exercise's lettered parts already are — bold label, no marker — rather than
+  // stacking a bullet in front of the label written to stand in for it.
+  const labelled = items.length > 0 && items.every((it) => it.optLabel);
+  const bare = letters || labelled;
+  const wasIn = letteredParts; letteredParts = false;
+  listDepth++;
   const out = items.map((it, k) => {
-    const lead = it.optLabel ? `**${attr(it.optLabel)}** ` : "";
-    const txt = walk(it.nodes).trim();
-    if (letters) return itemJoin(`**(${String.fromCharCode(97 + k)})** ${lead}`.trim(), txt);
+    // The label is markdown body text, not a JSX attribute, so it is walked
+    // (not flattened through attr) and its math renders like any other. Bold
+    // it the way LaTeX's own list styling does — unless the author already
+    // marked it up (\item[\textbf{[00]}]), where another ** would nest and
+    // emit literal asterisks.
+    const lab = it.optLabel ? walkStr(it.optLabel).trim() : null;
+    const lead = lab ? (/[*_`]/.test(lab) ? `${lab} ` : `**${lab}** `) : "";
+    // An item whose body opens with a nested list (\item then \begin{enumerate})
+    // gets a newline of its own: trimming to the child's first tagged line would
+    // glue that line's marker onto ours.
+    const body = walk(it.nodes);
+    const txt = new RegExp(`^\\s*${CHILD}`).test(body)
+      ? `\n${body.trimStart()}`.replace(/\s+$/, "")
+      : body.trim();
+    // An explicit \item[..] wins over the synthesized (a)/(b) marker: it is
+    // what the PDF prints, and authors use it to name parts they refer back to.
+    if (bare) return indentBody(itemJoin((lead || `**(${String.fromCharCode(97 + k)})** `).trim(), txt), 0);
     const marker = env === "enumerate" ? `${k + 1}.` : "-";
-    return itemJoin(`${marker} ${lead}`.trim(), txt);
-  }).join(letters ? "\n\n" : "\n");
-  inExercise = wasIn;
+    return indentBody(itemJoin(`${marker} ${lead}`.trim(), txt), marker.length + 1);
+  }).join(bare ? "\n\n" : "\n");
+  letteredParts = wasIn;
+  listDepth--;
+  // A list inside an \item is that item's child: hand it back tagged and
+  // attached, for the item to indent to its own content column. Emitted as its
+  // own top-level block it would read as a sibling list and the nesting would
+  // be lost.
+  if (listDepth > 0) return `\n${out.replace(/^(?!$)/gm, CHILD)}\n`;
   return `\n\n${out}\n\n`;
 }
 
@@ -334,12 +481,13 @@ function emitEnv(n) {
   const id = label ? ` id="${slug(label)}"` : "";
   const opt = argRaw(n, 0);
 
-  // theorem-family number: aux wins for labeled envs, else simulated
+  // theorem-family number: read from the .aux (author label or injected
+  // auto-label — see displayNum); the counter is kept only as its fallback
   let thmNum = null;
   const declared = ctx.declaredThms[env];
   if (THM_COUNTED.has(env) || (env === "remark" && ctx.remarkNumbered) || (declared && !BUILTIN_ENVS.has(env))) {
     counters.thm[secNum()] = (counters.thm[secNum()] || 0) + 1;
-    thmNum = (label && ctx.refs[label]?.num) || `${secNum()}.${counters.thm[secNum()]}`;
+    thmNum = displayNum(n.content, label, `${secNum()}.${counters.thm[secNum()]}`, env);
   }
 
   let mdx = null;
@@ -349,10 +497,10 @@ function emitEnv(n) {
       // no component attribute, no UI chrome, no validation (author's choice).
       const { dd, star, skip, rest } = takeMarks(n.content);
       counters.ex[secNum()] = (counters.ex[secNum()] || 0) + 1;
-      const num = `${secNum()}.${counters.ex[secNum()]}`;
-      const wasIn = inExercise; inExercise = true;
+      const num = displayNum(n.content, label, `${secNum()}.${counters.ex[secNum()]}`, "exercise");
+      const wasIn = letteredParts; letteredParts = true;
       const inner = walk(rest);
-      inExercise = wasIn;
+      letteredParts = wasIn;
       if (!label) advise(`exercise ${num} has no \\label — no stable anchor emitted, and no solution can reference it`, snippetOf(printRaw(n.content)));
       if (label) for (const l of allLabels(n.content)) if (!(l in anchorMap)) anchorMap[l] = slug(label);
       // ★ = \important (the sheet's key exercises); (∗) = legacy \skippable
@@ -386,9 +534,31 @@ function emitEnv(n) {
       } else {
         warn("solution without [ex:label] — every solution must name its exercise", snippetOf(printRaw(n.content)));
       }
-      mdx = `<Solution${forAttr}>\n\n${walk(n.content).trim()}\n\n</Solution>`;
+      // A solution's first-level enumerate letters its parts (a),(b),… exactly
+      // as the exercise's does (iliad.sty sets the same \setlist in both), so
+      // the parts line up with the exercise they answer and with the in-text
+      // "part (a)" references.
+      const wasIn = letteredParts; letteredParts = true;
+      const body = walk(n.content).trim();
+      letteredParts = wasIn;
+      mdx = `<Solution${forAttr}>\n\n${body}\n\n</Solution>`;
       break;
     }
+    case "solutionsonly":
+      // Content shown only in the solutions build. Rendered as plain inline
+      // content, bracketed by invisible JSX-comment markers so the -nosol
+      // stripper (stripMdxSolutions) can remove the whole span.
+      mdx = `{/* iliad:solutionsonly:start */}\n\n${walk(n.content).trim()}\n\n{/* iliad:solutionsonly:end */}`;
+      break;
+    case "pdfonly":
+      // Content kept in both PDF variants but absent from the web: dropped
+      // whole, unwalked, so nothing inside (headings, anchors, \crefs) leaks
+      // into the page, the TOC, or the .mdx downloads. Labels defined inside
+      // are recorded: a \cref to one from visible prose resolves via the aux
+      // and would silently emit a dead link, so emitDocument advises on it.
+      for (const l of allLabels(n.content)) droppedLabels.add(l);
+      mdx = "";
+      break;
     // Definition/theorem family render axiom-style: a bold markdown lead
     // inside the coloured box (math in titles renders; no header chrome).
     case "definition":
@@ -400,13 +570,13 @@ function emitEnv(n) {
       break;
     }
     case "fact":
-      mdx = `<Callout type="note">\n\n**Fact${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${attr(opt)})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="note">\n\n**Fact${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
       break;
     case "remark":
-      mdx = `<Callout type="note">\n\n**Remark${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${attr(opt)})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="note">\n\n**Remark${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
       break;
     case "example":
-      mdx = `<Callout type="tip">\n\n**Example${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${attr(opt)})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="tip">\n\n**Example${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
       break;
     case "callout": {
       const type = ["note", "tip", "warning"].includes((opt ?? "").trim()) ? opt.trim() : "note";
@@ -422,9 +592,16 @@ function emitEnv(n) {
     case "hint":
       mdx = `<Hint>\n\n${walk(n.content).trim()}\n\n</Hint>`;
       break;
+    // teaching note — teacher-facing, so its own component and not a Callout:
+    // <TeachingNote> is collapsed and carries data-component="teaching-note",
+    // which keeps that material findable. The optional argument is the label on
+    // the closed box; the component's own default supplies it when absent.
+    case "teachingnote":
+      mdx = `<TeachingNote${opt ? ` title="${attr(opt)}"` : ""}>\n\n${walk(n.content).trim()}\n\n</TeachingNote>`;
+      break;
     default: {
       if (declared) {
-        mdx = `<Callout type="note">\n\n**${declared}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${attr(opt)})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+        mdx = `<Callout type="note">\n\n**${declared}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
       } else {
         warn(`unknown environment "${env}" — wrapper dropped, contents converted as plain prose`, `\\begin{${env}}`);
         mdx = `{/* TODO(tex2mdx): env ${env} */}\n${walk(n.content)}`;
@@ -480,10 +657,38 @@ function emitFigure(n) {
     const tEnd = raw.indexOf(`\\end{${tEnv}}`);
     src = registerTikz(raw.slice(tm.index, tEnd + `\\end{${tEnv}}`.length), tEnv === "tikzcd").src;
   }
-  const capMd = caption ? attr(caption) : "";
-  const fig = `<Figure src="${src}" alt="${capMd || "figure"}"${capMd ? ` caption="${capMd}"` : ""} />`;
+  // The caption is emitted as CHILDREN so it goes through the MDX pipeline and
+  // its math renders; only `alt` stays flattened, because HTML alt text cannot
+  // hold math at all (attrQuiet, so that inherent loss draws no advisory).
+  const capMd = caption ? walkStr(caption).trim() : "";
+  const altMd = caption ? attrQuiet(caption) : "";
+  const fig = capMd
+    ? `<Figure src="${src}" alt="${altMd || "figure"}">\n\n${capMd}\n\n</Figure>`
+    : `<Figure src="${src}" alt="figure" />`;
   return `\n${figLabel ? `<div id="${slug(figLabel)}">\n${fig}\n</div>` : fig}\n`;
 }
+
+// A \texttt{} body is code, so it lands in a Markdown code span verbatim — but
+// "verbatim" is the *characters the author meant*, not the LaTeX that spells
+// them. Inside \texttt one still has to write \_ for an underscore, {[} for a
+// bracket that would otherwise start an optional argument, \textbar{} for a
+// pipe; pandoc emits all of these when it converts a Markdown code span. Passing
+// the raw source through put that spelling on the page: a formula written
+// `a* = argmax_a E[U | do(A=a)]` in the source displayed as
+// a*\ =\ argmax\_a\ E{[}U\ \textbar{}\ do(A=a){]}.
+const TEXTTT_UNESCAPE = [
+  [/\\textbackslash\{\}|\\textbackslash\b/g, "\\"],   // first: it introduces no others
+  [/\\textbar\{\}|\\textbar\b/g, "|"],
+  [/\\textgreater\{\}|\\textgreater\b/g, ">"],
+  [/\\textless\{\}|\\textless\b/g, "<"],
+  [/\\textasciitilde\{\}|\\textasciitilde\b/g, "~"],
+  [/\\textasciicircum\{\}|\\textasciicircum\b/g, "^"],
+  [/\\textquotesingle\{\}|\\textquotesingle\b/g, "'"],
+  [/\{\[\}/g, "["], [/\{\]\}/g, "]"],
+  [/\\([_${}&#%~^])/g, "$1"],
+  [/\\ /g, " "],                                       // pandoc's escaped space
+];
+const texttt = (s) => TEXTTT_UNESCAPE.reduce((acc, [re, to]) => acc.replace(re, to), s);
 
 // ---------------------------------------------------------------- macros ---
 function emitMacro(n) {
@@ -496,7 +701,7 @@ function emitMacro(n) {
   switch (name) {
     case "textbf": return `**${walkArg(n, 0)}**`;
     case "emph": case "textit": case "textsl": return `*${walkArg(n, 0)}*`;
-    case "texttt": return "`" + (lastArgRaw(n) ?? "") + "`";
+    case "texttt": return "`" + texttt(lastArgRaw(n) ?? "") + "`";
     case "textnormal": case "textrm": case "textup": case "textsf": case "textsc": case "textmd":
       return walkArg(n, 0);
     case "textcolor": return walkArg(n, 1);
@@ -545,7 +750,28 @@ function emitMacro(n) {
       return name === "citep" ? `(${body})` : body;
     }
     case "citetext": return `(${walkArg(n, 0)})`;
-    case "footnote": case "footnotetext": return ` (${walkArg(n, n.args ? n.args.length - 1 : 0)})`;
+    case "footnote": return footnoteRef(walkArg(n, n.args ? n.args.length - 1 : 0));
+    case "footnotemark": return footnoteRef(null);
+    case "footnotetext": {
+      const body = walkArg(n, n.args ? n.args.length - 1 : 0);
+      if (fillFootnoteText(body)) return "";
+      // No mark to attach to: keep the words where they are rather than emit a
+      // definition nothing references, which the renderer would silently drop.
+      advise("\\footnotetext with no \\footnotemark before it — kept inline, in parentheses", snippetOf(body));
+      return ` (${body})`;
+    }
+    case "youtube": {
+      // \youtube[Title]{VIDEO_ID}: like \href, the ID is the LAST arg and the
+      // title arg 0 only when both slots are present.
+      const k = n.args ? n.args.length : 0;
+      const id = ((k >= 1 ? argRaw(n, k - 1) : null) ?? "").trim();
+      // explicit [Title] wins; else the title tex2mdx pre-fetched from oEmbed
+      const title = (k >= 2 ? walkStr(argRaw(n, 0) ?? "") : "").trim()
+        || (ctx.videoTitles?.[id] ?? "");
+      if (!/^[A-Za-z0-9_-]{11}$/.test(id))
+        warn(`\\youtube expects the 11-character video ID (the watch URL's v= value), got "${id}"`, id);
+      return `\n\n<YouTube id="${id}"${title ? ` title="${title.replace(/"/g, "&quot;")}"` : ""} />\n\n`;
+    }
     case "hint": return `[*Hint:* ${walkArg(n, 0)}]`;
     case "note": return `[*Note:* ${walkArg(n, 0)}]`;
     // \difficulty is not contract UI — it renders as the same plain [n]
@@ -553,13 +779,26 @@ function emitMacro(n) {
     case "difficulty": return `**[${lastArgRaw(n) ?? ""}]** `;
     case "important": return "**(★)** ";
     case "skippable": return "**(∗)** ";   // legacy "skip on a first pass" mark
-    case "paragraph": return `\n\n**${walkArg(n, 0).trim()}.** `;
+    case "paragraph": {
+      // Bold run-in heading. Add a trailing period only if the author's title
+      // doesn't already end in terminal punctuation (avoids "Prerequisites..").
+      const t = walkArg(n, 0).trim();
+      return `\n\n**${/[.!?:]$/.test(t) ? t : t + "."}** `;
+    }
     case "ifdef": case "ifdefined": case "ifcsdef": {
       const nm = (argRaw(n, 0) ?? "").trim().replace(/^\\/, "");
       return walkArg(n, nm in authorMacros ? 1 : 2);
     }
     case "item": return "";   // stray \item outside a list
     case "section": case "subsection": case "subsubsection": return emitHeading(n);
+    // \ensuremath{X} in prose: X typeset as math. This is how a macro is made
+    // usable in both modes (amsthm's \qed is \ensuremath{\square}), so a ported
+    // document reaches for it whenever one macro has to work in a sentence and
+    // in an equation. Inside math it is redundant and shims.mjs drops it.
+    case "ensuremath": {
+      const inner = mathClean(argRaw(n, 0) ?? "").replace(/\s+/g, " ").trim();
+      return inner ? `$${inner}$` : "";
+    }
   }
 
   // author-defined macro: expand and re-walk
@@ -577,25 +816,36 @@ function emitMacro(n) {
 }
 
 // -------------------------------------------------------------- headings ---
-function emitHeading(n) {
+function emitHeading(n, runLabels = []) {
   const name = n.content;
   const starred = !!argRaw(n, 0);
   const titleNodes = n.args[n.args.length - 1].content;
   // Inside a learningoutcomes box, group headings are just bold lines — no
   // numbering, no TOC entry, no anchor.
   if (inLearningOutcomes) return `\n\n**${walk(titleNodes).trim()}**\n\n`;
-  // label immediately after the heading is absorbed by walk() lookahead;
-  // here we only compute numbering + text
-  let headText;
+  // the labels following the heading are absorbed by walk() lookahead and
+  // passed in: the displayed number is their .aux value (the injected
+  // auto-label, or any author label — same counter); the walked-along
+  // counters are only the fallback
+  let sim;
   if (name === "subsubsection") {
     if (!starred) counters.subsubsec++;
-    headText = `${starred ? "" : secNum() + "." + counters.subsec + "." + counters.subsubsec + " "}${walk(titleNodes).trim()}`;
+    sim = `${secNum()}.${counters.subsec}.${counters.subsubsec}`;
   } else if (name === "subsection") {
     if (!starred) { counters.subsec++; counters.subsubsec = 0; }
-    headText = `${starred ? "" : secNum() + "." + counters.subsec + " "}${walk(titleNodes).trim()}`;
+    sim = `${secNum()}.${counters.subsec}`;
   } else {
     if (!starred) { counters.section++; counters.subsec = 0; counters.subsubsec = 0; }
-    headText = `${starred ? "" : secNum() + ". "}${walk(titleNodes).trim()}`;
+    sim = secNum();
+  }
+  let headText = walk(titleNodes).trim();
+  if (!starred) {
+    let num = runLabels.filter(Boolean).map((l) => ctx.refs[l]?.num).find(Boolean);
+    if (!num) {
+      warn(`displayed number for \\${name} not found in the .aux — using a simulated counter, which can drift from the PDF`, snippetOf(printRaw(titleNodes)));
+      num = sim;
+    }
+    headText = `${num}${name === "section" ? "." : ""} ${headText}`;
   }
   pendingHeading = { text: headText, level: name === "section" ? "##" : name === "subsection" ? "###" : "####" };
   return `\n\n${pendingHeading.level} ${headText}\n\n`;
@@ -609,7 +859,24 @@ function walk(nodes) {
   for (let i = 0; i < nodes.length; i++) {
     const n = nodes[i];
     switch (n.type) {
-      case "string": out += n.content; break;
+      case "string": {
+        // LaTeX text ligatures. The parser emits each `, ', and - as its own
+        // string node, so a run is N identical adjacent nodes:
+        //   ``...''  -> "..."   (lone apostrophes like it's are left alone)
+        //   --       -> – (en dash)      ---  -> — (em dash)
+        // Math and \verb bypass this handler, so derivatives ($L''$) and
+        // command flags (\verb|--flag|) are unaffected.
+        const prevSame = i > 0 && nodes[i - 1].type === "string" &&
+          nodes[i - 1].content === n.content;
+        if ((n.content === "`" || n.content === "'") && prevSame) {
+          out = out.slice(0, -1) + '"';
+        } else if (n.content === "-" && prevSame) {
+          out = out.slice(0, -1) + (out.endsWith("–") ? "—" : "–");
+        } else if (n.content === "~") {
+          out += " ";                 // LaTeX tie -> non-breaking space
+        } else out += n.content;
+        break;
+      }
       case "whitespace": out += " "; break;
       case "parbreak": out += "\n\n"; break;
       case "comment": break;
@@ -624,17 +891,24 @@ function walk(nodes) {
       case "verbatim": out += "\n\n```\n" + (n.content ?? "").trim?.() + "\n```\n\n"; break;
       case "verb": out += "`" + n.content + "`"; break;
       case "macro": {
-        // heading label lookahead: \section{..}\label{..}
+        // heading label lookahead: \section{..}\label{auto}\label{..} — the
+        // whole run of following \labels is absorbed: the injected auto-label
+        // carries the heading's .aux number, author labels bind its anchor
         if ((n.content === "section" || n.content === "subsection" || n.content === "subsubsection")) {
-          const h = emitHeading(n);
-          // find following \label (skipping whitespace)
-          let j = i + 1;
-          while (j < nodes.length && (nodes[j].type === "whitespace" || nodes[j].type === "parbreak")) j++;
-          if (j < nodes.length && nodes[j].type === "macro" && nodes[j].content === "label") {
-            const l = lastArgRaw(nodes[j]);
-            if (l) anchorMap[l] = ghSlug(pendingHeading.text);
-            i = j;
+          const runLabels = [];
+          let j = i;
+          for (;;) {
+            let k = j + 1;
+            while (k < nodes.length && (nodes[k].type === "whitespace" || nodes[k].type === "parbreak")) k++;
+            if (k < nodes.length && nodes[k].type === "macro" && nodes[k].content === "label") {
+              runLabels.push(lastArgRaw(nodes[k])); j = k;
+            } else break;
           }
+          const h = emitHeading(n, runLabels);
+          if (!inLearningOutcomes && pendingHeading) {
+            for (const l of runLabels) if (l && !isAutoLabel(l)) anchorMap[l] = ghSlug(pendingHeading.text);
+          }
+          i = j;
           out += h;
           break;
         }
@@ -659,10 +933,12 @@ export function texToPlain(texStr) {
   const p = _parser ?? getParser({ environments: ENV_SIGNATURES, macros: CONTRACT_MACROS });
   const saved = ctx;
   if (!ctx) ctx = { refs: {}, BIB: {}, declaredThms: {}, commentCmds: new Set(), remarkNumbered: false, tikzSrc: "/" };
-  // title fragments degrade gracefully: no warnings from unknown macros here
-  const w = warnings.length, a = advisories.length;
+  // title fragments degrade gracefully: no warnings from unknown macros here.
+  // Advisories DO survive — the frontmatter title/summary are attributes too,
+  // so math in \title{} is dropped and the author needs to hear about it.
+  const w = warnings.length;
   const out = mdToPlain(walkFragment(p, texStr));
-  warnings.length = w; advisories.length = a;
+  warnings.length = w;
   ctx = saved;
   return out.replace(/"/g, "'");
 }
@@ -700,7 +976,10 @@ function relocateSolutions(md) {
   const openRe = /<Solution for="([^"]*)">/g;
   for (let m; (m = openRe.exec(md)); ) {
     const end = findBlockEnd(md, m.index, "Solution");
-    if (end === -1) break;
+    if (end === -1) {
+      warn("a <Solution> block is unbalanced — it and every solution after it stay where the author put them", snippetOf(md.slice(m.index, m.index + 200)));
+      break;
+    }
     sols.push({ anchor: m[1], body: "<Solution>" + md.slice(m.index + m[0].length, end) });
     out += md.slice(last, m.index) + mark(sols.length - 1);
     last = end;
@@ -715,9 +994,13 @@ function relocateSolutions(md) {
     const ex = out.indexOf(`<Exercise id="${s.anchor}">`);
     if (ex !== -1) at = findBlockEnd(out, ex, "Exercise");
     if (at === -1) {
-      // no matching exercise (contract violation, warned at emission) —
-      // put the solution back where the author had it
-      out = out.replace(mark(k), s.body);
+      // No matching exercise: the label exists (emission warns when it does
+      // not) but does not belong to one, so there is nothing to move under.
+      // Put the solution back where the author had it. The replacement is a
+      // FUNCTION: as a string, every `$$` in the body — i.e. every display
+      // math fence — would be eaten as a $-substitution pattern.
+      warn(`solution names [${s.anchor}], which is not an exercise — it stays where the author put it instead of moving under one`, snippetOf(s.body));
+      out = out.replace(mark(k), () => s.body);
       return;
     }
     for (;;) {
@@ -734,44 +1017,16 @@ function relocateSolutions(md) {
     out = out.slice(0, at) + `\n\n${s.body}` + out.slice(at);
   });
 
-  // 3. prune headings whose whole section emptied out (a "Solutions"
-  //    appendix, say). The markers are the evidence: only sections a
-  //    solution actually left are candidates; pruned headings leave a
-  //    marker too, so an emptied parent section cascades.
-  const isMark = (l) => /^<!--iliad:moved:[^>]*-->$/.test(l.trim());
-  const lines = out.split("\n");
-  const pruned = [];
-  for (let changed = true; changed; ) {
-    changed = false;
-    for (let i = 0; i < lines.length; i++) {
-      const h = /^(#{2,6}) /.exec(lines[i]);
-      if (!h) continue;
-      let j = i + 1, marks = 0, content = false;
-      while (j < lines.length) {
-        const hh = /^(#{2,6}) /.exec(lines[j]);
-        if (hh && hh[1].length <= h[1].length) break;
-        if (isMark(lines[j])) marks++;
-        else if (hh || lines[j].trim() !== "") { content = true; break; }
-        j++;
-      }
-      if (!content && marks > 0) {
-        pruned.push(lines[i].slice(h[0].length).trim());
-        lines.splice(i, j - i, "<!--iliad:moved:h-->");
-        changed = true;
-      }
-    }
-  }
-  out = lines.join("\n").replace(/\n*<!--iliad:moved:[^>]*-->\n*/g, "\n\n");
-
-  // a \cref may still point at a pruned heading — tell the author
-  for (const text of pruned) {
-    const plain = text.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/\*\*|\*/g, "").trim();
-    if (out.includes(`](#${ghSlug(plain)})`)) {
-      advise(`section "${plain}" emptied by solution relocation was dropped, but prose still links to it — reword the sentence that points at the solutions section`, plain);
-    }
-  }
+  // 3. drop the position markers. Headings are NEVER pruned, even when
+  //    relocation empties them: the converter is faithful to the source, so a
+  //    section that renders empty is a .tex problem for the author to fix and
+  //    must stay visible (with its anchor, so \crefs to it keep resolving).
+  //    An authored solutions appendix belongs in pdfonly — that is how a sheet
+  //    keeps the emptied heading off the web (see docs/iliad-sty.md).
+  out = out.replace(/\n*<!--iliad:moved:[^>]*-->\n*/g, "\n\n");
   return out;
 }
+
 
 // -------------------------------------------------------------- references ---
 // LaTeX typesets its own bibliography; on the web every cited entry gets an
@@ -793,12 +1048,53 @@ function emitBibliography() {
   return `\n\n## References\n\n${items.join("\n\n")}\n`;
 }
 
+// --------------------------------------------------------------- footnotes ---
+// \footnote{…} becomes a GFM footnote: a [^N] reference where the author put
+// it, and the note itself in a definition appended below. The renderer collects
+// the definitions into one list at the foot of the page — the web equivalent of
+// what the PDF puts at the foot of the sheet — so the definitions' position in
+// the file is bookkeeping, not layout.
+//
+// \footnotemark + \footnotetext is the split form LaTeX needs when the mark sits
+// somewhere it can't carry the text, like a theorem's title argument. The mark
+// takes the next number and the following \footnotetext fills it in, which is
+// how LaTeX pairs them too.
+const footnoteRef = (body) => {
+  footnotes.push({ id: footnotes.length + 1, body });
+  return `[^${footnotes.length}]`;
+};
+const fillFootnoteText = (body) => {
+  const open = footnotes.find((f) => f.body === null);
+  if (open) open.body = body;
+  return Boolean(open);
+};
+function emitFootnotes() {
+  if (footnotes.length === 0) return "";
+  const defs = footnotes.map((f) => {
+    if (f.body === null) {
+      warn(`\\footnotemark with no \\footnotetext after it — footnote ${f.id} would render empty`, "\\footnotemark");
+      return `[^${f.id}]: (no \\footnotetext in the source)`;
+    }
+    if (/\n[ \t]*\n/.test(f.body.trim())) {
+      advise(`footnote ${f.id} spans paragraphs in the source; the page renders it as one`, snippetOf(f.body));
+    }
+    // One line per definition. A blank line would end the definition, and the
+    // 4-space indent that continues one is also the indent that starts a code
+    // block — so paragraph breaks inside a note collapse to spaces instead.
+    return `[^${f.id}]: ${f.body.replace(/\s+/g, " ").trim()}`;
+  });
+  return `\n\n${defs.join("\n\n")}\n`;
+}
+
 export function emitDocument(bodyTex, context) {
   ctx = context;
   anchorMap = {};
+  droppedLabels = new Set();
   authorMacros = {};
   citedKeys = new Set();
-  inExercise = false;
+  footnotes = [];
+  letteredParts = false;
+  listDepth = 0;
 
   // phase A: default parse of preamble+body to harvest author macro definitions
   const p0 = getParser({ environments: ENV_SIGNATURES, macros: CONTRACT_MACROS });
@@ -835,8 +1131,20 @@ export function emitDocument(bodyTex, context) {
   context.warnRestore(wSnap);
 
   // pass 2: emit, move every solution up under its exercise, then append
-  // the References list for everything the page cited
+  // the References list for everything the page cited and the definitions for
+  // every footnote it took. Pass 1's numbering is thrown away with its output.
   counters = { section: 0, subsec: 0, subsubsec: 0, appendix: false, ex: {}, thm: {} };
   citedKeys = new Set();
-  return relocateSolutions(walk(ast.content)) + emitBibliography();
+  footnotes = [];
+  const md = relocateSolutions(walk(ast.content)) + emitBibliography() + emitFootnotes();
+
+  // a \cref may target a label inside a dropped pdfonly block — it resolves
+  // via the aux, so the link emits but points at nothing. Tell the author.
+  for (const l of droppedLabels) {
+    if (isAutoLabel(l)) continue;
+    if (md.includes(`](#${anchorMap[l] ?? slug(l)})`)) {
+      advise(`prose links to "${l}", which sits inside a pdfonly block and is dropped from the page — the web link is dead; move the \\cref inside pdfonly or reword`, l);
+    }
+  }
+  return md;
 }

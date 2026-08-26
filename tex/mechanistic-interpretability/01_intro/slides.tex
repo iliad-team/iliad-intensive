@@ -1,0 +1,169 @@
+% Chapter: 01_intro
+% Included from lectures/slides.tex
+
+\section{What is Mechanistic Interpretability?}
+
+\begin{frame}{Two Ways to Relate to Models}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{center}
+\textbf{\large Machine Learning}
+\vspace{0.5em}
+
+\includegraphics[width=0.75\textwidth]{figures/honest_work.jpg}
+\end{center}
+
+\begin{itemize}
+\item Output-oriented
+\item Find hyperparameters to improve models
+\end{itemize}
+\end{column}
+
+\begin{column}{0.48\textwidth}
+\begin{center}
+\textbf{\large Mech.\ Interpretability}
+\vspace{0.5em}
+
+\includegraphics[width=0.75\textwidth]{figures/scientist_microscope.jpg}
+\end{center}
+
+\begin{itemize}
+\item Learned models are the object of study
+\item Understand and reverse-engineer parameters
+\end{itemize}
+\end{column}
+\end{columns}
+
+\note{
+\begin{itemize}
+\item Two ways to relate to neural networks
+\item The standard ML view: models are tools, output is what matters, tune hyperparameters until they work
+\item The mech interp view: the learned model is the object of study, treat it like a biologist treats an organism
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}[plain]
+\vfill
+\begin{center}
+\includegraphics[width=\textwidth,height=0.9\textheight,keepaspectratio]{figures/micrographia.jpg}
+\end{center}
+\vfill
+\hfill{\tiny From \cite{olah2020}}\quad
+
+\note{
+\begin{itemize}
+\item Normally in ML, we look at the algorithms we use to create neural networks: architectures, optimizers, hyperparameters, training data
+\item We actively make decisions about these, so it makes sense to focus on them
+\item Chris Olah's idea: look at the neural networks that come out of ML as objects of scientific inquiry
+\item Similar to biologists not just studying evolution, but studying organisms by looking inside them
+\item People tried to understand how life works for a long time
+\item Ancient Greeks: the body is made of 4 humors that must be balanced
+\item Doctors for centuries tried bloodletting and purging --- not crowned by success
+\item The problem: wrong ontology. Understanding humors is not helpful for understanding disease
+\item The right ontology came with the microscope: organisms are made of cells
+\item Study cells, their properties, what makes them work, what bacteria cause which sicknesses --- then you get somewhere
+\item Olah's vision: do for ML what the microscope did for biology
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Schwann's Claims (1839)}
+\begin{columns}[c]
+\begin{column}{0.6\textwidth}
+\begin{enumerate}
+\item The cell is the unit of structure, physiology, and organization in living things.
+
+\vspace{0.5em}
+\item The cell retains a dual existence as a distinct entity and a building block in the construction of organisms.
+
+\vspace{0.5em}
+\item \textcolor{gray}{Cells form by free-cell formation, similar to the formation of crystals.}
+\end{enumerate}
+\end{column}
+\begin{column}{0.35\textwidth}
+\includegraphics[width=\textwidth]{figures/schwann_book.jpg}
+
+{\centering\tiny Image: Deutsches Textarchiv\par}
+\end{column}
+\end{columns}
+
+\note{
+\begin{itemize}
+\item Theodor Schwann described what cells are and how they work
+\item These three claims lay down an ontology for cellular biology as a field
+\item Even though Claim 3 turned out to be wrong, the first two claims defined the field
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Three Speculative Claims}
+\begin{columns}[c]
+\begin{column}{0.6\textwidth}
+\begin{enumerate}
+\item \textbf{Features} are the fundamental unit of neural networks.
+They correspond to directions.
+These features can be rigorously studied and understood.
+
+\vspace{0.5em}
+\item Features are connected by weights, forming \textbf{circuits}.
+These circuits can also be rigorously studied and understood.
+
+\vspace{0.5em}
+\item \textbf{Universality}: Analogous features and circuits form across models and tasks.
+\end{enumerate}
+\end{column}
+\begin{column}{0.35\textwidth}
+\includegraphics[width=\textwidth]{figures/activation_atlas_book.png}
+\end{column}
+\end{columns}
+
+\source{olah2020}
+
+\note{
+\begin{itemize}
+\item In his 2020 essay ``Zoom In'', Olah lays down similar claims to define a tentative ontology for MechInterp
+\item These are not only descriptive, but normative
+\item Claim 1: a feature is a fundamental unit, corresponding to a direction in activation space. The claim is that individual directions can be understood, and they are fundamental units
+\item Question to audience: how would the world look if this claim were false? (possible: binary encoding, context-dependent meanings)
+\item Claim 2: features connected by weights form circuits that can be understood
+\item Question: what if Claim 1 is true but Claim 2 is false? (possible: features are readable storage but the process itself is more complicated, like CoT being readable but the LLM's use of it being inscrutable)
+\item Claim 3: universality
+\item If false: we could not learn from one network to another, every new NN would have completely different features and circuits
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{}
+\begin{center}
+\Large How would MechInterp help AI safety?
+\end{center}
+
+\note{
+\begin{itemize}
+\item Now, what if those claims turn out to be true, how would that help with AI safety?
+\item Question to audience, collecting ideas
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Theories of Impact}
+\begin{itemize}
+\item Auditing for misalignment/deception
+\item Enumerative safety
+\item Eliciting latent knowledge
+\end{itemize}
+
+\source{nanda2022}
+
+\note{
+\begin{itemize}
+\item Auditing: if we can find features/circuits for misaligned motivation, cheating, thinking about bioweapons, etc., we could detect this before or during deployment
+\item Enumerative safety: if we can identify the function of every part of a neural network, we can be sure it does not contain bad intentions or dangerous capabilities
+\item Eliciting latent knowledge: we can find out more directly what the model knows
+\item Helps with transparency, against scheming
+\item Also helps with ``AI for science'': e.g.\ a genetics model that knows some genetic marker is responsible for some effect, but since it is not a language model, you cannot just ask it
+\end{itemize}
+}
+\end{frame}
+

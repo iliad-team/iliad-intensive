@@ -1,0 +1,64 @@
+% iliad-slides.sty — an OPTIONAL shared style for worksheet slide decks.
+%
+% This is NOT a contract. Unlike iliad.sty — which every worksheet must load,
+% because the tex -> MDX converter reads its environments — a deck is only ever
+% compiled to a PDF and downloaded. Nothing on the web side parses slides.tex,
+% so a deck may look however its author likes: keep your own preamble, load a
+% different theme, or load this. tex/training-dynamics/slides.tex uses moloch
+% and is none the worse for it.
+%
+% What it is: the preamble that tex/aixi/slides.tex and
+% tex/solomonoff-induction/slides.tex had byte-identical copies of, lifted out
+% so the next deck can start from something that already works instead of
+% cribbing a preamble from a neighbouring folder.
+%
+% Requires beamer. Load it AFTER \documentclass, local copy first so a folder
+% copied out of the repo (Overleaf, a laptop) still compiles:
+%
+%   \ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
+%   \documentclass[10pt,aspectratio=169]{beamer}
+%   \IfFileExists{iliad-slides.sty}{\usepackage{iliad-slides}}{\usepackage{../iliad-slides}}
+%
+% Two things deliberately stay in your deck, because they cannot live here:
+%   * the \HANDOUT line, which must run BEFORE \documentclass (it passes
+%     beamer's `handout` option; mentioning \HANDOUT anywhere in the file is
+%     also what opts the build into the collapsed slides-handout.pdf);
+%   * \documentclass itself, so the font size and aspect ratio stay yours.
+%
+% Math macros stay in your deck too. The AIXI and Solomonoff decks share theirs
+% with their worksheets, which is a fact about those two sheets, not a house
+% style.
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{iliad-slides}[2026/07/29 Iliad Intensive slide deck style]
+
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usetheme{Madrid}
+% stmaryrd supplied only \llbracket/\rrbracket here, and on Debian it arrives via
+% texlive-science, which hard-depends on texlive-lang-greek -- ~79 MB of CI
+% download for two glyphs. Built from kernel pieces instead. \mathopen/\mathclose
+% keep delimiter spacing correct. The web is unaffected: KaTeX has \llbracket
+% natively, and the converter skips these two (scripts/tex2mdx/shims.mjs).
+% Neither package is in setup.sh or the CI apt list any more, so do not reach for
+% stmaryrd here: a deck that loads it will not build on CI.
+\newcommand{\llbracket}{\mathopen{[\![}}
+\newcommand{\rrbracket}{\mathclose{]\!]}}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{calc, positioning, arrows.meta, shapes.geometric}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=white,   % white so the Madrid headline/footline nav links read on the dark bars
+    urlcolor=cyan,
+}
+% Beamer colors \cite via linkcolor (white => invisible on body slides), and
+% citecolor is ignored. Override the link color locally just for citations.
+\newcommand{\citev}[1]{\begingroup\hypersetup{linkcolor=cyan}\cite{#1}\endgroup}
+\urlstyle{same}
+
+\endinput

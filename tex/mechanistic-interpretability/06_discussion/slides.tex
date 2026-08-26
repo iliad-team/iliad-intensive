@@ -1,0 +1,136 @@
+% Chapter: 06_discussion
+% Included from lectures/main.tex
+
+{
+\setbeamertemplate{section page}{
+  \begin{centering}
+    \usebeamerfont{section title}\insertsection\par
+  \end{centering}
+  \note{
+  \begin{itemize}
+  \item You now have a rough overview of what happened the last years in MechInterp
+  \item Where do we go from here?
+  \item Open question: what kind of progress would you want to see in MechInterp? What is realistic?
+  \end{itemize}
+  }
+}
+\section{Discussion}
+}
+
+\begin{frame}{Open Problems in MechInterp}
+Decomposition: problems with Sparse Dictionary Learning
+\begin{itemize}
+\item High reconstruction errors
+\item Expensive for large models
+\item Sparsity is a flawed proxy for interpretability
+\item Dataset dependent
+\item No clarity on the concept of a ``feature''
+\end{itemize}
+\source{sharkey2025}
+
+\note{
+\begin{itemize}
+\item Neurons, attention heads, and layers are polysemantic and don't decompose cleanly
+\item SDL (SAEs etc.) has high reconstruction errors, is expensive for large models, assumes linearity in nonlinear models, and uses sparsity as a flawed proxy for interpretability
+\item SDL leaves feature geometry unexplained, can't straightforwardly handle all architectures, and decomposes activations but not the mechanisms themselves
+\item SDL latents are dataset-dependent and may not contain the concepts needed for downstream use
+\item Lack of solid theoretical foundations for decomposition overall (no agreed-upon definition of ``feature'')
+\item Intrinsic interpretability (training models to be decomposable) hasn't yet been competitive
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Open Problems in MechInterp}
+Description: interpreting component roles
+\begin{itemize}
+\item Highly activating examples are correlational
+\item Attribution methods are first-order approximations
+\item Causal interventions are expensive at scale
+\end{itemize}
+\source{sharkey2025}
+
+\note{
+\begin{itemize}
+\item Highly activating examples are correlational and prone to interpretability illusions
+\item Attribution methods are theoretically limited (first-order approx) and can be adversarially fooled
+\item Feature synthesis struggles with real-world models
+\item Causal interventions are expensive at scale; gradient approximations are only approximate
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Open Problems in MechInterp}
+Validation: testing our explanations
+\begin{itemize}
+\item Different methods yield different explanations
+\item Performance is seldom demonstrated on real-world tasks
+\item Conclusions are often not validated
+\end{itemize}
+\source{sharkey2025}
+
+\note{
+\begin{itemize}
+\item Hypotheses are routinely conflated with conclusions
+\item Different methods yield different interpretations for the same phenomenon
+\item Interpretability methods rarely demonstrate competitive performance on real-world tasks
+\item Lack of consensus model organisms and standardized benchmarks
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Open Problems in MechInterp}
+Automation: scaling up interpretability
+\begin{itemize}
+\item Scaling up current methods does not yield more interesting results
+\item ``Streetlight interpretability''
+\end{itemize}
+\source{sharkey2025}
+
+\note{
+\begin{itemize}
+\item Circuit discovery has low faithfulness, struggles with backup/negative behavior, and is biased toward simple tasks (``streetlight interpretability'')
+\item Fully automating current pipelines would still not yield satisfactory explanations
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Open Problems in MechInterp}
+Applications: using interpretability in practice
+\begin{itemize}
+\item Can't reliably distinguish recognizing vs.\ applying a concept
+\item Mechanistic verification of behavior not possible
+\item Mechanistic understanding might further capabilities by pruning models
+\end{itemize}
+\source{sharkey2025}
+
+\note{
+\begin{itemize}
+\item Monitoring/auditing: can't yet reliably distinguish features that recognize deception from those that cause it; mechanistic anomaly detection needs better decomposition
+\item Control: activation steering, unlearning, and model editing all limited by inability to isolate individual mechanisms; finetuning for safety is shown to be shallow and easily reversed
+\item Predicting behavior: formal verification of AI is far beyond current capabilities; predicting emergent capabilities during training requires understanding dynamic mechanistic changes, not just static snapshots
+\item Improving inference/training: mechanistic understanding could enable pruning, distillation, and data selection, but is underexplored
+\item Microscope AI: potential for scientific knowledge discovery, but requires rare cross-disciplinary expertise
+\item Broader model families: most work is on transformers; unclear how methods/conclusions transfer to SSMs, diffusion models, etc.
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Critiques of Mechanistic Interpretability}
+Pick one paper to read and discuss:
+\vspace{1em}
+\begin{enumerate}
+\setlength{\itemsep}{0.5em}
+\item \emph{A Pragmatic Vision for Interpretability} (Nanda et al., 2025) \hfill $\sim$15 min
+\item \emph{Against Almost Every Theory of Impact of Interpretability} (Ségerie, 2023) \hfill $\sim$20 min
+\item \emph{The Misguided Quest for Mechanistic AI Interpretability} (Hendrycks, 2025) \hfill $\sim$20 min
+\item \emph{Activation Space Interpretability May Be Doomed} (Chughtai, 2025) \hfill $\sim$15 min
+\end{enumerate}
+
+\note{
+\begin{itemize}
+\item Read one of these papers
+\item Come together with people who have read the same paper, discuss the critique: do you agree or disagree?
+\item Afterwards, we come back together and discuss the things you found out
+\end{itemize}
+}
+\end{frame}

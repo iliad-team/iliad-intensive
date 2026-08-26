@@ -1,14 +1,22 @@
-% YAML frontmatter for the website sits in the block below — SIMPLE one-line
-% values only. LaTeX ignores it (it is a comment); the converter lifts it
-% verbatim into the module frontmatter and CI validates it (pure YAML).
-% Keys: title, cluster, summary, contributors — all optional. The website
-% extracts title/contributors/summary from \title{}, \author{}, and
-% \begin{summary} in the LaTeX; a frontmatter key here overrides the
-% extracted value. (`unlisted: true` is a maintainer flag: the page is
-% built but linked from nowhere — you almost certainly don't want it.)
+% YAML frontmatter for the website sits in the block below. LaTeX ignores it
+% (it is a comment); the converter lifts it verbatim into the module
+% frontmatter and CI validates it (pure YAML).
+% Keys: title, summary, contributors — all optional. The website extracts
+% title/contributors from \title{} and \author{}; a frontmatter key here
+% overrides the extracted value. `summary:` is the sheet's OVERVIEW — the
+% page header shows it under the title, and it doubles as the index blurb,
+% so it lives here (metadata, never an "Overview" body section) and stays
+% one tight paragraph. Use a YAML folded block scalar (`>-`) with
+% continuation lines indented two spaces after the leading `% `.
+% Where the sheet sits in the course — its cluster and teaching day — is NOT a
+% key here: list the slug under its day in schedule.yaml and the build stamps
+% both in. (`unlisted: true` is a maintainer flag: the page is built but
+% linked from nowhere, and excused from the schedule — this demo is the one
+% sheet that wants it.)
 %--- iliad -------------------------------------------------------------------
 % title: "Example Worksheet: The Kitchen Sink"
-% cluster: D
+% summary: >-
+%   A dummy worksheet demonstrating every construct the pipeline supports.
 % unlisted: true
 %--- end ----------------------------------------------------------------------
 \documentclass[11pt]{article}
@@ -41,14 +49,34 @@
 \begin{document}
 \maketitle
 
-% The one-paragraph lede: shown under the title on the web and in the
-% module index. (A one-line `summary:` frontmatter key also works and
-% takes precedence.)
-\begin{summary}
-A dummy worksheet demonstrating every construct the pipeline supports.
-\end{summary}
+% Front matter opens every sheet, in this fixed order (docs/commands.md
+% §"Front matter opens the sheet"):
+%   1. video embeds (optional)   2. Prerequisites   3. the learning-outcomes
+% box — then the content. The sheet's OVERVIEW is not a body section: it is
+% the `summary:` in the metadata block up top, and the page header shows it
+% under the title. The build prints a non-fatal warning when a sheet strays
+% from this order or keeps an Overview section in the body.
 
-% The "What you'll learn" box. Usually sits right here, after \maketitle.
+% \youtube[Title]{VIDEO_ID} — pass the 11-character video ID (the v= value of
+% the watch URL), never the full URL. Embedded player on the web; here in the
+% PDF, a "Video:" line carrying the watch URL. With no [Title], the web build
+% queries the title from YouTube itself. Optional — most sheets have none.
+% Lecture recordings go here, first; a video illustrating one point may sit
+% with that point instead.
+\youtube{dQw4w9WgXcQ}
+
+%===============================================================================
+\section{Prerequisites}
+\label{sec:prereqs}
+
+Prerequisites, further reading, and anything else you want to say are just
+ordinary \LaTeX{} — no special markup. For this sheet:
+\begin{itemize}
+  \item comfort with probability on finite sets ($\E$, distributions);
+  \item one variable of calculus (we differentiate $-t \log t$ once).
+\end{itemize}
+
+% The "What you'll learn" box: after Prerequisites, before the content.
 % The body is ordinary LaTeX. Simplest form: a single itemize.
 %   \begin{learningoutcomes}
 %     \begin{itemize}
@@ -76,17 +104,6 @@ This dummy worksheet demonstrates every construct that survives the round trip
 from \LaTeX{} to the curriculum website. Compile it with \texttt{pdflatex}
 (twice, then \texttt{bibtex}, then twice again for the bibliography), or just
 read the source side by side with the rendered page.
-
-%===============================================================================
-\section{Prerequisites}
-\label{sec:prereqs}
-
-Prerequisites, further reading, and anything else you want to say are just
-ordinary \LaTeX{} — no special markup. For this sheet:
-\begin{itemize}
-  \item comfort with probability on finite sets ($\E$, distributions);
-  \item one variable of calculus (we differentiate $-t \log t$ once).
-\end{itemize}
 
 %===============================================================================
 \section{Prose, math, and cross-references}
@@ -232,7 +249,9 @@ See \cref{fig:value}. Citations come from the \texttt{.bib} file: the idea of
 entropy is due to \cite{Shannon:48}; for a textbook treatment see
 \cite[ch.~4]{MacKay:03}. External links are plain
 \href{https://en.wikipedia.org/wiki/Entropy_(information_theory)}{hyperlinks},
-and footnotes are supported.\footnote{Footnotes render inline, in parentheses.}
+and footnotes are supported.\footnote{On the web this becomes a numbered
+  footnote: the marker links down to a note at the foot of the page, and the
+  note links back. In the PDF it is an ordinary \LaTeX{} footnote.}
 
 %===============================================================================
 \section*{Selected solutions}
@@ -244,6 +263,15 @@ iff $t = 1$. Then with $t_x = q(x)/p(x)$,
    \sum_x \bigl(p(x) - q(x)\bigr) \geq 0, \]
 and equality forces $t_x = 1$ wherever $p(x) > 0$, i.e.\ $p = q$.
 \end{solution}
+
+% A solutionsonly block appears ONLY in the with-solutions build: it renders as
+% plain content here and in the with-solutions PDF, and is removed entirely from
+% every -nosol download (like a solution, but with no box, heading, or exercise
+% binding). Use it for an answer key, an instructor aside, or any spoiler.
+\begin{solutionsonly}
+\textbf{Instructor note.} \cref{ex:gibbs-hard} is the one to discuss on
+the board if time is short; the warm-up can be left for self-study.
+\end{solutionsonly}
 
 \bibliographystyle{plain}
 \bibliography{biblo}

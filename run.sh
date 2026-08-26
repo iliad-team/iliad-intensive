@@ -16,6 +16,9 @@ Usage:
   ./run.sh                 start the dev server -> http://localhost:3000
   ./run.sh watch [slug]    LIVE authoring: dev server + rebuild on every save
                         (slug = only that worksheet; without = any worksheet)
+  ./run.sh preview [slug]  PRODUCTION-SPEED preview: serves a static build and
+                        rebuilds on save (auto-reloads the browser). With a slug,
+                        a save re-renders only that section. -> http://localhost:4321
   ./run.sh content [slug]  build worksheets: tex/mdx -> pages, PDFs, downloads
                         (no slug = all; add --check for the fast gate only)
   ./run.sh ci              exactly what the GitHub CI action runs: full content
@@ -23,7 +26,7 @@ Usage:
   ./run.sh build           static-export the site -> out/
   ./run.sh <script>        any other script from package.json
 
-First time here? ./setup.sh installs everything (TeX Live, poppler, pandoc,
+First time here? ./setup.sh installs everything (TeX Live, poppler,
 Node via nvm, npm deps).
 
 The edit loop for a worksheet:
