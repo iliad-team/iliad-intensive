@@ -5,7 +5,6 @@
 % unlisted: true
 %--- end ----------------------------------------------------------------------
 \documentclass[11pt]{article}
-\usepackage{physics}
 % iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty
 \IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
 
@@ -23,10 +22,11 @@
 \newcommand{\CL}{{\mathcal L}}
 \newcommand{\CO}{{\mathcal O}}
 \newcommand{\pd}{\partial}
-% shadow physics-package macros with forms the web converter can translate
-\renewcommand{\expval}[1]{\left\langle #1 \right\rangle}
-\renewcommand{\dv}[2]{\frac{d #1}{d #2}}
-\renewcommand{\abs}[1]{\left| #1 \right|}
+% the few physics-package macros these notes use, defined directly (the
+% physics package itself isn't available on CI, and KaTeX doesn't know it)
+\newcommand{\expval}[1]{\left\langle #1 \right\rangle}
+\newcommand{\dv}[2]{\frac{d #1}{d #2}}
+\newcommand{\abs}[1]{\left| #1 \right|}
 
 \title{Physics of Deep Learning}
 \author{\authorname{Aleksander Czejdo} \\ \affiliation{Iliad Fellow} \and \authorname{Tudor Dimofte} \\ \affiliation{Iliad \& Timaeus Fellow; University of Edinburgh} 

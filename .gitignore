@@ -96,3 +96,6 @@ credentials.json
 gdoc-auth-url.txt
 gdoc-auth-url.html
 token.json
+
+# Working notes carried in the Overleaf project, not part of the built chapter
+tex/qft/Claude_notes.tex
