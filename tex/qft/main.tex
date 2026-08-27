@@ -2009,7 +2009,7 @@ where $c_i\sim \CN(0,I)$. For each $\gamma$, as $N\to\infty$, the learning rate 
 \begin{equation}
 \begin{array}{c|c|c|c}
     & f_{\theta_0} \text{ at init} & \text{per-neuron motion} & \text{limit} \\\hline
-    \gamma=\tfrac{1}{2} & O(1) \text{ (GP, CLT)} & O(N^{-1/2}) & \text{lazy: Sections \ref{sec:init}--\ref{sec:train}} \\
+    \gamma=\tfrac{1}{2} & O(1) \text{ (GP, CLT)} & O(N^{-1/2}) & \text{lazy: \cref{sec:init,sec:train}} \\
     \tfrac{1}{2}<\gamma<1 & O(N^{\frac{1}{2}-\gamma})\to 0 & O(N^{\gamma-1})\to 0 & \text{lazy (frozen kernel, zero init)} \\
     \gamma=1 & O(N^{-1/2})\to 0 & O(1) & \text{mean-field: this section}
 \end{array}
