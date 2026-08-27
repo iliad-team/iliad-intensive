@@ -66,6 +66,9 @@ tex/*/.build-hash
 *.vrb
 comment.cut
 _minted*/
+# minted v3 caches per-listing highlight data in `_<md5>.data.minted` files
+# beside main.tex, rather than in the `_minted-<job>/` directory v2 used above.
+*.data.minted
 *.pyg
 *.pdf
 !tex/*/fig/*.pdf
