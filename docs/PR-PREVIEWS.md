@@ -105,12 +105,16 @@ and fork previews are published by **`.github/workflows/fork-preview.yml`**:
   downloaded as an inert artifact and copied into `pr-preview/pr-<N>/`; the
   publish script and the allowlist come from `main`.
 - Publishing still serves PR-author-controlled HTML from the production
-  site's origin, so it is gated on **who**: org members and collaborators
-  publish automatically; anyone else must be added — once, by a maintainer —
-  to [`.github/preview-allowlist.txt`](../.github/preview-allowlist.txt),
-  after which all their future PRs publish automatically. Until then the bot
-  comments how to enable it instead of a preview URL. Only `main`'s copy of
-  the allowlist counts, so a PR cannot allowlist its own author.
+  site's origin, so it is gated on **who**: org members, collaborators, and
+  anyone with at least one PR already merged into this repo publish
+  automatically. Anyone else can be trusted *before* their first merge by a
+  maintainer adding them — once — to
+  [`.github/preview-allowlist.txt`](../.github/preview-allowlist.txt); until
+  then the bot comments how to enable it instead of a preview URL. Only
+  `main`'s copy of the allowlist counts, so a PR cannot allowlist its own
+  author. Note the flip side of the merged-PR rule: merging *any* PR of
+  someone's — a one-line typo fix included — grants preview publishing
+  forever.
 - The PR number is resolved from the GitHub API by the run's head SHA (the
   `workflow_run` payload's `pull_requests[]` is empty for forks), and only if
   that SHA is still the PR's head — a stale run skips rather than publishing
@@ -125,7 +129,8 @@ Note `workflow_run` (and `pull_request_target`) use the workflow file on the
 their own PR — they take effect on merge. Also, GitHub's separate Actions
 approval gate ("Require approval for first-time contributors", the repo-level
 default) still applies to the *build* run itself; that approval is per-run
-until the author has a merged PR, and is unrelated to the allowlist.
+until the author has a merged PR, and is separate from the preview gate —
+though both gates now dissolve at the same moment, the author's first merge.
 
 ## Caveats / known limitations
 

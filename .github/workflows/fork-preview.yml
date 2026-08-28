@@ -14,11 +14,13 @@
 #   of the PR's tree in this file hands a write token to the internet.
 # - Publishing still means serving PR-author-controlled HTML from
 #   iliad-team.github.io — the production site's origin. So it is gated on
-#   WHO, not just on green checks: org members/collaborators publish
-#   automatically; anyone else must be allowlisted ONCE by a maintainer in
-#   .github/preview-allowlist.txt, after which all their future PRs publish
-#   automatically. The allowlist is read from THIS repo's default branch,
-#   never from the PR, so a PR cannot allowlist its own author.
+#   WHO, not just on green checks: org members, collaborators, and anyone
+#   with a previously MERGED PR here publish automatically; everyone else
+#   must be allowlisted ONCE by a maintainer in .github/preview-allowlist.txt
+#   (useful for trusting someone before their first merge), after which all
+#   their future PRs publish automatically. The allowlist is read from THIS
+#   repo's default branch, never from the PR, so a PR cannot allowlist its
+#   own author.
 # - The PR number (it names the directory the publish overwrites) is resolved
 #   from the GitHub API by the triggering run's head SHA — never read from
 #   the artifact, whose contents the PR author controls.
@@ -90,7 +92,14 @@ jobs:
           # insist on a bare integer even though it came from the API.
           [[ "$NUMBER" =~ ^[0-9]+$ ]] || { echo "::error::PR number '$NUMBER' is not numeric"; exit 1; }
           trusted=false
-          case "$ASSOC" in OWNER|MEMBER|COLLABORATOR) trusted=true ;; esac
+          # CONTRIBUTOR = has at least one PR merged into this repo. Trusting
+          # it mirrors GitHub's own Actions-approval gate, which also stops
+          # prompting after a first merge — so merging someone's PR is the
+          # "approve once" that unlocks both. The flip side is deliberate too:
+          # merging ANY PR of theirs (even a one-line typo fix) grants preview
+          # publishing forever; the allowlist below is then only for trusting
+          # someone BEFORE their first merge.
+          case "$ASSOC" in OWNER|MEMBER|COLLABORATOR|CONTRIBUTOR) trusted=true ;; esac
           # -i: GitHub logins are case-insensitive. -xF: whole line, literally.
           if [ "$trusted" = false ] && [ -f .github/preview-allowlist.txt ] \
              && grep -vE '^[[:space:]]*(#|$)' .github/preview-allowlist.txt | grep -qixF "$LOGIN"; then
@@ -153,7 +162,7 @@ jobs:
             const url = `https://iliad-team.github.io/iliad-intensive/pr-preview/pr-${pr}/`;
             const body = process.env.TRUSTED === 'true'
               ? `${marker}\n🔎 **Live preview:** ${url}\n\nUpdated for \`${headSha.slice(0, 7)}\`. Removed automatically when this PR closes.`
-              : `${marker}\n🔒 No live preview: fork PRs publish only for allowlisted authors. A maintainer can enable it for @${process.env.PR_LOGIN} — once, covering all their future PRs — by adding that username to \`.github/preview-allowlist.txt\` on \`main\`.`;
+              : `${marker}\n🔒 No live preview: fork PRs publish only for trusted authors. @${process.env.PR_LOGIN} becomes trusted — permanently, for all future PRs — when any PR of theirs is merged, or when a maintainer adds that username to \`.github/preview-allowlist.txt\` on \`main\`.`;
             const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: pr });
             const existing = comments.find((c) => c.body && c.body.includes(marker));
             if (existing) {
