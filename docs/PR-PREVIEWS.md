@@ -103,17 +103,14 @@ and fork previews are published by **`.github/workflows/fork-preview.yml`**:
   *this* repo's context with a write token — but it never checks out or
   executes anything from the PR. Its only PR-derived input is the built site,
   downloaded as an inert artifact and copied into `pr-preview/pr-<N>/`; the
-  publish script and the allowlist come from `main`.
+  publish script comes from `main`.
 - Publishing still serves PR-author-controlled HTML from the production
   site's origin, so it is gated on **who**: org members, collaborators, and
   anyone with at least one PR already merged into this repo publish
-  automatically. Anyone else can be trusted *before* their first merge by a
-  maintainer adding them — once — to
-  [`.github/preview-allowlist.txt`](../.github/preview-allowlist.txt); until
-  then the bot comments how to enable it instead of a preview URL. Only
-  `main`'s copy of the allowlist counts, so a PR cannot allowlist its own
-  author. Note the flip side of the merged-PR rule: merging *any* PR of
-  someone's — a one-line typo fix included — grants preview publishing
+  automatically; there is deliberately no manual allowlist. Until an author's
+  first merge, the bot comments that on their PRs instead of a preview URL
+  (reviewers can still run the branch locally). The flip side: merging *any*
+  PR of someone's — a one-line typo fix included — grants preview publishing
   forever.
 - The PR number is resolved from the GitHub API by the run's head SHA (the
   `workflow_run` payload's `pull_requests[]` is empty for forks), and only if
