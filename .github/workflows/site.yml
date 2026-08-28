@@ -2,6 +2,8 @@
 # the site itself are build artifacts. Every PR gets the full check ladder
 # (conversion + render gate + PDF builds) AND a live preview deploy so a
 # reviewer can look before merge; pushes to main deploy the production site.
+# (For PRs from forks the preview publish half lives in fork-preview.yml,
+# which runs after this workflow — the read-only fork token can't push here.)
 #
 # Hosting model: a single `gh-pages` branch holds everything —
 #   /                      -> production site (from main)
@@ -19,7 +21,17 @@ name: site
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, closed]
+    types: [opened, synchronize, reopened]
+  # PR close/merge lands here, NOT on pull_request (whose types above exclude
+  # closed): preview-cleanup must push to gh-pages, and a fork PR's
+  # pull_request events carry a read-only GITHUB_TOKEN, so fork previews were
+  # never cleaned up. pull_request_target keeps the write token for forks too.
+  # It is safe HERE — and only because — the closed event runs nothing but
+  # preview-cleanup, which never checks out or executes anything from the PR:
+  # it deletes a directory from gh-pages using main's own scripts. Never route
+  # an event that BUILDS through pull_request_target.
+  pull_request_target:
+    types: [closed]
   push:
     branches: [main]
   # preview-sweep only. The per-PR cleanup below fires once, on the closed
@@ -34,11 +46,11 @@ on:
 
 concurrency:
   # Key PR runs on the PR NUMBER, not github.ref. Merging a PR fires two runs in
-  # the same second — the push to main, and pull_request/closed (which runs only
+  # the same second — the push to main, and the closed event (which runs only
   # preview-cleanup) — and on a merged PR the refs/pull/<N>/merge ref is already
   # deleted, so the closed event's github.ref falls back to the BASE branch.
   # Under `site-${{ github.ref }}` that put the cleanup run in main's own group,
-  # where cancel-in-progress is true for it (it is a pull_request event), so a
+  # where cancel-in-progress is true for it (it is a PR event), so a
   # 49-second `git rm` of a preview directory evicted the production build ~2s
   # in: "Canceling since a higher priority waiting request for
   # site-refs/heads/main exists". Whichever of the two runs claimed the slot
@@ -50,7 +62,9 @@ concurrency:
   # preview build, and closing N cancels a build for a preview about to be
   # deleted. Both are the same `site-<N>` group.
   group: site-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  # startsWith, not ==, so the pull_request_target closed event keeps the old
+  # behaviour: closing PR N cancels N's now-pointless in-flight preview build.
+  cancel-in-progress: ${{ startsWith(github.event_name, 'pull_request') }}
 
 # Default read-only; the deploy/preview jobs opt into write explicitly.
 permissions:
@@ -58,11 +72,11 @@ permissions:
 
 jobs:
   build:
-    # On a PR *close* there is nothing to build — the preview-cleanup job just
-    # removes the old preview. Nor on a sweep tick (schedule/manual), which only
-    # prunes gh-pages. Every other event builds.
+    # On a PR *close* (pull_request_target) there is nothing to build — the
+    # preview-cleanup job just removes the old preview. Nor on a sweep tick
+    # (schedule/manual), which only prunes gh-pages. Every other event builds.
     if: >-
-      (github.event_name != 'pull_request' || github.event.action != 'closed')
+      github.event_name != 'pull_request_target'
       && github.event_name != 'schedule'
       && github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -400,9 +414,15 @@ jobs:
 
   # Preview: publish the built site to gh-pages/pr-preview/pr-<N>/ and comment
   # the URL on the PR. Only runs after `build` succeeds — i.e. the PR passed the
-  # check ladder. (Fork PRs get a read-only token, so this no-ops there.)
+  # check ladder. SAME-REPO PRs only: a pull_request event from a fork carries a
+  # read-only GITHUB_TOKEN (this run executes the fork's code, so GitHub caps
+  # it), and the push would 403 — that was PR #119. Fork PRs are previewed by
+  # .github/workflows/fork-preview.yml instead, which runs after this workflow
+  # completes, with a write token but without ever executing PR code.
   preview-deploy:
-    if: github.event_name == 'pull_request' && github.event.action != 'closed'
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.pull_request.head.repo.full_name == github.repository
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -462,8 +482,10 @@ jobs:
             }
 
   # When a PR closes, delete its preview subtree from gh-pages. No build needed.
+  # Runs on pull_request_target (see `on:`) so it holds a write token for fork
+  # PRs too — safe only while this job touches nothing from the PR itself.
   preview-cleanup:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
+    if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     permissions:
       contents: write

@@ -28,8 +28,13 @@ result and publishes it with `.github/publish-gh-pages.sh`:
 
 - **push to `main`** → wipes the root, keeps `pr-preview/`, copies `out/` in.
 - **pull request opened/updated** → after the check ladder passes, replaces
-  `pr-preview/pr-<N>/` with `out/` and upserts a comment with the URL.
-- **pull request closed** → deletes `pr-preview/pr-<N>/`.
+  `pr-preview/pr-<N>/` with `out/` and upserts a comment with the URL. (For a
+  PR from a **fork** this half is done by `fork-preview.yml` instead — see
+  [Fork PRs](#fork-prs).)
+- **pull request closed** → deletes `pr-preview/pr-<N>/`. This fires on
+  `pull_request_target`, not `pull_request`, so it holds a write token for
+  fork PRs too — safe only because the closed event never builds or executes
+  anything from the PR.
 
 All three write to the same branch, so they share a `gh-pages-write` concurrency
 group (`cancel-in-progress: false`): simultaneous deploys **queue** instead of
@@ -86,12 +91,46 @@ A branch source runs **Jekyll** by default, which would strip Next's `_next/`
 assets (Jekyll ignores `_`-prefixed dirs). The build writes a `.nojekyll` marker
 to the site root to disable that — no action needed, but don't remove it.
 
+## Fork PRs
+
+On a `pull_request` event from a fork, `GITHUB_TOKEN` is read-only no matter
+what the workflow's `permissions:` block asks for — that run executes the
+fork's code (`npm ci`, the LaTeX build), so GitHub refuses to hand it a write
+token. `site.yml`'s own preview-deploy is therefore gated to same-repo PRs,
+and fork previews are published by **`.github/workflows/fork-preview.yml`**:
+
+- It triggers on `workflow_run` after a `site` build completes, so it runs in
+  *this* repo's context with a write token — but it never checks out or
+  executes anything from the PR. Its only PR-derived input is the built site,
+  downloaded as an inert artifact and copied into `pr-preview/pr-<N>/`; the
+  publish script comes from `main`.
+- Publishing still serves PR-author-controlled HTML from the production
+  site's origin, so it is gated on **who**: org members, collaborators, and
+  anyone with at least one PR already merged into this repo publish
+  automatically; there is deliberately no manual allowlist. Until an author's
+  first merge, the bot comments that on their PRs instead of a preview URL
+  (reviewers can still run the branch locally). The flip side: merging *any*
+  PR of someone's — a one-line typo fix included — grants preview publishing
+  forever.
+- The PR number is resolved from the GitHub API by the run's head SHA (the
+  `workflow_run` payload's `pull_requests[]` is empty for forks), and only if
+  that SHA is still the PR's head — a stale run skips rather than publishing
+  an outdated preview.
+- Do **not** "simplify" this back to running the deploy (or anything that
+  builds) on `pull_request_target` — that is the classic pwn-request: the
+  fork's code runs with a write token. The `closed` event is the one safe
+  exception, because cleanup touches nothing from the PR.
+
+Note `workflow_run` (and `pull_request_target`) use the workflow file on the
+**default branch**, so changes to this machinery cannot be exercised from
+their own PR — they take effect on merge. Also, GitHub's separate Actions
+approval gate ("Require approval for first-time contributors", the repo-level
+default) still applies to the *build* run itself; that approval is per-run
+until the author has a merged PR, and is separate from the preview gate —
+though both gates now dissolve at the same moment, the author's first merge.
+
 ## Caveats / known limitations
 
-- **Fork PRs.** On a `pull_request` from a fork, `GITHUB_TOKEN` is read-only, so
-  the preview deploy silently no-ops. Previews work for branches pushed to this
-  repo (the team's normal flow). Do **not** switch to `pull_request_target` to
-  work around this — it would run untrusted PR code with a write token.
 - **Concurrent deploys.** All `gh-pages` writes share the `gh-pages-write`
   concurrency group, so a `main` push and a PR deploy queue rather than race.
 - **Third-party actions.** Publishing no longer uses one. Earlier revisions used

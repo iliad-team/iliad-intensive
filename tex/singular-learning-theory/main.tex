@@ -115,10 +115,13 @@
 \tableofcontents
 \egroup
 
-% Matthew's recorded lecture for this day. The video is scheduled and not yet
-% public, so the title lookup 403s until it premieres — the page shows the
-% "title unavailable" fallback, and the player unlocks by itself when it goes
-% live. The real title arrives on the first rebuild after the premiere.
+% Matthew's recorded lecture for this day (public since ~2026-08). The title
+% is fetched from YouTube's oEmbed endpoint at build time; while the video was
+% still scheduled/private the lookup 403'd and the page shipped the "title
+% unavailable" fallback. Beware for future sheets: the fetched title is NOT a
+% build-cache input, so a sheet built before its premiere keeps the fallback
+% on every rebuild ("cached — inputs unchanged") until some edit to the sheet
+% busts its hash. This comment edit is that edit for this sheet.
 \youtube{SzVmiN8BvCc}
 
 
