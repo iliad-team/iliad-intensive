@@ -1,0 +1,12 @@
+# Fork-PR preview allowlist — read by .github/workflows/fork-preview.yml.
+#
+# GitHub usernames, one per line, case-insensitive; # starts a comment. Org
+# members and repo collaborators are always trusted and never need a line.
+#
+# Adding a name is a ONE-TIME approval: every future PR that user opens from
+# their fork gets its live preview published automatically. What you are
+# approving: their PR's built HTML is served from
+# https://iliad-team.github.io/iliad-intensive/pr-preview/pr-<N>/ — the same
+# origin as the production site — with no further human in the loop. Only the
+# copy of this file on main counts; a PR editing it cannot allowlist itself.
+tdimofte
