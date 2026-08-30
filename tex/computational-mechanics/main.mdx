@@ -1,0 +1,85 @@
+---
+title: Computational Mechanics
+summary: TODO
+contributors:
+  - Xavier Poncini (Simplex)
+  - Adam Shai (Simplex)
+  - Paul Riechers (Simplex)
+---
+
+<LearningOutcomes>
+
+* Construct their own hidden Markov models.
+* Explain the motivation for introducing generalised hidden Markov models (GHMMs).
+* Explain why the belief state is a useful object for making predictions about GHMM data.
+* Compute the belief state of a GHMM.
+* Explain the difference between the belief state of a HMM and the belief state of a GHMM (that is itself not an HMM).
+* Explain the relationship between belief states and next-token observation probabilities for GHMMs.
+* Compute the mixed state presentation (MSP) for GHMMs.
+* Explain why generating data is easier than predicting data.
+* Explain the evidence for the claim: transformers represent belief state geometry in their residual stream.
+* Develop hypotheses for where transformers represent: belief states, observation probabilities, log observation probabilities.
+
+</LearningOutcomes>
+
+## Prerequisites
+
+**Module C.2 (Mechanistic Interpretability).** Familiarity with the goals and basic methodology of mechanistic interpretability, including the notions of features and circuits; the linear representation hypothesis; linear probes as a method for reading off internal representations; and a basic understanding of the transformer architecture. Students should be comfortable with the idea that one can train a linear map from model activations to some target structure and evaluate its quality (e.g. via MSE or R²).
+
+**Mathematical background.** The module is mathematically self-contained – all formal definitions (HMMs, GHMMs, belief states, MSPs) are introduced from scratch. However, students will engage with the material more fluently if they are comfortable with the following:
+
+* **Linear algebra:** row-stochastic matrices, rank and invertibility, null spaces (kernels).
+* **Probability:** conditional probability, Bayes' rule, probability distributions over finite sets, the probability simplex.
+* **Basic machine learning:** next-token prediction, loss functions (cross-entropy), the concept of model activations.
+
+## Content
+
+### Fast-track
+
+Read [Transformers represent belief state geometry in their residual stream](https://arxiv.org/pdf/2405.15943). Focus on being able to answer the following questions:
+
+* What is a hidden Markov model (HMM)?
+* What is a belief state?
+* What is the mixed state presentation (MSP)?
+* About the map learnt from activations to belief states:
+   * What is the source?
+   * What is the target?
+   * How is the quality of the map evaluated?
+
+### Main content
+
+1. \[[Lecture slides](https://drive.google.com/file/d/1WLq5UeXhHGzsmjrSr9A24NXkJxbSUvpE/view?usp=sharing)\] **Overview and scope**
+   1. What is computational mechanics?
+   2. Computational mechanics & AI safety
+   3. Where is the research program at?
+   4. What will we cover today?
+2. **Computational mechanics foundations**
+   1. \[[Lecture Slides](https://drive.google.com/file/d/1Hjaih2AtPfMRurSqMUm7IKthmo8R8qlc/view?usp=sharing) & [Exercise Sheet](https://drive.google.com/file/d/1Tzw4vSpUixbJLt_Wet9ElZM10DTIpSqa/view?usp=sharing)\] **Hidden Markov Models (HMMs)**
+      1. What is an HMM?
+      2. Notions of minimality & uniqueness
+      3. What is a generalised HMM (GHMM)? (see e.g. [Neural networks leverage nominally quantum and post-quantum representations](https://arxiv.org/pdf/2507.07432))
+   2. \[[Lecture slides](https://drive.google.com/file/d/1IPz8Pq939VbjmVqYcYDybdJ02yvdgMGS/view?usp=sharing) & [Exercise Sheet](https://drive.google.com/file/d/1tfUC7uZ8TWqNqPpjH87nsXp2vQ52m3Wt/view?usp=sharing)\] **Prediction**
+      1. Belief states
+      2. Next-token (probability) vectors
+      3. Mixed-state-presentation (MSP) (see e.g. [Mixed States of Hidden Markov Processes and Their Presentations: What and how to calculate](https://csc.ucdavis.edu/~cmg/papers/msc.pdf))
+3. **Applications**
+   1. \[[Tutorial Sheet](https://drive.google.com/file/d/1eifwRe-a7ZT-7lSDJqe2YUSekwgbIFND/view?usp=sharing)\] **Designing processes worth studying**
+      1. Heuristic ensuring beliefs are meaningfully richer than obs probs
+      2. Non-ergodic
+      3. Factors (see e.g. [Transformers learn factored representations](https://arxiv.org/pdf/2602.02385v1))
+   2. \[[Reading guide](https://drive.google.com/file/d/1c_rzbR1s9N0QkpaSWcLOKUjNEIasv22y/view?usp=sharing)\] **Identifying belief geometry in transformers**
+      1. For the case of HMMs – \[Read: [Transformers represent belief state geometry in their residual stream](https://arxiv.org/pdf/2405.15943)\].
+      2. \[extension\] For the case of GHMMs – \[Read: [Neural networks leverage nominally quantum and post-quantum representations](https://arxiv.org/pdf/2507.07432)\]
+   3. \[[Tutorial Sheet](https://drive.google.com/file/d/1TiiW-n11CAPQ1CueK5_1BvidAeldofwp/view?usp=sharing)\] **How do transformers do it?**
+      1. How do transformers construct representations of belief states? Partial answer in narrow setting – \[Read: [Constrained belief updates explain geometric structures in transformer representations](https://arxiv.org/pdf/2502.01954v2)\]
+      2. How do they decode from belief states to log obs probs then obs probs? This is an open problem!
+
+## Learn more
+
+* Beyond toy architectures – in-context learning
+   * LLMs have an amazing ability to adapt internal representations in-context – \[Read: ICLR: [In-Context Learning of Representations](https://arxiv.org/pdf/2501.00070)\]
+   * LLMs can predict HMM data in-context – \[Read: [Pre-trained Large Language Models Learn Hidden Markov Models In-context](https://arxiv.org/pdf/2506.07298)\]
+   * This suggests that internal representations of LLMs predicting GHMM data in-context, may resemble belief states.
+* Processes consisting of GHMMs with richer structure \[Read: [Transformers learn factored representations](https://arxiv.org/pdf/2602.02385v1)\]
+* Review article of computational mechanics \[Read: [Between order and chaos](https://www.nature.com/articles/nphys2190)\]
+* [Simplex](https://www.simplexaisafety.com/) is a non-profit research organisation working on applying computational mechanics to AI safety.
