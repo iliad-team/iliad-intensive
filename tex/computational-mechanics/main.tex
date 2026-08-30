@@ -1,0 +1,198 @@
+%--- iliad ---
+% summary: TODO
+%--- end ---
+\documentclass[11pt]{article}
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
+
+\title{Computational Mechanics}
+\author{\authorname{Xavier Poncini}\\ \affiliation{Simplex}
+  \and \authorname{Adam Shai}\\ \affiliation{Simplex}
+  \and \authorname{Paul Riechers}\\ \affiliation{Simplex}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{learningoutcomes}
+\begin{itemize}
+\item
+  Construct their own hidden Markov models.
+\item
+  Explain the motivation for introducing generalised hidden Markov models (GHMMs).
+\item
+  Explain why the belief state is a useful object for making predictions about GHMM data.
+\item
+  Compute the belief state of a GHMM.
+\item
+  Explain the difference between the belief state of a HMM and the belief state of a GHMM (that is itself not an HMM).
+\item
+  Explain the relationship between belief states and next-token observation probabilities for GHMMs.
+\item
+  Compute the mixed state presentation (MSP) for GHMMs.
+\item
+  Explain why generating data is easier than predicting data.
+\item
+  Explain the evidence for the claim: transformers represent belief state geometry in their residual stream.
+\item
+  Develop hypotheses for where transformers represent: belief states, observation probabilities, log observation probabilities.
+\end{itemize}
+\end{learningoutcomes}
+
+\section{Prerequisites}\label{prerequisites}
+
+\textbf{Module C.2 (Mechanistic Interpretability).} Familiarity with the goals and basic methodology of mechanistic interpretability, including the notions of features and circuits; the linear representation hypothesis; linear probes as a method for reading off internal representations; and a basic understanding of the transformer architecture. Students should be comfortable with the idea that one can train a linear map from model activations to some target structure and evaluate its quality (e.g. via MSE or \(R^2\)).
+
+\textbf{Mathematical background.} The module is mathematically self-contained -- all formal definitions (HMMs, GHMMs, belief states, MSPs) are introduced from scratch. However, students will engage with the material more fluently if they are comfortable with the following:
+
+\begin{itemize}
+\item
+  \textbf{Linear algebra:} row-stochastic matrices, rank and invertibility, null spaces (kernels).
+\item
+  \textbf{Probability:} conditional probability, Bayes\textquotesingle{} rule, probability distributions over finite sets, the probability simplex.
+\item
+  \textbf{Basic machine learning:} next-token prediction, loss functions (cross-entropy), the concept of model activations.
+\end{itemize}
+
+\section{Content}\label{content}
+
+\subsection{Fast-track}\label{fast-track}
+
+Read \href{https://arxiv.org/pdf/2405.15943}{Transformers represent belief state geometry in their residual stream}. Focus on being able to answer the following questions:
+
+\begin{itemize}
+\item
+  What is a hidden Markov model (HMM)?
+\item
+  What is a belief state?
+\item
+  What is the mixed state presentation (MSP)?
+\item
+  About the map learnt from activations to belief states:
+
+  \begin{itemize}
+  \item
+    What is the source?
+  \item
+    What is the target?
+  \item
+    How is the quality of the map evaluated?
+  \end{itemize}
+\end{itemize}
+
+\subsection{Main content}\label{main-content}
+
+\begin{enumerate}
+\item
+  {[}\href{https://drive.google.com/file/d/1WLq5UeXhHGzsmjrSr9A24NXkJxbSUvpE/view?usp=sharing}{Lecture slides}{]} \textbf{Overview and scope}
+
+  \begin{enumerate}
+  \item
+    What is computational mechanics?
+  \item
+    Computational mechanics \& AI safety
+  \item
+    Where is the research program at?
+  \item
+    What will we cover today?
+  \end{enumerate}
+\item
+  \textbf{Computational mechanics foundations}
+
+  \begin{enumerate}
+  \item
+    {[}\href{https://drive.google.com/file/d/1Hjaih2AtPfMRurSqMUm7IKthmo8R8qlc/view?usp=sharing}{Lecture Slides} \& \href{https://drive.google.com/file/d/1Tzw4vSpUixbJLt_Wet9ElZM10DTIpSqa/view?usp=sharing}{Exercise Sheet}{]} \textbf{Hidden Markov Models (HMMs)}
+
+    \begin{enumerate}
+    \item
+      What is an HMM?
+    \item
+      Notions of minimality \& uniqueness
+    \item
+      What is a generalised HMM (GHMM)? (see e.g. \href{https://arxiv.org/pdf/2507.07432}{Neural networks leverage nominally quantum and post-quantum representations})
+    \end{enumerate}
+  \item
+    {[}\href{https://drive.google.com/file/d/1IPz8Pq939VbjmVqYcYDybdJ02yvdgMGS/view?usp=sharing}{Lecture slides} \& \href{https://drive.google.com/file/d/1tfUC7uZ8TWqNqPpjH87nsXp2vQ52m3Wt/view?usp=sharing}{Exercise Sheet}{]} \textbf{Prediction}
+
+    \begin{enumerate}
+    \item
+      Belief states
+    \item
+      Next-token (probability) vectors
+    \item
+      Mixed-state-presentation (MSP) (see e.g. \href{https://csc.ucdavis.edu/~cmg/papers/msc.pdf}{Mixed States of Hidden Markov Processes and Their Presentations: What and how to calculate})
+    \end{enumerate}
+  \end{enumerate}
+\item
+  \textbf{Applications}
+
+  \begin{enumerate}
+  \item
+    {[}\href{https://drive.google.com/file/d/1eifwRe-a7ZT-7lSDJqe2YUSekwgbIFND/view?usp=sharing}{Tutorial Sheet}{]} \textbf{Designing processes worth studying}
+
+    \begin{enumerate}
+    \item
+      Heuristic ensuring beliefs are meaningfully richer than obs probs
+    \item
+      Non-ergodic
+    \item
+      Factors (see e.g. \href{https://arxiv.org/pdf/2602.02385v1}{Transformers learn factored representations})
+    \end{enumerate}
+  \item
+    {[}\href{https://drive.google.com/file/d/1c_rzbR1s9N0QkpaSWcLOKUjNEIasv22y/view?usp=sharing}{Reading guide}{]} \textbf{Identifying belief geometry in transformers}
+
+    \begin{enumerate}
+    \item
+      For the case of HMMs -- {[}Read: \href{https://arxiv.org/pdf/2405.15943}{Transformers represent belief state geometry in their residual stream}{]}.
+    \item
+      {[}extension{]} For the case of GHMMs -- {[}Read: \href{https://arxiv.org/pdf/2507.07432}{Neural networks leverage nominally quantum and post-quantum representations}{]}
+    \end{enumerate}
+  \item
+    {[}\href{https://drive.google.com/file/d/1TiiW-n11CAPQ1CueK5_1BvidAeldofwp/view?usp=sharing}{Tutorial Sheet}{]} \textbf{How do transformers do it?}
+
+    \begin{enumerate}
+    \item
+      How do transformers construct representations of belief states? Partial answer in narrow setting -- {[}Read: \href{https://arxiv.org/pdf/2502.01954v2}{Constrained belief updates explain geometric structures in transformer representations}{]}
+    \item
+      How do they decode from belief states to log obs probs then obs probs? This is an open problem!
+    \end{enumerate}
+  \end{enumerate}
+\end{enumerate}
+
+\section{Block 2: Hidden Markov models}
+\input{block_2}
+
+\section{Block 3: Prediction}
+\input{block_3}
+
+\section{Block 4: Identifying belief geometry in transformers}
+\input{block_4}
+
+\section{Block 5: Designing processes}
+\input{block_5}
+
+\section{Block 6: How do transformers do it?}
+\input{block_6}
+
+\section{Learn more}\label{learn-more}
+
+\begin{itemize}
+\item
+  Beyond toy architectures -- in-context learning
+
+  \begin{itemize}
+  \item
+    LLMs have an amazing ability to adapt internal representations in-context -- {[}Read: ICLR: \href{https://arxiv.org/pdf/2501.00070}{In-Context Learning of Representations}{]}
+  \item
+    LLMs can predict HMM data in-context -- {[}Read: \href{https://arxiv.org/pdf/2506.07298}{Pre-trained Large Language Models Learn Hidden Markov Models In-context}{]}
+  \item
+    This suggests that internal representations of LLMs predicting GHMM data in-context, may resemble belief states.
+  \end{itemize}
+\item
+  Processes consisting of GHMMs with richer structure {[}Read: \href{https://arxiv.org/pdf/2602.02385v1}{Transformers learn factored representations}{]}
+\item
+  Review article of computational mechanics {[}Read: \href{https://www.nature.com/articles/nphys2190}{Between order and chaos}{]}
+\item
+  \href{https://www.simplexaisafety.com/}{Simplex} is a non-profit research organisation working on applying computational mechanics to AI safety.
+\end{itemize}
+
+\end{document}
