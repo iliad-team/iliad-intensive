@@ -1,0 +1,58 @@
+%--- iliad ---
+% title: Data Attribution
+% summary: Which training examples caused a model to behave the way it does? These notes develop the main approaches to data attribution -- counterfactuals and Shapley values, classical and Bayesian influence functions, and training-dynamics unrolling -- with derivation exercises throughout.
+% contributors: [Louis Jaburi]
+%--- end ---
+\documentclass[11pt]{article}
+
+% iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty.
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
+
+% ---- Free zone -------------------------------------------------------------
+% Author-year citations: the notes use natbib's \citet/\citep throughout (the
+% web converter renders both as author-year text).
+\usepackage[round]{natbib}
+\usepackage{mathtools}   % amsmath superset used by the source
+\usepackage{booktabs}    % the unrolling section has a booktabs table
+
+% Convenience macros (picked up as KaTeX \gdef's by the converter).
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator{\tr}{tr}
+
+\title{Data (Attribution) for Alignment}
+\author{\authorname{Louis Jaburi}\\ \affiliation{EleutherAI}}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\input{sections/00_introduction}
+
+\input{sections/01_causality}
+
+\input{sections/02_influence}
+
+\input{sections/03_bayesian}
+
+\input{sections/04_unrolling}
+
+% DQ: Sections 05 and 06 are empty stubs.
+\input{sections/05_practical}
+
+\input{sections/06_further}
+
+% ---------------------------------------------------------
+% References
+% ---------------------------------------------------------
+\bibliographystyle{plainnat}
+\bibliography{biblo}
+
+% ---------------------------------------------------------
+% \appendix lives inside the solutions file's pdfonly/solutionsonly header,
+% so a -nosol build has no stray appendix at all.
+\input{sections/07_solutions}
+
+\end{document}

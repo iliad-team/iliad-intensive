@@ -165,6 +165,8 @@ clusters:
         source: ready
         sourceUrl: https://github.com/LouisYRYJ/illiad_data_attribution
         note: source repo is private
+        worksheets:
+          - data-attribution
 
       - code: B.6
         title: Physics of Learning

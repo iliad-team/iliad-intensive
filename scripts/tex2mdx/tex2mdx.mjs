@@ -26,8 +26,8 @@ import { SRC_FILES, warnings, warn, advisories, advise, fmtIssue } from "./state
 import { MACRO_OVERRIDE, MACRO_SKIP, applyShims, trimMacroBody,
          CREF_NAME_DEFAULTS, CONTRACT_NAMES, KNOWN_FRONT_KEYS } from "./shims.mjs";
 import { initTikz, renderTikzSnippets, tikzCount } from "./tikz.mjs";
-import { injectAutoLabels } from "./autolabel.mjs";
-import { emitDocument, texToPlain } from "./emit-ast.mjs";
+import { injectAutoLabelsTree } from "./autolabel.mjs";
+import { emitDocument, texToPlain, buildToc } from "./emit-ast.mjs";
 import { entries as bibtexEntries } from "bibtex-parse";
 
 // Optional yaml lib (from the public repo's node_modules) for strict
@@ -92,7 +92,9 @@ if (!tikzSrc.endsWith("/")) tikzSrc += "/";
 function generateAux(texFile) {
   const dir = mkdtempSync(path.join(tmpdir(), "tex2mdx-"));
   const base = path.basename(texFile, ".tex");
-  writeFileSync(path.join(dir, base + ".autolabel.tex"), rawTex);
+  // the INLINED document: self-contained, so a multi-file worksheet's section
+  // files (which live next to the source, not in this temp dir) come along
+  writeFileSync(path.join(dir, base + ".autolabel.tex"), tex);
   try {
     execFileSync("pdflatex", ["-interaction=nonstopmode", "-output-directory=" + dir,
       "-jobname=" + base, path.join(dir, base + ".autolabel.tex")],
@@ -155,23 +157,17 @@ function parseAux(auxFile) {
 // Auto-labels first (see autolabel.mjs): the identical injection ran over the
 // source the .aux was compiled from, so every numbered construct's displayed
 // number is read out of the .aux — never simulated — by matching label names.
-const { text: rawTex, labels: autoLabels } = injectAutoLabels(readFileSync(input, "utf8"));
-// Inline \input{file} recursively (multi-file worksheets are fine — pdflatex
-// resolves them, so the converter must too; silently dropping them would lose
-// content). \input{preamble}-style extensionless names get .tex appended.
-function inlineInputs(src, dir, depth = 0) {
-  if (depth > 8) { warn("\\input nesting too deep — stopping"); return src; }
-  return src.replace(/\\input\{([^}]+)\}/g, (m0, f) => {
-    const file = path.join(dir, /\.\w+$/.test(f) ? f : f + ".tex");
-    if (!existsSync(file)) { warn(`\\input{${f}} not found — file missing, content dropped`, m0); return ""; }
-    const sub = stripComments(readFileSync(file, "utf8"));
-    SRC_FILES.push({ name: path.relative(path.dirname(input), file) || f, text: sub });
-    return inlineInputs(sub, path.dirname(file), depth + 1);
-  });
-}
-const mainStripped = stripComments(rawTex);
-SRC_FILES.push({ name: path.basename(input), text: mainStripped });
-const tex = inlineInputs(mainStripped, path.dirname(input));
+// The injection follows \input, so a multi-file worksheet's section files are
+// labelled too (the same walk build-content compiled the .aux from). Each
+// file's comment-stripped text is registered for file:line reporting as it is
+// visited; injection and stripComments are both same-line, so the numbers
+// still point at the pristine source.
+const { flat: tex, labels: autoLabels } = injectAutoLabelsTree(input, {
+  warn: (m) => warn(m),
+  postProcess: stripComments,
+  onFile: (file, text) =>
+    SRC_FILES.push({ name: path.relative(path.dirname(input), file) || path.basename(file), text }),
+});
 
 const docStart = tex.indexOf("\\begin{document}");
 const docEnd = tex.indexOf("\\end{document}");
@@ -232,7 +228,9 @@ function parseIliadBlock(raw) {
   }
   return out.length ? out : null;
 }
-const iliadBlock = parseIliadBlock(rawTex);
+// from main.tex as written: the block is a comment, so it survives neither
+// stripComments nor the inlining, and injection never touches comments anyway
+const iliadBlock = parseIliadBlock(readFileSync(input, "utf8"));
 // A present-but-misspecified block is a hard failure (ERROR => exit 2);
 // a missing block only draws a warning (TODO placeholders are emitted).
 // The parsed frontmatter block, kept for the summary checks further down (a
@@ -534,7 +532,7 @@ const videoTitles = {};
 
 // ------------------------------ run ---------------------------------------
 // AST emit (two passes handled inside emit-ast)
-const bodyMdx = tidy(emitDocument(body, {
+let bodyMdx = tidy(emitDocument(body, {
   refs,
   videoTitles,
   preamble,
@@ -548,6 +546,14 @@ const bodyMdx = tidy(emitDocument(body, {
   warnSnapshot: () => [warnings.length, advisories.length],
   warnRestore: ([w, a]) => { warnings.length = w; advisories.length = a; },
 }));
+// Fill the \tableofcontents placeholder AFTER tidy(): the ToC is a nested list
+// whose indentation tidy() would otherwise strip (it dedents every line).
+if (bodyMdx.includes("<!--ILIAD_TOC-->")) {
+  const toc = buildToc(bodyMdx);
+  // function replacement: heading text reaches here verbatim, and a literal
+  // `$$` (or `$&`) in it would otherwise be read as a $-substitution pattern
+  bodyMdx = bodyMdx.replace(/\n*<!--ILIAD_TOC-->\n*/g, () => (toc ? `\n\n${toc}\n\n` : "\n\n"));
+}
 // The page's macros ride in a leading inline-math span, where KaTeX picks up the
 // \gdef's. A sheet that defines none must not get an empty one: `$$` on its own
 // line is a display-math OPENER to remark-math, which then swallows the rest of

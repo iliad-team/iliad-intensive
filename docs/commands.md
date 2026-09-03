@@ -166,6 +166,25 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
   **warning** on both paths (LaTeX and MDX) — it is the one metadata field that
   shows up twice, so an unfinished one is worth naming out loud.
 
+## Table of contents
+
+```latex
+\tableofcontents   % usually right after \maketitle
+```
+
+- Optional. In the PDF, `\tableofcontents` produces LaTeX's usual ToC.
+- On the web, the converter emits an in-page **Contents** list at the same
+  spot — a nested list of links to every `section`/`subsection`/`subsubsection`,
+  numbered exactly as the headings are (`1`, `1.1`, `4.2.1`).
+- It is built from the headings that survive conversion, so links never
+  dangle: a section whose body relocated away (e.g. a `Solutions` appendix,
+  whose solutions move under their exercises on the web) is left out
+  automatically. The auto-generated References list is not included.
+- No `.toc` file or CI change is involved — writing `\tableofcontents` in the
+  source is all it takes.
+- MDX-authored sheets (`main.mdx`) have no `\tableofcontents`; write the page
+  with headings and rely on the sidebar nav.
+  
 ## Front matter opens the sheet
 
 Different authors ordered their openings differently; the site does not.

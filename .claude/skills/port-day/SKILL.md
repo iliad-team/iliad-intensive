@@ -210,8 +210,10 @@ For a large LaTeX day the mechanical assembly suits a `general-purpose`
 subagent scoped to `<worktree>/tex/<slug>/`. Set up the worktree and branch
 **first**, so the subagent can never touch `main`. Give it the verbatim mandate,
 the framework contract above (or point it at `docs/commands.md`,
-`docs/iliad-sty.md`, `tex/example/main.tex`), the build-until-clean loop, and an
-instruction to delete its `_src/` scratch before committing.
+`docs/iliad-sty.md`, `tex/example/main.tex`), the build-until-clean loop, and the
+location of the source clone (`_src_repo/` at the worktree root, put there by
+`new-worktree.sh --src`). It is gitignored, so it needs no cleanup — but it must
+never be staged.
 
 ## Slides that exist only as a raw PDF
 
@@ -263,8 +265,8 @@ static build and *does* auto-reload via an injected SSE snippet. Edit sources in
 
 Stage only sources: `main.tex` + `biblo.bib` + `fig/*`, or `main.mdx` (+ `fig/`),
 plus the `schedule.yaml` line. Everything else — `main-nosol.*`, `.aux`, `.pdf`,
-`rendergate.log`, `content/`, `public/`, the `_src/` scratch, the `node_modules`
-symlink — is gitignored or must not be staged.
+`rendergate.log`, `content/`, `public/`, the `_src_repo/` source clone, the
+`node_modules` symlink — is gitignored or must not be staged.
 
     git push -u origin port-<x.y>-claude --no-verify   # see the symlink note above
     gh pr create --base main --title "[X.Y] <Title>"

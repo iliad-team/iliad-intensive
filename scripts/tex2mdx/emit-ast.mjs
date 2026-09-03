@@ -44,7 +44,7 @@ const TEXT_MACROS = {
 };
 // macros dropped with NO arguments consumed
 const NOOP_MACROS = new Set([
-  "maketitle", "tableofcontents", "centering", "solutionstrue", "solutionsfalse",
+  "maketitle", "centering", "solutionstrue", "solutionsfalse",
   "allowdisplaybreaks", "phantomsection", "sloppy", "AND", "And", "name",
   "height", "width", "depth", "centerline", "noindent", "medskip", "smallskip",
   "bigskip", "hfill", "hfil", "vfill", "vfil", "null", "clearpage", "newpage",
@@ -791,6 +791,9 @@ function emitMacro(n) {
     }
     case "item": return "";   // stray \item outside a list
     case "section": case "subsection": case "subsubsection": return emitHeading(n);
+    // \tableofcontents: emit a placeholder; the real ToC is built from the
+    // surviving headings once emission + pruning are done (see emitDocument).
+    case "tableofcontents": return "\n\n<!--ILIAD_TOC-->\n\n";
     // \ensuremath{X} in prose: X typeset as math. This is how a macro is made
     // usable in both modes (amsthm's \qed is \ensuremath{\square}), so a ported
     // document reaches for it whenever one macro has to work in a sentence and
@@ -1024,7 +1027,31 @@ function relocateSolutions(md) {
   //    An authored solutions appendix belongs in pdfonly — that is how a sheet
   //    keeps the emptied heading off the web (see docs/iliad-sty.md).
   out = out.replace(/\n*<!--iliad:moved:[^>]*-->\n*/g, "\n\n");
+
+  // 4. the \tableofcontents placeholder is filled by the caller AFTER tidy(),
+  //    because tidy() dedents every line and would flatten the nested list.
   return out;
+}
+
+// -------------------------------------------------------------- contents ---
+// \tableofcontents becomes an in-page ToC on the web, built from every heading
+// the page emits — the same set LaTeX lists, since headings are never dropped.
+// The converter already numbers headings ("1", "1.1", "4.2.1") identically to
+// LaTeX, so the numbers are read straight off the heading text and the anchors
+// are the same ghSlug the site (rehype-slug) and build-content's index use —
+// guaranteeing the links resolve. References is converter-added (not a source
+// section) and is left out.
+export function buildToc(out) {
+  const items = [];
+  for (const line of out.split("\n")) {
+    const h = /^(#{2,4}) +(.+?)\s*$/.exec(line);
+    if (!h) continue;
+    const text = h[2].replace(/\*\*|\*/g, "").trim();
+    if (!text || text === "References") continue;
+    const indent = "  ".repeat(h[1].length - 2);
+    items.push(`${indent}- [${text}](#${ghSlug(text)})`);
+  }
+  return items.length ? `**Contents**\n\n${items.join("\n")}` : "";
 }
 
 

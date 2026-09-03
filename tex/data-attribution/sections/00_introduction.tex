@@ -1,0 +1,34 @@
+% ---------------------------------------------------------
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+
+
+\paragraph{Contents} These notes are structured as follows:
+
+\begin{enumerate}[label=\arabic*.]
+  \item \textbf{Causality and Counterfactuals} motivates the problem of data attribution through the lens of causal reasoning, exhibiting the shortcomings of naive counterfactual approaches.
+  \item \textbf{Influence Functions} introduces the classical theory of influence functions for statistical models and discusses their translation to modern neural networks.
+  \item \textbf{Bayesian Influence Functions} introduces susceptibilities and Bayesian influence functions, connecting them to the classical theory via a power series expansion.
+  \item \textbf{Unrolling} presents the training-dynamics approach to attribution, deriving the basic formula and connecting it to influence functions in the appropriate limit.
+  \item \textbf{Practical Considerations and Open Problems} discusses distributional versus single-model attribution, entangled latent concepts, and the distinction between similarity metrics and genuine attribution.
+\end{enumerate}
+
+\paragraph{Prerequisites} We assume the following background, most of it standard for a machine-learning audience.
+\begin{itemize}
+  \item \emph{Linear algebra}: vectors, matrices, inner products, eigenvalues, quadratic forms, Hessians.
+  \item \emph{Multivariable calculus}: gradients, the chain rule, Taylor expansion, the implicit function theorem.
+  \item \emph{Probability}: expectations, conditional probability, Bayes' rule, Gaussian distributions.
+  \item \emph{Deep learning basics}: stochastic gradient descent, empirical risk minimisation, a standard supervised training loop.
+\end{itemize}
+Familiarity with the material from the singular learning theory tutorial (degeneracy, the local learning coefficient, posterior broadening) is useful but not required. We flag connections to the SLT day in remarks as they arise.
+
+\paragraph{Fast-track.} There is more material here than comfortably fits into a single day. Readers short on time may prefer one of the following routes; each is self-contained.
+\begin{enumerate}[label=\textbf{Route \arabic*.}, leftmargin=*]
+  \item \emph{From classical to modern influence functions.} Skim \Cref{sec:causality} for motivation, then read \Cref{sec:influence} in full, including the derivation exercise.
+  \item \emph{The Bayesian perspective.} Read \Cref{subsec:if-formula} for the influence function formula, then \Cref{sec:bayesian-if} in full. The connection exercise (\Cref{subsec:bif-if-connection}) is the conceptual payoff.
+  \item \emph{Training-dynamics attribution.} Skim \Cref{sec:influence}, then read \Cref{sec:unrolling} in full. The long exercise in \Cref{subsec:unroll-to-if} recovers the influence function as a limit of unrolling.
+\end{enumerate}
+All three routes depend on the motivational material in \Cref{sec:causality}. If reading only one section, read that one.
+
+\paragraph{Acknowledgements.} This tutorial was developed for the April 2026 Iliad Intensive and its template was inspired by the SLT day. 
+Exercises and examples adapted from specific sources are credited inline.
