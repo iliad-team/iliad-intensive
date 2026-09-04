@@ -289,6 +289,11 @@ if (usesExerciseEnv && !iliadBlock) {
   for (const m of code.matchAll(/\\ref\{([^}]*)\}/g)) {
     advise(`plain \\ref{${m[1]}} — use \\cref (prints and links the type, and survives renumbering)`, m[0]);
   }
+  // \cref{ex:foo}(b) — the part letter is hand-written, so it goes stale when
+  // parts move, and the link stops at the exercise box. \label the \item.
+  for (const m of code.matchAll(/\\[cC]ref\{([^}]*)\}\(([a-z]|[ivx]+)\)/g)) {
+    advise(`\\cref{${m[1]}}(${m[2]}) hand-writes the part — \\label the \\item and \\cref that instead (prints "Exercise N(${m[2]})" and links to the part)`, m[0]);
+  }
   // \hyperref whose visible text hand-writes a "Type N" — the number is frozen.
   // Nested-brace text (the roadmap-node pattern carrying \ref*) never matches
   // the flat [^{}]* group, which is exactly right: those pull their numbers

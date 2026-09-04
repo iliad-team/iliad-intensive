@@ -425,11 +425,25 @@ function emitList(env, n) {
     const txt = new RegExp(`^\\s*${CHILD}`).test(body)
       ? `\n${body.trimStart()}`.replace(/\s+$/, "")
       : body.trim();
+    // A \label on the item (its own, not one inside a nested list or
+    // environment) makes the part addressable: iliad.sty numbers it
+    // "Exercise 1.2(a)" in the .aux, so a \cref to it prints that — and the
+    // link should land on the part, not the enclosing exercise box. The id
+    // goes on the marker; a plain numbered list gets an empty anchor instead.
+    const itemLabels = it.nodes
+      .filter((x) => x.type === "macro" && x.content === "label")
+      .map((x) => (lastArgRaw(x) ?? "").trim()).filter(Boolean);
+    for (const l of itemLabels) anchorMap[l] = slug(l);
+    const anchorId = itemLabels.length ? slug(itemLabels[0]) : null;
     // An explicit \item[..] wins over the synthesized (a)/(b) marker: it is
     // what the PDF prints, and authors use it to name parts they refer back to.
-    if (bare) return indentBody(itemJoin((lead || `**(${String.fromCharCode(97 + k)})** `).trim(), txt), 0);
+    if (bare) {
+      const mk = (lead || `**(${String.fromCharCode(97 + k)})** `).trim();
+      return indentBody(itemJoin(anchorId ? `<span id="${anchorId}">${mk}</span>` : mk, txt), 0);
+    }
     const marker = env === "enumerate" ? `${k + 1}.` : "-";
-    return indentBody(itemJoin(`${marker} ${lead}`.trim(), txt), marker.length + 1);
+    const anchored = anchorId ? `<span id="${anchorId}"></span>${txt}` : txt;
+    return indentBody(itemJoin(`${marker} ${lead}`.trim(), anchored), marker.length + 1);
   }).join(bare ? "\n\n" : "\n");
   letteredParts = wasIn;
   listDepth--;
