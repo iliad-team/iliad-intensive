@@ -22,8 +22,9 @@ Let $p$ be a distribution on a finite set $\mathcal{X}$.
 - Numbered per section ("Exercise 2.1"); the optional argument is the title.
 - Label the exercise if a solution or `\cref` points at it; unlabeled
   exercises are allowed but draw a CI warning (no stable web anchor).
-- Subparts are a plain `enumerate`; label an `\item` to reference it
-  ("Exercise 1.2(a)").
+- Subparts are a plain `enumerate`; label an `\item` to reference it: `\cref`
+  prints "Exercise 1.2(a)" and, on the web, links to that part. Never
+  hand-write the letter (`\cref{ex:warmup}(a)`) — the build flags it.
 - MDX: `<Exercise id="ex-warmup">**Exercise 1.1.** …</Exercise>`
 
 ## Solutions
