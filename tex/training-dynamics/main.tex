@@ -58,6 +58,20 @@ Use LLMs to help you out when you spend longer than the suggested time (but make
 
 \textbf{References}: \cite{saxe2014}, \cite{achour2024}, \cite{tu2024}.
 
+\section{Module Intent}
+
+The goal of this day is to present a toy model perspective on the training 
+dynamics of deep neural networks. The student should learn about the AI safety 
+motivations of studying training dynamics. One motivation is that understanding 
+the implicit biases of training deep neural networks is a central problem behind 
+AI alignment. This is because implicit biases influence the generalization 
+behaviour of a neural network including for example if that neural network will 
+generalize in a helpful or harmful way out of distribution. Another motivation 
+is interpretability. One key lesson of the day is that SGD learns from data in a 
+structured way. For example in deep linear neural networks, under small 
+initialization, it will first learn the features that explain the largest 
+fraction of data covariance.
+
 \section{Setup and notation}
 
 We study deep linear networks (DLNs) with \(L\) weight matrices
