@@ -1,0 +1,1903 @@
+%--- iliad ---
+% summary: Exploring the Bayesian optimal policy for history based reinforcement learning.
+%--- end ---
+\documentclass[fontsize=11pt, parskip=half]{scrartcl}
+% Page geometry (compact screen page, 1cm margins) now comes from iliad.sty.
+\pagestyle{plain}
+
+% tikz auto-loads xcolor (optionless); pass dvipsnames first so the later
+% \usepackage[dvipsnames]{xcolor} does not trigger an option clash on modern TeX Live.
+\PassOptionsToPackage{dvipsnames}{xcolor}
+\usepackage{amsmath, amssymb, amsthm, amsfonts}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{cancel}
+% \llbracket/\rrbracket (Iverson brackets) come from iliad.sty — stmaryrd not needed.
+
+
+% iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+\renewcommand{\thesection}{\arabic{section}}
+% Typeset \crefrange ranges as "Problems 3--5" (en-dash), matching the prose style.
+% cleveref defines \crefrangeconjunction only \AtBeginDocument, so the override
+% must be deferred to the same hook (running after cleveref's own default).
+\AtBeginDocument{\renewcommand{\crefrangeconjunction}{--}}
+
+
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\cO}{\mathcal{O}}
+\newcommand{\cR}{\mathcal{R}}
+\newcommand{\cE}{\mathcal{E}}
+\newcommand{\cH}{\mathcal{H}}
+\newcommand{\cM}{\mathcal{M}}
+\newcommand{\Ex}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+% Expectimax operator: "max" stacked over a (xi-weighted) sum, with a range subscript.
+\newcommand{\exmaxsym}{\mathop{\mathchoice
+  {\overset{\textstyle\max}{\textstyle\sum}}%
+  {\overset{\max}{\sum}}%
+  {\overset{\scriptstyle\max}{\scriptstyle\sum}}%
+  {\overset{\scriptscriptstyle\max}{\scriptscriptstyle\sum}}}}
+\newcommand{\exmax}{\exmaxsym\limits}
+\newcommand{\TV}[1][]{\mathrm{TV}_{#1}}
+\newcommand{\aes}{\textnormal{\ae}}
+
+%===================================
+\begin{document}
+
+\title{AIXI}
+\author{\authorname{David Quarel}\\ \affiliation{Australian National University}}
+\date{\today}
+\maketitle
+
+\begin{learningoutcomes}
+  \begin{itemize}
+    \item Formalize the agent-environment interaction, value functions, and the Bayes-optimal policy that defines AIXI.
+    \item Derive the explicit expectimax form of AIXI.
+    \item Prove on-policy value convergence and that AIXI cannot be fooled in deterministic environments.
+    \item Prove the self-optimizing property via likelihood-ratio martingales and change of measure.
+  \end{itemize}
+\end{learningoutcomes}
+
+\medskip
+\noindent
+Much of this material is drawn from \cite{Hutter:24uaibook2}. 
+The book provides fuller explanations, additional context, and proofs omitted here.
+
+\medskip
+\noindent
+\textbf{Difficulty ratings.} Each subproblem is tagged with a rating in square brackets using Knuth's scale \cite{Knuth:73a}: roughly, \textbf{[00]}~trivial, \textbf{[10]}~15--minute pencil-and-paper, \textbf{[20]}~1--2~hours, \textbf{[30]}~several hours to a day, \textbf{[40]}~a significant research result. Intermediate values are possible. See \cref{sec:appendix_difficulty} for the full scale. 
+
+Problems marked \textbf{($\ast$)} are less interesting/insightful and while the result may be used later, I would recommend skipping them on a first pass.
+
+%===================================
+
+\section*{Overview}
+
+AIXI is the \emph{action} half of \textbf{Universal AI}: it lifts the Bayesian
+mixture from \href{/agency/solomonoff-induction}{Solomonoff induction} --- learning
+to predict --- to learning to act. Now the agent takes actions that shape what it
+observes, and AIXI is the \textbf{Bayes-optimal policy} over a universal mixture
+$\xi$ of environments. It learns to act as well as if it knew the true environment
+$\mu$. Under the universal choice --- $\cM$ = all lower-semicomputable environments,
+prior $w_\nu = 2^{-K(\nu)}$ --- the assumption ``$\mu \in \cM$'' again becomes
+``the universe is computable.''
+
+\section*{Prerequisites}
+
+\begin{itemize}
+    \item \href{/agency/solomonoff-induction}{Solomonoff Induction} ---
+    \textbf{start there first.} The Bayesian mixture, posterior updates, and
+    dominance carry over directly; AIXI reuses them in the action setting.
+    \item Comfort with discrete probability (conditional distributions, chain rule,
+    expectations).
+    \item Familiarity with sequential decision-making / reinforcement learning
+    (agents, rewards, discounting, value functions) is useful but not assumed.
+\end{itemize}
+
+\section*{Further reading}
+
+\begin{itemize}
+    \item Hutter, \href{https://www.hutter1.net/publ/uaibook2.pdf}{\emph{An
+    Introduction to Universal Artificial Intelligence}} (2024): Chapter~2.7
+    (Kolmogorov complexity), Chapters~3.7--3.8 (the model class and universal
+    prior), and Chapter~7.4 (AIXI).
+    \item Hutter, \href{http://www.hutter1.net/ai/uaibook.htm}{\emph{Universal
+    Artificial Intelligence: Sequential Decisions Based on Algorithmic
+    Probability}} (Springer, 2005) --- the original book-length treatment;
+    Lem.~5.28 handles the countable-$\cM$ self-optimizing case.
+    \item Blackwell \& Dubins, \href{https://doi.org/10.1214/aoms/1177704456}{\emph{Merging
+    of Opinions with Increasing Information}} (Ann.\ Math.\ Statist., 1962) --- the
+    merging-of-opinions theorem behind on-policy value convergence.
+    \item Leike \& Hutter, \href{https://arxiv.org/abs/1510.04931}{\emph{Bad
+    Universal Priors and Notions of Optimality}} (COLT 2015) --- adversarial
+    choices of the universal Turing machine can make AIXI behave arbitrarily badly.
+\end{itemize}
+
+\section*{Goal and Roadmap}
+
+This exercise sheet builds towards three main results:
+\begin{itemize}\itemsep=2pt
+    \item \textbf{On-policy value convergence} (\cref{prob:on_policy}): the Bayesian mixture $\xi$ learns to predict the value of any fixed policy as well as the true environment $\mu$.
+    \item \textbf{AIXI can't be fooled} (\cref{prob:cant_be_fooled}): in deterministic environments, the Bayes-optimal agent is guaranteed non-zero value whenever optimal value is non-zero.
+    \item \textbf{Self-optimizing property} (\cref{prob:selfopt}, advanced stretch goal): the Bayes-optimal policy $\pi_\xi^*$ learns to \emph{act} as well as if it knew $\mu$, provided that any learnable policy can achieve this. This is the central theoretical justification for the AIXI agent.
+\end{itemize}
+A good target is to complete \cref{prob:on_policy,prob:cant_be_fooled}. The self-optimizing property (\crefrange{prob:supermartingale}{prob:selfopt}) requires substantial additional machinery (supermartingales, change of measure) and is an advanced stretch goal.
+
+\textbf{Critical path.} The three results share a common foundation (\crefrange{prob:measures}{prob:linearity}) and then diverge:
+
+\begin{center}
+\begin{tikzpicture}[
+    node distance=5mm and 4mm,
+    every node/.style={draw, rounded corners, minimum width=10mm, minimum height=5mm, font=\scriptsize, inner sep=2pt},
+    arr/.style={-{Stealth[length=3pt]}, semithick},
+    mainresult/.style={draw, thick, double},
+    enrichment/.style={draw, dashed}
+]
+% Common trunk
+\node (0) {\hyperref[prob:measures]{\textbf{\ref*{prob:measures}} measures}};
+\node[below=of 0] (1) {\hyperref[prob:mixture_props]{\textbf{\ref*{prob:mixture_props}} mixture}};
+\node[below=of 1] (2) {\hyperref[prob:optimal_exists]{\textbf{\ref*{prob:optimal_exists}} optimal policies}};
+
+% Branch point — wider spread
+\node[below left=6mm and 12mm of 2] (3) {\hyperref[prob:dominance]{\textbf{\ref*{prob:dominance}} dominance}};
+\node[below right=6mm and 12mm of 2] (4) {\hyperref[prob:linearity]{\textbf{\ref*{prob:linearity}} linearity}};
+
+% can't-be-fooled: same height as dominance \& linearity, centred between them
+\node[below=6mm of 2] (7) {\hyperref[prob:cant_be_fooled]{\textbf{\ref*{prob:cant_be_fooled}} can't be fooled}};
+
+% expectimax: offshoot of the optimal-policy problem (Bellman optimality)
+\node[right=14mm of 2] (11) {\hyperref[prob:expectimax]{\textbf{\ref*{prob:expectimax}} expectimax}};
+
+% TV bound sits above on-policy
+\node[below=7mm of 3] (5) {\hyperref[prob:tv_bound]{\textbf{\ref*{prob:tv_bound}} TV bound}};
+\node[mainresult, below=7mm of 5] (6) {\hyperref[prob:on_policy]{\textbf{\ref*{prob:on_policy}} on-policy}};
+
+% Right branch
+\node[below=7mm of 4] (8) {\hyperref[prob:supermartingale]{\textbf{\ref*{prob:supermartingale}} martingales}};
+\node[below=of 8] (9) {\hyperref[prob:change_measure]{\textbf{\ref*{prob:change_measure}} change of measure}};
+\node[mainresult, below=7mm of 9] (10) {\hyperref[prob:selfopt]{\textbf{\ref*{prob:selfopt}} self-optimizing}};
+
+% Edges: trunk
+\draw[arr] (0) -- (1);
+\draw[arr] (1) -- (2);
+\draw[arr] (2) -- (3);
+\draw[arr] (2) -- (4);
+
+% Edge: expectimax depends on the optimal-policy machinery
+\draw[arr] (2) -- (11);
+
+% Edges: can't be fooled
+\draw[arr] (3) -- (7);
+\draw[arr] (4) -- (7);
+
+% Edges: left branch
+\draw[arr] (3) -- (5);
+\draw[arr] (5) -- (6);
+\draw[arr] (4) -- (6);
+
+% Edges: right branch
+\draw[arr] (3) to[out=-30, in=160] (8);
+\draw[arr] (8) -- (9);
+\draw[arr] (9) -- (10);
+\draw[arr] (4) to[out=-20, in=20] (10);
+\end{tikzpicture}
+\end{center}
+
+\textbf{In summary:}
+\begin{itemize}\itemsep=2pt
+    \item \Crefrange{prob:measures}{prob:linearity} establish the Bayesian RL framework: measure algebra, mixture properties, existence of optimal policies, dominance, and linearity.
+    \item \Cref{prob:expectimax} derives the explicit expectimax form of AIXI.
+    \item \Crefrange{prob:tv_bound}{prob:on_policy} prove \emph{on-policy value convergence}: $V_\xi^\pi$ and $V_\mu^\pi$ become indistinguishable for any fixed $\pi$.
+    \item \Cref{prob:cant_be_fooled} shows \emph{AIXI can't be fooled}: the Bayes-optimal agent achieves non-zero value whenever optimal value is non-zero (in deterministic environments).
+    \item \Crefrange{prob:supermartingale}{prob:selfopt} (advanced stretch goal) prove the \emph{self-optimizing property}: if any policy can learn to act optimally, $\pi_\xi^*$ inherits this.
+\end{itemize}
+
+
+
+%===================================
+\section*{Setup}
+
+An \textbf{agent} interacts with an \textbf{environment} in discrete time steps $t = 1, 2, \ldots$.
+
+\begin{definition}[Spaces and notation]\label{def:spaces}\
+\begin{itemize}\itemsep=2pt
+    \item $\cA$: finite set of \textbf{actions}
+    \item $\cO$: finite set of \textbf{observations}
+    \item $\cR \subset [0,1]$: finite set of \textbf{rewards}
+    \item $\cE := \cO \times \cR$: set of \textbf{percepts}; $e_t = (o_t, r_t) \equiv o_tr_t$
+    \item $\cH^t := (\cA \times \cE)^t$: set of all histories of length $t$
+    \item $\cH^* := \cup_{t=0}^\infty \cH^t$: set of all finite \textbf{histories}
+    \item $\cH^\infty := (\cA \times \cE)^\infty$: set of all infinite histories
+    \item $\Delta S$: set of all probability distributions over set $S$
+    \item $\llbracket \cdot \rrbracket$: \textbf{Iverson bracket}: $\llbracket P \rrbracket = 1$ if $P$ is true, $0$ if false
+    \item $t$: current time step; $m$: finite horizon; $1 \leq t \leq m$
+    \item $i, j, k$: arbitrary integer indices
+    \item $xy$: concatenation
+    \item $\epsilon$: the empty string/history 
+    \item $\aes_{i:j} := a_i e_i\, a_{i+1} e_{i+1} \,\cdots\, a_j e_j$: history segment from time $i$ to $j$
+    \item $\aes_{<t} := a_1 e_1\, a_2 e_2 \,\cdots\, a_{t-1} e_{t-1}$: history up to (but not including) time $t$
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Policy $\pi$]\label{def:policy}
+A \textbf{policy} $\pi : \cH \to \Delta \cA$ maps each history to a probability distribution over actions. Given history $\aes_{<t}$:
+\begin{itemize}\itemsep=2pt
+    \item $\pi(\cdot \mid \aes_{<t})$ is a distribution over $\cA$,
+    \item $\pi(a_t \mid \aes_{<t}) \in [0,1]$ is the probability of choosing action $a_t$,
+    \item the agent samples $a_t \sim \pi(\cdot \mid \aes_{<t})$.
+\end{itemize}
+A policy is \textbf{deterministic} if $\pi(a \mid \aes_{<t}) \in \{0,1\}$ for all $a, \aes_{<t}$.
+We write $\pi(\aes_{i:j}) := \prod_{k=i}^j \pi(a_k \mid \aes_{<k})$.
+\end{definition}
+
+\begin{definition}[Environment $\nu$]\label{def:environment}
+An \textbf{environment} $\nu : \cH \times \cA \to \Delta \cE$ maps each history--action pair to a distribution over percepts. Given history $\aes_{<t}$ and action $a_t$:
+\begin{itemize}\itemsep=2pt
+    \item $\nu(\cdot \mid \aes_{<t} a_t)$ is a distribution over $\cE$,
+    \item $\nu(e_t \mid \aes_{<t} a_t) \in [0,1]$ is the probability of percept $e_t$,
+    \item the environment samples $e_t \sim \nu(\cdot \mid \aes_{<t} a_t)$.
+\end{itemize}
+We write $\nu(\aes_{i:j}) := \prod_{k=i}^j \nu(e_k \mid \aes_{<k} a_k)$.
+This satisfies the chain rule: $\nu(\aes_{i:j}) = \nu(\aes_{i:j-1}) \cdot \nu(e_j \mid \aes_{i:j-1} a_j)$ or in the form we will usually use, $\nu(\aes_{1:t}) = \nu(\aes_{<t}) \cdot \nu(e_t \mid \aes_{<t} a_t)$.
+An environment is \textbf{deterministic} if $\nu(e_t \mid \aes_{<t} a_t) \in \{0,1\}$ for all $e_t, \aes_{<t}, a_t$ (each percept is produced with certainty).
+We denote the true (unknown) environment by $\mu$.
+\end{definition}
+
+\begin{definition}[Interaction measure $\nu^\pi$]\label{def:interaction}
+When policy $\pi$ interacts with environment $\nu$, the joint probability of a history segment $\aes_{i:j}$ given past $\aes_{<i}$ is
+\[
+    \nu^\pi(\aes_{i:j} \mid \aes_{<i})
+    ~:=~ \prod_{k=i}^j \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k).
+\]
+\end{definition}
+
+%===================================
+
+\setcounter{section}{-1}
+\section{Properties of Measures}\label{prob:measures}
+
+\begin{exercise}[Factorization]
+\label{prob:factorization}
+\difficulty{05}
+Show that $\nu^\pi(\aes_{1:t}) = \pi(\aes_{1:t}) \cdot \nu(\aes_{1:t})$.
+
+\end{exercise}
+
+\begin{solution}[prob:factorization]
+Expanding the definition:
+$\nu^\pi(\aes_{1:t})
+= \prod_{k=1}^t \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)
+= \underbrace{\prod_{k=1}^t \pi(a_k \mid \aes_{<k})}_{\pi(\aes_{1:t})} \cdot \underbrace{\prod_{k=1}^t \nu(e_k \mid \aes_{<k} a_k)}_{\nu(\aes_{1:t})}$.
+
+Key observation: $\pi(\aes_{1:t})$ is the same regardless of the environment. When comparing $\nu^\pi$ and $\mu^\pi$, the policy factors cancel.
+\end{solution}
+
+\begin{exercise}[Chain rule]
+\label{prob:chain_rule}
+\difficulty{05}
+Show that $\nu(\aes_{1:t}) = \nu(\aes_{<t}) \cdot \nu(e_t \mid \aes_{<t} a_t)$.
+
+\end{exercise}
+
+\begin{solution}[prob:chain_rule]
+From the definition $\nu(\aes_{1:t}) = \prod_{k=1}^t \nu(e_k \mid \aes_{<k} a_k)$, split off the last factor:
+\[
+    \nu(\aes_{1:t})
+    ~=~ \prod_{k=1}^{t-1} \nu(e_k \mid \aes_{<k} a_k) \cdot \nu(e_t \mid \aes_{<t} a_t)
+    ~=~ \nu(\aes_{<t}) \cdot \nu(e_t \mid \aes_{<t} a_t).
+\]
+\end{solution}
+
+\begin{exercise}[Marginalizing percepts]
+\label{prob:marginal_percepts}
+\difficulty{03}\skippable
+Show that $\sum_{e_t} \nu^\pi(a_t e_t \mid \aes_{<t}) = \pi(a_t \mid \aes_{<t})$.
+
+\end{exercise}
+
+\begin{solution}[prob:marginal_percepts]
+From \cref{def:interaction}, the one-step interaction is $\nu^\pi(a_t e_t \mid \aes_{<t}) = \pi(a_t \mid \aes_{<t})\, \nu(e_t \mid \aes_{<t} a_t)$. Summing over $e_t$:
+\[
+    \sum_{e_t} \nu^\pi(a_t e_t \mid \aes_{<t})
+    ~=~ \pi(a_t \mid \aes_{<t}) \underbrace{\sum_{e_t} \nu(e_t \mid \aes_{<t} a_t)}_{=\,1}
+    ~=~ \pi(a_t \mid \aes_{<t}).
+\]
+Interpretation: after summing out the environment's response, only the agent's action probability remains.
+\end{solution}
+
+\begin{exercise}[Deterministic interaction measure]
+\label{prob:det_interaction}
+\difficulty{05}\skippable
+Let $\pi$ be a deterministic policy, i.e.\ at each history $\aes_{<k}$ there is a unique action $a^*_k$ with $\pi(a^*_k \mid \aes_{<k}) = 1$.
+Show that, provided $\aes_{i:j}$ is consistent with $\pi$ (i.e.\ $a_k = a^*_k$ for every $k \in \{i, \ldots, j\}$):
+
+\[
+    \nu^\pi(\aes_{i:j} \mid \aes_{<i}) ~=~ \nu(\aes_{i:j} \mid \aes_{<i}),
+\]
+i.e.\ on $\pi$-consistent futures the interaction measure reduces to the environment measure: every policy factor is $1$.
+\end{exercise}
+
+\begin{solution}[prob:det_interaction]
+Since $\pi$ is deterministic, $\pi(a_k \mid \aes_{<k}) = \llbracket a_k = a^*_k \rrbracket$.
+By hypothesis $\aes_{i:j}$ is $\pi$-consistent, so every such bracket equals $1$.
+From \cref{def:interaction}:
+\[
+    \nu^\pi(\aes_{i:j} \mid \aes_{<i})
+    ~=~ \prod_{k=i}^j \underbrace{\pi(a_k \mid \aes_{<k})}_{=\, 1}\, \nu(e_k \mid \aes_{<k} a_k)
+    ~=~ \prod_{k=i}^j \nu(e_k \mid \aes_{<k}\, a_k)
+    ~=~ \nu(\aes_{i:j} \mid \aes_{<i}),
+\]
+where the last equality is the natural segment extension of $\nu(\aes_{1:t}) := \prod_{k=1}^t \nu(e_k \mid \aes_{<k} a_k)$.
+\end{solution}
+
+\begin{exercise}
+\label{prob:chain_rule_nupi}
+\difficulty{05}
+(General chain rule for $\nu^\pi$)
+Show that for any $p \leq q \leq r$:
+
+\[
+    \nu^\pi(\aes_{p:r} \mid \aes_{<p}) ~=~ \nu^\pi(\aes_{p:q} \mid \aes_{<p}) \cdot \nu^\pi(\aes_{q+1:r} \mid \aes_{<p}\, \aes_{p:q}).
+\]
+\end{exercise}
+
+\begin{solution}[prob:chain_rule_nupi]
+Split the defining product $\nu^\pi(\aes_{p:r} \mid \aes_{<p}) = \prod_{k=p}^r \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)$ at index $q$:
+\begin{align*}
+    \nu^\pi(\aes_{p:r} \mid \aes_{<p})
+    ~&=~ \prod_{k=p}^r \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)\\
+    ~&=~ \underbrace{\prod_{k=p}^{q} \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)}_{\nu^\pi(\aes_{p:q} \mid \aes_{<p})}
+    \;\cdot\; \underbrace{\prod_{k=q+1}^{r} \pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)}_{\nu^\pi(\aes_{q+1:r} \mid \aes_{<p}\, \aes_{p:q})},
+\end{align*}
+identifying each block as a conditional via the same expansion: the past for step $k \geq q+1$ is the given history $\aes_{<p}$ extended by the first chunk $\aes_{p:q}$.
+
+Note: for a deterministic policy, \cref{prob:det_interaction} simplifies this further: each factor $\pi(a_k \mid \aes_{<k})\, \nu(e_k \mid \aes_{<k} a_k)$ becomes just $\nu(e_k \mid \aes_{<k}\, a^*_k)$.
+\end{solution}
+
+
+%===================================
+\section*{The Bayesian Mixture and Value Function}
+
+\begin{definition}[Model class, prior, and Bayesian mixture $\xi$]\label{def:mixture}
+Let $\cM = \{\nu_1, \nu_2, \ldots\}$ be a countable class of environments with prior weights $w_\nu > 0$ satisfying $\sum_{\nu \in \cM} w_\nu \leq 1$.
+We assume $\mu \in \cM$.
+
+The \textbf{Bayesian mixture} $\xi$ is defined as 
+$$
+\xi(\aes_{1:t}) := \sum_{\nu \in \cM} w_\nu\, \nu(\aes_{1:t}) \quad \text{ and } \quad \xi(e_t \mid \aes_{<t} a_t) := \xi(\aes_{1:t}) / \xi(\aes_{<t}).
+$$
+One can show that the one-step predictive distribution can be written as
+\[
+    \xi(e_t \mid \aes_{<t} a_t)
+    ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \nu(e_t \mid \aes_{<t} a_t),
+\]
+where the \textbf{posterior weight} is
+\[
+    w(\nu \mid \aes_{<t})
+    ~:=~ w_\nu \,\frac{\nu(\aes_{<t})}{\xi(\aes_{<t})},
+    \qquad w(\nu \mid \epsilon) := w_\nu.
+\]
+See \hyperref[sec:appendix_mixture]{Appendix~A} for a worked example.
+\end{definition}
+
+\begin{definition}[Expectation $\Ex_\nu^\pi$]\label{def:expectation}
+For a function $f : \cH \to \mathbb{R}$ of a finite future segment $\aes'_{t:m}$:
+\[
+    \Ex_\nu^\pi[f \mid \aes_{<t}]
+    ~:=~ \underset{\aes_{t:m} \sim \nu^\pi(\cdot \mid \aes_{<t})}{\Ex} [f]
+    ~=~ \sum_{\aes'_{t:m}} \nu^\pi(\aes'_{t:m} \mid \aes_{<t})\, f(\aes'_{t:m}).
+\]
+For functions $f$ of the infinite future (like the value function), with a sequence $f_1, f_2, \ldots \to f$, where $f_m$ depends only on $\aes'_{t:m}$, we define $\Ex_\nu^\pi[f \mid \aes_{<t}] := \lim_{m \to \infty} \Ex_\nu^\pi[f_m \mid \aes_{<t}]$, 
+\end{definition}
+
+\begin{definition}[Discounted return $G_{t:m}$]\label{def:return}
+Fix a discount factor $\gamma \in (0,1)$, held constant throughout.
+The \textbf{discounted return} at time step $t$, up to horizon $m$, is
+\[
+    G^\gamma_{t:m}
+    ~:=~ \sum_{k=t+1}^{m} \gamma^{k-(t+1)}\, r_k
+    ~=~ r_{t+1} + \gamma\, r_{t+2} + \cdots + \gamma^{m-t}\, r_m.
+\]
+Since $\gamma$ is fixed we drop it and write $G_{t:m} \equiv G^\gamma_{t:m}$.
+It satisfies the recursion $G_{t:m} = r_{t+1} + \gamma\, G_{t+1:m}$, with $G_{m-1:m} = r_m$ and $G_{n:m} = 0$ for $n \geq m$.
+The \textbf{infinite-horizon return} is the pointwise limit
+\[
+    G_{\geq t} ~\equiv~ G_{t:\infty} ~:=~ \lim_{m \to \infty} G_{t:m} ~=~ \sum_{k=t+1}^{\infty} \gamma^{k-(t+1)}\, r_k,
+\]
+with the clean recursion $G_{\geq t} = r_{t+1} + \gamma\, G_{\geq t+1}$ and no boundary cases.
+\end{definition}
+
+\begin{definition}[Value function\footnote{See \hyperref[sec:appendix_value]{Appendix~B} for a worked example. For simplicity, we
+    consider only geometric discounting.}]\label{def:value}
+The \textbf{value} of policy $\pi$ in environment $\nu$ with horizon $m \geq t$ given history $\aes_{<t}$ is
+\begin{align*}
+    &V_\nu^{\pi,m}(\aes_{<t})
+    ~:=~ (1-\gamma)\, \Ex_\nu^\pi\!\left[G_{t-1:m}  \mid \aes_{<t}\right] \\
+    ~&=~ (1-\gamma) \sum_{\aes_{t:m}} \nu^\pi(\aes_{t:m} \mid \aes_{<t})\, G_{t-1:m} \\
+    ~&=~ (1-\gamma) \sum_{\aes_{t:m}} \nu^\pi(\aes_{t:m} \mid \aes_{<t}) \left[ \sum_{k=t}^{m} \gamma^{k-t} r_k \right].
+\end{align*}
+The \textbf{infinite-horizon value} is the pointwise limit $V_\nu^{\pi,\infty}(\aes_{<t}) := \lim_{m \to \infty} V_\nu^{\pi,m}(\aes_{<t}) = (1-\gamma)\, \Ex_\nu^\pi[G_{\geq t-1} \mid \aes_{<t}]$.
+We write $V_\nu^\pi \equiv V_\nu^{\pi,\infty}$ for short.
+
+The \textbf{optimal value} is $V_\nu^{*,m}(\aes_{<t}) := \sup_\pi V_\nu^{\pi,m}(\aes_{<t})$ for $m \in \mathbb{N} \cup \{\infty\}$, with $V_\nu^* \equiv V_\nu^{*,\infty}$.%
+\footnote{The optimal value is defined as a $\sup$ over policies.
+In general, a supremum need not be attained (e.g.\ $\sup_{x \in (0,1)} x = 1$ but no $x \in (0,1)$ achieves it).
+\Cref{prob:optimal_exists} shows that the sup is attained in our setting.}
+An \textbf{optimal policy} $\pi_\nu^*$ satisfies $V_\nu^{\pi_\nu^*} = V_\nu^*$.
+The \textbf{Bayes-optimal policy} is $\pi_\xi^* \in \argmax_\pi V_\xi^\pi$.
+\end{definition}
+
+\begin{callout}[note]
+\textbf{AIXI.}
+All results in this sheet hold for any countable $\cM$ and prior weights $w_\nu$.
+\textbf{AIXI} is a special case of the Bayes-optimal policy $\pi_\xi^*$ for the particular choice $\cM :=$ the class of all lower-semicomputable chronological semimeasures, and prior $w_\nu := 2^{-K(\nu)}$, where $K(\nu)$ is the Kolmogorov complexity of $\nu$: the length of the shortest program that computes $\nu$.
+The resulting agent is written $\pi^*_{\xi_U}$, or simply AI$\xi$.
+
+\textbf{Why this $\cM$?}
+By including every computable environment, the assumption $\mu \in \cM$ reduces to ``the universe is computable'': as weak an assumption as one can make.
+
+\textbf{Why this prior?}
+The prior $2^{-K(\nu)}$ is \emph{dominant}: for any other computable prior $w'_\nu$, there exists a constant $c > 0$ such that $2^{-K(\nu)} \geq c \cdot w'_\nu$ for all $\nu$. S
+%So AIXI cannot be ``outbelieved'' by any computable agent.
+
+\textbf{Caveat:}
+The constant $c$ depends on the choice of universal Turing machine $U$, and adversarial choices of $U$ can make AIXI behave arbitrarily badly~\cite{Leike:15badpriors}.
+
+See \cite{Hutter:24uaibook2}: Chapter~2.7 for Kolmogorov complexity, Chapters~3.7--3.8 for the model class and universal prior, and Chapter~7.4 for AIXI itself.
+\end{callout}
+
+
+%===================================
+\section{Properties of the Bayesian Mixture}\label{prob:mixture_props}
+
+
+% Several of these results are already proven in the Solomonoff worksheet, but are included
+% here for reference. 
+
+\begin{exercise}[Posterior update]
+\label{prob:posterior_update}
+\difficulty{10}\skippable
+Show that the posterior updates multiplicatively:
+
+\[
+    w(\nu \mid \aes_{1:t}) ~=~ w(\nu \mid \aes_{<t}) \frac{\nu(e_t \mid \aes_{<t} a_t)}{\xi(e_t \mid \aes_{<t} a_t)}.
+\]
+\begin{hint}
+Use the definitions of $w(\nu \mid \aes_{1:t})$ and $w(\nu \mid \aes_{<t})$, and apply \cref{prob:chain_rule}.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:posterior_update]
+From the definition: $w(\nu \mid \aes_{1:t}) = w_\nu \cdot \nu(\aes_{1:t})/\xi(\aes_{1:t})$ and $w(\nu \mid \aes_{<t}) = w_\nu \cdot \nu(\aes_{<t})/\xi(\aes_{<t})$.
+
+Dividing:
+\[
+    \frac{w(\nu \mid \aes_{1:t})}{w(\nu \mid \aes_{<t})}
+    = \frac{\nu(\aes_{1:t})}{\nu(\aes_{<t})} \cdot \frac{\xi(\aes_{<t})}{\xi(\aes_{1:t})}
+    = \frac{\nu(e_t \mid \aes_{<t} a_t)}{\xi(e_t \mid \aes_{<t} a_t)},
+\]
+where we used the chain rule (\cref{prob:chain_rule}) for both $\nu$ and $\xi$.
+\end{solution}
+
+\begin{exercise}
+\label{prob:one_step}
+\difficulty{15}
+(One-step predictive distribution of $\xi$)
+Starting from $\xi(\aes_{1:t}) = \sum_{\nu \in \cM} w_\nu \nu(\aes_{1:t})$, derive the one-step predictive form:
+
+\[
+    \xi(e_t \mid \aes_{<t} a_t) ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \nu(e_t \mid \aes_{<t} a_t).
+\]
+\begin{hint}
+Write $\xi(e_t \mid \aes_{<t} a_t) = \xi(\aes_{1:t}) / \xi(\aes_{<t})$, expand the numerator, and use \cref{prob:chain_rule}.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:one_step]
+The one-step conditional is the ratio of joint to marginal:
+$\xi(e_t \mid \aes_{<t} a_t) := \xi(\aes_{1:t})/\xi(\aes_{<t})$.
+
+Expanding the numerator using $\xi(\aes_{1:t}) = \sum_\nu w_\nu \nu(\aes_{1:t})$:
+\begin{align*}
+    \xi(e_t \mid \aes_{<t} a_t)
+    ~&=~ \frac{\sum_{\nu \in \cM} w_\nu\, \nu(\aes_{1:t})}{\xi(\aes_{<t})} \\[4pt]
+    ~&=~ \frac{\sum_{\nu} w_\nu\, \nu(\aes_{<t}) \cdot \nu(e_t \mid \aes_{<t} a_t)}{\xi(\aes_{<t})}
+    \qquad \text{(chain rule, \cref{prob:chain_rule})} \\[4pt]
+    ~&=~ \sum_{\nu} \underbrace{\frac{w_\nu\, \nu(\aes_{<t})}{\xi(\aes_{<t})}}_{= \, w(\nu \mid \aes_{<t})} \cdot\, \nu(e_t \mid \aes_{<t} a_t) \\[4pt]
+    ~&=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \nu(e_t \mid \aes_{<t} a_t).
+\end{align*}
+\end{solution}
+
+\begin{exercise}[Bounded value]
+\label{prob:bounded_value}
+\difficulty{10}
+Show that $V_\nu^{\pi,m}(\aes_{<t}) \in [0,1]$ for any $\nu, \pi, m \in \mathbb{N} \cup \{\infty\}, \aes_{<t}$.
+
+
+\begin{hint}
+Recall the formula for geometric series: $(1-\gamma)\sum_{k=0}^{n} \gamma^k = 1 - \gamma^{n+1}$.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:bounded_value]
+Since $r_k \in [0,1]$, each discounted reward sum is bounded:
+\[
+    0 ~\leq~ (1-\gamma)\, G_{t-1:m} ~\leq~ (1-\gamma)\sum_{k=t}^{m} \gamma^{k-t} ~=~ 1 - \gamma^{m-t+1} ~\leq~ 1.
+\]
+The interaction measure satisfies $\nu^\pi(\aes'_{t:m} \mid \aes_{<t}) \geq 0$ and $\sum_{\aes'_{t:m}} \nu^\pi(\aes'_{t:m} \mid \aes_{<t}) = 1$, so the value function is a weighted average of terms in $[0,1]$:
+\[
+    0 ~\leq~ V_\nu^{\pi,m}(\aes_{<t}) ~=~ \sum_{\aes'_{t:m}} \nu^\pi(\aes'_{t:m} \mid \aes_{<t})\, (1-\gamma)\, G_{t-1:m} ~\leq~ 1.
+\]
+For $m = \infty$: since $0 \leq V_\nu^{\pi,m}(\aes_{<t}) \leq 1$ for all finite $m$, the limit $V_\nu^\pi(\aes_{<t}) = \lim_{m \to \infty} V_\nu^{\pi,m}(\aes_{<t})$ also lies in $[0,1]$.
+\end{solution}
+
+\begin{exercise}
+\label{prob:multi_step_xi}
+\difficulty{15}\skippable
+(Multi-step posterior linearity of $\xi^\pi$)
+Extend \cref{prob:one_step} to multi-step histories: show that for finite $m \geq t$,
+
+\[
+    \xi^\pi(\aes_{t:m} \mid \aes_{<t})
+    ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \nu^\pi(\aes_{t:m} \mid \aes_{<t}).
+\]
+\begin{hint}
+Apply the general chain rule (\cref{prob:chain_rule_nupi}) to $\xi(\aes_{1:m}) = \sum_\nu w_\nu \nu(\aes_{1:m})$, then use factorization (\cref{prob:factorization}).
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:multi_step_xi]
+Start from the definition $\xi(\aes_{1:m}) = \sum_{\nu \in \cM} w_\nu\, \nu(\aes_{1:m})$.
+Apply the general chain rule (\cref{prob:chain_rule_nupi}) to both sides: $\xi(\aes_{1:m}) = \xi(\aes_{<t}) \cdot \xi(\aes_{t:m} \mid \aes_{<t})$ and $\nu(\aes_{1:m}) = \nu(\aes_{<t}) \cdot \nu(\aes_{t:m} \mid \aes_{<t})$.
+Dividing by $\xi(\aes_{<t})$:
+\[
+    \xi(\aes_{t:m} \mid \aes_{<t})
+    ~=~ \sum_{\nu \in \cM} \frac{w_\nu\, \nu(\aes_{<t})}{\xi(\aes_{<t})} \nu(\aes_{t:m} \mid \aes_{<t})
+    ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \nu(\aes_{t:m} \mid \aes_{<t}).
+\]
+Now multiply both sides by $\pi(\aes_{t:m} \mid \aes_{<t})$.
+By factorization (\cref{prob:factorization}), $\pi(\aes_{t:m} \mid \aes_{<t}) \cdot \xi(\aes_{t:m} \mid \aes_{<t}) = \xi^\pi(\aes_{t:m} \mid \aes_{<t})$ and likewise for each $\nu$:
+\[
+    \xi^\pi(\aes_{t:m} \mid \aes_{<t})
+    ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \nu^\pi(\aes_{t:m} \mid \aes_{<t}).
+\]
+\end{solution}
+
+
+%===================================
+\section{Existence of Optimal Policies}\label{prob:optimal_exists}
+
+Recall that $V_\nu^*(\aes_{<t}) := \sup_\pi V_\nu^\pi(\aes_{<t})$ is defined as a supremum over all policies. In general, a supremum need not be achieved: for example, $\sup_{x \in (0,1)} x = 1$, but no $x \in (0,1)$ attains this value. This problem shows that in our setting, the supremum \emph{is} attained, so an optimal policy $\pi_\nu^*$ with $V_\nu^{\pi_\nu^*} = V_\nu^*$ exists.
+
+\begin{exercise}
+\label{prob:sup_eq_max}
+\difficulty{05}
+Consider a single time step. Given history $\aes_{<t}$ and a function $Q : \cA \to \mathbb{R}$, show that $\sup_\pi \sum_{a \in \cA} \pi(a \mid \aes_{<t})\, Q(a) = \max_{a \in \cA} Q(a)$, and that the supremum is attained by the deterministic policy that places all probability on an action achieving the maximum.
+
+\end{exercise}
+
+\begin{solution}[prob:sup_eq_max]
+Let $a^* \in \argmax_{a' \in \cA} Q(a')$, which exists because $\cA$ is finite. So $Q(a^*) = \max_{a'} Q(a')$.
+
+\emph{Upper bound.} For any $\pi$:
+$\sum_a \pi(a \mid \aes_{<t}) Q(a) \leq \sum_a \pi(a \mid \aes_{<t}) Q(a^*) = Q(a^*)$.
+
+\emph{Lower bound.} The deterministic $\pi^*$ with $\pi^*(a^* \mid \aes_{<t}) = 1$ achieves $Q(a^*)$.
+
+Combining: $\sup_\pi \sum_a \pi(a) Q(a) = Q(a^*) = \max_{a'} Q(a')$, attained by $\pi^*$.
+\end{solution}
+
+\begin{exercise}[Bellman equation]
+\label{prob:bellman_finite}
+\difficulty{15}
+Show that for finite $m$ and $t \leq m$:
+
+\[
+    V_\nu^{\pi,m}(\aes_{<t}) ~=~ \sum_{\aes'_t} \nu^\pi(\aes'_t \mid \aes_{<t}) \Big[(1-\gamma)\, r'_t ~+~ \gamma\, V_\nu^{\pi,m}(\aes_{<t}\, \aes'_t)\Big],
+\]
+% where $\aes'_t = a'_t e'_t$ is a single action--percept step, $\nu^\pi(\aes'_t \mid \aes_{<t}) = \pi(a'_t \mid \aes_{<t})\, \nu(e'_t \mid \aes_{<t} a'_t)$, and $\aes_{<t}\, \aes'_t$ denotes the history $\aes_{<t}$ extended by that step.
+
+\begin{hint}
+Use the general chain rule (\Cref{prob:chain_rule_nupi}) to peel off the
+\emph{first} step,
+\[
+    \nu^\pi(\aes_{t:m} \mid \aes_{<t})
+    ~=~ \nu^\pi(\aes_t \mid \aes_{<t}) \cdot \nu^\pi(\aes_{t+1:m} \mid \aes_{1:t}).
+\]
+Break up the sum $\sum_{\aes_{t:m}} = \sum_{\aes_t} \sum_{\aes_{t+1:m}}$,
+and factor out $r'_t$ using $\sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes) = 1$
+for any history $\aes$.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:bellman_finite]
+\emph{Step 1: Factor the future.}
+Write $\aes'_{t:m} = \aes'_t\, \aes'_{t+1:m}$:
+$\nu^\pi(\aes'_{t:m} \mid \aes_{<t}) = \nu^\pi(\aes'_t \mid \aes_{<t}) \cdot \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t)$.
+
+\emph{Step 2: Split the reward sum.}
+This is just the return recursion (\cref{def:return}): $G_{t-1:m} = r'_t + \gamma\, G_{t:m}$, where $G_{t-1:m} = \sum_{k=t}^{m} \gamma^{k-t} r'_k$ is the return given $\aes_{<t}$.
+
+\emph{Step 3: Substitute into the definition of $V_\nu^{\pi,m}(\aes_{<t})$.}
+\begin{align*}
+    V_\nu^{\pi,m}(\aes_{<t})
+    ~&=~ (1-\gamma) \sum_{\aes'_t} \nu^\pi(\aes'_t \mid \aes_{<t}) 
+ \sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t) \left[ r'_t + \gamma G_{t:m} \right].
+\end{align*}
+
+Consider the inner term $\sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t) 
+\left[ r'_t + \gamma G_{t:m} \right]$. 
+We can expand as:
+\begin{align*}
+&= \sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t) r'_t 
++ \gamma \sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t) G_{t:m} \\
+&= r'_t \cancel{\sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t)}  
++ \gamma \sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t) G_{t:m} \\
+&= r'_t
++ \gamma \sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t) G_{t:m}
+\end{align*}
+as $r'_t$ doesn't depend on $\aes'_{t+1:m}$, and $\sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t) = 1$.
+Inserting this above, we obtain:
+\begin{align*}
+    V_\nu^{\pi,m}(\aes_{<t})
+    &= \sum_{\aes'_t} \nu^\pi(\aes'_t \mid \aes_{<t}) \bigg[ (1-\gamma)\, r'_t + 
+    \gamma\, \underbrace{(1-\gamma) \sum_{\aes'_{t+1:m}} \nu^\pi(\aes'_{t+1:m} \mid \aes_{<t}\, \aes'_t)G_{t:m}}_{=\; V_\nu^{\pi,m}(\aes_{<t}\, \aes'_t)} \bigg].
+\end{align*}
+\end{solution}
+
+\begin{exercise}[Backward induction]
+\label{prob:backward_induction}
+\difficulty{20}\skippable
+Using the Bellman equation from \cref{prob:bellman_finite} and \cref{prob:sup_eq_max}, show by backward induction on $t = m, m-1, \ldots, 1$ that for each finite $m$, a deterministic optimal policy exists.
+
+\end{exercise}
+
+\begin{solution}[prob:backward_induction]
+We induct on $t = m, m-1, \ldots, 1$, showing that for every history $\aes_{<t}$, a deterministic policy achieves $V_\nu^{*,m}(\aes_{<t})$.
+
+\emph{Base case ($t = m$):} At $t = m$ the continuation term vanishes (the value from time $m+1$ is an empty sum), so the Bellman equation gives $V_\nu^{\pi,m}(\aes_{<m}) = (1-\gamma) \sum_{\aes'_m} \nu^\pi(\aes'_m \mid \aes_{<m})\, r'_m$.
+Splitting the step $\aes'_m = a'_m e'_m$ via $\nu^\pi(\aes'_m \mid \aes_{<m}) = \pi(a'_m \mid \aes_{<m})\, \nu(e'_m \mid \aes_{<m} a'_m)$ gives $V_\nu^{\pi,m}(\aes_{<m}) = (1-\gamma) \sum_{a'_m} \pi(a'_m \mid \aes_{<m}) \sum_{e'_m} \nu(e'_m \mid \aes_{<m} a'_m)\, r'_m$.
+This has the form $\sum_a \pi(a) Q(a)$ with $Q(a) = (1-\gamma)\sum_{e'_m} \nu(e'_m \mid \aes_{<m} a)\, r'_m$, which is independent of $\pi$.
+By \cref{prob:sup_eq_max}, the supremum over $\pi$ is $\max_a Q(a)$, attained by the deterministic policy playing $a^* \in \argmax_a Q(a)$.
+
+\emph{Inductive step:} Suppose that for every history of length $t$, there exists a deterministic policy $\pi^*_{t+1}$ achieving $V_\nu^{\pi^*_{t+1},m} = V_\nu^{*,m}$ from time $t+1$ onwards.
+Substituting this optimal continuation into the Bellman equation from \cref{prob:bellman_finite} gives
+\[
+    V_\nu^{\pi,m}(\aes_{<t}) ~=~ \sum_{\aes'_t} \nu^\pi(\aes'_t \mid \aes_{<t}) \big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{*,m}(\aes_{<t}\, \aes'_t)\big].
+\]
+Splitting the step $\aes'_t = a'_t e'_t$ via $\nu^\pi(\aes'_t \mid \aes_{<t}) = \pi(a'_t \mid \aes_{<t})\, \nu(e'_t \mid \aes_{<t} a'_t)$ and grouping the percept sum into the action weight:
+\[
+    V_\nu^{\pi,m}(\aes_{<t}) ~=~ \sum_{a'_t} \pi(a'_t \mid \aes_{<t})\, Q(a'_t),
+\]
+where $Q(a'_t) := \sum_{e'_t} \nu(e'_t \mid \aes_{<t} a'_t) [(1-\gamma)\, r'_t + \gamma\, V_\nu^{*,m}(\aes_{<t}\, a'_t\, e'_t)]$ is independent of $\pi$ (the continuation value $V_\nu^{*,m}$ is fixed by the inductive hypothesis).
+By \cref{prob:sup_eq_max}, $\sup_\pi \sum_{a'_t} \pi(a'_t)\, Q(a'_t) = \max_{a'_t} Q(a'_t)$, attained by the deterministic policy playing $a^*_t \in \argmax_{a'_t} Q(a'_t)$ at time $t$, then following $\pi^*_{t+1}$.
+\end{solution}
+
+\begin{exercise}[Bellman optimality equation]
+\label{prob:bellman_opt}
+\difficulty{10}
+Using \cref{prob:backward_induction}, show that for finite $m$:
+
+\[
+    V_\nu^{*,m}(\aes_{<t}) ~=~ \max_{a'_t} \sum_{e'_t} \nu(e'_t \mid \aes_{<t} a'_t) \Big[(1-\gamma)\, r'_t ~+~ \gamma\, V_\nu^{*,m}(\aes_{<t}\, \aes'_t)\Big].
+\]
+where $e_t' = o_t' r_t'$ and $\aes'_t = a'_t e'_t$.
+\end{exercise}
+
+\begin{solution}[prob:bellman_opt]
+By \cref{prob:backward_induction}, a deterministic optimal policy $\pi^*_\nu$ exists with $V_\nu^{\pi^*_\nu,m} = V_\nu^{*,m}$.
+Substituting $\pi = \pi^*_\nu$ into the Bellman equation from \cref{prob:bellman_finite} (using $V_\nu^{\pi^*_\nu,m} = V_\nu^{*,m}$ on both sides):
+\[
+    V_\nu^{*,m}(\aes_{<t})
+    ~=~ \sum_{\aes'_t} \nu^{\pi^*_\nu}(\aes'_t \mid \aes_{<t}) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{*,m}(\aes_{<t}\, \aes'_t)\Big].
+\]
+Splitting the step $\aes'_t = a'_t e'_t$ via $\nu^{\pi^*_\nu}(\aes'_t \mid \aes_{<t}) = \pi^*_\nu(a'_t \mid \aes_{<t})\, \nu(e'_t \mid \aes_{<t} a'_t)$:
+\[
+    V_\nu^{*,m}(\aes_{<t})
+    ~=~ \sum_{a'_t} \pi^*_\nu(a'_t \mid \aes_{<t}) \sum_{e'_t} \nu(e'_t \mid \aes_{<t} a'_t) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{*,m}(\aes_{<t}\, a'_t\, e'_t)\Big].
+\]
+Since $\pi^*_\nu$ is deterministic, let $a^*_t$ denote the unique action with $\pi^*_\nu(a^*_t \mid \aes_{<t}) = 1$. Then:
+\[
+    V_\nu^{*,m}(\aes_{<t})
+    ~=~ \sum_{e'_t} \nu(e'_t \mid \aes_{<t} a^*_t) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{*,m}(\aes_{<t}\, a^*_t\, e'_t)\Big].
+\]
+Define $Q(a) := \sum_{e'_t} \nu(e'_t \mid \aes_{<t} a) [(1-\gamma)\, r'_t + \gamma\, V_\nu^{*,m}(\aes_{<t}\, a\, e'_t)]$.
+Then $V_\nu^{*,m}(\aes_{<t}) = Q(a^*_t)$.
+We must have $Q(a^*_t) = \max_{a} Q(a)$: if some $\tilde{a}$ had $Q(\tilde{a}) > Q(a^*_t)$, then the policy that plays $\tilde{a}$ at $\aes_{<t}$ and follows $\pi^*_\nu$ elsewhere would achieve value $Q(\tilde{a}) > V_\nu^{*,m}(\aes_{<t})$, contradicting $V_\nu^{*,m} = \sup_\pi V_\nu^{\pi,m}$.
+Hence:
+\[
+    V_\nu^{*,m}(\aes_{<t})
+    ~=~ \max_{a'_t} \sum_{e'_t} \nu(e'_t \mid \aes_{<t} a'_t) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{*,m}(\aes_{<t}\, a'_t\, e'_t)\Big].
+\]
+\end{solution}
+
+\begin{exercise}
+\label{prob:inf_horizon}
+\difficulty{15}\skippable
+(Existence of $V_\nu^*$)
+Show that the pointwise limit $V_\nu^*(\aes_{<t}) := \lim_{m \to \infty} V_\nu^{*,m}(\aes_{<t})$ exists for all histories $\aes_{<t}$.
+
+
+\begin{hint}
+Show $V_\nu^{*,m+1}(\aes_{<t}) \geq V_\nu^{*,m}(\aes_{<t})$ by expanding $V_\nu^{*,m+1}$. Use this and \cref{prob:bounded_value}
+and \href{https://en.wikipedia.org/wiki/Monotone_convergence_theorem}{Monotone Convergence Theorem} to obtain the result.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:inf_horizon]
+We show $V_\nu^{*,m+1}(\aes_{<t}) \geq V_\nu^{*,m}(\aes_{<t})$ for all $\aes_{<t}$.
+Since $V_\nu^{*,m+1} = \sup_\pi V_\nu^{\pi,m+1}$, it suffices to show $V_\nu^{\pi,m+1}(\aes_{<t}) \geq V_\nu^{\pi,m}(\aes_{<t})$ for every $\pi$.
+Expanding the definition:
+\begin{align*}
+    & V_\nu^{\pi,m+1}(\aes_{<t}) \\
+    ~&=~ (1-\gamma) \sum_{\aes_{t:m+1}} \nu^\pi(\aes_{t:m+1} \mid \aes_{<t})\, G_{t-1:m+1} \\
+    ~&=~ (1-\gamma) \sum_{\aes_{t:m+1}} \nu^\pi(\aes_{t:m+1} \mid \aes_{<t}) \left[G_{t-1:m} ~+~ \gamma^{m+1-t} r_{m+1}\right] \\
+    ~&=~ (1-\gamma) \sum_{\aes_{t:m+1}} \nu^\pi(\aes_{t:m+1} \mid \aes_{<t}) G_{t-1:m} \\
+    ~&\qquad+~ \underbrace{(1-\gamma)\, \gamma^{m+1-t} \sum_{\aes_{t:m+1}} \nu^\pi(\aes_{t:m+1} \mid \aes_{<t})\, r_{m+1}}_{\geq\; 0}.
+\end{align*}
+For the first term, marginalize over $a_{m+1}, e_{m+1}$ (which $G_{t-1:m}$ does not depend on):
+\[
+    \sum_{\aes_{t:m+1}} \nu^\pi(\aes_{t:m+1} \mid \aes_{<t}) G_{t-1:m}
+    ~=~ \sum_{\aes_{t:m}} \nu^\pi(\aes_{t:m} \mid \aes_{<t}) G_{t-1:m}.
+\]
+So $V_\nu^{\pi,m+1}(\aes_{<t}) \geq (1-\gamma) \sum_{\aes_{t:m}} \nu^\pi(\aes_{t:m} \mid \aes_{<t}) G_{t-1:m} = V_\nu^{\pi,m}(\aes_{<t})$.
+
+Since $V_\nu^{*,m}(\aes_{<t})$ is non-decreasing in $m$ and bounded in $[0,1]$ by \cref{prob:bounded_value}, the monotone convergence theorem gives that $V_\nu^*(\aes_{<t}) := \lim_{m \to \infty} V_\nu^{*,m}(\aes_{<t})$ exists for each $\aes_{<t}$.
+\end{solution}
+
+\begin{exercise}[Infinite-horizon Bellman optimality equation]
+\label{prob:inf_bellman_opt}
+\difficulty{10}
+Show that the Bellman optimality equation (\cref{prob:bellman_opt}) extends to $m = \infty$:
+
+\[
+    V_\nu^*(\aes_{<t}) ~=~ \max_{a'_t} \sum_{e'_t} \nu(e'_t \mid \aes_{<t} a'_t) \Big[(1-\gamma)\, r'_t ~+~ \gamma\, V_\nu^*(\aes_{<t}\, a'_t\, e'_t)\Big].
+\]
+
+% \textit{Hint:} The Bellman optimality equation holds for every finite $m$; take $m \to \infty$ using \cref{prob:inf_horizon} and finiteness of $\cA, \cE$.
+\end{exercise}
+
+\begin{solution}[prob:inf_bellman_opt]
+By \cref{prob:bellman_opt}, for every finite $m$:
+\[
+    V_\nu^{*,m}(\aes_{<t}) ~=~ \max_{a'_t} \sum_{e'_t} \nu(e'_t \mid \aes_{<t} a'_t) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{*,m}(\aes_{<t}\, a'_t\, e'_t)\Big].
+\]
+By \cref{prob:inf_horizon}, each $V_\nu^{*,m}(\cdot)$ converges pointwise to $V_\nu^*(\cdot)$ as $m \to \infty$.
+Since $\cA$ and $\cE$ are finite, the $\max$ and $\sum$ are over finitely many convergent terms, so:
+\[
+    V_\nu^*(\aes_{<t}) ~=~ \max_{a'_t} \sum_{e'_t} \nu(e'_t \mid \aes_{<t} a'_t) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^*(\aes_{<t}\, a'_t\, e'_t)\Big].
+\]
+\end{solution}
+
+\begin{exercise}[Optimal policy for infinite horizon]
+\label{prob:inf_opt_policy}
+\difficulty{25}\skippable
+Show that a deterministic policy $\pi_\nu^*$ exists achieving $V_\nu^{\pi_\nu^*}(\aes_{<t}) = V_\nu^*(\aes_{<t})$ for all $\aes_{<t}$.
+
+
+\textit{Approach:}
+\begin{enumerate}\itemsep=2pt
+    \item Define $\pi_\nu^*$ as the greedy policy (the $\argmax$ action from \cref{prob:inf_bellman_opt}).
+    \item Write two Bellman equations: one for $V_\nu^*$, one for $V_\nu^{\pi_\nu^*, m}$.
+    \item Define $\Delta V_\nu^m := V_\nu^* - V_\nu^{\pi_\nu^*, m}$ and obtain a recursive equation for it.
+    \item Iterate out to the finite horizon, noting $V_\nu^{\pi_\nu^*, m}(\aes_{1:m}) = 0$ (why?)
+    \item Bound the tail, take $m \to \infty$.
+\end{enumerate}
+\end{exercise}
+
+\begin{solution}[prob:inf_opt_policy]
+\emph{Step 1: Define the greedy policy.}
+For each history $\aes_{<t}$, let
+$$
+a^*_t \in \argmax_{a'_t} \sum_{e'_t} \nu(e'_t \mid \aes_{<t} a'_t) [(1-\gamma)\, r'_t + \gamma\, V_\nu^*(\aes_{<t}\, a'_t\, e'_t)],
+$$
+which exists because $\cA$ is finite.
+Define the deterministic policy $\pi_\nu^*(a \mid \aes_{<t}) := \llbracket a = a^*_t \rrbracket$.
+By \cref{prob:inf_bellman_opt}, the infinite-horizon Bellman optimality equation becomes:
+\[
+    V_\nu^*(\aes_{<t}) ~=~ \sum_{e'_t} \nu(e'_t \mid \aes_{<t}\, a^*_t) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^*(\aes_{<t}\, a^*_t\, e'_t)\Big].
+\]
+
+\emph{Step 2: Error recursion.}
+The Bellman equation (\cref{prob:bellman_finite}) holds for any policy, so for $\pi_\nu^*$ at finite horizon $m$:
+\[
+    V_\nu^{\pi_\nu^*,m}(\aes_{<t}) ~=~ \sum_{e'_t} \nu(e'_t \mid \aes_{<t}\, a^*_t) \Big[(1-\gamma)\, r'_t + \gamma\, V_\nu^{\pi_\nu^*,m}(\aes_{<t}\, a^*_t\, e'_t)\Big].
+\]
+Subtracting this from the equation in Step~1, the $(1-\gamma)\, r'_t$ terms cancel:
+\[
+    V_\nu^*(\aes_{<t}) - V_\nu^{\pi_\nu^*,m}(\aes_{<t})
+    ~=~ \gamma \sum_{e'_t} \nu(e'_t \mid \aes_{<t}\, a^*_t) \Big[V_\nu^*(\aes_{<t}\, a^*_t\, e'_t) - V_\nu^{\pi_\nu^*,m}(\aes_{<t}\, a^*_t\, e'_t)\Big].
+\]
+The error at time $t$ is $\gamma$ times a weighted average of errors at time $t+1$.
+
+\emph{Step 3: Iterate the contraction.}
+Write $\Delta V_\nu^m(\aes_{<t}) := V_\nu^*(\aes_{<t}) - V_\nu^{\pi_\nu^*,m}(\aes_{<t}) \geq 0$ for the error. Step~2 gives:
+\[
+    \Delta V_\nu^m(\aes_{<t}) ~=~ \gamma \sum_{e'_t} \nu(e'_t \mid \aes_{<t}\, a^*_t)\, \Delta V_\nu^m(\aes_{<t}\, a^*_t\, e'_t).
+\]
+Applying the same recursion at time $t+1$ (with greedy action $a^*_{t+1}$ at history $\aes_{<t}\, a^*_t\, e'_t$):
+\[
+    \Delta V_\nu^m(\aes_{<t}) ~=~ \gamma^2 \sum_{e'_t} \nu(e'_t \mid \aes_{<t}\, a^*_t)
+    \sum_{e'_{t+1}} \nu(e'_{t+1} \mid \aes_{<t}\, a^*_t\, e'_t\, a^*_{t+1})
+\]
+\[
+    \qquad
+    \times \Delta V_\nu^m(\aes_{<t}\, a^*_t\, e'_t\, a^*_{t+1}\, e'_{t+1}).
+\]
+After $m - t + 1$ iterations, summing over all percept sequences $e'_{t:m}$:
+\[
+    \Delta V_\nu^m(\aes_{<t}) ~=~ \gamma^{m-t+1} \sum_{e'_{t:m}} \left(\prod_{k=t}^m \nu(e'_k \mid \aes'_{<k}\, a^*_k)\right) \Delta V_\nu^m(\aes_{<t}\, \aes'_{t:m}),
+\]
+where $\aes'_{t:m} = a^*_t\, e'_t\, \cdots\, a^*_m\, e'_m$ is the history segment generated by $\pi_\nu^*$.
+By \cref{prob:det_interaction}, the product of $\nu$-conditionals is $\nu^{\pi_\nu^*}(\aes'_{t:m} \mid \aes_{<t})$.
+At the boundary, $V_\nu^{\pi_\nu^*,m}(\aes_{<t}\, \aes'_{t:m}) = 0$ (summing over no rewards past horizon $m$), so $\Delta V_\nu^m(\aes_{<t}\, \aes'_{t:m}) = V_\nu^*(\aes_{<t}\, \aes'_{t:m}) \in [0,1]$.
+Therefore:
+\[
+    \Delta V_\nu^m(\aes_{<t})
+    ~=~ \gamma^{m-t+1} \sum_{\aes'_{t:m}} \nu^{\pi_\nu^*}(\aes'_{t:m} \mid \aes_{<t})\, V_\nu^*(\aes_{<t}\, \aes'_{t:m})
+    ~\leq~ \gamma^{m-t+1}.
+\]
+
+\emph{Step 4: Take $m \to \infty$.}
+Since $0 \leq V_\nu^*(\aes_{<t}) - V_\nu^{\pi_\nu^*,m}(\aes_{<t}) \leq \gamma^{m-t+1} \to 0$,
+we have $V_\nu^{\pi_\nu^*,m}(\aes_{<t}) \to V_\nu^*(\aes_{<t})$, i.e.\ $V_\nu^{\pi_\nu^*} = V_\nu^*$.
+\end{solution}
+
+
+%===================================
+
+\section{Dominance of the Bayesian Mixture}\label{prob:dominance}
+
+\begin{exercise}
+\label{prob:auto1}
+\difficulty{03}
+Show that $\xi(\aes_{<t}) \geq w_\nu \cdot \nu(\aes_{<t})$ for every $\nu \in \cM$.
+
+\end{exercise}
+
+\begin{solution}[prob:auto1]
+$\xi(\aes_{<t}) = \sum_{\nu' \in \cM} w_{\nu'} \nu'(\aes_{<t}) \geq w_\nu \nu(\aes_{<t})$.
+\end{solution}
+
+\begin{exercise}
+\label{prob:auto2}
+\difficulty{10}
+Conclude that $\xi^\pi(\aes_{1:m}) \geq w_\nu \cdot \nu^\pi(\aes_{1:m})$ for any $\nu \in \cM$ and any policy $\pi$.
+
+\end{exercise}
+
+\begin{solution}[prob:auto2]
+By \cref{prob:factorization}: $\xi^\pi(\aes_{1:m}) = \pi(\aes_{1:m}) \cdot \xi(\aes_{1:m}) \geq \pi(\aes_{1:m}) \cdot w_\nu \nu(\aes_{1:m}) = w_\nu \cdot \nu^\pi(\aes_{1:m})$.
+%In particular: $\nu^\pi(A) > 0 \implies \xi^\pi(A) \geq w_\nu \cdot \nu^\pi(A) > 0$.
+\end{solution}
+
+
+%===================================
+\section[Properties of the Value Function]{Properties of $V_\xi$}\label{prob:linearity}
+
+\begin{exercise}
+\label{prob:linearity_finite}
+\difficulty{15}
+Show that for finite $m$:
+
+\[
+    V_\xi^{\pi,m}(\aes_{<t})
+    ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, V_\nu^{\pi,m}(\aes_{<t}).
+\]
+
+\begin{hint}
+Use the multi-step posterior linearity of $\xi^\pi$ (\cref{prob:multi_step_xi}).
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:linearity_finite]
+By \cref{prob:multi_step_xi}: $\xi^\pi(\aes_{t:m} \mid \aes_{<t}) = \sum_\nu w(\nu \mid \aes_{<t})\, \nu^\pi(\aes_{t:m} \mid \aes_{<t})$.
+Multiply both sides by $(1-\gamma)G_{t-1:m}$ and sum over all $\aes_{t:m}$:
+\begin{align*}
+    V_\xi^{\pi,m}(\aes_{<t})
+    ~&=~ (1-\gamma) \sum_{\aes_{t:m}} \xi^\pi(\aes_{t:m} \mid \aes_{<t}) G_{t-1:m} \\
+    ~&=~ (1-\gamma) \sum_{\aes_{t:m}} \left[\sum_\nu w(\nu \mid \aes_{<t})\, \nu^\pi(\aes_{t:m} \mid \aes_{<t})\right] G_{t-1:m} \\
+    ~&=~ \sum_\nu w(\nu \mid \aes_{<t}) \underbrace{(1-\gamma) \sum_{\aes_{t:m}} \nu^\pi(\aes_{t:m} \mid \aes_{<t}) G_{t-1:m}}_{=\; V_\nu^{\pi,m}(\aes_{<t})}.
+\end{align*}
+In the last step we exchanged $\sum_{\aes_{t:m}}$ and $\sum_\nu$; this is valid because both are sums of non-negative terms (or, for finite $m$, the sum over $\aes_{t:m}$ is finite). So:
+\[
+    V_\xi^{\pi,m}(\aes_{<t}) ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, V_\nu^{\pi,m}(\aes_{<t}).
+\]
+\end{solution}
+
+\begin{fact}[Dominated convergence for sums]\label{thm:dom_conv}
+If $a_{\nu,m} \to a_\nu$ as $m \to \infty$ for each $\nu$, and $|a_{\nu,m}| \leq b_\nu$ for all $m$ with $\sum_\nu b_\nu < \infty$, then $\sum_\nu a_{\nu,m} \to \sum_\nu a_\nu$.
+(For finite sums this is trivial.)
+\end{fact}
+
+\begin{exercise}[Infinite-horizon linearity]
+\label{prob:linearity_inf}
+\difficulty{17}\skippable
+Show that the result extends to $m = \infty$:
+
+\[
+    V_\xi^\pi(\aes_{<t})
+    ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, V_\nu^\pi(\aes_{<t}).
+\]
+
+\begin{hint}
+Take $m \to \infty$ in the finite-horizon result. You will need \cref{thm:dom_conv} to exchange limit and sum
+for countably infinite $\cM$.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:linearity_inf]
+The left side converges: $V_\xi^{\pi,m}(\aes_{<t}) \to V_\xi^\pi(\aes_{<t})$ by definition.
+
+For the right side, we need to push $\lim_{m \to \infty}$ through $\sum_\nu$. If $\cM$ is finite this is immediate. For countably infinite $\cM$, we apply \cref{thm:dom_conv} (dominated convergence for sums):
+\begin{itemize}\itemsep=2pt
+    \item For each $\nu$: $a_{\nu,m} := w(\nu \mid \aes_{<t})\, V_\nu^{\pi,m}(\aes_{<t}) \to w(\nu \mid \aes_{<t})\, V_\nu^\pi(\aes_{<t})$ as $m \to \infty$ by definition.
+    \item Domination: $|a_{\nu,m}| \leq w(\nu \mid \aes_{<t}) \cdot 1 =: b_\nu$ for all $m$, since $V_\nu^{\pi,m} \in [0,1]$ (\cref{prob:bounded_value}).
+    \item Summability: $\sum_\nu b_\nu = \sum_\nu w(\nu \mid \aes_{<t}) = 1 < \infty$.
+\end{itemize}
+So \cref{thm:dom_conv} gives:
+\[
+    V_\xi^\pi(\aes_{<t})
+    ~=~ \lim_{m \to \infty} \sum_\nu w(\nu \mid \aes_{<t})\, V_\nu^{\pi,m}(\aes_{<t})
+    ~=~ \sum_\nu w(\nu \mid \aes_{<t})\, V_\nu^\pi(\aes_{<t}). \qedhere
+\]
+\end{solution}
+
+\cref{prob:linearity_finite} shows $V_\xi^\pi$ is linear in $\nu$.
+The optimal value $V_\xi^*$ is only convex: a single policy must perform well across all $\nu \in \cM$ simultaneously, rather than being tailored to each $\nu$ individually.
+
+\begin{exercise}
+\label{prob:convex_opt}
+\difficulty{10}\skippable
+(Convexity of $V_\xi^*$)
+Using \cref{prob:linearity_finite}, show that for finite $m$:
+
+\[
+    V_\xi^{*,m}(\aes_{<t}) ~\leq~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, V_\nu^{*,m}(\aes_{<t}).
+\]
+\begin{hint}
+Apply \cref{prob:linearity_finite} with $\pi = \pi_\xi^*$, the Bayes-optimal policy for $\xi$.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:convex_opt]
+By \cref{prob:backward_induction}, a deterministic Bayes-optimal policy $\pi_\xi^*$ exists with $V_\xi^{\pi_\xi^*,m} = V_\xi^{*,m}$.
+Applying \cref{prob:linearity_finite} with $\pi = \pi_\xi^*$:
+\[
+    V_\xi^{*,m}(\aes_{<t})
+    ~=~ V_\xi^{\pi_\xi^*,m}(\aes_{<t})
+    ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, V_\nu^{\pi_\xi^*,m}(\aes_{<t}).
+\]
+Since $\pi_\xi^*$ is optimal for $\xi$ but not necessarily for each individual $\nu$, we have $V_\nu^{\pi_\xi^*,m}(\aes_{<t}) \leq V_\nu^{*,m}(\aes_{<t})$ for each $\nu$.
+Since $w(\nu \mid \aes_{<t}) \geq 0$:
+\[
+    V_\xi^{*,m}(\aes_{<t}) ~\leq~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, V_\nu^{*,m}(\aes_{<t}).
+\]
+\end{solution}
+
+\begin{exercise}
+\label{prob:nonlinear_opt}
+\difficulty{15}\skippable
+(Non-linearity of $V_\xi^*$)
+Show by example that the inequality in \cref{prob:convex_opt} can be strict, i.e.\ $V_\xi^{*,m}$ is \emph{not} linear in $\nu$.
+
+
+\begin{hint}
+Consider $\cM = \{\nu_0, \nu_1\}$: predicting a two-headed coin vs.\ a two-tailed coin.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:nonlinear_opt]
+\emph{Coin-flip prediction.}
+Let $\cA = \cO = \cR = \{0,1\}$, $\cM = \{\nu_0, \nu_1\}$ with $w_{\nu_0} = w_{\nu_1} = \tfrac{1}{2}$, horizon $m = 1$.
+Environment $\nu_i$ always shows outcome $i$, and the agent is rewarded for a correct prediction:
+\[
+    \nu_i(e_t \mid \aes_{<t}\, a_t) ~:~ o_t = i, \quad r_t = \llbracket a_t = i \rrbracket.
+\]
+In $\nu_i$ the optimal policy plays $a_t = i$, achieving $V_{\nu_i}^{*,m} = 1$.
+In $\xi = \tfrac{1}{2}\nu_0 + \tfrac{1}{2}\nu_1$ the outcome is a fair coin flip, so no policy predicts better than chance: $V_\xi^{*,m} = \tfrac{1}{2}$.
+Therefore:
+\[
+    \sum_\nu w_\nu\, V_\nu^{*,m}(\aes_{<t}) ~=~ \tfrac{1}{2} \cdot 1 + \tfrac{1}{2} \cdot 1 ~=~ 1 ~>~ \tfrac{1}{2} ~=~ V_\xi^{*,m}(\aes_{<t}).
+\]
+\end{solution}
+
+% ===================================% 
+\section{The Expectimax Form of AIXI}\label{prob:expectimax}
+
+We have specified AIXI only implicitly, as the Bayes-optimal policy $\pi_\xi^*$ (\cref{def:value}).
+We now unroll this definition into the explicit \textbf{expectimax} expression: an alternating sequence of maximizations over actions and $\xi$-expectations over percepts.
+
+\begin{exercise}[Expectimax form of AIXI]
+\label{prob:expectimax_derivation}
+\difficulty{20}
+By iterating the finite-horizon Bellman optimality equation (\cref{prob:bellman_opt}), show that
+\[
+\resizebox{\textwidth}{!}{$\displaystyle
+    V_\xi^{*,m}(\aes_{<t})
+    ~=~ (1-\gamma) \max_{a_t} \sum_{e_t} \xi(e_t \mid \aes_{<t} a_t)\, \max_{a_{t+1}} \sum_{e_{t+1}} \xi(e_{t+1} \mid \aes_{<t+1} a_{t+1}) \cdots
+    \max_{a_m} \sum_{e_m} \xi(e_m \mid \aes_{<m} a_m) \,G_{t-1:m}
+$}
+\]
+and hence, collecting the percept factors with the chain rule (\cref{prob:chain_rule}) and taking $m \to \infty$ (\cref{prob:inf_horizon,prob:inf_opt_policy}), that AIXI selects the action
+\[
+\resizebox{\textwidth}{!}{$\displaystyle
+    a_t ~=~ \pi_\xi^*(\aes_{<t})
+    ~\in~ \argmax_{a_t} \lim_{m\to\infty} \sum_{e_t} \max_{a_{t+1}} \sum_{e_{t+1}} \cdots \max_{a_m} \sum_{e_m}
+    \xi(e_{t:m} \mid \aes_{<t}\, a_{t:m}) \,G_{t-1:m} 
+$}
+\]
+
+
+\begin{hint}
+Prove the first display by backward induction on $t$ from $m$ down to $1$, using the finite-horizon Bellman optimality equation (\cref{prob:bellman_opt}) and the return recursion $G_{t-1:m} = r_t + \gamma\, G_{t:m}$ (\cref{def:return}). At each step the leftover reward term $(1-\gamma)\, r_t$ is constant in the deeper variables; carry it inward using $\sum_{e_k} \xi(e_k \mid \aes_{<k} a_k) = 1$ and $c + \max(\cdot) = \max(c + \cdot)$.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:expectimax_derivation]
+Abbreviate the one-step predictor $\xi_k := \xi(e_k \mid \aes_{<k} a_k)$, and write the \textbf{expectimax operator} over steps $i, \ldots, j$ as
+\[
+    \exmax_{i:j} ~:=~ \max_{a_i} \sum_{e_i} \xi_i\, \max_{a_{i+1}} \sum_{e_{i+1}} \xi_{i+1} \cdots \max_{a_j} \sum_{e_j} \xi_j,
+\]
+the alternating ``maximize over the action, average over the percept'' chain, with the $\xi_k$ weights built in; the single step is $\exmax_k := \max_{a_k} \sum_{e_k} \xi_k$. Two facts:
+\begin{itemize}\itemsep=2pt
+    \item \textbf{(E1) Composition:} $\exmax_{i:j} = \exmax_i\, \exmax_{i+1:j}$, by nesting the definition.
+    \item \textbf{(E2) Affine pass-through:} for any $c \in \mathbb{R}$ and $\lambda \geq 0$ not depending on $(a_i, e_i, \ldots, a_j, e_j)$,
+    \[
+        c + \lambda\, \exmax_{i:j} X ~=~ \exmax_{i:j}(c + \lambda X),
+    \]
+    since each layer has $\sum_{e_k} \xi_k = 1$ (so $\sum_{e_k}\xi_k(c+\lambda Y) = c + \lambda \sum_{e_k}\xi_k Y$) and $\max_a(c + \lambda\, g(a)) = c + \lambda \max_a g(a)$ for $\lambda \geq 0$.
+\end{itemize}
+
+We prove by backward induction on $t = m, m-1, \ldots, 1$ that
+\[
+    V_\xi^{*,m}(\aes_{<t}) ~=~ (1-\gamma)\, \exmax_{t:m}\, G_{t-1:m}.
+\]
+
+\emph{Base case $t = m$.} Here $G_{m-1:m} = r_m$ and $V_\xi^{*,m}(\aes_{1:m}) = 0$ (the return past the horizon is empty, $G_{m:m} = 0$). The Bellman optimality equation (\cref{prob:bellman_opt}) for $\nu = \xi$ gives
+\[
+    V_\xi^{*,m}(\aes_{<m}) ~=~ \max_{a_m} \sum_{e_m} \xi_m \big[(1-\gamma)\, r_m + \gamma \cdot 0\big] ~=~ (1-\gamma)\, \exmax_{m:m}\, G_{m-1:m}.
+\]
+
+\emph{Inductive step.} Assume the claim at time $t+1$, i.e.\ $V_\xi^{*,m}(\aes_{1:t}) = (1-\gamma)\, \exmax_{t+1:m}\, G_{t:m}$ for every length-$t$ history (recall $\aes_{<t+1} = \aes_{1:t}$). The Bellman optimality equation (\cref{prob:bellman_opt}) at time $t$ reads
+\[
+    V_\xi^{*,m}(\aes_{<t}) ~=~ \exmax_t \big[(1-\gamma)\, r_t + \gamma\, V_\xi^{*,m}(\aes_{1:t})\big].
+\]
+Substituting the inductive hypothesis and pulling out $(1-\gamma)$,
+\[
+    V_\xi^{*,m}(\aes_{<t}) ~=~ (1-\gamma)\, \exmax_t \big[r_t + \gamma\, \exmax_{t+1:m}\, G_{t:m}\big].
+\]
+As $r_t$ and $\gamma$ do not depend on $(a_{t+1}, e_{t+1}, \ldots, a_m, e_m)$, property (E2) carries them inside the inner operator, and the return recursion $G_{t-1:m} = r_t + \gamma\, G_{t:m}$ (\cref{def:return}) gives
+\[
+    r_t + \gamma\, \exmax_{t+1:m}\, G_{t:m} ~\overset{(E2)}{=}~ \exmax_{t+1:m}(r_t + \gamma\, G_{t:m}) ~=~ \exmax_{t+1:m}\, G_{t-1:m}.
+\]
+Recombining the two operators by (E1),
+\[
+    V_\xi^{*,m}(\aes_{<t}) ~=~ (1-\gamma)\, \exmax_t\, \exmax_{t+1:m}\, G_{t-1:m} ~=~ (1-\gamma)\, \exmax_{t:m}\, G_{t-1:m},
+\]
+which expands back into the $\max/\sum$ layers of the first display.
+
+\emph{Infinite horizon and the action.} Taking $m \to \infty$ (\cref{prob:inf_horizon,prob:inf_opt_policy}), $G_{t-1:m} \to G_{\geq t-1}$ and the chain extends indefinitely, so $V_\xi^*(\aes_{<t}) = (1-\gamma)\, \exmax_{t:\infty}\, G_{\geq t-1}$. Collecting the per-step factors by the chain rule (\cref{prob:chain_rule}, iterated), $\prod_{k=t}^{m} \xi_k = \xi(e_{t:m} \mid \aes_{<t}\, a_{t:m})$. A Bayes-optimal action maximizes this expression; peeling the outer $\max_{a_t}$ off as an $\argmax$ and dropping the positive constant $(1-\gamma)$ (which does not move the maximizer) gives the stated action.
+\end{solution}
+
+
+%===================================
+\section*{On-Policy Value Convergence}
+
+The following problems prove the first two main results: on-policy value convergence (\cref{prob:on_policy}), and that AIXI can't be fooled in deterministic environments (\cref{prob:cant_be_fooled}).
+The path to the self-optimizing property (advanced stretch goal) resumes at \cref{prob:supermartingale}.
+
+%===================================
+\section{Bounding Expectation Differences by Total Variation}\label{prob:tv_bound}
+
+\begin{definition}[Total variation distance]\label{def:tv}
+The \textbf{total variation distance} between probability measures $P$ and $Q$ on a countable set $\Omega$ is $\TV[\Omega](P, Q) := \sup_{S \subseteq \Omega} |P(S) - Q(S)|$, where $P(S) := \sum_{\omega \in S} P(\omega)$.
+\end{definition}
+
+\begin{definition}[Expectation under $P$]\label{def:expectation_P}
+For a probability measure $P$ on a countable set $\Omega$ and a function $f : \Omega \to \mathbb{R}$, the \textbf{expectation} of $f$ under $P$ is
+$\Ex_P[f] := \sum_{\omega \in \Omega} f(\omega)\, P(\omega)$.
+\end{definition}
+
+The following technical lemma is needed for the on-policy value convergence proof.
+
+\begin{exercise}
+\label{prob:auto3}
+\difficulty{15}\skippable
+Let $f : \Omega \to [0, c]$. Show that
+$\big|\Ex_P[f] - \Ex_Q[f]\big| \leq c \cdot \TV[\Omega](P, Q)$.
+
+
+\begin{hint}
+Define $A^+ = \{\omega \in \Omega : P(\omega) \geq Q(\omega)\}$ and decompose the expectation difference as a sum over $A^+$ and its complement $A^- = \Omega \setminus A^+$.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:auto3]
+Write out the expectation difference using \cref{def:expectation_P}:
+\[
+    \Ex_P[f] - \Ex_Q[f]
+    ~=~ \sum_{\omega \in \Omega} f(\omega)\big(P(\omega) - Q(\omega)\big).
+\]
+Define $A^+ := \{\omega \in \Omega : P(\omega) \geq Q(\omega)\}$ and $A^- := \Omega \setminus A^+$, and split the sum:
+\[
+    \Ex_P[f] - \Ex_Q[f]
+    ~=~ \sum_{\omega \in A^+} f(\omega)\big(P(\omega) - Q(\omega)\big)
+    ~+~ \sum_{\omega \in A^-} f(\omega)\big(P(\omega) - Q(\omega)\big).
+\]
+
+\emph{Bounding the sum over $A^+$.}
+On $A^+$, $P(\omega) - Q(\omega) \geq 0$ and $f(\omega) \leq c$, so:
+\begin{align*}
+    \sum_{\omega \in A^+} f(\omega)\big(P(\omega) - Q(\omega)\big)
+    ~&\leq~ c \sum_{\omega \in A^+} \big(P(\omega) - Q(\omega)\big) \\
+    ~&=~ c \cdot \big(P(A^+) - Q(A^+)\big) \\
+    ~&\leq~ c \cdot \sup_S |P(S) - Q(S)| \\
+    ~&=~ c \cdot \TV[\Omega](P, Q).
+\end{align*}
+
+\emph{Bounding the sum over $A^-$.}
+On $A^-$, $P(\omega) - Q(\omega) < 0$ and $f(\omega) \geq 0$, so every term $f(\omega)(P(\omega) - Q(\omega)) \leq 0$:
+\[
+    \sum_{\omega \in A^-} f(\omega)\big(P(\omega) - Q(\omega)\big) ~\leq~ 0.
+\]
+
+\emph{Combining.}
+$\Ex_P[f] - \Ex_Q[f] \leq c \cdot \TV[\Omega](P,Q) + 0 = c \cdot \TV[\Omega](P,Q)$.
+
+\emph{The other direction.}
+Swapping $P$ and $Q$: define $\tilde{A}^+ = \{\omega : Q(\omega) \geq P(\omega)\} = A^-$. The same argument gives $\Ex_Q[f] - \Ex_P[f] \leq c \cdot \TV[\Omega](Q, P) = c \cdot \TV[\Omega](P, Q)$.
+
+Therefore $|\Ex_P[f] - \Ex_Q[f]| \leq c \cdot \TV[\Omega](P, Q)$.
+\end{solution}
+
+
+%===================================
+% \section*{Convergence and Infinite Histories}
+
+
+%===================================
+\section{On-Policy Value Convergence of Bayes}\label{prob:on_policy}
+
+
+
+The following definitions are needed for the on-policy value convergence theorem.
+
+\begin{definition}[Probability of events]\label{def:events}
+A \textbf{finite-length event} is a set $A \subseteq (\cA \times \cE)^t$ of histories of fixed length $t$.
+Its probability under $\nu^\pi$ is
+\[
+    \nu^\pi(A) ~:=~ \sum_{\aes_{1:t} \in A} \nu^\pi(\aes_{1:t}).
+\]
+An \textbf{event on infinite histories} is any set built from finite-length events by countable unions, intersections, and complements.\footnote{We are deliberately avoiding a formal treatment of measure theory here. Not all subsets of $(\cA \times \cE)^\infty$ are measurable; we restrict to ``nice'' (measurable) sets built from finite-prefix conditions via countable set operations, which suffice for everything in this sheet. For a rigorous treatment using $\sigma$-algebras and probability measures, see \cite[Chapter 2.2]{Hutter:24uaibook2}.}
+Probabilities of such events are uniquely determined by two properties:
+\begin{itemize}\itemsep=2pt
+    \item \textbf{Normalization:} $\nu^\pi\!\big((\cA \times \cE)^\infty\big) = 1$.
+    \item \textbf{Countable additivity:} if $A_1, A_2, \ldots$ are pairwise disjoint events, then $\nu^\pi\!\big(\bigcup_{n=1}^\infty A_n\big) = \sum_{n=1}^\infty \nu^\pi(A_n)$.
+\end{itemize}
+From these, all standard rules of probability can be derived (e.g.\ $\nu^\pi(A \cup B) = \nu^\pi(A) + \nu^\pi(B) - \nu^\pi(A \cap B)$, etc.), though we will not prove them here. Two derived properties we use explicitly:
+\begin{itemize}\itemsep=2pt
+    \item \textbf{Complement:} $\nu^\pi(A^c) = 1 - \nu^\pi(A)$.
+    \item \textbf{Monotone limits:} if $A_1 \subseteq A_2 \subseteq \cdots$, then $\nu^\pi\!\big(\bigcup_{n=1}^\infty A_n\big) = \lim_{n \to \infty} \nu^\pi(A_n)$.
+\end{itemize}
+Further useful notions:
+\begin{itemize}\itemsep=2pt
+    \item \textbf{Conditional probability:} The probability of event $A$ given observed history $\aes_{<t}$ is
+    \[
+        \nu^\pi(A \mid \aes_{<t}) ~:=~ \frac{\nu^\pi(\{\aes_{<t} h : h \in A\})}{\nu^\pi(\aes_{<t})}.
+    \]
+    % where $\{\aes_{<t}\} \times A := \{\aes_{<t} h : h \in A\}$ denotes histories whose first $t-1$ steps match $\aes_{<t}$ and whose continuation lies in $A$.
+\end{itemize}
+\end{definition}
+
+\begin{callout}[tip]
+\textbf{Example: Example: a fair coin shows 1 infinitely often.}
+Let $\cA = \cO = \{0,1\}$, $\cR = \{0\}$, and let $\nu$ be a fair coin that ignores the action: $\nu(o_t = 1 \mid \aes_{<t}\, a_t) = \tfrac{1}{2}$ for all $\aes_{<t}, a_t$.
+Consider the event $F := \text{``}o_t = 1\text{ for infinitely many } t\text{''}$.
+
+\medskip
+\emph{Step 1: Build $F^c$ from finite-prefix events.}
+For each $t$, the set $\{o_t = 0\} := \{\aes_{1:t} : o_t = 0\}$ is a finite-length event.
+For each $N$ and $T \geq N$, the set $D_{N,T} := \bigcap_{t=N}^{T} \{o_t = 0\}$ is also a finite-length event (determined by time $T$).
+Define $C_N := \bigcap_{t=N}^{\infty} \{o_t = 0\}$ (``all zeros from time $N$ onwards''): this is an infinite-history event, built as a countable intersection of finite-length events.
+Then $F^c = \bigcup_{N=1}^\infty C_N$ (``eventually all zeros'').
+
+\medskip
+\emph{Step 2: Compute $\nu^\pi(C_N) = 0$.}
+Since $D_{N,T} \supseteq D_{N,T+1} \supseteq \cdots$ (adding more constraints), the monotone limit property (for decreasing sets) gives:
+\[
+    \nu^\pi(C_N)
+    ~=~ \lim_{T \to \infty} \nu^\pi(D_{N,T})
+    ~=~ \lim_{T \to \infty} \left(\tfrac{1}{2}\right)^{T - N + 1}
+    ~=~ 0.
+\]
+(The probability $\nu^\pi(D_{N,T}) = (1/2)^{T-N+1}$ is independent of $\pi$, since $\nu$ ignores actions.)
+
+\medskip
+\emph{Step 3:}
+By countable additivity: $\nu^\pi(F^c) \leq \sum_{N=1}^\infty \nu^\pi(C_N) = 0$, so $\nu^\pi(F) = 1$.
+A fair coin shows 1 infinitely often, almost surely.
+
+As such, $F^c$ (the set of all infinite histories containing only finitely many 1s) is a $\nu^\pi$-measure-zero set. Such histories ``exist'' as infinite sequences, but occur with probability zero.
+\end{callout}
+
+\begin{definition}[Covering\protect\footnotemark]\label{def:covering}
+We say $Q$ \textbf{covers} $P$ if $Q$ is positive everywhere $P$ is:
+$P(A) > 0 \implies Q(A) > 0$ for all events $A$.
+Equivalently: any event that $Q$ rules out, $P$ also rules out.
+By \cref{prob:dominance}, $\xi^\pi$ covers $\mu^\pi$.
+\end{definition}
+\footnotetext{The standard name is \emph{absolute continuity} of $P$ with respect to $Q$, written $P \ll Q$.}
+
+\begin{definition}[Convergence $\nu^\pi$-almost surely]\label{def:as}
+Let $f_t : \cH^{t-1} \to \mathbb{R}$ be a sequence of functions, where $f_t$ depends on the history $\aes_{<t}$ of length $t-1$. We write $f_t(\aes_{<t}) \to 0$ $\nu^\pi$\textbf{-almost surely} ($\nu^\pi$-a.s.) if
+\[
+    \nu^\pi\!\Big(\Big\{\aes_{1:\infty} : f_t(\aes_{<t}) \not\to 0\Big\}\Big) = 0.
+\]
+This set is built from finite-prefix conditions:
+$\{f_t \not\to 0\} = \bigcup_{n=1}^\infty \bigcap_{N=1}^\infty \bigcup_{t=N}^\infty \big\{|f_t(\aes_{<t})| > \tfrac{1}{n}\big\}$,
+so its probability is well-defined (\cref{def:events}).
+\end{definition}
+
+\begin{callout}[tip]
+\textbf{Example: Unpacking ``$f_t \not\to 0$''.}
+The set $\{f_t \not\to 0\}$ looks intimidating, but it reads naturally from the inside out:
+\begin{itemize}\itemsep=4pt
+    \item $\big\{|f_t(\aes_{<t})| > \tfrac{1}{n}\big\}$ is a finite-length event: ``at time $t$, the function is at least $\tfrac{1}{n}$ away from zero.''
+
+    \item $\bigcup_{t=N}^\infty \big\{|f_t| > \tfrac{1}{n}\big\}$: ``at \emph{some} time $t \geq N$, $f_t$ is at least $\tfrac{1}{n}$ away from zero.''
+
+    \item $\bigcap_{N=1}^\infty \bigcup_{t=N}^\infty \big\{|f_t| > \tfrac{1}{n}\big\}$: ``for \emph{every} $N$, there is some $t \geq N$ where $f_t$ is at least $\tfrac{1}{n}$ from zero'', i.e., $f_t$ exceeds $\tfrac{1}{n}$ \emph{infinitely often}.
+
+    \item $\bigcup_{n=1}^\infty \bigcap_{N=1}^\infty \bigcup_{t=N}^\infty \big\{|f_t| > \tfrac{1}{n}\big\}$: ``for \emph{some} $\tfrac{1}{n} > 0$, $f_t$ exceeds $\tfrac{1}{n}$ infinitely often.''
+\end{itemize}
+This last condition is exactly $\{f_t \not\to 0\}$: convergence $f_t \to 0$ means that for \emph{every} $\varepsilon > 0$, $|f_t| \leq \varepsilon$ for all sufficiently large $t$. Its negation is that \emph{some} $\varepsilon > 0$ is exceeded infinitely often.
+
+Each layer is a countable union or intersection of the previous, so the whole set is a well-defined event on infinite histories.
+\end{callout}
+
+
+The Bayesian agent uses the mixture $\xi$ because the true environment $\mu$ is unknown.
+A natural question: does planning with $\xi$ eventually become as good as planning with $\mu$?
+The following theorem says \emph{yes}: the value of any fixed policy $\pi$, as evaluated by $\xi$, converges to the value under the true environment $\mu$, along histories that $\mu^\pi$ actually generates.\footnote{If the true environment is $\mu$ then we don't care about the behaviour of the Bayesian agent on histories that have $\mu^\pi$-probability zero: such histories will never be observed anyway.}
+This tells us that the Bayesian mixture ``learns'' to predict the true environment's value, on policy.
+
+\begin{theorem}[On-policy value convergence; {\cite[Theorem 7.3.1]{Hutter:24uaibook2}}]\label{thm:on_policy}
+For any $\mu \in \cM$ and any policy $\pi$:
+$V_\xi^\pi(\aes_{<t}) - V_\mu^\pi(\aes_{<t}) \to 0$ as $t \to \infty$, $\mu^\pi$-almost surely.
+That is, the set of infinite histories along which the value difference does not vanish has $\mu^\pi$-probability zero:
+\[
+    \mu^\pi\!\Big(\Big\{\aes_{1:\infty} : \lim_{t \to \infty} \big(V_\xi^\pi(\aes_{<t}) - V_\mu^\pi(\aes_{<t})\big) \neq 0\Big\}\Big) = 0.
+\]
+\end{theorem}
+
+The proof reduces to a finite-horizon TV bound (\cref{prob:tv_finite}), a covering argument (\cref{prob:covering_proof}), and the Blackwell--Dubins theorem (\cref{prob:on_policy_proof}).
+The only ingredient we do not prove is Blackwell--Dubins itself, which we state as a given fact.
+
+\begin{exercise}[Finite-horizon TV bound on value difference]
+\label{prob:tv_finite}
+\difficulty{10}
+Using \cref{prob:tv_bound}, show that for finite $m$:
+
+\[
+    \big|V_\xi^{\pi,m}(\aes_{<t}) - V_\mu^{\pi,m}(\aes_{<t})\big|
+    ~\leq~ \TV[\cH^{m-t+1}]\!\big(\xi^\pi(\cdot \mid \aes_{<t}),\; \mu^\pi(\cdot \mid \aes_{<t})\big),
+\]
+where $\cH^{m-t+1} := (\cA \times \cE)^{m-t+1}$ is the set of all future history segments $\aes_{t:m}$.
+\end{exercise}
+
+\begin{solution}[prob:tv_finite]
+We want to apply \cref{prob:tv_bound}. Identify:
+\begin{itemize}\itemsep=2pt
+    \item $\Omega := \cH^{m-t+1} = (\cA \times \cE)^{m-t+1}$, the finite set of future history segments $\aes_{t:m}$.
+    \item $P := \mu^\pi(\cdot \mid \aes_{<t})$ and $Q := \xi^\pi(\cdot \mid \aes_{<t})$, the conditional measures over $\Omega$.
+    \item $f(\aes_{t:m}) := (1-\gamma)G_{t-1:m}$, which satisfies $f \in [0,1]$ by \cref{prob:bounded_value} (so $c = 1$).
+\end{itemize}
+Then $V_\nu^{\pi,m}(\aes_{<t}) = \sum_{\aes_{t:m}} \nu^\pi(\aes_{t:m} \mid \aes_{<t})\, f(\aes_{t:m})$ is exactly $\Ex_P[f]$ (for $\nu = \mu$) or $\Ex_Q[f]$ (for $\nu = \xi$).
+Applying \cref{prob:tv_bound}:
+\[
+    \big|V_\xi^{\pi,m}(\aes_{<t}) - V_\mu^{\pi,m}(\aes_{<t})\big|
+    ~=~ \big|\Ex_Q[f] - \Ex_P[f]\big|
+    ~\leq~ 1 \cdot \TV[\cH^{m-t+1}](P, Q).
+\]
+\end{solution}
+
+\begin{exercise}[Covering]
+\label{prob:covering_proof}
+\difficulty{05}
+Show that $\xi^\pi$ covers $\mu^\pi$ (\cref{def:covering}).
+
+
+\begin{hint}
+Use \cref{prob:dominance}.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:covering_proof]
+By \cref{prob:dominance}, $\xi^\pi(\aes_{1:m}) \geq w_\mu \cdot \mu^\pi(\aes_{1:m})$ for all histories and all $m$.
+So for any event $A$: $\mu^\pi(A) > 0 \implies \xi^\pi(A) \geq w_\mu \cdot \mu^\pi(A) > 0$.
+Hence $\xi^\pi$ covers $\mu^\pi$.
+\end{solution}
+
+To complete the proof, we need the TV distance on finite segments to vanish $\mu^\pi$-a.s.\ as $t \to \infty$.
+This follows from the following deep result, which we state without proof:
+
+\begin{fact}[Blackwell--Dubins merging of opinions~\cite{Blackwell:62}]\label{fact:BD}
+If $Q$ covers $P$, then
+$\sup_S |P(S \mid \aes_{<t}) - Q(S \mid \aes_{<t})| \to 0$ $P$-almost surely,
+where the supremum ranges over all measurable events $S$ (including events on infinite histories).
+\end{fact}
+
+The proof of Blackwell--Dubins requires the Radon--Nikodym derivative and L\'{e}vy's martingale convergence theorem: tools from measure theory that are beyond the scope of this sheet.
+See \cite[Chapter~3.9]{Hutter:24uaibook2} for discussion.
+
+\begin{exercise}[On-policy convergence]
+\label{prob:on_policy_proof}
+\difficulty{15}
+Using \cref{fact:BD}, \cref{prob:tv_finite} and \cref{prob:covering_proof}, prove \cref{thm:on_policy}.
+
+\end{exercise}
+
+\begin{solution}[prob:on_policy_proof]
+\emph{Step 1: Finite-horizon bound.}
+By \cref{prob:tv_finite}, for each finite $m$:
+\begin{align*}
+    \big|V_\xi^{\pi,m}(\aes_{<t}) - V_\mu^{\pi,m}(\aes_{<t})\big|
+    ~&\leq~ \TV[\cH^{m-t+1}]\!\big(\xi^\pi(\cdot \mid \aes_{<t}),\, \mu^\pi(\cdot \mid \aes_{<t})\big) \\
+    ~&\leq~ \sup_S \big|\xi^\pi(S \mid \aes_{<t}) - \mu^\pi(S \mid \aes_{<t})\big|,
+\end{align*}
+where the second inequality uses that the sup over subsets of $\cH^{m-t+1}$ is at most the sup over all measurable events.
+
+\emph{Step 2: Take $m \to \infty$.}
+The LHS converges to $|V_\xi^\pi(\aes_{<t}) - V_\mu^\pi(\aes_{<t})|$ (by definition of the infinite-horizon value as the pointwise limit). The RHS does not depend on $m$. Hence
+\[
+    \big|V_\xi^\pi(\aes_{<t}) - V_\mu^\pi(\aes_{<t})\big|
+    ~\leq~ \sup_S \big|\xi^\pi(S \mid \aes_{<t}) - \mu^\pi(S \mid \aes_{<t})\big|.
+\]
+
+\emph{Step 3: Take $t \to \infty$.}
+By \cref{prob:covering_proof}, $\xi^\pi$ covers $\mu^\pi$. By \cref{fact:BD} (Blackwell--Dubins) with $P = \mu^\pi$ and $Q = \xi^\pi$, the RHS tends to $0$ as $t \to \infty$, $\mu^\pi$-a.s. Therefore
+\[
+    \big|V_\xi^\pi(\aes_{<t}) - V_\mu^\pi(\aes_{<t})\big| ~\to~ 0 \qquad \mu^\pi\text{-a.s.}
+\]
+\end{solution}
+
+\begin{exercise}
+\label{prob:auto4}
+\difficulty{40}\skippable
+Prove \cref{fact:BD}.
+
+
+\begin{hint}
+See \cite{Blackwell:62}. The proof uses the Radon--Nikodym derivative $dP/dQ$, L\'{e}vy's martingale convergence theorem, and the Lebesgue decomposition.
+No elementary proof is known that avoids graduate-level measure theory.
+\end{hint}
+
+
+%===================================
+\end{exercise}
+
+\section{AIXI Cannot Be Fooled in Deterministic Environments}\label{prob:cant_be_fooled}
+
+\begin{theorem}[AIXI cannot act poorly in good environments]\label{thm:cant_be_fooled}
+If $\mu \in \cM$ is deterministic and $V_\mu^*(\aes_{<t}) > \varepsilon > 0$ for all $t$ along the history generated by $\mu$ and $\pi_\xi^*$, then $V_\xi^*(\aes_{<t}) \geq w_\mu\, \varepsilon > 0$ for all $t$. \cite[Theorem 7.4.10]{Hutter:24uaibook2}
+\end{theorem}
+
+\begin{exercise}
+\label{prob:xi_lower_bound}
+\difficulty{10}
+Show that $V_\xi^*(\aes_{<t}) \geq w(\mu \mid \aes_{<t}) \cdot V_\mu^*(\aes_{<t})$.
+
+
+\begin{hint}
+Use linearity of $V^\pi$ (\cref{prob:linearity_inf}).
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:xi_lower_bound]
+By definition, $V_\xi^*(\aes_{<t}) = \sup_\pi V_\xi^\pi(\aes_{<t}) \geq V_\xi^{\pi'}(\aes_{<t})$ for any policy $\pi'$.
+By \cref{prob:linearity_inf} (linearity of $V^\pi$ in the environment):
+\[
+    V_\xi^{\pi'}(\aes_{<t}) ~=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, V_\nu^{\pi'}(\aes_{<t}).
+\]
+Choose $\pi' = \pi_\mu^*$, the deterministic optimal policy for $\mu$ whose existence is guaranteed by \cref{prob:inf_opt_policy}:
+\[
+    V_\xi^*(\aes_{<t}) ~\geq~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, V_\nu^{\pi_\mu^*}(\aes_{<t}).
+\]
+Every term is non-negative ($w(\nu \mid \aes_{<t}) \geq 0$ and $V_\nu^{\pi_\mu^*} \geq 0$). Dropping all terms except $\nu = \mu$:
+\[
+    V_\xi^*(\aes_{<t})
+    ~\geq~ w(\mu \mid \aes_{<t})\, V_\mu^{\pi_\mu^*}(\aes_{<t})
+    ~=~ w(\mu \mid \aes_{<t})\, V_\mu^*(\aes_{<t}).
+\]
+\end{solution}
+
+\begin{exercise}
+\label{prob:auto5}
+\difficulty{15}
+Show $w(\mu \mid \aes_{<t}) \geq w_\mu$ when $\mu$ is deterministic, and combine with \cref{prob:xi_lower_bound} to prove \cref{thm:cant_be_fooled}.
+
+\end{exercise}
+
+\begin{solution}[prob:auto5]
+From \cref{def:mixture}, the posterior weight is:
+\[
+    w(\mu \mid \aes_{<t})
+    ~=~ w_\mu \cdot \frac{\mu(\aes_{<t})}{\xi(\aes_{<t})}
+    ~=~ w_\mu \cdot \frac{\prod_{k=1}^{t-1} \mu(e_k \mid \aes_{<k} a_k)}{\prod_{k=1}^{t-1} \xi(e_k \mid \aes_{<k} a_k)}.
+\]
+Since $\mu$ is deterministic, for the history that $\mu$ actually generates, $\mu(e_k \mid \aes_{<k} a_k) = 1$ for each $k$ (the environment produces each percept with certainty). So:
+\[
+    \mu(\aes_{<t}) ~=~ \prod_{k=1}^{t-1} 1 ~=~ 1.
+\]
+Meanwhile, $\xi(e_k \mid \aes_{<k} a_k) \leq 1$ for each $k$ (it is a probability), so $\xi(\aes_{<t}) = \prod_{k=1}^{t-1} \xi(e_k \mid \aes_{<k} a_k) \leq 1$.
+
+Therefore $w(\mu \mid \aes_{<t}) = w_\mu \cdot 1 / \xi(\aes_{<t}) \geq w_\mu$.
+
+Combining with \cref{prob:xi_lower_bound}:
+\[
+    V_\xi^*(\aes_{<t})
+    ~\geq~ w(\mu \mid \aes_{<t}) \cdot V_\mu^*(\aes_{<t})
+    ~\geq~ w_\mu \cdot V_\mu^*(\aes_{<t})
+    ~>~ w_\mu \cdot \varepsilon
+    ~>~ 0.
+\]
+\end{solution}
+
+\textit{Remark.} With the Solomonoff prior, $w_\mu = 2^{-K(\mu)}$ may be astronomically small. The result guarantees non-zero value, not near-optimal value.
+
+
+%===================================
+\section*{\Crefrange{prob:supermartingale}{prob:selfopt}: Self-Optimizing Policy (Finite Model Class)}
+
+We now prove: if \emph{any} policy can learn to act optimally, $\pi_\xi^*$ also learns. We restrict to finite $\cM = \{\nu_1, \ldots, \nu_N\}$ where each $\nu_i$ is a proper probability measure.
+
+%===================================
+\section{Likelihood Ratios Are Martingales}\label{prob:supermartingale}
+
+The following definition and theorem state the main goal of \crefrange{prob:supermartingale}{prob:selfopt}.
+
+\begin{definition}[Self-optimizing]\label{def:selfopt}
+Fix a historic policy $\pi$. A policy $\tilde\pi$ is \textbf{self-optimizing} for $\cM$ with respect to $\pi$ if for every $\nu \in \cM$:
+$V_\nu^*(\aes_{<t}) - V_\nu^{\tilde\pi}(\aes_{<t}) \to 0$ as $t \to \infty$, $\nu^\pi$-almost surely.
+
+The percepts $e_{1:\infty}$ are sampled from $\nu$; the historic actions $a_{<t}$ come from $\pi$, which may differ from $\tilde\pi$.
+\end{definition}
+
+\begin{theorem}[Self-optimizing; {\cite[Theorem 7.5.2]{Hutter:24uaibook2}}]\label{thm:selfopt}
+Let $\cM$ be finite and fix a historic policy $\pi$.
+If there exists a $\tilde\pi$ self-optimizing for $\cM$ with respect to $\pi$, then $\pi_\xi^*$ is also self-optimizing for $\cM$ with respect to $\pi$: for any $\mu \in \cM$,
+$V_\mu^*(\aes_{<t}) - V_\mu^{\pi_\xi^*}(\aes_{<t}) \to 0$ $\mu^\pi$-almost surely.
+\end{theorem}
+
+\begin{definition}[Supermartingale]\label{def:supermartingale}
+A sequence of functions $X_t : \cH^{t} \to \mathbb{R}_{\geq 0}$ (each depending on the history $\aes_{1:t}$) is a $\mu^\pi$-\textbf{supermartingale} if
+$\Ex_{\mu^\pi}[X_t \mid \aes_{<t}] \leq X_{t-1}$ for all $t$; that is,
+\[
+    \sum_{\aes_t} \pi(a_t \mid \aes_{<t})\, \mu(e_t \mid \aes_{<t} a_t)\, X_t(\aes_{1:t}) ~\leq~ X_{t-1}(\aes_{<t}).
+\]
+If equality holds, it is a $\mu^\pi$-\textbf{martingale}.
+\end{definition}
+
+\textbf{Intuition.}
+A supermartingale is a quantity whose expected future value, given the present, is no larger than its current value: it cannot ``drift upward on average.'' A martingale is the equality case: expected future value equals current value.
+The key example is the \textbf{likelihood ratio} $X_{\nu,t}(\aes_{1:t}) := \nu(\aes_{1:t})/\mu(\aes_{1:t})$: how much more (or less) likely the observed history is under $\nu$ than under the true environment $\mu$.
+Under $\mu$, this ratio is a martingale: the true environment does not, on average, favour any alternative $\nu$ over itself.
+Non-negativity plus the (super)martingale structure forces $X_{\nu,t}$ to converge (by Doob's theorem below), which is the engine behind the self-optimizing proof: it lets us separate environments that remain plausible ($X_{\nu,\infty} > 0$) from those that are eventually ruled out ($X_{\nu,\infty} = 0$), and handle each case differently in \cref{prob:selfopt}.
+
+\begin{fact}[Doob's supermartingale convergence]\label{fact:doob}
+If $(X_t)_{t \geq 0}$ is a non-negative $\mu^\pi$-supermartingale, then there exists a function $X_\infty : \cH^\infty \to \mathbb{R}_{\geq 0}$ of the infinite history such that $X_t(\aes_{1:t}) \to X_\infty(\aes_{1:\infty})$ as $t \to \infty$, with $X_\infty(\aes_{1:\infty}) < \infty$, for $\mu^\pi$-almost every infinite history $\aes_{1:\infty}$.
+That is:
+\[
+    \mu^\pi\!\Big(\Big\{\aes_{1:\infty} \in (\cA \times \cE)^\infty : X_t(\aes_{1:t}) \not\to X_\infty(\aes_{1:\infty})\Big\}\Big) ~=~ 0.
+\]
+\end{fact}
+
+For each $\nu \in \cM$, define the likelihood ratio
+\[
+    X_{\nu,t} : \cH^t \to \mathbb{R}_{\geq 0}, \qquad X_{\nu,t}(\aes_{1:t}) ~:=~ \frac{\nu(\aes_{1:t})}{\mu(\aes_{1:t})}, \qquad X_{\nu,0} := 1.
+\]
+$X_{\nu,t}$ is a \emph{function} of the history $\aes_{1:t}$, not a number: different histories give different values. Throughout this section and the next, any unqualified statement of the form ``$X_{\nu,t} \geq c$'' or ``$X_{\nu,t} \to X_{\nu,\infty}$'' is shorthand for ``$X_{\nu,t}(\aes_{1:t}) \geq c$'' or ``$X_{\nu,t}(\aes_{1:t}) \to X_{\nu,\infty}(\aes_{1:\infty})$'' holding $\mu^\pi$-almost surely, i.e.\ on every infinite history outside a set of $\mu^\pi$-measure zero. We will not track these null sets explicitly; their countable union over all claims is still a $\mu^\pi$-null set.
+
+\begin{exercise}
+\label{prob:martingale}
+\difficulty{15}
+Show that $X_{\nu,t}$ is a $\mu^\pi$-martingale: $\Ex_{\mu^\pi}[X_{\nu,t} \mid \aes_{<t}] = X_{\nu,t-1}$.
+
+
+\begin{hint}
+Write $X_{\nu,t}(\aes_{1:t}) = X_{\nu,t-1}(\aes_{<t}) \cdot \nu(e_t \mid \aes_{<t} a_t)/\mu(e_t \mid \aes_{<t} a_t)$. Sum over $a_t, e_t$; $\mu$ cancels, leaving $\sum_{e_t} \nu(e_t \mid \aes_{<t} a_t) = 1$.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:martingale]
+We need to compute $\Ex_{\mu^\pi}[X_{\nu,t} \mid \aes_{<t}]$. Conditioning on $\aes_{<t}$ means $a_t$ and $e_t$ are the random quantities (sampled from $\pi$ and $\mu$ respectively). First, write $X_{\nu,t}$ pointwise as a function of history in terms of $X_{\nu,t-1}$:
+\[
+    X_{\nu,t}(\aes_{1:t}) ~=~ \frac{\nu(\aes_{1:t})}{\mu(\aes_{1:t})}
+    ~=~ \frac{\nu(\aes_{<t})}{\mu(\aes_{<t})} \cdot \frac{\nu(e_t \mid \aes_{<t} a_t)}{\mu(e_t \mid \aes_{<t} a_t)}
+    ~=~ X_{\nu,t-1}(\aes_{<t}) \cdot \frac{\nu(e_t \mid \aes_{<t} a_t)}{\mu(e_t \mid \aes_{<t} a_t)},
+\]
+using the chain rule (\cref{prob:chain_rule}) for both $\nu$ and $\mu$. Now take the conditional expectation. Since $X_{\nu,t-1}$ depends only on $\aes_{<t}$, it comes out of the expectation:
+\begin{align*}
+    \Ex_{\mu^\pi}[X_{\nu,t} \mid \aes_{<t}]
+    ~&=~ X_{\nu,t-1} \cdot \Ex_{\mu^\pi}\!\left[\frac{\nu(e_t \mid \aes_{<t} a_t)}{\mu(e_t \mid \aes_{<t} a_t)} ~\Big|~ \aes_{<t}\right] \\
+    ~&=~ X_{\nu,t-1} \sum_{a_t \in \cA} \pi(a_t \mid \aes_{<t}) \sum_{e_t \in \cE} \mu(e_t \mid \aes_{<t} a_t) \cdot \frac{\nu(e_t \mid \aes_{<t} a_t)}{\mu(e_t \mid \aes_{<t} a_t)} \\
+    ~&=~ X_{\nu,t-1} \sum_{a_t} \pi(a_t \mid \aes_{<t}) \sum_{e_t} \nu(e_t \mid \aes_{<t} a_t).
+\end{align*}
+In the last step, $\mu(e_t \mid \aes_{<t} a_t)$ cancels. Since $\nu$ is a probability measure, $\sum_{e_t} \nu(e_t \mid \aes_{<t} a_t) = 1$ for every $\aes_{<t}, a_t$; and $\sum_{a_t} \pi(a_t \mid \aes_{<t}) = 1$. Therefore:
+\[
+    \Ex_{\mu^\pi}[X_{\nu,t} \mid \aes_{<t}] ~=~ X_{\nu,t-1} \cdot 1 \cdot 1 ~=~ X_{\nu,t-1}.
+\]
+Since $X_{\nu,t} \geq 0$ (a ratio of non-negative quantities), $(X_{\nu,t})_{t \geq 0}$ is a non-negative $\mu^\pi$-martingale, in particular, a non-negative $\mu^\pi$-supermartingale.
+\end{solution}
+
+\begin{exercise}
+\label{prob:X_converges}
+\difficulty{05}
+Apply \cref{fact:doob} to conclude $X_{\nu,t} \to X_{\nu,\infty} < \infty$ $\mu^\pi$-a.s.
+
+\end{exercise}
+
+\begin{solution}[prob:X_converges]
+$X_{\nu,t}$ is a non-negative $\mu^\pi$-supermartingale by \cref{prob:martingale}. By \cref{fact:doob} (Doob's convergence theorem), $X_{\nu,t}$ converges $\mu^\pi$-a.s.\ to a finite limit: $X_{\nu,t} \to X_{\nu,\infty} < \infty$.
+\end{solution}
+
+\begin{exercise}
+\label{prob:X_bounded_mu}
+\difficulty{10}
+Define $X_{\xi,t} := \xi(\aes_{1:t})/\mu(\aes_{1:t})$. 
+Show $X_{\xi,t} = \sum_\nu w_\nu X_{\nu,t}$ and $X_{\xi,t} \geq w_\mu > 0$.
+
+\end{exercise}
+
+\begin{solution}[prob:X_bounded_mu]
+From the definition:
+\[
+    X_{\xi,t}
+    ~:=~ \frac{\xi(\aes_{1:t})}{\mu(\aes_{1:t})}
+    ~=~ \frac{\sum_\nu w_\nu \nu(\aes_{1:t})}{\mu(\aes_{1:t})}
+    ~=~ \sum_\nu w_\nu \cdot \frac{\nu(\aes_{1:t})}{\mu(\aes_{1:t})}
+    ~=~ \sum_\nu w_\nu X_{\nu,t}.
+\]
+By \cref{prob:dominance}: $\xi(\aes_{1:t}) \geq w_\mu \cdot \mu(\aes_{1:t})$, so $X_{\xi,t} = \xi(\aes_{1:t})/\mu(\aes_{1:t}) \geq w_\mu > 0$.
+
+Since $\cM$ is finite, $X_{\xi,t} = \sum_\nu w_\nu X_{\nu,t}$ is a finite sum of convergent sequences, so $X_{\xi,t} \to X_{\xi,\infty} := \sum_\nu w_\nu X_{\nu,\infty} < \infty$ $\mu^\pi$-a.s., with $X_{\xi,\infty} \geq w_\mu > 0$.
+\end{solution}
+
+
+%===================================
+\section{Change of Measure}\label{prob:change_measure}
+
+\begin{exercise}
+\label{prob:cm_finite}
+\difficulty{15}
+Let $A$ be a set of finite histories of length $m$. Show:
+
+\[
+    \nu^\pi[\aes_{1:m} \in A] ~=~ \Ex_{\mu^\pi}\big[X_{\nu,m} \cdot \llbracket \aes_{1:m} \in A \rrbracket\big].
+\]
+\begin{hint}
+Use \cref{prob:factorization} to show $\nu^\pi/\mu^\pi = \nu/\mu = X_{\nu,m}$.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:cm_finite]
+By \cref{prob:factorization}, $\nu^\pi(\aes'_{1:m}) = \pi(\aes'_{1:m}) \cdot \nu(\aes'_{1:m})$ and $\mu^\pi(\aes'_{1:m}) = \pi(\aes'_{1:m}) \cdot \mu(\aes'_{1:m})$.
+For any history $\aes'_{1:m}$ with $\mu^\pi(\aes'_{1:m}) > 0$, the policy factors cancel:
+\[
+    \nu^\pi(\aes'_{1:m})
+    ~=~ \frac{\nu^\pi(\aes'_{1:m})}{\mu^\pi(\aes'_{1:m})} \cdot \mu^\pi(\aes'_{1:m})
+    ~=~ \frac{\nu(\aes'_{1:m})}{\mu(\aes'_{1:m})} \cdot \mu^\pi(\aes'_{1:m})
+    ~=~ X_{\nu,m}(\aes'_{1:m}) \cdot \mu^\pi(\aes'_{1:m}).
+\]
+For histories with $\mu^\pi(\aes'_{1:m}) = 0$: since $\mu^\pi = \pi \cdot \mu$, some $\pi(a_k \mid \aes'_{<k}) = 0$, which forces $\nu^\pi(\aes'_{1:m}) = 0$ too (the same $\pi$-factor appears in $\nu^\pi = \pi \cdot \nu$). So both sides are zero.
+
+Summing over $\aes'_{1:m} \in A$:
+\begin{align*}
+    \nu^\pi[\aes_{1:m} \in A]
+    ~&=~ \sum_{\aes'_{1:m} \in A} \nu^\pi(\aes'_{1:m})
+    ~=~ \sum_{\aes'_{1:m} \in A} X_{\nu,m}(\aes'_{1:m}) \cdot \mu^\pi(\aes'_{1:m}) \\
+    ~&=~ \Ex_{\mu^\pi}\big[X_{\nu,m} \cdot \llbracket \aes_{1:m} \in A \rrbracket\big].
+\end{align*}
+\end{solution}
+
+\begin{exercise}
+\label{prob:cm_extension}
+\textup{(Given.)} The identity extends to infinite histories: for any event $A \subseteq (\cA \times \cE)^\infty$,
+
+\[
+    \nu^\pi[A] ~=~ \Ex_{\mu^\pi}\big[X_{\nu,\infty} \cdot \llbracket \aes_{1:\infty} \in A \rrbracket\big].
+\]
+This says that $X_{\nu,\infty}$ plays the role of the Radon--Nikodym derivative $\mathrm{d}\nu^\pi/\mathrm{d}\mu^\pi$ on the space of infinite histories. The proof rests on two ingredients beyond the scope of this worksheet:
+\begin{itemize}
+    \item \textbf{$L^1$ martingale convergence} (closed martingale / L\'evy's upward theorem): since $\Ex_{\mu^\pi}[X_{\nu,t}] = 1$ for every $t$, the non-negative $\mu^\pi$-martingale $(X_{\nu,t})$ is uniformly integrable, so $X_{\nu,t} \to X_{\nu,\infty}$ in $L^1(\mu^\pi)$, not merely $\mu^\pi$-a.s. This lets us pass the $t\to\infty$ limit through the expectation.
+    \item \textbf{Uniqueness of measure extension} (Carath\'eodory / $\pi$--$\lambda$ theorem): both sides of the identity are finite measures on $(\cA\times\cE)^\infty$; the finite-history identity (\cref{prob:cm_finite}) shows they agree on all cylinder events $A = A_0 \times (\cA\times\cE)^\infty$, and cylinders generate the full event $\sigma$-algebra, so agreement extends uniquely to every event.
+\end{itemize}
+We omit the proof and use this identity freely below.
+\end{exercise}
+
+\begin{exercise}[Markov inequality for change of measure]
+\label{prob:markov_cm}
+\difficulty{15}
+Let $E$ be an event of infinite histories. For any $\varepsilon > 0$, show that
+
+\[
+    \mu^\pi\big[E \cap \{X_{\nu,\infty} \geq \varepsilon\}\big] ~\leq~ \frac{\nu^\pi[E]}{\varepsilon}.
+\]
+\begin{hint}
+On $E \cap \{X_{\nu,\infty} \geq \varepsilon\}$, $X_{\nu,\infty} \geq \varepsilon$ pointwise. Take $\mu^\pi$-expectations and apply \cref{prob:cm_extension}.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:markov_cm]
+Let $E_\varepsilon := E \cap \{X_{\nu,\infty} \geq \varepsilon\}$. On $E_\varepsilon$, $X_{\nu,\infty} \geq \varepsilon$, so pointwise
+\[
+    X_{\nu,\infty} \cdot \llbracket \aes_{1:\infty} \in E_\varepsilon \rrbracket
+    ~\geq~ \varepsilon \cdot \llbracket \aes_{1:\infty} \in E_\varepsilon \rrbracket.
+\]
+Take $\mu^\pi$-expectations and apply \cref{prob:cm_extension}:
+\[
+    \nu^\pi[E_\varepsilon]
+    ~=~ \Ex_{\mu^\pi}\big[X_{\nu,\infty} \cdot \llbracket \aes_{1:\infty} \in E_\varepsilon \rrbracket\big]
+    ~\geq~ \varepsilon \cdot \Ex_{\mu^\pi}\big[\llbracket \aes_{1:\infty} \in E_\varepsilon \rrbracket\big]
+    ~=~ \varepsilon \cdot \mu^\pi[E_\varepsilon].
+\]
+Since $E_\varepsilon \subseteq E$, $\nu^\pi[E_\varepsilon] \leq \nu^\pi[E]$. Dividing by $\varepsilon$ gives $\mu^\pi[E_\varepsilon] \leq \nu^\pi[E]/\varepsilon$.
+
+\emph{Interpretation.} A likelihood ratio of at least $\varepsilon$ forces $\nu^\pi$ and $\mu^\pi$ measures of an event to be comparable: $\mu^\pi$ of the event can exceed $\nu^\pi$ of it only by the factor $1/\varepsilon$. In particular, if $\nu^\pi$ vanishes on $E$, so does $\mu^\pi$ on the part where the likelihood ratio stays bounded away from zero.
+\end{solution}
+
+
+%===================================
+\section{Proving the Self-Optimizing Property}\label{prob:selfopt}
+
+Fix a policy $\tilde\pi$ that is self-optimizing for $\cM$ with respect to $\pi$ (\cref{def:selfopt}): its existence is the hypothesis of \cref{thm:selfopt}.
+For each $\nu \in \cM$, define the \textbf{suboptimality gap}
+\[
+    \delta_{\nu,t} : \cH^{t-1} \to [0,1], \qquad \delta_{\nu,t}(\aes_{<t}) ~:=~ V_\nu^*(\aes_{<t}) - V_\nu^{\tilde\pi}(\aes_{<t}).
+\]
+As with $X_{\nu,t}$, we write $\delta_{\nu,t}$ without its argument when convenient: ``$\delta_{\nu,t} \to 0$ $\mu^\pi$-a.s.'' means $\delta_{\nu,t}(\aes_{<t}) \to 0$ on every infinite history outside a $\mu^\pi$-null set, and similarly for ``$\delta_{\nu,t} \leq 1$'' etc.
+
+\begin{exercise}[Chain of inequalities]
+\label{prob:chain_ineq}
+\difficulty{20}
+Show:
+
+\[
+    0 ~\leq~ w(\mu \mid \aes_{<t}) \big[V_\mu^* - V_\mu^{\pi_\xi^*}\big]
+    ~\leq~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \delta_{\nu,t}.
+\]
+\begin{hint}
+Use $V_\xi^{\pi_\xi^*} \geq V_\xi^{\tilde\pi}$ and \cref{prob:linearity_inf}.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:chain_ineq]
+We establish two inequalities and chain them.
+
+\emph{First inequality: isolate the $\mu$-term.}
+For each $\nu \in \cM$, the optimal value is at least the value of any policy: $V_\nu^*(\aes_{<t}) \geq V_\nu^{\pi_\xi^*}(\aes_{<t})$, so $V_\nu^* - V_\nu^{\pi_\xi^*} \geq 0$.
+Since the posterior weights $w(\nu \mid \aes_{<t}) \geq 0$, every term in $\sum_\nu w(\nu \mid \aes_{<t})[V_\nu^* - V_\nu^{\pi_\xi^*}]$ is non-negative. The $\mu$-term is one such term:
+\[
+    w(\mu \mid \aes_{<t})\big[V_\mu^* - V_\mu^{\pi_\xi^*}\big]
+    ~\leq~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\big[V_\nu^* - V_\nu^{\pi_\xi^*}\big].
+\]
+
+\emph{Second inequality: replace $\pi_\xi^*$ with $\tilde\pi$.}
+By definition of the optimal value, $V_\xi^*(\aes_{<t}) \geq V_\xi^{\tilde\pi}(\aes_{<t})$.
+Expanding both sides using infinite-horizon linearity (\cref{prob:linearity_inf}, applied to the fixed policies $\pi_\xi^*$ and $\tilde\pi$):
+\[
+    \sum_\nu w(\nu \mid \aes_{<t})\, V_\nu^{\pi_\xi^*}(\aes_{<t})
+    ~=~ V_\xi^*(\aes_{<t})
+    ~\geq~ V_\xi^{\tilde\pi}(\aes_{<t})
+    ~=~ \sum_\nu w(\nu \mid \aes_{<t})\, V_\nu^{\tilde\pi}(\aes_{<t}).
+\]
+Rearranging: $\sum_\nu w(\nu)[V_\nu^* - V_\nu^{\pi_\xi^*}] \leq \sum_\nu w(\nu)[V_\nu^* - V_\nu^{\tilde\pi}] = \sum_\nu w(\nu)\, \delta_{\nu,t}$.
+
+\emph{Chaining:}
+\[
+    0 ~\leq~ w(\mu \mid \aes_{<t})\big[V_\mu^* - V_\mu^{\pi_\xi^*}\big]
+    ~\leq~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \delta_{\nu,t}.
+\]
+\end{solution}
+
+\begin{exercise}[Vanishing posterior]
+\label{prob:vanishing_posterior}
+\difficulty{10}
+Show: if $X_{\nu,\infty} = 0$ then $w(\nu \mid \aes_{<t}) \to 0$ $\mu^\pi$-a.s.
+
+
+\begin{hint}
+Show $w(\nu \mid \aes_{<t}) = w_\nu X_{\nu,t-1}/X_{\xi,t-1}$ and use \cref{prob:X_bounded_mu}.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:vanishing_posterior]
+From the posterior weight formula, dividing numerator and denominator by $\mu(\aes_{<t})$:
+\[
+    w(\nu \mid \aes_{<t})
+    ~=~ w_\nu \cdot \frac{\nu(\aes_{<t})}{\xi(\aes_{<t})}
+    ~=~ w_\nu \cdot \frac{\nu(\aes_{<t})/\mu(\aes_{<t})}{\xi(\aes_{<t})/\mu(\aes_{<t})}
+    ~=~ \frac{w_\nu \cdot X_{\nu,t-1}}{X_{\xi,t-1}},
+\]
+where $X_{\nu,t-1}$ and $X_{\xi,t-1}$ are evaluated at the length-$(t{-}1)$ history $\aes_{<t}$.
+
+If $X_{\nu,\infty} = 0$, then $X_{\nu,t-1} \to 0$ $\mu^\pi$-a.s.\ (\cref{prob:X_converges}). Since $X_{\xi,t-1} \geq w_\mu > 0$ always (\cref{prob:X_bounded_mu}), the ratio $w(\nu \mid \aes_{<t}) = w_\nu X_{\nu,t-1}/X_{\xi,t-1} \to 0$ $\mu^\pi$-a.s.
+\end{solution}
+
+\begin{exercise}[Transferring convergence]
+\label{prob:delta_transfer}
+\difficulty{20}
+Let $F := \{\aes_{1:\infty} : \delta_{\nu,t}(\aes_{<t}) \not\to 0\}$, the set of infinite histories on which the suboptimality gap fails to vanish. Show that $\mu^\pi\big[F \cap \{X_{\nu,\infty} > 0\}\big] = 0$.
+
+
+\begin{hint}
+Self-optimizing (\cref{def:selfopt}) gives $\nu^\pi[F] = 0$. Apply \cref{prob:markov_cm} with $E = F$ and $\varepsilon = 1/n$ to conclude $\mu^\pi[F \cap \{X_{\nu,\infty} \geq 1/n\}] = 0$ for each $n \geq 1$. Then note $\{X_{\nu,\infty} > 0\} = \bigcup_{n \geq 1} \{X_{\nu,\infty} \geq 1/n\}$ and take the countable union (\cref{def:events}).
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:delta_transfer]
+\emph{Step 1: $F$ is $\nu^\pi$-null.} By the self-optimizing assumption (\cref{def:selfopt}), under $\nu^\pi$ the suboptimality gap $\delta_{\nu,t}$ vanishes, so $\nu^\pi[F] = 0$.
+
+\emph{Step 2: Apply \cref{prob:markov_cm}.} For each $n \geq 1$, take $E = F$ and $\varepsilon = 1/n$:
+\[
+    \mu^\pi\!\big[F \cap \{X_{\nu,\infty} \geq 1/n\}\big]
+    ~\leq~ \frac{\nu^\pi[F]}{1/n}
+    ~=~ 0.
+\]
+
+\emph{Step 3: Countable union.} The level sets of $X_{\nu,\infty}$ form a nested increasing family: $\{X_{\nu,\infty} > 0\} = \bigcup_{n \geq 1} \{X_{\nu,\infty} \geq 1/n\}$. Intersecting with $F$ gives $F \cap \{X_{\nu,\infty} > 0\} = \bigcup_{n \geq 1} \big(F \cap \{X_{\nu,\infty} \geq 1/n\}\big)$, a countable union. By countable subadditivity (\cref{def:events}):
+\begin{align*}
+    \mu^\pi\!\big[F \cap \{X_{\nu,\infty} > 0\}\big]
+    ~=~ &\mu^\pi\!\Big[\textstyle\bigcup_{n} F \cap \{X_{\nu,\infty} \geq 1/n\}\Big] \\
+    ~\leq~ \sum_{n \geq 1} \, &\mu^\pi\!\big[F \cap \{X_{\nu,\infty} \geq 1/n\}\big]
+    ~=~ 0.
+\end{align*}
+
+\emph{What this says.} ``$\delta_{\nu,t} \to 0$ $\mu^\pi$-a.s.\ on $\{X_{\nu,\infty} > 0\}$'' is shorthand for exactly this event statement: among infinite histories on which the likelihood ratio stays bounded away from zero, all but a $\mu^\pi$-null subset are ones where $\delta_{\nu,t}(\aes_{<t}) \to 0$. We do \emph{not} claim convergence on histories where $X_{\nu,\infty} = 0$: that case is handled separately in \cref{prob:vanishing_posterior} via the posterior weight.
+\end{solution}
+
+\begin{exercise}[Single-term convergence]
+\label{prob:single_term}
+\difficulty{10}
+Combine \cref{prob:vanishing_posterior} and \cref{prob:delta_transfer} to show $w(\nu \mid \aes_{<t}) \delta_{\nu,t} \to 0$ $\mu^\pi$-a.s.
+
+\end{exercise}
+
+\begin{solution}[prob:single_term]
+Fix $\nu \in \cM$. We show $w(\nu \mid \aes_{<t})\, \delta_{\nu,t} \to 0$ $\mu^\pi$-a.s.\ by considering two exhaustive cases:
+
+\emph{Case 1: $X_{\nu,\infty} = 0$.}
+By \cref{prob:vanishing_posterior}, $w(\nu \mid \aes_{<t}) \to 0$. Since $\delta_{\nu,t} \in [0,1]$ (\cref{prob:bounded_value}), the product $w(\nu \mid \aes_{<t}) \cdot \delta_{\nu,t} \leq 1 \cdot w(\nu \mid \aes_{<t}) \to 0$.
+
+\emph{Case 2: $X_{\nu,\infty} > 0$.}
+By \cref{prob:delta_transfer}, $\delta_{\nu,t} \to 0$. Since $w(\nu \mid \aes_{<t}) \leq 1$ (posterior weights are at most 1), the product $w(\nu \mid \aes_{<t}) \cdot \delta_{\nu,t} \leq 1 \cdot \delta_{\nu,t} \to 0$.
+
+These two cases cover all infinite histories ($\mu^\pi$-a.s.), so $w(\nu \mid \aes_{<t})\, \delta_{\nu,t} \to 0$ $\mu^\pi$-a.s.
+\end{solution}
+
+\begin{exercise}[Self-Optimizing Theorem]
+\label{prob:auto6}
+\difficulty{15}
+Combine \cref{prob:single_term}, \cref{prob:chain_ineq}, \cref{prob:X_bounded_mu} to finally prove the
+ main result of \cref{thm:selfopt}.
+
+
+\begin{hint}
+$w(\mu \mid \aes_{<t}) = w_\mu/X_{\xi,t-1}$.
+\end{hint}
+\end{exercise}
+
+\begin{solution}[prob:auto6]
+Since $\cM = \{\nu_1, \ldots, \nu_N\}$ is finite, we can sum \cref{prob:single_term} over all $\nu \in \cM$:
+\[
+    \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \delta_{\nu,t} ~\longrightarrow~ 0 \qquad \mu^\pi\text{-a.s.}
+\]
+
+From \cref{prob:chain_ineq}:
+\[
+    0 ~\leq~ w(\mu \mid \aes_{<t})\big[V_\mu^*(\aes_{<t}) - V_\mu^{\pi_\xi^*}(\aes_{<t})\big]
+    ~\leq~ \sum_\nu w(\nu \mid \aes_{<t})\, \delta_{\nu,t}
+    ~\longrightarrow~ 0.
+\]
+So $w(\mu \mid \aes_{<t})[V_\mu^* - V_\mu^{\pi_\xi^*}] \to 0$ $\mu^\pi$-a.s.
+
+It remains to divide by $w(\mu \mid \aes_{<t})$. From \cref{prob:X_bounded_mu}:
+\[
+    w(\mu \mid \aes_{<t}) ~=~ \frac{w_\mu}{X_{\xi,t-1}}.
+\]
+Fix an infinite history outside the (single) $\mu^\pi$-null set on which $X_{\xi,t} \to X_{\xi,\infty} < \infty$ fails. Along this history:
+\begin{itemize}\itemsep=2pt
+    \item $X_{\xi,t-1} \to X_{\xi,\infty}$, a finite positive number (with $X_{\xi,\infty} \geq w_\mu > 0$ by \cref{prob:X_bounded_mu}).
+    \item Hence $w(\mu \mid \aes_{<t}) = w_\mu / X_{\xi,t-1} \to w_\mu / X_{\xi,\infty} > 0$, so eventually $w(\mu \mid \aes_{<t}) \geq w_\mu / (2 X_{\xi,\infty}) > 0$.
+\end{itemize}
+Dividing the convergence $w(\mu \mid \aes_{<t}) (V_\mu^* - V_\mu^{\pi_\xi^*}) \to 0$ by this positive (per-history) lower bound, and using $V_\mu^* - V_\mu^{\pi_\xi^*} \geq 0$:
+\[
+    V_\mu^*(\aes_{<t}) - V_\mu^{\pi_\xi^*}(\aes_{<t}) ~\longrightarrow~ 0 \qquad \mu^\pi\text{-a.s.}
+\]
+This completes the proof of \cref{thm:selfopt}. \qedhere
+
+\medskip
+\end{solution}
+
+\textit{Remark.} We do not need to know which policy $\tilde\pi$ is self-optimizing, or whether it is computable. Mere existence suffices.
+For countable $\cM$, this final step is harder: a countable sum of $\mu^\pi$-a.s.-convergent sequences need not converge $\mu^\pi$-a.s.\ The general proof uses a ``convergence of mixture tails'' argument \cite[Lem.~5.28]{Hutter:04uaibook}.
+
+%===================================
+\clearpage
+\appendix
+\renewcommand{\thesection}{\Alph{section}}
+\crefname{section}{Appendix}{Appendices}
+
+\section{Worked Example: Bayesian Mixture}\label{sec:appendix_mixture}
+
+\begin{callout}[note]
+\textbf{Setup.}
+\begin{itemize}\itemsep=2pt
+\item \textbf{Actions:} $\cA = \{H, T\}$ (predict the next coin flip)
+\item \textbf{Observations:} $\cO = \{H, T\}$ (actual coin flip)
+\item \textbf{Rewards:} $\cR = \{0, 1\}$, with $r_t = \llbracket a_t = o_t \rrbracket$
+\item \textbf{Model class:} $\cM = \{\nu_{HH}, \nu_{HT}\}$ (two-headed coin, fair coin)
+\item \textbf{Prior:} $w_{\nu_{HH}} = w_{\nu_{HT}} = \tfrac{1}{2}$
+\end{itemize}
+\end{callout}
+
+\textbf{Before any interaction} ($t=1$, $\aes_{<1} = \epsilon$):
+\begin{align*}
+    \xi(o_1 = H \mid a_1) ~&=~ \tfrac{1}{2} \cdot 1 + \tfrac{1}{2} \cdot \tfrac{1}{2} ~=~ \tfrac{3}{4}.
+\end{align*}
+
+\textbf{After observing a head} ($t=2$), the posterior updates:
+\begin{align*}
+    w(\nu_{HH} \mid \aes_{1}) ~&=~ \tfrac{1}{2} \cdot \frac{1}{3/4} ~=~ \tfrac{2}{3}, &
+    w(\nu_{HT} \mid \aes_{1}) ~&=~ \tfrac{1}{2} \cdot \frac{1/2}{3/4} ~=~ \tfrac{1}{3}.
+\end{align*}
+
+\textbf{Updated prediction:}
+$\xi(o_2 = H \mid \aes_{1} a_2) = \tfrac{2}{3} \cdot 1 + \tfrac{1}{3} \cdot \tfrac{1}{2} = \tfrac{5}{6}$.
+
+
+\section{Worked Example: Value Function}\label{sec:appendix_value}
+
+Continuing from \hyperref[sec:appendix_mixture]{Appendix~A}. Suppose the agent always predicts $H$ (policy $\pi_H$).
+
+Under $\nu_{HH}$: always correct, $r_t = 1$ every step:
+$V_{\nu_{HH}}^{\pi_H}(\epsilon) = (1-\gamma) \sum_{k=0}^\infty \gamma^k \cdot 1 = 1$.
+
+Under $\nu_{HT}$: correct half the time:
+$V_{\nu_{HT}}^{\pi_H}(\epsilon) = (1-\gamma) \sum_{k=0}^\infty \gamma^k \cdot \tfrac{1}{2} = \tfrac{1}{2}$.
+
+The mixture value (by \cref{prob:linearity_inf}) is:
+$V_\xi^{\pi_H}(\epsilon) = \tfrac{1}{2} \cdot 1 + \tfrac{1}{2} \cdot \tfrac{1}{2} = \tfrac{3}{4}$.
+
+As the agent observes more heads ($\mu = \nu_{HH}$), the posterior on $\nu_{HH}$ increases towards 1, and $V_\xi^{\pi_H} \to V_{\nu_{HH}}^{\pi_H} = 1$. This is on-policy value convergence (\cref{thm:on_policy}) in action.
+
+
+\section{Knuth's Difficulty Scale}\label{sec:appendix_difficulty}
+
+Each subproblem carries a difficulty rating in square brackets, following Knuth's rating scheme for exercises \cite{Knuth:73a} in slightly adapted form. The rating assumes that the material in the preceding problems (on which the subproblem depends) has been understood. In-between values are possible.
+
+\begin{itemize}\itemsep=2pt
+    \item[\textbf{[00]}] \emph{Very easy.} Solvable from the top of your head.
+    \item[\textbf{[10]}] \emph{Easy.} Needs 15 minutes to think, possibly pencil and paper.
+    \item[\textbf{[20]}] \emph{Average.} May take 1--2 hours to answer completely.
+    \item[\textbf{[30]}] \emph{Moderately difficult or lengthy.} May take several hours to a day.
+    \item[\textbf{[40]}] \emph{Quite difficult or lengthy.} Often a significant research result.
+    \item[\textbf{[50]}] \emph{Open research problem.} An obtained solution should be published.
+\end{itemize}
+
+Problems marked \textbf{($\ast$)} are enrichment: they are off the critical path to the three main results (\cref{thm:on_policy}, \cref{thm:cant_be_fooled}, \cref{thm:selfopt}) and can be skipped on a first pass without loss of continuity.
+
+
+\clearpage
+\bibliographystyle{alphaurl}
+\bibliography{biblo}
+
+\end{document}

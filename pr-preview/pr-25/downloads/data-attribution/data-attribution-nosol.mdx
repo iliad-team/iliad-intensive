@@ -1,0 +1,1278 @@
+---
+cluster: B
+day: B.5
+title: Data Attribution
+summary: Which training examples caused a model to behave the way it does? These notes develop the main approaches to data attribution -- counterfactuals and Shapley values, classical and Bayesian influence functions, and training-dynamics unrolling -- with derivation exercises throughout.
+contributors: [Louis Jaburi]
+---
+
+$\gdef\R{\mathbb{R}}\gdef\E{\mathbb{E}}\gdef\argmin{\operatorname*{arg\,min}}\gdef\argmax{\operatorname*{arg\,max}}\gdef\tr{\operatorname{tr}}$
+
+
+
+**Contents**
+
+- [Introduction](#introduction)
+- [1. Causality and Counterfactuals](#1-causality-and-counterfactuals)
+  - [1.1 Data attribution as causal analysis](#11-data-attribution-as-causal-analysis)
+  - [1.2 Counterfactual attribution and its failures](#12-counterfactual-attribution-and-its-failures)
+  - [1.3 Beyond leave-one-out: Shapley values](#13-beyond-leave-one-out-shapley-values)
+  - [1.4 Notation and goals](#14-notation-and-goals)
+- [2. Influence Functions](#2-influence-functions)
+  - [2.1 The influence function formula](#21-the-influence-function-formula)
+  - [2.2 Translation to modern neural networks](#22-translation-to-modern-neural-networks)
+- [3. Bayesian Influence Functions](#3-bayesian-influence-functions)
+  - [3.1 Bayesian influence functions](#31-bayesian-influence-functions)
+  - [3.2 Exercise: Connecting Bayesian and classical influence functions](#32-exercise-connecting-bayesian-and-classical-influence-functions)
+  - [3.3 Long Exercise: Influence functions as optimal linear transport](#33-long-exercise-influence-functions-as-optimal-linear-transport)
+- [4. Unrolling](#4-unrolling)
+  - [4.1 The training-dynamics approach to attribution](#41-the-training-dynamics-approach-to-attribution)
+  - [4.2 The unrolling formula](#42-the-unrolling-formula)
+    - [4.2.1 Materializing the Jacobian](#421-materializing-the-jacobian)
+    - [4.2.2 Implicit JVPs and the REPLAY algorithm](#422-implicit-jvps-and-the-replay-algorithm)
+  - [4.3 Long Exercise: From unrolling to influence functions](#43-long-exercise-from-unrolling-to-influence-functions)
+  - [4.4 Exercise: Influence depends on training time](#44-exercise-influence-depends-on-training-time)
+- [5. Practical Considerations and Open Problems](#5-practical-considerations-and-open-problems)
+- [6. Further Readings](#6-further-readings)
+
+## Introduction
+
+**Contents.**  These notes are structured as follows:
+
+1. **Causality and Counterfactuals** motivates the problem of data attribution through the lens of causal reasoning, exhibiting the shortcomings of naive counterfactual approaches.
+2. **Influence Functions** introduces the classical theory of influence functions for statistical models and discusses their translation to modern neural networks.
+3. **Bayesian Influence Functions** introduces susceptibilities and Bayesian influence functions, connecting them to the classical theory via a power series expansion.
+4. **Unrolling** presents the training-dynamics approach to attribution, deriving the basic formula and connecting it to influence functions in the appropriate limit.
+5. **Practical Considerations and Open Problems** discusses distributional versus single-model attribution, entangled latent concepts, and the distinction between similarity metrics and genuine attribution.
+
+**Prerequisites.**  We assume the following background, most of it standard for a machine-learning audience.
+
+- *Linear algebra*: vectors, matrices, inner products, eigenvalues, quadratic forms, Hessians.
+- *Multivariable calculus*: gradients, the chain rule, Taylor expansion, the implicit function theorem.
+- *Probability*: expectations, conditional probability, Bayes' rule, Gaussian distributions.
+- *Deep learning basics*: stochastic gradient descent, empirical risk minimisation, a standard supervised training loop.
+
+Familiarity with the material from the singular learning theory tutorial (degeneracy, the local learning coefficient, posterior broadening) is useful but not required. We flag connections to the SLT day in remarks as they arise.
+
+**Fast-track.**  There is more material here than comfortably fits into a single day. Readers short on time may prefer one of the following routes; each is self-contained.
+
+1. *From classical to modern influence functions.* Skim [Section 1](#1-causality-and-counterfactuals) for motivation, then read [Section 2](#2-influence-functions) in full, including the derivation exercise.
+2. *The Bayesian perspective.* Read [Subsection 2.1](#21-the-influence-function-formula) for the influence function formula, then [Section 3](#3-bayesian-influence-functions) in full. The connection exercise ([Subsection 3.2](#32-exercise-connecting-bayesian-and-classical-influence-functions)) is the conceptual payoff.
+3. *Training-dynamics attribution.* Skim [Section 2](#2-influence-functions), then read [Section 4](#4-unrolling) in full. The long exercise in [Subsection 4.3](#43-long-exercise-from-unrolling-to-influence-functions) recovers the influence function as a limit of unrolling.
+
+All three routes depend on the motivational material in [Section 1](#1-causality-and-counterfactuals). If reading only one section, read that one.
+
+**Acknowledgements.**  This tutorial was developed for the April 2026 Iliad Intensive and its template was inspired by the SLT day. Exercises and examples adapted from specific sources are credited inline.
+
+## 1. Causality and Counterfactuals
+
+### 1.1 Data attribution as causal analysis
+
+At the heart of data attribution, we find a causal question: **Which training examples caused a model to behave the way it does?** If mechanistic interpretability aims for the causal analysis of a forward pass, data attribution aims for the causal analysis of a training run.[^1] Our north star is a decomposition of the training data into "causes" of the model's behaviour.
+
+Two asymmetries between the two settings are worth keeping in mind from the start. First, both problems inherit the same conceptual difficulties of causal reasoning in general (explained in the next section) and there is no reason to expect data attribution to escape them. Second, a forward pass is cheap, while a training run is not. Where mechanistic interpretability can validate a claim by running many ablations, data attribution cannot in general afford even one retraining. That being said, there are also advantages: Generally speaking, the training process is more robust and the ablations we run may be more human understandable than high-dimensional modification of activations or weights.
+
+Now, before developing such data attribution methods, we should be aware of the tension between causality and the ways we will validate a hypothesis. Finding a "true" causal relationship in practice can be much more difficult than it may seem at first glance. In the following section we take the question seriously, and find that the naive counterfactual answer fails in ways that matter.
+
+### 1.2 Counterfactual attribution and its failures
+
+The classical notion of causation is due to [Lewis 1973](#bib-lewis1973causation): $A$ caused $B$ iff, had $A$ not occurred, $B$ would not have occurred. Applied to data attribution, this says that a training example "causes" a behaviour when removing it would have altered the behaviour, also known as the *leave-one-out (LOO) counterfactual*. We relax this definition from a binary to a gradual one.
+
+<Definition id="def-counterfactual">
+
+**Definition 1.1 (Counterfactual attribution).** We attribute an action $A$ to a behaviour $B$ iff
+
+1. had $A$ occurred, $B$ would have occurred to a higher degree;
+2. had $A$ not occurred, $B$ would have occurred to a lesser degree (or not at all).
+
+</Definition>
+
+[Definition 1.1](#def-counterfactual) is the simplest formalisation of cause. But as [Mueller 2024](#bib-mueller) emphasises, it breaks in at least two cases.
+
+**Overdetermination: redundant causes are missed.**  When two training examples are each *sufficient* to produce a behaviour, removing either one leaves the behaviour intact, and LOO attributes credit to neither.
+
+<div id="ex-croissant">
+<Callout type="tip">
+
+**Example 1.2 (Overdetermination in the bakery).** OpenCroissant, a bakery, sources four ingredients: flour, butter, yeast, and sugar. Each can come from a standard or premium supplier. The bakery has observed that using all premium ingredients produces exceptionally fluffy croissants and wishes to identify which upgrades are responsible.
+
+Unbeknownst to the bakery, exceptional fluffiness depends on two independent leavening mechanisms.
+
+- *Steam leavening.* Premium butter has higher fat content and better water distribution, producing more steam and hence more lift.
+- *Biological leavening.* A premium yeast strain ferments more vigorously, producing more gas and hence more lift.
+
+Either mechanism alone causes exceptional fluffiness: puff pastry rises from steam alone, and bread rises from yeast alone. Downgrading premium butter to standard therefore has negligible effect on fluffiness (the threshold is still met), and likewise for yeast. Counterfactual attribution ([Definition 1.1](#def-counterfactual)) concludes that neither butter nor yeast was a cause albeit both were.
+
+</Callout>
+</div>
+
+The same pattern may arise in learning, where once a behaviour is learned, i.e. has hit saturation, additional examples will not affect it and appear as causally irrelevant.
+
+**Non-transitivity: counterfactuals do not chain.**  Direct ablation will not capture *how* an action causes a behaviour.
+
+<div id="ex-nontransitive">
+<Callout type="tip">
+
+**Example 1.3 (Non-transitivity of counterfactuals).** The following scenario is due to Ned Hall, as reported in [Hitchcock 2001](#bib-hitchcock2001intransitivity).
+
+**(A)** A hiker is wandering through the mountains when a boulder rolls down the hill.
+
+**(B)** The hiker sees the boulder and dodges.
+
+**(C)** The hiker is unharmed.
+
+Counterfactually, (A) caused (B): had the boulder not rolled, the hiker would not have dodged. And (B) caused (C): had the hiker not dodged, she would have been crushed. But (A) did not cause (C): whether or not the boulder rolled, she ends up unharmed.
+
+</Callout>
+</div>
+
+In the data-attribution setting this corresponds to chains of mediation. A training example may induce an intermediate feature, and that feature may drive a downstream capability, without the datapoint itself passing the counterfactual test against the capability end-to-end. Methods that look only at marginal effects miss the mediation.
+
+### 1.3 Beyond leave-one-out: Shapley values
+
+A natural response to overdetermination is to stop looking only at the LOO swap and instead ask how a training example contributes across *all* subsets of the training set it could be part of. This is the idea behind *Shapley values* ([Shapley 1953](#bib-shapley1953value)).
+
+<Definition id="def-shapley">
+
+**Definition 1.4 (Shapley value).** Let $v: 2^{[n]}\to \mathbb{R}$ be a set function (a "game"). The Shapley value of element $i$ is
+
+$$
+\varphi_{i}(v) \;:=\; \frac{1}{n}\sum_{S \subseteq [n] \setminus \{i\}}\binom{n-1}{|S|}^{-1}\bigl(v(S \cup \{i\}) - v(S)\bigr).
+$$
+
+</Definition>
+We can think of $[n]$ as a set of players and $v(S)$ as the value of the coalition. In our previous example, the players are the premium ingredients and the value is the resulting fluffiness. Then $v(S)$ will measure the fluffiness of the croissant when the ingredients in $S$ are premium and the rest are standard.
+
+Shapley values partially address overdetermination. Returning to the baker example: in coalitions $S\subset [n]$ where neither butter nor yeast is premium, upgrading one has a large marginal effect; in coalitions where the other leavener is already premium, the marginal effect is small. Averaging gives each ingredient roughly half the credit.
+
+<div id="rem-shapley-limit">
+<Callout type="note">
+
+**Remark (Shapley still dilutes credit).** Shapley values redistribute credit more fairly but do not fully solve overdetermination. Each of butter and yeast receives roughly half the credit for fluffiness, yet each *alone* is sufficient, so one could argue each deserves the full credit. Furthermore, Shapley values over a training set of size $n$ require evaluating $v(S)$ on $2^{n}$ coalitions, each demanding a retraining. This is hopeless for realistic models.
+
+</Callout>
+</div>
+
+### 1.4 Notation and goals
+
+We close the section by fixing notation that will be used throughout.
+
+- A training set is $\mathcal{D}= \{z_{i}\}_{i=1}^{n}$ with $z_{i} = (x_{i}, y_{i})$.
+- A model is a function $f_{w}: X \to Y$ parameterised by $w \in W \subset \mathbb{R}^{d_p}$.
+- The per-example loss is $L_{j}(w)=L(w, z_{i}) = \ell(f_{w}(x_{i}), y_{i})$ for some pointwise loss $\ell$.
+- We introduce a vector of *data weights* $\beta = (\beta_{1}, \ldots, \beta_{n}) \in \mathbb{R}^{n}$ and define the *weighted training loss*
+
+$$
+L(w; \beta) \;:=\; \frac{1}{n}\sum_{i=1}^{n} \beta_{i}\, L(w, z_{i}),
+$$
+
+and we write $L(w) := L(w, 1)$ for the unweighted loss.
+- The behaviour we want to attribute is a differentiable scalar observable $\phi: W \to \mathbb{R}$. This could be the loss on a held-out point, an average loss on a task, the logit of a specific completion, or any other scalar function of the trained parameters.
+
+In general we want to know "If I change $\beta_{i}$, how will this affect $\phi$?" This question is typically split into two parts:
+
+- *Parameter influence*: "If I change $\beta_{i}$, how will this affect the final parameters?"
+- *Influence on $\phi$*: "If I change the final parameters, how will this affect $\phi$?"
+
+In practice we may think of the influence then as a measure of the composition of these maps
+
+<div id="eq-holy-maps">
+
+$$
+\begin{aligned}B&\xrightarrow{\pi}"W"\to \mathbb{R}\\ \beta&\mapsto w(\beta) \mapsto \phi(w(\beta)).\end{aligned}
+$$
+
+</div>
+
+where we are intentionally vague about the first map and where the different approaches, influence functions, Bayesian influence functions, and unrolling, differ in how they interpret it.
+
+That being said, all attribution methods in these lecture notes can be phrased as estimators of partial derivatives or finite differences of this map. The *influence* of an example $i$ is then computed as first-order approximation:
+
+<div id="eq-holy-grail">
+
+$$
+\boxed{\;\frac{\partial\,\phi(\pi(\beta))}{\partial \beta_{i}}\bigg|_{\beta = \mathbf{1}}\;}
+$$
+
+</div>
+
+## 2. Influence Functions
+
+In this section we develop *influence functions*: a closed-form, first-order approximation to the leave-one-out (LOO) counterfactual. The classical theory ([Hampel 1974](#bib-hampel1974); [Cook 1977](#bib-cook1977)) predates machine learning by decades. It was developed in robust statistics, where the question was which observations a parameter estimate is most sensitive to. For simple statistical models the answer is short: a single application of the implicit function theorem yields an inverse-Hessian-times-gradient formula whose factors have a clean operational interpretation.
+
+The formula we arrive at then *can* be translated to the setup of neural networks, but its interpretation becomes unclear: The classical derivation assumes a unique global minimum and an invertible Hessian, neither of which holds for a neural network which is typically **not** trained to full convergence. We will see a partial fix for this issue in [Subsection 2.2](#22-translation-to-modern-neural-networks).
+
+### 2.1 The influence function formula
+
+Influence functions originate in robust statistics ([Hampel 1974](#bib-hampel1974)): given a statistical estimator, how much does it change when a single observation is added or perturbed?
+
+<div id="ex-mean-if">
+<Callout type="tip">
+
+**Example 2.1 (Influence on the mean).** Let $T(F) = \mathbb{E}_{F}[z]$ be the mean of a distribution $F$. If we contaminate $F$ by placing a fraction $\epsilon$ of its mass at a point $z$, the new mean is
+
+$$
+T\bigl((1-\epsilon)F + \epsilon\,\delta_{z}\bigr) \;=\; (1-\epsilon)\,\mathbb{E}_{F}[z] \;+\; \epsilon\,z \;=\; T(F) \;+\; \epsilon\,(z - T(F)).
+$$
+
+The rate of change at $\epsilon = 0$ is $z - T(F)$: the influence of $z$ on the mean is simply how far $z$ is from the current mean. Observations far from the centre of the data move the mean the most.
+
+</Callout>
+</div>
+
+We now translate this idea into the setting of [Subsection 1.4](#14-notation-and-goals), whose notation we use throughout. Recall that the weighted training loss $L(w;\beta) = \sum_{i} \beta_{i} L(w,z_{i})$ defines a family of optimization problems parameterized by the weight vector $\beta$. In the case of influence functions, we measure the influence of a data point on the *optimal* parameters
+
+$$
+w^{*}(\beta) \;:=\; \argmin_{w\in W}\, L(w;\beta),
+$$
+
+and we write $w^{*} := w^{*}(\mathbf{1})$ for the trained parameters. We assume throughout this subsection that $w^{*}$ is the unique global minimum of $L$ and that the Hessian $H := \nabla_{w}^{2} L(w^{*})$ is positive definite, so that the implicit function theorem makes $w^{*}(\beta)$ well-defined and smooth in a neighborhood of $\beta=\mathbf{1}$. In the notation of [Equation 1](#eq-holy-maps) we set $\pi(\beta)= w^{*}(\beta)$ and [Equation 3](#eq-holy-grail) yields then the following formula:
+
+<Definition id="def-if">
+
+**Definition 2.2 (Influence function).** The *parameter influence* of training example $z_{i}$ at the trained parameters $w^{*}$ is
+
+$$
+\mathcal{I}_{\mathrm{param}}(z_{i}) \;:=\; \frac{\partial w^{*}(\beta)}{\partial \beta_{i}}\bigg\rvert_{\beta=\mathbf{1}}.
+$$
+
+Under the assumptions above, the implicit function theorem gives ([Exercise 2.1](#ex-if-derive))
+
+$$
+\boxed{\;\mathcal{I}_{\mathrm{param}}(z_i) \;=\; -\,H^{-1}\,\nabla_w L(w^*,z_i).\;}
+$$
+
+where $H$ is the Hessian of $L$ at $w^{*}$. For any differentiable observable $\phi:W\to\mathbb{R}$, the chain rule then yields the *influence on $\phi$*:
+
+$$
+\begin{aligned}\mathcal{I}(z_{i},\phi) \;&:=\; \frac{\partial\,\phi(w^{*}(\beta))}{\partial \beta_{i}}\bigg\rvert_{\beta=\mathbf{1}}\\&=\; \nabla_{w} \phi(w^{*})^{\top}\,\mathcal{I}_{\mathrm{param}}(z_{i}) \\&=\; -\,\nabla_{w} \phi(w^{*})^{\top}\,H^{-1}\,\nabla_{w} L(w^{*},z_{i}).\end{aligned}
+$$
+
+</Definition>
+
+Thus we get three components
+
+- $\nabla_{w} L(w^{*},z_{i})$ is the direction in parameter space along which $z_{i}$ pulls the optimizer.
+- $H^{-1}$ rescales this direction by local curvature: directions in which the loss is flat (small eigenvalue of $H$) get amplified, since a small force in a flat direction moves the minimum a lot.
+- $\nabla_{w} \phi(w^{*})$ projects the parameter change onto the direction that matters for the observable $\phi$.
+
+In this section, we will focus on $\mathcal{I}_{\mathrm{param}}(z_{i})$. The influence on any observable $\phi$ is obtained by computing the dot product $\mathcal{I}_{\mathrm{param}}(z_{i}) \cdot \nabla_{w}\phi(w^{*})$.
+
+**Connection to leave-one-out.**  Setting $\beta = \mathbf{1}- e_{i}$ (i.e., removing $z_{i}$) and applying the first-order Taylor expansion gives
+
+<div id="eq-loo-approx">
+
+$$
+w^{*}(\mathbf{1}- e_{i}) \;-\; w^{*} \;\approx\; -\,\mathcal{I}_{\mathrm{param}}(z_{i}) \;=\; H^{-1}\,\nabla_{w} L(w^{*},z_{i}),
+$$
+
+</div>
+
+i.e. the parameter influence is, to first order, the change in $w^{*}$ that would result from removing $z_{i}$ from the training set entirely.
+
+<Exercise id="ex-if-derive">
+**Exercise 2.1 (Derivation of the influence function).** Let $w^{*}(\beta) = \argmin_{w\in W}\,L(w;\beta)$ as above and assume the Hessian $H = \nabla_{w}^{2} L(w^{*})$ is invertible. Recall that the *implicit function theorem* states: if $F:W\times B\to\mathbb{R}^{\dim W}$ is $C^{1}$, $F(w^{*},\mathbf{1})=0$, and the Jacobian $\partial F/\partial w$ at $(w^{*},\mathbf{1})$ is invertible, then there is a unique $C^{1}$ map $\beta\mapsto w^{*}(\beta)$ on a neighborhood of $\mathbf{1}$ with $F(w^{*}(\beta),\beta)\equiv 0$, whose derivative is obtained by implicit differentiation of $F$.
+
+**(a)** Apply the implicit function theorem to $F(w,\beta) := \nabla_{w} L(w;\beta)$ to conclude that $\beta\mapsto w^{*}(\beta)$ is well-defined and $C^{1}$ near $\mathbf{1}$. Which hypothesis of the theorem uses the invertibility of $H$? Where do we use that $w^{*}$ is the unique global minimum (rather than merely a critical point)?
+
+**(b)** By differentiating the first-order optimality condition $\nabla_{w} L(w^{*}(\beta);\beta)=0$ with respect to $\beta_{i}$, show that
+
+$$
+\frac{\partial w^{*}(\beta)}{\partial \beta_{i}}\bigg\rvert_{\beta=\mathbf{1}}\;=\; -\,H^{-1}\,\nabla_{w} L(w^{*},z_{i}).
+$$
+
+**(c)** Use the chain rule to obtain the formula for $\mathcal{I}(z_{i},\phi)$ in [Definition 2.2](#def-if). Make sure to keep track of the evaluation at $\beta = \mathbf{1}$.
+</Exercise>
+
+
+<Exercise id="ex-ols-if">
+**Exercise 2.2 (Linear regression).** Consider linear regression with training data $\{(x_{i},y_{i})\}_{i=1}^{n}$, $x_{i}\in\mathbb{R}^{p}$, and squared loss $L(w,(x_{i},y_{i})) = \tfrac12(y_{i} - w^{\top} x_{i})^{2}$. Write $A := \sum_{i} x_{i} x_{i}^{\top}$. In this case the minimizer, the influence function, and the exact LOO update all have closed-form solutions. We will see that in general the influence functions can diverge in extreme cases.
+
+**(a)** Derive the minimizer $w^{*}$ by setting $\nabla_{w} L(w) = 0$. Show that $w^{*} = A^{-1}\sum_{i} x_{i} y_{i}$.
+
+**(b)** Compute the parameter influence $\mathcal{I}_{\mathrm{param}}(z_{j})$ from [Definition 2.2](#def-if).
+
+**(c)** Define $w^{*}(\beta_{j}) := \argmin_{w} \sum_{i\ne j}L(w,z_{i}) + \beta_{j} L(w,z_{j})$, so that $\beta_{j} = 1$ is the unperturbed model and $\beta_{j} = 0$ corresponds to fully removing $z_{j}$. Using the Sherman–Morrison formula[^2], show that
+
+$$
+w^{*}(\beta_{j}) \;-\; w^{*} \;=\; -\,\frac{(1-\beta_{j})\,A^{-1}x_{j}\,r_{j}}{1 - (1-\beta_{j})\,h_{j}},
+$$
+
+where $r_{j} := y_{j} - x_{j}^{\top} w^{*}$ is the residual at $z_{j}$ and $h_{j} := x_{j}^{\top} A^{-1}x_{j}$ is the *leverage* of $x_{j}$. Note that this is a rational function of $\beta_{j}$. This is the ground truth effect of perturbing $z_{j}$.
+
+**(d)** Expand the closed form from (c) as a Taylor series in $(1-\beta_{j})$ around the unperturbed point $\beta_{j} = 1$ by recognizing $1/(1 - (1-\beta_{j})h_{j})$ as a geometric series, and obtain
+
+$$
+w^{*}(\beta_{j}) - w^{*} \;=\; -\,A^{-1}x_{j}\,r_{j}\,\sum_{k=1}^{\infty}\,(1-\beta_{j})^{k}\,h_{j}^{\,k-1}.
+$$
+
+Identify the $k=1$ term with the parameter influence from part (b), and observe that the higher-order terms ($k \ge 2$) are suppressed by powers of the leverage $h_{j}$.
+
+**(e)** Specialize to the LOO endpoint $\beta_{j} = 0$. Sum the geometric series in $h_{j}$ to obtain the closed-form deletion update
+
+$$
+w^{*}_{(-j)}- w^{*} \;=\; -\,A^{-1}x_{j}\,r_{j}\,\bigl(1 + h_{j} + h_{j}^{2}+ h_{j}^{3}+ \cdots\bigr) \;=\; -\,\frac{A^{-1}x_{j}\,r_{j}}{1 - h_{j}}.
+$$
+
+The IF prediction is the $h_{j}^{0}$ leading term. Discuss the two regimes $h_{j} \to 0$ and $h_{j} \to 1$: when does keeping only the linear term suffice, and when do all the higher-order corrections matter?
+</Exercise>
+
+
+<div id="rem-leverage">
+<Callout type="note">
+
+**Remark (What is leverage?).** The quantity $h_{j} = x_{j}^{\top} A^{-1}x_{j}$ that appeared in [Exercise 2.2](#ex-ols-if) measures how *unusual* the input $x_{j}$ is relative to the bulk of the design. To see this, observe that $\widehat\Sigma_{xx}:= A/n = \tfrac{1}{n}\sum_{i} x_{i} x_{i}^{\top}$ is the empirical second-moment matrix of the inputs, so
+
+$$
+h_{j} \;=\; \tfrac{1}{n}\;x_{j}^{\top}\,\widehat\Sigma_{xx}^{-1}\,x_{j}
+$$
+
+is $1/n$ times a *Mahalanobis-style* squared norm of $x_{j}$, taken in the metric defined by the data itself. Geometrically: directions that the data samples a lot correspond to large eigenvalues of $\widehat\Sigma_{xx}$ and contribute little to $h_{j}$, while directions that are barely sampled correspond to small eigenvalues of $\widehat\Sigma_{xx}$ and so blow up under $\widehat\Sigma_{xx}^{-1}$. *Inputs that point in under-sampled directions get large leverage.* High-leverage points are unusual in feature space.
+
+[Figure 1](#fig-if-vs-loo) illustrates the effect on a simple linear regression: removing a low-leverage point (A, near the bulk of the data) barely changes the fit, and the IF approximation is accurate. Removing a high-leverage point (B, an outlier on the $x$-axis) changes the fit dramatically, and the IF underestimates the true LOO effect.
+
+</Callout>
+</div>
+
+<div id="fig-if-vs-loo">
+<Figure src="/uploads/data-attribution/if_vs_loo.png" alt="Influence approximation vs. LOO ground truth for a linear regression. Left: the full dataset. Centre: removing the low-leverage point A () barely perturbs the fit; the IF prediction closely matches LOO. Right: removing the high-leverage point B () moves the regression line substantially; the IF underestimates the true change. Note that both points have the same parameter influence.">
+
+Influence approximation vs. LOO ground truth for a linear regression. *Left:* the full dataset. *Centre:* removing the low-leverage point A ($h_{A}\approx 0.03$) barely perturbs the fit; the IF prediction closely matches LOO. *Right:* removing the high-leverage point B ($h_{B}\approx 0.83$) moves the regression line substantially; the IF underestimates the true change. Note that both points have the same parameter influence.
+
+</Figure>
+</div>
+
+### 2.2 Translation to modern neural networks
+
+The derivation in [Subsection 2.1](#21-the-influence-function-formula) relied on two assumptions:
+
+**(i)** $w^{*}$ is the unique global minimum of the training loss;
+
+**(ii)** the Hessian $H = \nabla_{w}^{2} L(w^{*})$ is positive definite.
+
+While neither holds for a modern neural network, the quantities in [Definition 2.2](#def-if) are, in principle, computable. [Koh & Liang 2020](#bib-koh2017understanding) popularized the influence function formula as a tool for deep learning, and a substantial body of work has tried to make it useful at scale.
+
+**(1) Non-uniqueness and a singular Hessian.**  For a neural network the global minimum is usually not unique. The set of minimizers is generically a positive-dimensional zero locus, and the Hessian at any point on it is singular: it has a nontrivial null space corresponding to directions of parameter movement that leave the loss unchanged. This is the degeneracy phenomenon observed in the SLT day, and it means we cannot invert $H$ as in [Definition 2.2](#def-if).
+
+The standard remedy is to *dampen* the Hessian: replace $H^{-1}$ with $(H + \lambda I)^{-1}$ for some $\lambda > 0$. This is the same as adding an $L_{2}$-regularizer $\frac{\lambda}{2}\|w-w^{*}\|^{2}$ to the training objective $L(w,\beta)$; this yields a new loss function $L_{\mathrm{reg}}(w,\beta)= L(w,\beta)+\frac{\lambda}{2}\cdot \|w-w^{*}\|^{2}$.
+
+**(2) Negative curvature.**  Even after damping away the zero eigenvalues, $H$ at a non-converged checkpoint can have negative eigenvalues, in which case $(H + \lambda I)^{-1}$ may still be ill-conditioned or even point in the wrong direction. The standard fix is to replace $H$ with the *Gauss–Newton Hessian* (GNH)
+
+$$
+G \;=\; \mathbb{E}_{(x,y)\sim\mathcal{D}}\bigl[J^{\top} H_{y} J\bigr],
+$$
+
+where $J = \partial f_{w}/\partial w$ is the parameter-output Jacobian and $H_{y}$ is the Hessian of the per-example loss with respect to the network outputs (not the parameters). For the cross-entropy and squared losses $H_{y}$ is positive semidefinite, hence so is $G$. The GNH is a local approximation to the true Hessian that ignores second derivatives of the network outputs with respect to the parameters. It is not hard to show that $G$ and $H$ differ by a term that vanishes at a critical point of $L$, so the GNH is a reasonable proxy for $H$ when $w^{*}$ is close to optimal.
+
+**(3) Non-converged checkpoints.**  In practice $w^{*}$ is not a critical point of $L$. The classical formula in [Definition 2.2](#def-if) is then evaluated at a point where $\nabla L \neq 0$.
+
+The fix proposed by [Bae et al. 2022](#bib-bae2022if) is to replace the original training loss by a surrogate for which $w^{*}$ *is* optimal by construction. Concretely, define the *proximal Bregman objective* (PBO) as
+
+<div id="eq-pbo">
+
+$$
+L_{\mathrm{PBO}}(w;\beta) \;=\; \sum_{i=1}^{n}D_{L_y}\!\bigl(f_{w}(x_{i}),\,f_{w^*}(x_{i})\bigr) \;+\; \sum_{i=1}^{n}(\beta_{i} - 1)\,L(w,z_{i}) \;+\; \frac{\lambda}{2}\,\|w - w^{*}\|^{2},
+$$
+
+</div>
+
+where $D_{L_y}(\hat y,\hat y^{*})$ is the Bregman divergence of the output-space loss $L_{y}$ around $\hat y^{*}$. The first term penalizes any change in the network's predictions on the training set, with the current model $w^{*}$ as the reference; the second is the perturbation of interest; the third is the damping. By construction, $w^{*}$ is the minimizer of $L_{\mathrm{PBO}}(\,\cdot\,;\mathbf{1})$ regardless of whether it is a critical point of the original loss. The minimizer of $L_{\mathrm{PBO}}(\,\cdot\,;\beta)$ for nearby $\beta$ defines the *proximal Bregman response function* (PBRF).
+
+When one re-derives the influence function formula starting from $L_{\mathrm{PBO}}$ instead of $L$, the result is
+
+<div id="eq-if-pbrf">
+
+$$
+\mathcal{I}_{\mathrm{PBRF}}(z_{i},\phi) \;=\; -\,\nabla_{w}\phi(w^{*})^{\top}\,(G + \lambda I)^{-1}\,\nabla_{w} L(w^{*},z_{i}),
+$$
+
+</div>
+
+the same expression that the modern literature uses. This is effectively the counterfactual it approximates. As [Bae et al. 2022](#bib-bae2022if) put it: *if influence functions are the answer, the question is the PBRF, not LOO retraining*. We refer to their paper for a detailed decomposition of the remaining gap between the PBRF and the original LOO counterfactual.
+
+<div id="rem-slt-connection">
+<Callout type="note">
+
+**Remark (Connection to the SLT day).** A central obstacle to the application of influence functions to modern neural networks is *degeneracy*: the set of minimizers of an overparameterized model is singular and the Hessian has a large null space. In [Section 3](#3-bayesian-influence-functions) we will see a degeneracy-aware alternative: Bayesian influence functions, which replace inverse-Hessian computations with covariances over a localized posterior.
+
+</Callout>
+</div>
+
+<div id="rem-scaling">
+<Callout type="note">
+
+**Remark (Scaling and EK-FAC).** Even with the PBRF reframing, computing $(G + \lambda I)^{-1}$ for a billion-parameter model is not directly feasible. [Grosse et al. 2023](#bib-grosse2023studying) scale influence functions to large language models by approximating $G$ with EK-FAC (a Kronecker-factored approximation to layerwise curvature).
+
+</Callout>
+</div>
+
+<Exercise id="ex-if-degenerate">
+**Exercise 2.3 (Failure of the first-order approximation in a degenerate model).** Consider the toy two-parameter model from the SLT lecture day in which $w = (a,b)$ enters the loss only through the product $u = ab$, with squared loss $L(w,z) = \tfrac12(z - ab)^{2}$ on training data $\{z_{1},\dots,z_{n}\}\subset\mathbb{R}$.
+
+**(a)** Write down the Hessian of the training loss at any minimizer $(a^{*},b^{*})$ with $a^{*} b^{*} = \bar z := \tfrac1n\sum_{i} z_{i}$. Show that it has rank one, and identify the one-dimensional null space geometrically.
+
+**(b)** Compute the influence function $\mathcal{I}(z_{i},\phi)$ for the observable $\phi(w) = ab$, treating $H^{-1}$ as a Moore–Penrose pseudoinverse[^3]. How does it compare with the exact LOO change in $\phi$?
+
+**(c)** Repeat (b) using the damped inverse $(H + \lambda I)^{-1}$ for a small $\lambda > 0$. Discuss how the answer depends on $\lambda$, on the choice of minimizer $(a^{*},b^{*})$ along the singular set, and on $n$. What does this say about the proximity gap?
+</Exercise>
+
+
+## 3. Bayesian Influence Functions
+
+Classical influence functions give a first-order approximation to the change in a *point estimate* $w^{*}$ when the training data is perturbed. The Bayesian reformulation replaces this point estimate by a *distribution* over parameters: if we perturb the training data, how does our posterior over the parameter space change? This leads naturally to the Bayesian generalization of influence functions introduced in [Kreer et al. 2026](#bib-kreer2025bif). In the setting of [Equation 1](#eq-holy-maps) we set $\pi(\beta)$ not to be a single weight, but a whole distribution over parameters $p_{\beta}$, namely the posterior.
+
+**Susceptibilities.**  The Bayesian influence function is one instance of a more general object studied by [Baker et al. 2026](#bib-baker2025studying). Given a tempered Gibbs posterior $p_{\beta} \propto e^{-\beta L(w)}\varphi(w)$ at inverse temperature $\beta$, any pair of observables $\phi,\psi:W\to\R$ defines a *susceptibility*
+
+<div id="eq-susceptibility">
+
+$$
+\chi(\phi\,|\,\psi) \;:=\; \frac{\partial}{\partial h}\,\E_{p_h}[\phi(w)]\bigg|_{h=0}, \qquad p_{h} \;\propto\; e^{-\beta\bigl(L(w) - h\,\psi(w)\bigr)}\,\varphi(w).
+$$
+
+</div>
+
+The differentiation argument we will apply in [Exercise 3.1](#ex-bif-covariance) shows $\chi(\phi\,|\,\psi) = \beta\,\mathrm{Cov}_{p_\beta}(\phi,\psi)$ in full generality. Taking $\psi = -L(\cdot,z_{i})$ gives the Bayesian influence function developed below. Other choices of $(\phi,\psi)$ yield other sensitivity notions, see e.g. the refined learning coefficients ([Baker et al. 2026](#bib-baker2025studying), Appendix D.2). We will not need the general framework again; we mention it only to locate the BIF within the wider susceptibility family.
+
+### 3.1 Bayesian influence functions
+
+We now specialize the susceptibility story to data attribution. Instead of asking "how does $\phi(w^{*})$ change when we perturb the training weights?" ([Definition 2.2](#def-if)) we ask "how does $\E_{w\sim p}[\phi(w)]$ change?" The answer turns out to be remarkably clean: the derivative becomes a covariance, and the Hessian inversion of the classical formula is replaced by posterior sampling.
+
+**The tempered posterior.**  Given training data $\mathcal{D}= \{z_{1},\dots,z_{n}\}$ with per-sample losses $L(w,z_{i})$, sample weights $\beta = (\beta_{1},\dots,\beta_{n})$, and a prior $\varphi(w)$, define the *tempered posterior*
+
+<div id="eq-tempered-posterior">
+
+$$
+p_{\beta}(w\mid\mathcal{D}) \;\propto\; \exp\!\Bigl(-\sum_{i=1}^{n} \beta_{i}\, L(w,z_{i})\Bigr)\,\varphi(w).
+$$
+
+</div>
+
+When $\beta = \mathbf{1}$ and the loss is a negative log-likelihood, this is the standard Bayesian posterior. When the losses are not log-likelihoods, $p_{\beta}$ is a *Gibbs measure*; the mathematics is identical.
+
+<Definition id="def-bif">
+
+**Definition 3.1 (Bayesian influence function).** The *Bayesian influence function* (BIF) of training example $z_{i}$ on the observable $\phi$ is the derivative of the posterior expectation of $\phi$ with respect to the sample weight $\beta_{i}$:
+
+$$
+\mathrm{BIF}(z_{i},\phi) \;:=\; \frac{\partial}{\partial\beta_{i}}\,\E_{w\sim p_\beta}[\phi(w)]\bigg\rvert_{\beta=\mathbf{1}}.
+$$
+
+</Definition>
+
+The definition is the natural Bayesian analogue of [Definition 2.2](#def-if): replace $\phi(w^{*}(\beta))$ with $\E_{p_\beta}[\phi(w)]$. The following exercise shows that this derivative has a clean closed form. Recall that for two real-valued random variables $X$ and $Y$ defined on the same probability space, the *covariance* is
+
+$$
+\mathrm{Cov}(X,Y) \;=\; \E[XY] - \E[X]\,\E[Y].
+$$
+
+When $X$ and $Y$ are functions of the random parameter $w\sim p$, we write $\mathrm{Cov}_{w\sim p}(X(w),Y(w))$ to indicate that the expectation is taken over the posterior $p$. If $\phi$ is vector-valued ($\phi:W\to\R^{d}$), the covariance $\mathrm{Cov}(X,\phi)$ is the vector whose $j$-th entry is $\mathrm{Cov}(X,\phi_{j})$.
+
+<Exercise id="ex-bif-covariance">
+**Exercise 3.1 (The BIF is a covariance).** Let $p_{\beta}(w\mid\mathcal{D})$ be the tempered posterior of [Equation 8](#eq-tempered-posterior) and write $p = p_{\mathbf{1}}$ for the unperturbed posterior. By differentiating $\E_{p_\beta}[\phi(w)] = \int \phi(w)\,p_{\beta}(w\mid\mathcal{D})\,dw$ with respect to $\beta_{i}$, show that
+
+<div id="eq-bif-covariance">
+
+$$
+\boxed{\;\mathrm{BIF}(z_i,\phi) \;=\; -\,\mathrm{Cov}_{w\sim p}\bigl(L(w,z_i),\;\phi(w)\bigr).\;}
+$$
+
+</div>
+
+*Hint:* Write $p_{\beta} \propto e^{-\sum_j \beta_j L(w,z_j)}\varphi(w)$ and differentiate the ratio $\int \phi\, p_{\beta}\,dw \,/\, \int p_{\beta}\,dw$ using the quotient rule. The key identity is $\partial_{\beta_i}\log Z(\beta) = -\E_{p_\beta}[L(w,z_{i})]$.
+</Exercise>
+
+
+<div id="rem-stat-phys">
+<Callout type="note">
+
+**Remark (Statistical physics).** The identity $\partial_{\beta_i}\E[\phi] = -\mathrm{Cov}(L_{i},\phi)$ is a standard fluctuation–response relation in statistical physics: the response of an observable to a change in an external field equals the covariance of that observable with the conjugate energy.
+
+</Callout>
+</div>
+
+**Localization.**  Computing expectations over the global posterior $p(w\mid\mathcal{D})$ is generally intractable for neural networks, and we are typically interested in the behavior of a specific trained checkpoint $w^{*}$, not a global Bayesian average. Following [Kreer et al. 2026](#bib-kreer2025bif), we *localize* the posterior by adding a Gaussian penalty centered at $w^{*}$:
+
+<div id="eq-local-posterior">
+
+$$
+p_{\gamma}(w\mid\mathcal{D},w^{*}) \;\propto\; \exp\!\Bigl(-\sum_{i=1}^{n} L(w,z_{i}) - \frac{\gamma}{2}\|w - w^{*}\|^{2}\Bigr),
+$$
+
+</div>
+
+where $\gamma > 0$ is a *localization strength* that controls how tightly the posterior concentrates around $w^{*}$. The *local BIF* is then
+
+<div id="eq-local-bif">
+
+$$
+\mathrm{BIF}_{\gamma}(z_{i},\phi) \;=\; -\,\mathrm{Cov}_{\gamma}\bigl(L(w,z_{i}),\;\phi(w)\bigr),
+$$
+
+</div>
+
+where $\mathrm{Cov}_{\gamma}$ denotes covariance under $p_{\gamma}$. We will see in [Exercise 3.2](#ex-bif-expansion) that the localization parameter $\gamma$ plays exactly the role of the damping parameter $\lambda$ in the PBRF formula [(6)](#eq-if-pbrf).
+
+**Practical computation via SGLD.**  The local BIF requires estimating a covariance under $p_{\gamma}$. This is done by drawing samples from $p_{\gamma}$ using stochastic gradient Langevin dynamics (SGLD), which adds calibrated Gaussian noise to SGD updates:
+
+$$
+w_{t+1}\;=\; w_{t} - \frac{\epsilon}{2}\Bigl(\frac{n}{m}\sum_{k\in B_t}\nabla_{w} L(w_{t},z_{k}) + \gamma(w_{t} - w^{*})\Bigr) + \eta_{t}, \qquad \eta_{t}\sim\mathcal{N}(0,\epsilon\, I),
+$$
+
+where $B_{t}$ is a mini-batch of size $m$ and $\epsilon$ is the step size. After a burn-in period, the iterates $\{w_{t}\}$ are approximately distributed according to $p_{\gamma}$, and the covariance in [(11)](#eq-local-bif) is estimated by the sample covariance of $(L(w_{t},z_{i}),\phi(w_{t}))$ across draws. Running multiple independent chains from $w^{*}$ improves coverage.
+
+<div id="ex-bayesian-ols">
+<Callout type="tip">
+
+**Example 3.2 (Bayesian linear regression).** Take the linear regression setup of [Exercise 2.2](#ex-ols-if) with a Gaussian prior $w\sim\mathcal{N}(0,\tau^{2}I)$ added. The posterior is conjugate: $w\mid\mathcal{D}\sim\mathcal{N}(\mu,V)$ with $V = (\tau^{-2}I + \sigma^{-2}A)^{-1}$ and $\mu = \sigma^{-2}V\sum_{i} x_{i} y_{i}$. A direct Gaussian-moment computation applied to [(9)](#eq-bif-covariance) with the observable $\phi(w) = w$ gives
+
+$$
+\mathrm{BIF}(z_{j}, w) \;=\; -\mathrm{Cov}_{p}\bigl(L(w,z_{j}),\,w\bigr) \;=\; \frac{V\, x_{j}\, r_{j}}{\sigma^{2}}\;=\; (A + \lambda I)^{-1}\,x_{j}\,r_{j}
+$$
+
+where $r_{j} = y_{j} - x_{j}^{\top}\mu$ is the posterior-mean residual and $\lambda := \sigma^{2}/\tau^{2}$. This is the *damped* influence function with the damping parameter $\lambda$ equal to the ratio of observation noise to prior variance. In the flat-prior limit $\tau\to\infty$ we have $\lambda\to 0$, $\mu\to w^{*}$, and we recover the classical IF of [Exercise 2.2](#ex-ols-if).
+
+</Callout>
+</div>
+
+### 3.2 Exercise: Connecting Bayesian and classical influence functions
+
+As we have seen in the SLT day, tools involving the Hessian are usually a low-order approximation of an expansion. This is also true for influence functions: In the non-degenerate case the classical IF is the leading-order term of the BIF under a Laplace approximation. The following exercise makes this precise by computing a power series expansion of the BIF covariance and identifying the classical IF as the leading-order term. The argument follows [Kreer et al. 2026](#bib-kreer2025bif), Appendix A.
+
+<Exercise id="ex-bif-expansion">
+**Exercise 3.2 (Power series expansion of Bayesian influence functions).** Let $w^{*}$ be a local minimum of the training loss $L(w) = \sum_{i=1}^{n} L(w,z_{i})$ with positive-definite Hessian $H = \nabla_{w}^{2} L(w^{*})$. Write $\Delta w = w - w^{*}$, and abbreviate $g_{\phi} = \nabla_{w}\phi(w^{*})$, $H_{\phi} = \nabla_{w}^{2}\phi(w^{*})$ for the gradient and Hessian of the observable, and $g_{i} = \nabla_{w} L(w^{*},z_{i})$, $H_{i} = \nabla_{w}^{2} L(w^{*},z_{i})$ for the per-sample loss.
+
+**(a)** **(Laplace approximation.)** Consider the posterior $p(w\mid\mathcal{D}) \propto e^{-L(w)}\,\varphi(w)$. Taylor-expand $L(w)$ to second order around $w^{*}$, using the fact that $\nabla L(w^{*}) = 0$ at a minimum. Argue that for large $n$ the quadratic term in $L$ dominates the prior $\varphi$, and conclude that
+
+$$
+p(w\mid\mathcal{D}) \;\approx\; \mathcal{N}(w^{*},\;H^{-1}).
+$$
+
+Under this approximation, $\Delta w \sim \mathcal{N}(0, H^{-1})$. (This is called the *Laplace approximation*; the Bernstein–von Mises theorem guarantees it is asymptotically exact for non-singular models.)
+
+**(b)** **(Taylor expansion of the covariance.)** Expand $\phi(w)$ and $L(w,z_{i})$ in Taylor series around $w^{*}$:
+
+$$
+\begin{aligned}\phi(w)&= \phi(w^{*}) + g_{\phi}^{\top}\Delta w + \tfrac{1}{2}\Delta w^{\top} H_{\phi}\,\Delta w + \cdots, \\ L(w,z_{i})&= L(w^{*},z_{i}) + g_{i}^{\top}\Delta w + \tfrac{1}{2}\Delta w^{\top} H_{i}\,\Delta w + \cdots.\end{aligned}
+$$
+
+Using the fact that constant terms drop out of covariances and that $\mathrm{Cov}(X,Y) = \sum_{k,m\ge 1}\mathrm{Cov}(T_{k}[\phi],\,T_{m}[L_{i}])$ where $T_{k}[f]$ denotes the $k$-th order term in the Taylor expansion of $f$, show that the BIF decomposes as
+
+$$
+\mathrm{BIF}(z_{i},\phi) = -\sum_{\substack{k,m\ge 1\\k+m\text{ even}}}\mathrm{Cov}_{\mathcal{N}}\bigl(T_{k}[\phi],\;T_{m}[L_{i}]\bigr).
+$$
+
+Why do terms with $k+m$ odd vanish?
+
+**(c)** **(Leading order: classical IF.)** Compute the $(k,m) = (1,1)$ term:
+
+$$
+\mathrm{Cov}_{\mathcal{N}}\bigl(g_{\phi}^{\top}\Delta w,\;g_{i}^{\top}\Delta w\bigr) \;=\; g_{\phi}^{\top} H^{-1}g_{i}.
+$$
+
+Conclude that $-g_{\phi}^{\top} H^{-1}g_{i} = -\nabla_{w}\phi(w^{*})^{\top} H^{-1}\nabla_{w} L(w^{*},z_{i})$ is the classical influence function $\mathcal{I}(z_{i},\phi)$ from [Definition 2.2](#def-if). This is the leading-order term of the BIF.
+
+**(d)** **(Second-order correction.)** Compute the $(k,m) = (2,2)$ term using Isserlis' theorem (the Gaussian moment identity $\E[\Delta w_{a}\Delta w_{b}\Delta w_{c}\Delta w_{d}] = \Sigma_{ab}\Sigma_{cd}+ \Sigma_{ac}\Sigma_{bd}+ \Sigma_{ad}\Sigma_{bc}$ with $\Sigma = H^{-1}$). Show that
+
+$$
+\mathrm{Cov}_{\mathcal{N}}\!\left(\tfrac{1}{2}\Delta w^{\top} H_{\phi}\,\Delta w,\;\tfrac{1}{2}\Delta w^{\top} H_{i}\,\Delta w\right) = \tfrac{1}{2}\,\tr\bigl(H_{\phi}\,H^{-1}\,H_{i}\,H^{-1}\bigr).
+$$
+
+This correction involves the *Hessians* of the observable and per-sample loss. It captures second-order curvature interactions that the classical IF misses entirely. In the linear regression setting of [Example 3.2](#ex-bayesian-ols), why does this correction vanish?
+
+**(e)** **(Localized version: damped IF.)** Now consider the local BIF of [Equation 11](#eq-local-bif) with localization strength $\gamma$. The localized posterior is approximately $\mathcal{N}(w^{*},\,(H+\gamma I)^{-1})$. Repeat the leading-order computation of part (c) to show that
+
+$$
+\mathrm{BIF}_{\gamma}(z_{i},\phi) \;\approx\; -\,\nabla_{w}\phi(w^{*})^{\top}\,(H + \gamma I)^{-1}\,\nabla_{w} L(w^{*},z_{i}).
+$$
+
+This is precisely the damped influence function of [Equation 6](#eq-if-pbrf), with the localization strength $\gamma$ playing the role of the damping parameter $\lambda$. The local BIF is thus a natural, higher-order generalization of the damped IF: it agrees at leading order and includes all the corrections from parts (b)–(d) with $H^{-1}$ replaced by $(H + \gamma I)^{-1}$.
+</Exercise>
+
+
+<Callout type="note">
+
+**Remark.** We conclude that the classical (damped) IF is the leading term of the (local) BIF under a Laplace approximation. For non-singular models with enough data, the Laplace approximation converges and the higher-order terms are small. But for singular models (neural networks), the Laplace approximation fails, the posterior is not Gaussian, and the BIF captures geometry that the classical IF cannot see.
+
+</Callout>
+
+### 3.3 Long Exercise: Influence functions as optimal linear transport
+
+The previous exercise showed that the classical IF is the leading-order term of the BIF under a Laplace approximation. We now take a different perspective, due to [Mlodozeniec et al. 2025](#bib-mlodozeniec2025distributional): instead of asking "what does the BIF reduce to?" we ask "what is the *best* way to shift the parameters to approximate the effect of a data perturbation?" The answer turns out to be: the influence function, and its optimality does not require the Laplace approximation to hold.
+
+**Setup.**  Let $L(w) = \sum_{i=1}^{n} L(w,z_{i})$ denote the total training loss, and abbreviate $L_{k}(w) := L(w,z_{k})$ for the per-sample loss at example $k$. Define the *Boltzmann distributions* at inverse temperature $\beta$:
+
+$$
+\begin{aligned}p_{0}^{\beta}(w)&\propto e^{-\beta\,L(w)},&p_{\varepsilon}^{\beta}(w)&\propto e^{-\beta\bigl(L(w)\,-\,\varepsilon\,L_k(w)\bigr)},\end{aligned}
+$$
+
+so that $p_{\varepsilon}^{\beta}$ is the Boltzmann distribution after downweighting sample $k$ by $\varepsilon$. The low-temperature limit $\beta\to\infty$ concentrates $p_{0}^{\beta}$ on the set of global minima $\mathcal{S}_{L} = \{w : L(w) = \inf L\}$.
+
+Now suppose we want to approximate the effect of the perturbation without resampling from $p_{\varepsilon}^{\beta}$. The simplest approach is to take each parameter $w$ drawn from $p_{0}^{\beta}$ and *shift* it to $w + \varepsilon\,r(w)$ for some smooth vector field $r:\R^{d}\to\R^{d}$. If $r$ is chosen well, the distribution of the shifted parameters should be close to $p_{\varepsilon}^{\beta}$. The question is: what is the optimal $r$?
+
+To make this precise, we need to know the density of the shifted parameters. If $w\sim p_{0}^{\beta}$ and we set $\tilde w = w + \varepsilon\,r(w)$, then by the multivariate change-of-variables formula, $\tilde w$ has density
+
+<div id="eq-shifted-density">
+
+$$
+q_{\varepsilon}(\tilde w) \;=\; \frac{p_{0}^{\beta}\bigl(\tilde w - \varepsilon\,r(\tilde w) + O(\varepsilon^{2})\bigr)}{\bigl|\det\bigl(I + \varepsilon\,\nabla r(w)\bigr)\bigr|}\,,
+$$
+
+</div>
+
+where $\nabla r$ is the $d\times d$ Jacobian matrix of $r$ and the denominator is the usual volume-change factor.[^4] We measure how well $q_{\varepsilon}$ approximates $p_{\varepsilon}^{\beta}$ by the KL divergence $D_{\mathrm{KL}}(q_{\varepsilon}\|p_{\varepsilon}^{\beta})$. Rather than computing this directly, it is cleaner to write it as an expectation over the *original* distribution $p_{0}^{\beta}$:
+
+<div id="eq-kl-expectation">
+
+$$
+D_{\mathrm{KL}}(q_{\varepsilon}\|p_{\varepsilon}^{\beta}) \;=\; \E_{w\sim p_0^\beta}\!\Bigl[\log p_{0}^{\beta}(w) - \log p_{\varepsilon}^{\beta}\bigl(w + \varepsilon r(w)\bigr) - \log\bigl|\det\bigl(I + \varepsilon\nabla r(w)\bigr)\bigr|\Bigr].
+$$
+
+</div>
+
+This identity follows by substituting [(12)](#eq-shifted-density) into the definition of KL and changing variables back to $w$. We define the *asymptotic KL cost*
+
+<div id="eq-ot-cost">
+
+$$
+\mathcal{F}(r,\varepsilon) \;:=\; \lim_{\beta\to\infty}\,\frac{1}{\beta}\,D_{\mathrm{KL}}(q_{\varepsilon}\|p_{\varepsilon}^{\beta}).
+$$
+
+</div>
+
+The $1/\beta$ normalization kills the determinant term (which is $O(1)$) and the entropy terms, isolating the energy contribution (which is $O(\beta)$).
+
+<Exercise id="ex-bif-ot">
+**Exercise 3.3 (Influence functions as optimal parameter shifts).** Let $w^{*}$ be a non-degenerate minimum of $L$ with positive-definite Hessian $H = \nabla^{2} L(w^{*})$. In this exercise we work at the unique minimum, so the $\beta\to\infty$ limit simply evaluates everything at $w^{*}$.
+
+**(a)** **(KL in terms of energies.)** Starting from [(13)](#eq-kl-expectation), substitute $p_{0}^{\beta}(w) = e^{-\beta L(w)}/Z(\beta,0)$ and $p_{\varepsilon}^{\beta}(w) = e^{-\beta(L(w)-\varepsilon L_k(w))}/Z(\beta,\varepsilon)$, and show that
+
+$$
+\begin{aligned}\frac{1}{\beta}\,D_{\mathrm{KL}}\;=\;&\E_{p_0^\beta}\!\bigl[L(w + \varepsilon r) - \varepsilon\,L_{k}(w + \varepsilon r) - L(w)\bigr] \\&+\; \frac{1}{\beta}\log\frac{Z(\beta,\varepsilon)}{Z(\beta,0)}\;-\; \frac{1}{\beta}\,\E_{p_0^\beta}\!\bigl[\log|\det(I + \varepsilon\nabla r)|\bigr],\end{aligned}
+$$
+
+where $Z(\beta,\varepsilon) = \int e^{-\beta(L(w)-\varepsilon L_k(w))}\,dw$. Explain why the last two terms vanish in the $\beta\to\infty$ limit. *Hint:* $\log|\det(I+\varepsilon\nabla r)| = O(1)$, and by Laplace's method $\tfrac{1}{\beta}\log Z(\beta,\varepsilon) \to -\inf_{w}[L(w) - \varepsilon L_{k}(w)]$.
+
+**(b)** **(Taylor expansion at $w^{*}$.)** Since the expectation under $p_{0}^{\beta}$ concentrates at $w^{*}$ as $\beta\to\infty$, expand $L(w^{*} + \varepsilon r)$ and $\varepsilon\,L_{k}(w^{*} + \varepsilon r)$ using $\nabla L(w^{*}) = 0$:
+
+$$
+\begin{aligned}L(w^{*} + \varepsilon r)&= L(w^{*}) + \tfrac{\varepsilon^2}{2}\,r^{\top} H\,r + O(\varepsilon^{3}), \\ \varepsilon\,L_{k}(w^{*} + \varepsilon r)&= \varepsilon\,L_{k}(w^{*}) + \varepsilon^{2}\,\nabla L_{k}(w^{*})^{\top} r + O(\varepsilon^{3}).\end{aligned}
+$$
+
+Similarly, show that $\inf_{w}[L(w) - \varepsilon L_{k}(w)] = L(w^{*}) - \varepsilon\,L_{k}(w^{*}) - \tfrac{\varepsilon^2}{2}\,\nabla L_{k}^{\top} H^{-1}\nabla L_{k} + O(\varepsilon^{3})$, by minimizing the Taylor expansion of $L - \varepsilon L_{k}$ around $w^{*}$. Combine everything to obtain
+
+<div id="eq-ot-quadratic">
+
+$$
+\mathcal{F}(r,\varepsilon) \;=\; \frac{\varepsilon^{2}}{2}\,\bigl(r - H^{-1}\nabla L_{k}\bigr)^{\top} H\,\bigl(r - H^{-1}\nabla L_{k}\bigr) \;+\; O(\varepsilon^{3}).
+$$
+
+</div>
+
+*Hint:* After substitution, the terms that do not depend on $r$ should assemble into $\tfrac{\varepsilon^2}{2}\nabla L_{k}^{\top} H^{-1}\nabla L_{k}$ and cancel with the partition-function contribution, leaving a perfect square.
+
+**(c)** **(IFs are optimal.)** The cost [(15)](#eq-ot-quadratic) is a squared Mahalanobis distance (in the Hessian metric) between the shift $r$ and the influence function $r_{\mathrm{IF}}:= H^{-1}\nabla L_{k}(w^{*})$. Conclude that the IF minimizes $\mathcal{F}$ to $O(\varepsilon^{2})$ among *all* smooth shift maps $w\mapsto w+\varepsilon r(w)$, and that the minimum cost is $O(\varepsilon^{3})$.
+
+State the result in words: *the influence function is the approximately KL-optimal way to shift the parameters of the unperturbed Boltzmann distribution to approximate the perturbed one.*
+
+**(d)** **(Degenerate case.)** Now suppose $w^{*}$ lies on a minimum manifold $\mathcal{S}_{L}$ and $H$ is singular with null space $N$. Argue (without detailed proof) that:
+- The cost [(15)](#eq-ot-quadratic) generalizes to $\mathcal{F}(r,\varepsilon) = \tfrac{\varepsilon^2}{2}(r - H^{+}\nabla L_{k})^{\top} H\,(r - H^{+}\nabla L_{k}) + O(\varepsilon^{3})$, where $H^{+}$ is the Moore–Penrose pseudoinverse.
+- The minimizer is $r = H^{+}\nabla L_{k} + r_{\mathrm{NS}}$ for any $r_{\mathrm{NS}}\in N$: directions in the null space of $H$ have zero cost, because the Hessian assigns zero curvature to movement along the minimum manifold.
+- The IF (with pseudoinverse) is therefore optimal for the directions that matter, but the component of the shift along the flat directions is unconstrained.
+
+Connect this to the SLT perspective: for singular models, the minimum is a variety, and the IF tells you how to move *off* the variety but is silent about movement *along* it.
+
+**(e)** **(Linear regression check.)** Specialize to the Bayesian linear regression setting of [Example 3.2](#ex-bayesian-ols) with prior $w\sim\mathcal{N}(0,\tau^{2}I)$. The Boltzmann distribution at inverse temperature $\beta = 1$ is the Bayesian posterior $\mathcal{N}(\mu,V)$, which is already Gaussian, no need to take $\beta\to\infty$. A constant shift $w\mapsto w + \varepsilon r$ sends $\mathcal{N}(\mu,V)$ to $\mathcal{N}(\mu + \varepsilon r,\,V)$. The true perturbed posterior (downweighting $z_{k}$ by $\varepsilon$) has mean $\mu + \varepsilon\,\mathrm{BIF}(z_{k},w) + O(\varepsilon^{2})$ and covariance $V + O(\varepsilon)$. Using the KL formula for Gaussians with the same covariance, show that
+
+$$
+D_{\mathrm{KL}}\bigl(\mathcal{N}(\mu + \varepsilon r,\,V)\;\big\|\;\mathcal{N}(\mu + \varepsilon b,\,V)\bigr) \;=\; \frac{\varepsilon^{2}}{2}\,(r-b)^{\top} V^{-1}(r-b),
+$$
+
+which is minimized at $r = b = \mathrm{BIF}(z_{k},w) = (A + \lambda I)^{-1}x_{k} r_{k}$. Verify that this is consistent with [(15)](#eq-ot-quadratic): the "Hessian of the energy" (training loss plus prior) is $V^{-1}= \sigma^{-2}A + \tau^{-2}I$, and $V^{-1}\cdot\mathrm{BIF}= \sigma^{-2}x_{k} r_{k} = \nabla_{w} L(w,z_{k})\big|_{w=\mu}$.
+
+**(f)** **(Comparison with [Exercise 3.2](#ex-bif-expansion).)** The Laplace expansion exercise and this exercise both relate the IF to the BIF, but they answer different questions:
+- [Exercise 3.2](#ex-bif-expansion) is an *algebraic identity*: BIF $=$ IF $+$ higher-order corrections. It requires the Laplace approximation (hence non-singular $H$, Gaussian posterior) and tells you what happens when you truncate the BIF.
+- This exercise is an *optimality result*: the IF shift minimizes the KL divergence between the shifted and true perturbed distributions. The $\beta\to\infty$ result (parts a–d) needs only mild regularity of $\mathcal{L}$ and works even for singular $H$ (via the pseudoinverse).
+
+Summarize: the Laplace expansion tells you *what* the IF is (the leading Gaussian term of the BIF). The optimality perspective tells you *why* it works (it is the best first-order correction to the parameter distribution). The second viewpoint does not require the posterior to be Gaussian, which is why [Mlodozeniec et al. 2025](#bib-mlodozeniec2025distributional) argue that it provides a better explanation for the empirical success of IFs in deep learning.
+</Exercise>
+
+
+<div id="rem-optimal-transport">
+<Callout type="note">
+
+**Remark (Optimal transport).** In the language of optimal transport, the map $w\mapsto w+\varepsilon r(w)$ is called a *transport map*, and the distribution of the shifted parameters is its *pushforward*, written $T_{\varepsilon\#}p_{0}^{\beta}$. The cost functional $\mathcal{F}$ is the asymptotic KL divergence between the pushforward and the target. [Exercise 3.3](#ex-bif-ot) then says that the influence function is the *KL-optimal transport map* from the unperturbed to the perturbed Boltzmann distribution, at first order in $\varepsilon$. This is the perspective developed in [Mlodozeniec et al. 2025](#bib-mlodozeniec2025distributional), who prove a more general version (their Theorem 3) that applies to all smooth diffeomorphisms, not just maps of the form $w+\varepsilon r(w)$.
+
+</Callout>
+</div>
+
+## 4. Unrolling
+
+The influence functions of [Section 2](#2-influence-functions) and the Bayesian influence functions of [Section 3](#3-bayesian-influence-functions) both have something in common: they analyze the *endpoint* of training, not the *dynamics* that led to it. Under the assumptions of the unique global minimum, this is not a problem: the training trajectory is irrelevant, since all roads lead to the same outcome. But in practice the training path will matter a lot. Ultimately, we are studying generalization and this is ultimately a question about the training dynamics. Similarly, the BIF looks at the posterior expectation shifts. To give a concrete failure mode: a training point that appears in the first mini-batch of the first epoch will have a very different effect compared to the same point appearing towards the end of training.
+
+If we write down the training trajectory as a composition of $\beta$-dependent maps:
+
+$$
+\begin{array}{ccccccccc}\R^p & \xrightarrow{\;h_0(\cdot\,;\beta)\;} & \R^p & \xrightarrow{\;h_1(\cdot\,;\beta)\;} & \cdots & \xrightarrow{\;h_{T-1}(\cdot\,;\beta)\;} & \R^p & \xrightarrow{\;\phi\;} & \R \\[4pt] w_0 & \longmapsto & w_1 & \longmapsto & \cdots & \longmapsto & w_T & \longmapsto & \phi(w_T)\end{array}
+$$
+
+where each $h_{t}$ is one optimizer step (a gradient step, an Adam update, etc.): $w_{t+1}= h_{t}(w_{t};\beta)$, we can observe an analogy to a forward pass through a neural network:
+
+$$
+\begin{array}{ccccccccc}\R^{d_0} & \xrightarrow{\;f_1(\cdot\,;w)\;} & \R^{d_1} & \xrightarrow{\;f_2(\cdot\,;w)\;} & \cdots & \xrightarrow{\;f_L(\cdot\,;w)\;} & \R^{d_L} & \xrightarrow{\;\ell\;} & \R \\[4pt] a_0 & \longmapsto & a_1 & \longmapsto & \cdots & \longmapsto & a_L & \longmapsto & \ell(a_L)\end{array}
+$$
+
+where each $f_{\ell}$ is one layer: $a_{\ell}= f_{\ell}(a_{\ell-1}; w)$.
+
+|  | **Forward pass ** | **Training trajectory** |
+| --- | --- | --- |
+| Inputs | Model weights $w$ | Data weights $\beta$ |
+| Intermediate states | Activations $a_{1},\dots,a_{L}$ | Parameters $w_{0},\dots,w_{T}$ |
+| Output | Loss $\ell(\text{logits})$ | Observable $\phi(w_{T})$ |
+| Differentiation method | Backpropagation | Unrolling |
+
+*Data attribution via unrolling is to a training run what backprop is to a forward pass: differentiating a composition of maps to identify which inputs matter most.*
+
+This invites the following question: Can we backprop through the *training trajectory*? The gradients with respect to the $\beta_{i}$ then indicate which data points would need to be up- or downweighted to change the final observable $\phi(w_{T})$. And in principle, we can! We can differentiate through the training computation, step by step, treating the final parameters as an explicit function of every gradient update along the way. The result is a chain-rule expression that decomposes data attribution into per-step contributions and naturally incorporates the optimizer, learning rate schedule, mini-batch ordering, and training duration. We will derive the unrolling formula similar to the backprop formula for a forward pass, and then discuss two approaches to making it practical: one that materializes Jacobians and one that computes Jacobian-vector products implicitly. In the setup of [Equation 1](#eq-holy-maps) we take $\pi(\beta)=w_{T}(\beta)$, the final checkpoint of the training run.
+
+### 4.1 The training-dynamics approach to attribution
+
+We fix notation for the training process. Given a dataset $\mathcal{D}= \{z_{1},\dots,z_{n}\}$ with sample weights $\beta = (\beta_{1},\dots,\beta_{n})$, the optimizer runs for $T$ steps. At step $t$, a mini-batch $B_{t} \subseteq \{1,\dots,n\}$ of size $b$ is drawn, and the parameters are updated by
+
+<div id="eq-sgd-update">
+
+$$
+w_{t+1}(\beta) \;=\; w_{t}(\beta) \;-\; \frac{\eta_{t}}{b}\sum_{i\in B_t}\beta_{i}\,\nabla_{w} L\bigl(w_{t}(\beta),\,z_{i}\bigr),
+$$
+
+</div>
+
+where $\eta_{t}$ is the learning rate at step $t$. At $\beta = \mathbf{1}$ this is ordinary SGD on the unweighted loss. The initial parameters $w_{0}$ are independent of $\beta$. For simplicity we can assume that we are training for one epoch only, so that each example appears in exactly one mini-batch, but the formulas hold more generally.
+
+**The counterfactual.**  We want
+
+$$
+\frac{\partial\,\phi(w_{T}(\beta))}{\partial \beta_{i}}\bigg\rvert_{\beta=\mathbf{1}},
+$$
+
+the sensitivity of a final-model observable $\phi$ to an infinitesimal change in the weight of training example $z_{i}$.
+
+### 4.2 The unrolling formula
+
+Central to computing the data weight gradient is the Jacobian of one SGD step with respect to the current parameters. Define
+
+<div id="eq-step-jacobian">
+
+$$
+J_{t} \;:=\; \frac{\partial w_{t+1}}{\partial w_{t}}\bigg\rvert_{\beta=\mathbf{1}}\;=\; I \;-\; \frac{\eta_{t}}{b}\sum_{i\in B_t}\nabla_{w}^{2} L(w_{t},z_{i}) \;=\; I - \eta_{t}\,\widehat{H}_{t},
+$$
+
+</div>
+
+where $\widehat{H}_{t} := \tfrac{1}{b}\sum_{i\in B_t}\nabla_{w}^{2} L(w_{t},z_{i})$ is the mini-batch Hessian at step $t$. The Jacobian of the map from step $t$ to step $t'$ is the ordered product
+
+<div id="eq-chained-jacobian">
+
+$$
+J_{t:t'}\;:=\; J_{t'-1}\,J_{t'-2}\cdots J_{t}\;=\; \prod_{s=t}^{t'-1}J_{s} \qquad (t < t').
+$$
+
+</div>
+
+Similarly, the direct effect of $\beta_{i}$ at step $t$ (when $i\in B_{t}$) is the per-example gradient:
+
+<div id="eq-direct-effect">
+
+$$
+\frac{\partial w_{t+1}}{\partial \beta_{i}}\bigg\rvert_{\substack{\beta=\mathbf{1}\\w_t\text{ fixed}}}\;=\; -\,\frac{\eta_{t}}{b}\,\nabla_{w} L(w_{t},z_{i}) \cdot \mathbf{1}[i\in B_{t}].
+$$
+
+</div>
+
+The full derivative is obtained by chaining direct effects through remaining steps:
+
+<div id="eq-unroll-formula">
+
+$$
+\boxed{\;\frac{\partial w_{T}(\beta)}{\partial \beta_{i}}\bigg\rvert_{\beta=\mathbf{1}} \;=\; -\sum_{t=0}^{T-1}\frac{\eta_{t}}{b}\;\mathbf{1}[i\in B_t]\;J_{(t+1):T}\;\nabla_w L(w_t,z_i).\;}
+$$
+
+</div>
+
+Each term in the sum corresponds to one training step in which $z_{i}$ appeared in the mini-batch: it is the gradient of $z_{i}$ at the parameters of that step, propagated forward through the Jacobians of all subsequent steps.
+
+The influence on an observable $\phi$ follows by the chain rule:
+
+<div id="eq-unroll-influence">
+
+$$
+\frac{\partial\,\phi(w_{T}(\beta))}{\partial \beta_{i}}\bigg\rvert_{\beta=\mathbf{1}}\;=\; -\,\nabla_{w}\phi(w_{T})^{\top}\sum_{t=0}^{T-1}\frac{\eta_{t}}{b}\;\mathbf{1}[i\in B_{t}]\;J_{(t+1):T}\;\nabla_{w} L(w_{t},z_{i}).
+$$
+
+</div>
+
+<div id="rem-unroll-vs-if">
+<Callout type="note">
+
+**Remark (Which questions does unrolling answer?).** Equation [(20)](#eq-unroll-formula) looks like a sum over training steps and, for a fixed realization of the mini-batch sequence, it *is* a deterministic chain-rule computation. But the training run has randomness (initialization, mini-batch ordering, data augmentation), and so does the counterfactual: if we change $\beta_{i}$, the mini-batch sequence might be the same or it might differ. Unrolling as written differentiates through a *specific* training run: it answers the *single-model* attribution question, "how would this particular training trajectory have ended differently?" The *distributional* question, which looks at the expected change over random training, would require averaging [(20)](#eq-unroll-formula). This distinction, which we will revisit in [Section 5](#5-practical-considerations-and-open-problems), is the training-dynamics analogue of the single-posterior-mode vs. full-posterior distinction in [Section 3](#3-bayesian-influence-functions).
+
+</Callout>
+</div>
+
+<Exercise id="ex-unroll-derive">
+**Exercise 4.1 (Derivation of the unrolling formula).** **(a)** Starting from the SGD update [(16)](#eq-sgd-update), apply the chain rule to write $\tfrac{\partial w_{t+1}}{\partial \beta_i}\big|_{\beta=\mathbf{1}}$ as a sum of two terms: one from the explicit dependence on $\beta_{i}$ (the direct effect) and one from the dependence of $w_{t}$ on $\beta_{i}$ (the indirect effect). Show that the result is the recursion
+
+$$
+\frac{\partial w_{t+1}}{\partial \beta_{i}}\;=\; J_{t}\,\frac{\partial w_{t}}{\partial \beta_{i}}\;-\; \frac{\eta_{t}}{b}\;\mathbf{1}[i\in B_{t}]\;\nabla_{w} L(w_{t},z_{i}),
+$$
+
+with initial condition $\tfrac{\partial w_0}{\partial \beta_i}= 0$. Compute the Jacobian $J_{t}$ explicitly in terms of the mini-batch Hessian $\widehat{H}_{t}$ which leads to [(17)](#eq-step-jacobian).
+
+**(b)** Solve the recursion by "unrolling" it (i.e. by substituting repeatedly and using [(18)](#eq-chained-jacobian)) to obtain [(20)](#eq-unroll-formula).
+
+**(c)** **(Preconditioned SGD.)** Suppose instead that the optimizer uses a preconditioner $P_{t} \succ 0$:
+
+<div id="eq-precond-update">
+
+$$
+w_{t+1}(\beta) \;=\; w_{t}(\beta) \;-\; \frac{\eta_{t}}{b}\,P_{t}\sum_{i\in B_t}\beta_{i}\,\nabla_{w} L(w_{t}(\beta),z_{i}).
+$$
+
+</div>
+
+This includes momentum-free Adam and natural gradient methods as special cases (with appropriate $P_{t}$). Show that the step Jacobian becomes $J_{t}^{(P)}= I - \eta_{t}\,P_{t}\widehat{H}_{t}$ and that the unrolling formula generalizes to
+
+<div id="eq-unroll-precond">
+
+$$
+\frac{\partial w_{T}(\beta)}{\partial \beta_{i}}\bigg\rvert_{\beta=\mathbf{1}}\;=\; -\sum_{t=0}^{T-1}\frac{\eta_{t}}{b}\;\mathbf{1}[i\in B_{t}]\;J_{(t+1):T}^{(P)}\;P_{t}\,\nabla_{w} L(w_{t},z_{i}),
+$$
+
+</div>
+
+where $J_{(t+1):T}^{(P)}= \prod_{s=t+1}^{T-1}(I - \eta_{s} P_{s}\widehat{H}_{s})$. The only change is that each gradient is premultiplied by the preconditioner at the step where it appears. What does this say about the effect of using Adam vs. SGD on the attribution of a data point that appears early in training?
+</Exercise>
+
+
+<div id="rem-tracin">
+<Callout type="note">
+
+**Remark (TracIn).** [Pruthi et al. 2020](#bib-pruthi2020estimating) observed that the Jacobian products $J_{(t+1):T}$ in [(20)](#eq-unroll-formula) are both the most expensive and the most unstable part of the computation. Their method, TracIn, simply drops them, setting $J_{(t+1):T}\approx I$:
+
+<div id="eq-tracin">
+
+$$
+\mathrm{TracIn}(z_{i},\phi) \;:=\; \sum_{t\in\mathcal{C}}\eta_{t}\;\nabla_{w}\phi(w_{t})^{\top}\nabla_{w} L(w_{t},z_{i}),
+$$
+
+</div>
+
+where $\mathcal{C}$ is a set of checkpoints (typically one per epoch).
+
+</Callout>
+</div>
+
+There are two ways to make [(20)](#eq-unroll-formula) practical. The first is to compute the Jacobian products $J_{(t+1):T}$ explicitly, or rather an approximation thereof. The second is to avoid materializing Jacobians altogether and instead compute Jacobian-vector products implicitly by reverse-mode automatic differentiation through the training loop. We will discuss both approaches in turn.
+
+#### 4.2.1 Materializing the Jacobian
+
+In this subsection we will derive the SOURCE method ([Bae et al. 2024](#bib-bae2024source)), which introduces a small number of approximations of Jacobians that reduce the full unrolling computation to something resembling an influence-function calculation at each of several checkpoints.
+
+**Stationary segments.**  Divide the $T$ training steps into $L$ segments at checkpoints $0 = T_{0} < T_{1} < \cdots < T_{L} = T$, and let $K_{\ell} = T_{\ell} - T_{\ell-1}$ be the number of steps in segment $\ell$. Within each segment, make the *stationarity approximation*: the expected mini-batch Hessian and per-example gradient are approximately constant,
+
+<div id="eq-stationary-approx">
+
+$$
+\bar{H}_{\ell} \;\approx\; \frac{1}{K_{\ell}}\sum_{t=T_{\ell-1}}^{T_\ell - 1}\widehat{H}_{t}, \qquad \bar{g}_{i,\ell}\;\approx\; \frac{1}{K_{\ell}}\sum_{t=T_{\ell-1}}^{T_\ell - 1}\nabla_{w} L(w_{t},z_{i}).
+$$
+
+</div>
+
+Similarly, write $\bar\eta_{\ell}$ for the average learning rate in segment $\ell$.
+
+**Segment Jacobian.**  Under the stationarity approximation, the product of $K_{\ell}$ step Jacobians within segment $\ell$ simplifies to a matrix power:
+
+<div id="eq-segment-jacobian">
+
+$$
+J_{T_{\ell-1}:T_\ell}\;\approx\; (I - \bar\eta_{\ell}\,\bar{H}_{\ell})^{K_\ell}\;\approx\; \exp\bigl(-\bar\eta_{\ell}\,K_{\ell}\,\bar{H}_{\ell}\bigr) \;=:\; \bar{S}_{\ell}.
+$$
+
+</div>
+
+The matrix exponential is well approximated by the matrix power when $\bar\eta_{\ell}\,\bar{H}_{\ell}$ has small spectral norm. In an eigenbasis of $\bar{H}_{\ell}$ with eigenvalue $\sigma$, the segment Jacobian acts as the scalar filter $F_{S}(\sigma) = e^{-\bar\eta_\ell K_\ell \sigma}$: high-curvature directions ($\sigma$ large) are exponentially damped, while low-curvature directions ($\sigma$ small) are preserved.
+
+**Segment response.**  Return to the unrolling formula [(20)](#eq-unroll-formula) and restrict the sum to the steps inside segment $\ell$. The contribution of datum $z_{i}$ during this segment is
+
+<div id="eq-segment-response-exact">
+
+$$
+R_{i,\ell}\;:=\; \sum_{t=T_{\ell-1}}^{T_\ell - 1}\frac{\eta_{t}}{b}\;\mathbf{1}[i\in B_{t}]\;J_{(t+1):T_\ell}\;\nabla_{w} L(w_{t},z_{i}),
+$$
+
+</div>
+
+where the Jacobian $J_{(t+1):T_\ell}$ propagates each gradient contribution forward to the segment boundary $T_{\ell}$ (propagation from $T_{\ell}$ to the end of training is handled by the inter-segment Jacobians $\bar{S}_{\ell'}$ in the full formula below). Now apply the stationarity approximation: replace each $\nabla_{w} L(w_{t},z_{i})$ by $\bar{g}_{i,\ell}$, each learning rate by $\bar\eta_{\ell}$, replace the indicator $\mathbf{1}[i\in B_{t}]$ by its expectation $b/n$ (datum $z_{i}$ appears in a random batch with probability $b/n$), and use the segment Jacobian approximation $J_{(t+1):T_\ell}\approx (I - \bar\eta_{\ell}\bar{H}_{\ell})^{T_\ell - 1 - t}$. This gives
+
+$$
+R_{i,\ell}\;\approx\; \frac{\bar\eta_{\ell}}{n}\sum_{k=0}^{K_\ell - 1}(I - \bar\eta_{\ell}\,\bar{H}_{\ell})^{k}\;\bar{g}_{i,\ell}.
+$$
+
+The sum is a matrix geometric series. Using $\sum_{k=0}^{K-1}M^{k} = (I - M^{K})(I-M)^{-1}$ with $M = I - \bar\eta_{\ell}\bar{H}_{\ell}$ and passing to the matrix exponential:
+
+<div id="eq-segment-response">
+
+$$
+\bar{r}_{i,\ell}\;:=\; \frac{1}{n}\bigl(I - e^{-\bar\eta_\ell K_\ell \bar{H}_\ell}\bigr)\bar{H}_{\ell}^{-1}\,\bar{g}_{i,\ell}.
+$$
+
+</div>
+
+To understand this, work in an eigenbasis of $\bar{H}_{\ell}$. On an eigenvalue $\sigma$, the matrix $(I - e^{-\bar\eta_\ell K_\ell \bar{H}_\ell})\bar{H}_{\ell}^{-1}$ acts as the scalar
+
+<div id="eq-filter-fr">
+
+$$
+F_{r}(\sigma) \;=\; \frac{1 - e^{-\bar\eta_\ell K_\ell\,\sigma}}{\sigma}.
+$$
+
+</div>
+
+Note the similarity to the classical influence function formula, which applies $1/\sigma$ (the inverse Hessian eigenvalue), and with the damped IF [(6)](#eq-if-pbrf), which applies $1/(\sigma + \lambda)$. Thus $F_{r}$ can be seen as a principled damping constant:
+
+- *Large $\sigma$* (directions the optimizer has fully converged along): $e^{-\bar\eta_\ell K_\ell\,\sigma}\approx 0$, so $F_{r}(\sigma) \approx 1/\sigma$. Agrees with the classical IF.
+- *Small $\sigma$* (directions the optimizer has barely moved along): $e^{-\bar\eta_\ell K_\ell\,\sigma}\approx 1 - \bar\eta_{\ell} K_{\ell}\,\sigma$, so $F_{r}(\sigma) \approx \bar\eta_{\ell} K_{\ell}$. A finite constant, not $1/\sigma \to \infty$.
+- *Crossover* at $\sigma_{*} \approx 1/(\bar\eta_{\ell} K_{\ell})$: directions with curvature below this threshold are automatically suppressed.
+
+**Full formula.**  Chaining the segment Jacobians and responses across all $L$ segments:
+
+<div id="eq-source-formula">
+
+$$
+\tau_{\mathrm{SOURCE}}(\phi,z_{i}) \;=\; \nabla_{w}\phi(w_{T})^{\top}\,\sum_{\ell=1}^{L}\Bigl(\prod_{\ell'=\ell+1}^{L}\bar{S}_{\ell'}\Bigr)\,\bar{r}_{i,\ell},
+$$
+
+</div>
+
+where the product is ordered with $\ell' = L$ on the left. With a single segment ($L=1$), the formula reduces to $\nabla_{w}\phi^{\top}\,\bar{r}_{i,1}$, which is the classical IF with $H^{-1}$ replaced by the filter $F_{r}$.
+
+<div id="rem-unroll-damping">
+<Callout type="note">
+
+**Remark (Unrolling provides a principled damping).** The crossover $\sigma_{*} = 1/(\bar\eta K)$ in the filter $F_{r}$ plays exactly the role of the damping parameter $\lambda$ in the PBRF formula $(H + \lambda I)^{-1}$ from [Subsection 2.2](#22-translation-to-modern-neural-networks), but it is not a free parameter. It is the reciprocal of $\bar\eta K$, the total *training effort* (learning rate $\times$ number of steps) in the segment. Directions that the optimizer has not had time to converge along are automatically down-weighted, because the Jacobian products have not had enough steps to amplify them. The practical consequence: the damping $\lambda$ that influence-function methods require careful tuning of has a natural value determined by the training process, and unrolling recovers it without any tuning.
+
+</Callout>
+</div>
+
+#### 4.2.2 Implicit JVPs and the REPLAY algorithm
+
+The second approach to evaluating [(20)](#eq-unroll-formula) avoids materializing Jacobians altogether. Instead, it uses *reverse-mode automatic differentiation* through the training loop, computing Jacobian-vector products (JVPs) implicitly. This is the strategy of the MAGIC method ([Ilyas & Engstrom 2025](#bib-ilyas2025magic)), building on the metagradient framework of [Engstrom et al. 2025](#bib-engstrom2025optimizing).
+
+**Setup.**  Model the entire training process as a composition of $T$ differentiable update functions:
+
+<div id="eq-iterative-training">
+
+$$
+s_{t+1}= h_{t}\bigl(s_{t},\, g_{t}(s_{t},\beta)\bigr), \qquad s_{0} = s_{\mathrm{init}},
+$$
+
+</div>
+
+where $s_{t}$ is the full optimizer state at step $t$ (parameters, momentum buffers, etc.), $g_{t}(s_{t},\beta) = \sum_{i\in B_t}\beta_{i}\,\nabla L(s_{t},z_{i})$ is the weighted mini-batch gradient, and $h_{t}$ is the optimizer's update rule (SGD, Adam, etc.). The attribution target is $\phi(s_{T})$, which depends on $\beta$ through the entire chain of updates.
+
+**The metagradient decomposition.**  Applying the chain rule through this composition:
+
+<div id="eq-metagrad-decomp">
+
+$$
+\frac{\partial\,\phi(s_{T})}{\partial \beta}\;=\; \sum_{t=0}^{T-1}\underbrace{\frac{\partial\,\phi(s_{T})}{\partial s_{t+1}}}_{A_{t+1}}\;\cdot\;\underbrace{\frac{\partial\,h_{t}(s_{t},g_{t}(s_{t},\beta))}{\partial \beta}}_{B_t}.
+$$
+
+</div>
+
+The vector $A_{t+1}:= \partial\phi(s_{T})/\partial s_{t+1}$ is the sensitivity of the final observable to the state at step $t+1$; it satisfies the backward recursion
+
+<div id="eq-backward-recursion">
+
+$$
+A_{t} \;=\; A_{t+1}\;\frac{\partial\,h_{t}(s_{t},g_{t})}{\partial s_{t}}, \qquad A_{T} = \nabla_{s_T}\phi(s_{T}).
+$$
+
+</div>
+
+This is just backpropagation through the training loop. The vector $B_{t}$ is the direct effect of $\beta$ at step $t$: it captures how the gradient at step $t$ depends on the data weights. For vanilla SGD, $B_{t}$ reduces to $-(\eta_{t}/b)\,[\nabla_{w} L(w_{t},z_{i})\cdot\mathbf{1}[i\in B_{t}]]_{i=1}^{n}$.
+
+**REPLAY: efficient reverse-mode through training.**  The backward recursion [(33)](#eq-backward-recursion) requires the optimizer state $s_{t}$ at every step. Naively this means storing all $T$ states, which is prohibitive for long training runs. The REPLAY algorithm ([Engstrom et al. 2025](#bib-engstrom2025optimizing)) solves this with a *hierarchical checkpointing* scheme:
+
+1. Save $k$ evenly-spaced checkpoints along the training trajectory.
+2. When the backward pass needs a state between two checkpoints, *replay* the training forward from the nearest saved checkpoint to regenerate it.
+3. Apply this strategy recursively (a $k$-ary tree of depth $\log_{k} T$).
+
+The result is exact (to floating-point precision) differentiation through all $T$ training steps, using $O(k\log_{k} T)$ stored states and $O(T\log_{k} T)$ total forward-pass work, a logarithmic overhead over the cost of training itself.
+
+**Comparison with explicit unrolling.**  The implicit approach has two main advantages:
+
+- *Exactness.* No stationarity or matrix-exponential approximations are needed; the Jacobian-vector products are computed exactly by autodiff.
+- *Generality.* Any differentiable optimizer (Adam, LAMB, etc.) and any training pipeline (multi-stage, curriculum learning) are handled transparently, since $h_{t}$ is just a function.
+
+The price is computational: REPLAY requires $O(T\log T)$ training-equivalent steps and careful engineering of the checkpointing schedule, whereas the explicit approach requires only a handful of checkpoints and an EK-FAC-style Hessian approximation at each. The choice depends on the scale: for moderate-size models where replaying training is feasible, MAGIC gives exact answers; for large-scale models where even one extra training pass is expensive, the SOURCE approximation with $L = 3$–$6$ segments may be the only practical option.
+
+### 4.3 Long Exercise: From unrolling to influence functions
+
+The unrolling formula [(20)](#eq-unroll-formula) and the influence function [(6)](#eq-if-pbrf) appear to be very different objects: one is a sum over training steps of Jacobian-propagated gradients, the other is a single inverse-Hessian-times-gradient computation at the endpoint. The following exercise shows that, in the right limit, unrolling converges to the classical influence function. The key observation, due to [Mlodozeniec et al. 2025](#bib-mlodozeniec2025distributional), is that the joint process $(w_{t}, r_{t})$, where $r_{t} := \partial w_{t}/\partial\varepsilon\big|_{\varepsilon=0}$ is the unrolling response, forms a *Markov chain*, and its limiting behavior can be analyzed with standard stochastic-approximation tools. This yields a convergence result that requires only that SGD reaches a local minimum, *not* that the loss is convex.
+
+<Exercise id="ex-unroll-to-if">
+**Exercise 4.2 (Convergence of unrolling to influence functions).** Consider the SGD update with an interpolated loss that downweights example $z_{k}$ by $\varepsilon$:
+
+<div id="eq-interpolated-sgd">
+
+$$
+w_{t+1}(\varepsilon) \;=\; w_{t}(\varepsilon) \;-\; \frac{\eta_{t}}{b}\sum_{i\in B_t}\bigl(1 - \varepsilon\,\mathbf{1}[i=k]\bigr)\,\nabla_{w} L(w_{t}(\varepsilon),z_{i}),
+$$
+
+</div>
+
+so $\varepsilon = 0$ is the original training run and $\varepsilon = 1/n$ corresponds to removing $z_{k}$. Define the *response* $r_{t} := \partial w_{t}(\varepsilon)/\partial\varepsilon\big|_{\varepsilon=0}$.
+
+<div id="eq-response-markov">
+
+$$
+\begin{pmatrix}w_{t+1}\\ r_{t+1}\end{pmatrix} \;=\; \underbrace{\begin{pmatrix}I&0 \\ 0&J_{t}\end{pmatrix}}_{\text{propagation}}\begin{pmatrix}w_{t} \\ r_{t}\end{pmatrix} \;+\; \underbrace{\begin{pmatrix}-\frac{\eta_t}{b}\sum_{i\in B_t}\nabla_{w} L(w_{t},z_{i}) \\[4pt] \frac{\eta_t}{b}\,\mathbf{1}[k\in B_{t}]\,\nabla_{w} L(w_{t},z_{k})\end{pmatrix}}_{\text{driving terms}}
+$$
+
+</div>
+
+**(a)** **(The response recursion.)** By differentiating [(34)](#eq-interpolated-sgd) with respect to $\varepsilon$ at $\varepsilon = 0$, derive [(35)](#eq-response-markov), where $J_{t} = I - \frac{\eta_{t}}{b}\sum_{i\in B_t}\nabla_{w}^{2} L(w_{t},z_{i})$ is the step Jacobian from [(17)](#eq-step-jacobian). The top row is ordinary SGD; verify that the bottom row is the same recursion as [Exercise 4.1](#ex-unroll-derive)(a), but now with stochastic batches. Since the driving terms depend only on $(w_{t}, r_{t})$ and the i.i.d. batch selection $B_{t}$, the joint process is a Markov chain. Why is this observation useful?
+
+**(b)** **(Deterministic warm-up: full-batch GD.)** As a warm-up, consider full-batch gradient descent with constant learning rate $\eta$ (i.e. $B_{t} = \{1,\dots,n\}$ for all $t$). Assume training has converged: $w_{t} \approx w^{*}$ and $\nabla_{w}^{2} L(w_{t}) \approx H$ for all $t$ in a window of length $K$. Show that the response over this window satisfies
+
+$$
+r_{T} \;\approx\; -\bigl[I - (I-\eta H)^{K}\bigr]\,H^{-1}\,\nabla_{w} L(w^{*},z_{k}).
+$$
+
+*Hint:* Sum the geometric series $\sum_{t=0}^{K-1}(I-\eta H)^{t}$ using the identity $\sum_{t=0}^{K-1}M^{t} = (I-M^{K})(I-M)^{-1}$.
+
+Take $K\to\infty$ (assuming $\eta < 2/\lambda_{\max}(H)$) and recover the influence function $r_{\infty} = -H^{-1}\nabla_{w} L(w^{*},z_{k}) = r_{\mathrm{IF}}$.
+
+**(c)** **(Stochastic case: convergence to IF.)** Now return to SGD with i.i.d. batches and a decaying learning rate satisfying $\sum_{t} \eta_{t} = \infty$, $\sum_{t} \eta_{t}^{2} < \infty$ (the Robbins–Monro conditions). Assume SGD converges to a local minimum $w^{*}$ with $H = \nabla_{w}^{2} L(w^{*})$ positive semidefinite. The continuous-time ODE that the response tracks is
+
+<div id="eq-response-ode">
+
+$$
+\dot{r}(t) \;=\; -H\,r(t) \;+\; \nabla_{w} L(w^{*},z_{k}).
+$$
+
+</div>
+
+(You do not need to prove that SGD tracks this ODE, this follows from standard stochastic approximation theory.)
+
+**i.** Show that the equilibrium of [(36)](#eq-response-ode) in the column space of $H$ is $r_{\mathrm{IF}}= H^{+}\nabla_{w} L(w^{*},z_{k})$, where $H^{+}$ is the pseudoinverse. This is the influence function, with $H^{+}$ in place of $H^{-1}$ because the Hessian may be singular at a local minimum of an overparameterized model.
+
+**ii.** Show that the component of $r(t)$ in the *null space* of $H$ grows linearly: if $P_{0}$ is the projector onto $\ker(H)$, then $P_{0}\,r(t) = P_{0}\,r(0) + t\,P_{0}\nabla_{w} L(w^{*},z_{k})$. Why does this component not converge? Under what condition on $\nabla_{w} L(w^{*},z_{k})$ does this runaway term vanish?
+
+The full result ([Mlodozeniec et al. 2025](#bib-mlodozeniec2025distributional), Theorem 2) is: on the set of SGD trajectories that converge to a local minimum, $r_{t} \to r_{\mathrm{IF}}+ r_{\mathrm{NS}}$ almost surely, where $r_{\mathrm{NS}}\in \ker(H)$. The influence function is the limiting response, up to a component in the flat directions of the loss.
+</Exercise>
+
+
+### 4.4 Exercise: Influence depends on training time
+
+The previous sections analyzed unrolling's asymptotics in the converged limit. But the whole point of unrolling is that the training *path* matters. The following exercise makes this concrete in a setting where the influence function admits a closed form at every point during training: a two-layer deep linear network (DLN), the same class of models from the SLT lecture day. The setup and analytic formula follow [Lee et al. 2025](#bib-lee2025stagewise).
+
+<Exercise id="ex-dln-influence">
+**Exercise 4.3 (Stagewise influence in a deep linear network).** A two-layer linear network $f_{W}(x) = W_{2} W_{1} x$ with $W_{1}, W_{2} \in \R^{d\times d}$ is trained on $\{(x_{i},y_{i})\}_{i=1}^{n}$ with squared loss. Assume whitened inputs ($\tfrac{1}{n}\sum_{i} x_{i} x_{i}^{\top} = I$) and, for simplicity, that the input–output cross-covariance $\Sigma_{xy}= \tfrac{1}{n}\sum_{i} x_{i} y_{i}^{\top}$ is already diagonal with entries $s_{1} > s_{2} > \cdots > s_{d} > 0$.[^5]
+
+**Dynamics.**  Under gradient flow with small balanced initialization, the network's modes evolve independently. The effective weight matrix at time $t$ is $W(t) = \mathrm{diag}(\mathcal{G}_{1}(t),\dots,\mathcal{G}_{d}(t))$, where each mode strength follows
+
+<div id="eq-dln-dynamics">
+
+$$
+\mathcal{G}_{k}(t) \;=\; \frac{s_{k}\,e^{2s_k t/\tau}}{e^{2s_k t/\tau}- 1 + s_{k}/\mathcal{G}_{k}(0)},
+$$
+
+</div>
+
+with $\mathcal{G}_{k}(0) \ll s_{k}$ and time constant $\tau$. Mode $k$ transitions from $\approx 0$ to $\approx s_{k}$ around time $t_{k}^{*} \approx \tfrac{\tau}{2s_k}\log(s_{k}/\mathcal{G}_{k}(0))$. Larger singular values saturate first: the network learns dominant structure before fine structure.
+
+**Analytic influence.**  Now perturb the weight of training example $z_{p} = (x_{p},y_{p})$ by $\varepsilon$, so the perturbed cross-covariance is $\Sigma_{xy}(\varepsilon) = \Sigma_{xy}+ \varepsilon\,y_{p} x_{p}^{\top}$. Since $\Sigma_{xy}$ is diagonal, the perturbation shifts its eigenvalues and rotates its eigenvectors. The influence of $z_{p}$ on the weight matrix at time $t$ decomposes as
+
+<div id="eq-dln-influence-formula">
+
+$$
+\mathcal{I}_{p}(t) \;:=\; \frac{\partial W(t,\varepsilon)}{\partial\varepsilon}\bigg\rvert_{\varepsilon=0}\;=\; A\,\mathcal{G}(t) \;+\; \mathcal{G}'_{\varepsilon}(t) \;+\; \mathcal{G}(t)\,B,
+$$
+
+</div>
+
+with three terms:
+
+- $A$ and $B$ are skew-symmetric matrices describing how the perturbation *rotates* the left/right singular bases. Their off-diagonal entries are $A_{jk}= B_{kj}= (y_{p})_{j}(x_{p})_{k}/(s_{k} - s_{j})$ for $j \neq k$.
+- $\mathcal{G}'_{\varepsilon}(t) = \mathrm{diag}\bigl(g'_{t}(s_{1})\,(y_{p})_{1}(x_{p})_{1},\;\dots,\;g'_{t}(s_{d})\,(y_{p})_{d}(x_{p})_{d}\bigr)$ encodes the change in mode strengths, where
+
+<div id="eq-dln-mode-sensitivity">
+
+$$
+g'_{t}(s_{k}) \;:=\; \frac{\partial\,\mathcal{G}_{k}(t)}{\partial s_{k}}
+$$
+
+</div>
+
+is the sensitivity of the $k$-th mode strength to a change in the corresponding singular value at time $t$.
+
+The influence on the loss of a test example $z_{q} = (x_{q}, y_{q})$, with residual $r_{q}(t) = y_{q} - W(t)x_{q}$, is
+
+<div id="eq-dln-influence-loss">
+
+$$
+\mathcal{I}(z_{p},\,\ell_{q})(t) \;=\; -\,r_{q}(t)^{\top}\bigl(A\,\mathcal{G}(t) + \mathcal{G}'_{\varepsilon}(t) + \mathcal{G}(t)\,B\bigr)\,x_{q}.
+$$
+
+</div>
+
+**(a)** **(Three sources of influence.)** Interpret the three terms in [(38)](#eq-dln-influence-formula):
+- $A\,\mathcal{G}(t)$ and $\mathcal{G}(t)\,B$: the perturbation *rotates* the singular bases, mixing already-learned modes into each other. Why are these terms proportional to the current mode strengths $\mathcal{G}(t)$ rather than to their derivatives?
+- $\mathcal{G}'_{\varepsilon}(t)$: the perturbation *shifts* the singular values, changing how fast each mode is learned. Why does this term involve $g'_{t}(s_{k})$, sensitivity of the dynamics to the singular value, rather than $\mathcal{G}_{k}(t)$ itself?
+
+**(b)** **(When does influence peak?)** Using the dynamics [(37)](#eq-dln-dynamics), argue that $g'_{t}(s_{k})$ is peaked around $t \approx t_{k}^{*}$ (the transition time of mode $k$). Conclude that the $\mathcal{G}'_{\varepsilon}$ term, the part of influence that acts through the learning speed of each mode, is concentrated in time around the moment the mode is being learned. Before and after, this contribution is negligible.
+
+*Hint:* Consider the limits $t \ll t_{k}^{*}$ (mode not yet learning, $\mathcal{G}_{k} \approx \mathcal{G}_{k}(0)$) and $t \gg t_{k}^{*}$ (mode saturated, $\mathcal{G}_{k} \approx s_{k}$). In both cases, how sensitive is $\mathcal{G}_{k}$ to a small change in $s_{k}$?
+
+**(c)** **(Sign flips.)** Consider $d = 2$ with $s_{1} \gg s_{2}$: mode 1 captures a coarse distinction ("animal vs. plant") and mode 2 a fine distinction ("dog vs. cat" within animals). A dog example $z_{\mathrm{dog}}$ and a cat example $z_{\mathrm{cat}}$ share the same mode-1 coordinate but have opposite mode-2 coordinates: $(x_{\mathrm{dog}})_{2} = +(x_{\mathrm{cat}})_{2}$. Using [(40)](#eq-dln-influence-loss), argue that the influence of $z_{\mathrm{dog}}$ on a cat test loss can change sign during training: positive while mode 1 is being learned (shared structure), negative after mode 2 is learned (competing structure). At what time is the sign flip sharpest?
+</Exercise>
+
+
+<div id="rem-dln-general">
+<Callout type="note">
+
+**Remark (General singular basis).** When $\Sigma_{xy}= USV^{\top}$ is not diagonal, the formulas above hold with all vectors expressed in the singular basis: replace $x_{p}$ by $V^{\top} x_{p}$, $y_{p}$ by $U^{\top} y_{p}$, $r_{q}$ by $U^{\top} r_{q}$, and $W(t)$ by $U^{\top} W(t) V$. The influence on $W$ itself becomes $\mathcal{I}_{p}(t) = U(A\mathcal{G}(t) + \mathcal{G}'_{\varepsilon}(t) + \mathcal{G}(t)B)V^{\top}$, with $A_{jk}= (U^{\top} y_{p})_{j}(V^{\top} x_{p})_{k}/(s_{k} - s_{j})$. See [Lee et al. 2025](#bib-lee2025stagewise) for the full derivation, including the degenerate case $s_{j} = s_{k}$.
+
+</Callout>
+</div>
+
+<div id="rem-developmental">
+<Callout type="note">
+
+**Remark (The developmental view of attribution).** [Lee et al. 2025](#bib-lee2025stagewise) show that the same phenomenology (influence sign flips, non-monotonic trajectories) appears in language models, where e.g. the influence of delimiter tokens spikes when the model learns pairing structure and then decays. The practical consequence is that data attribution is not a one-shot computation but a time-varying signal, and methods like unrolling that track the training trajectory are better suited to capture this than methods that look only at the final checkpoint.
+
+</Callout>
+</div>
+
+## 5. Practical Considerations and Open Problems
+
+Under construction.
+
+## 6. Further Readings
+
+Under construction.
+
+## References
+
+<div id="bib-bae2022if">
+
+Juhan Bae, Nathan Ng, Alston Lo, Marzyeh Ghassemi, and Roger Grosse (2022). [*If Influence Functions are the Answer, Then What is the Question?*](https://arxiv.org/abs/2209.05364). arXiv:2209.05364.
+
+</div>
+
+<div id="bib-bae2024source">
+
+Juhan Bae, Wu Lin, Jonathan Lorraine, and Roger Grosse (2024). [*Training Data Attribution via Approximate Unrolled Differentiation*](https://arxiv.org/abs/2405.12186). arXiv:2405.12186.
+
+</div>
+
+<div id="bib-baker2025studying">
+
+Garrett Baker, George Wang, Jesse Hoogland, and Daniel Murfet (2026). [*Structural Inference: Interpreting Small Language Models with Susceptibilities*](https://arxiv.org/abs/2504.18274). arXiv:2504.18274.
+
+</div>
+
+<div id="bib-cook1977">
+
+R. Dennis Cook (1977). [*Detection of Influential Observation in Linear Regression*](http://www.jstor.org/stable/1268249). Technometrics.
+
+</div>
+
+<div id="bib-engstrom2025optimizing">
+
+Logan Engstrom, Andrew Ilyas, Benjamin Chen, Axel Feldmann, William Moses, and Aleksander Madry (2025). [*Optimizing ML Training with Metagradient Descent*](https://arxiv.org/abs/2503.13751). arXiv:2503.13751.
+
+</div>
+
+<div id="bib-grosse2023studying">
+
+Roger Grosse, Juhan Bae, Cem Anil, Nelson Elhage, Alex Tamkin, Amirhossein Tajdini, Benoit Steiner, Dustin Li, Esin Durmus, Ethan Perez, Evan Hubinger, Kamilė Lukošiūtė, Karina Nguyen, Nicholas Joseph, Sam McCandlish, Jared Kaplan, and Samuel R. Bowman (2023). [*Studying Large Language Model Generalization with Influence Functions*](https://arxiv.org/abs/2308.03296). arXiv:2308.03296.
+
+</div>
+
+<div id="bib-hampel1974">
+
+Frank R. Hampel (1974). [*The Influence Curve and Its Role in Robust Estimation*](http://www.jstor.org/stable/2285666). Journal of the American Statistical Association.
+
+</div>
+
+<div id="bib-hitchcock2001intransitivity">
+
+Christopher Hitchcock (2001). [*The Intransitivity of Causation Revealed in Equations and Graphs*](http://www.jstor.org/stable/2678432). The Journal of Philosophy.
+
+</div>
+
+<div id="bib-ilyas2025magic">
+
+Andrew Ilyas and Logan Engstrom (2025). [*MAGIC: Near-Optimal Data Attribution for Deep Learning*](https://arxiv.org/abs/2504.16430). arXiv:2504.16430.
+
+</div>
+
+<div id="bib-koh2017understanding">
+
+Pang Wei Koh and Percy Liang (2020). [*Understanding Black-box Predictions via Influence Functions*](https://arxiv.org/abs/1703.04730). arXiv:1703.04730.
+
+</div>
+
+<div id="bib-kreer2025bif">
+
+Philipp Alexander Kreer, Wilson Wu, Maxwell Adam, Zach Furman, and Jesse Hoogland (2026). [*Bayesian Influence Functions for Hessian-Free Data Attribution*](https://arxiv.org/abs/2509.26544). arXiv:2509.26544.
+
+</div>
+
+<div id="bib-lee2025stagewise">
+
+Jin Hwa Lee, Matthew Smith, Maxwell Adam, and Jesse Hoogland (2025). [*Influence Dynamics and Stagewise Data Attribution*](https://arxiv.org/abs/2510.12071). arXiv:2510.12071.
+
+</div>
+
+<div id="bib-lewis1973causation">
+
+David Lewis (1973). *Causation*. Journal of Philosophy.
+
+</div>
+
+<div id="bib-mlodozeniec2025distributional">
+
+Bruno Mlodozeniec, Isaac Reid, Sam Power, David Krueger, Murat Erdogdu, Richard E. Turner, and Roger Grosse (2025). [*Distributional Training Data Attribution: What do Influence Functions Sample?*](https://arxiv.org/abs/2506.12965). arXiv:2506.12965.
+
+</div>
+
+<div id="bib-mueller">
+
+Aaron Mueller (2024). [*Missed Causes and Ambiguous Effects: Counterfactuals Pose Challenges for Interpreting Neural Networks*](https://arxiv.org/abs/2407.04690). arXiv:2407.04690.
+
+</div>
+
+<div id="bib-pruthi2020estimating">
+
+Garima Pruthi, Frederick Liu, Mukund Sundararajan, and Satyen Kale (2020). [*Estimating Training Data Influence by Tracing Gradient Descent*](https://arxiv.org/abs/2002.08484). arXiv:2002.08484.
+
+</div>
+
+<div id="bib-shapley1953value">
+
+Lloyd S Shapley (1953). *A Value for n-Person Games*. Contributions to the Theory of Games II.
+
+</div>
+
+[^1]: In [Section 4](#4-unrolling) we make this analogy explicit.
+
+[^2]: For an invertible matrix $M$ and vectors $u,v$: $(M + uv^{\top})^{-1}= M^{-1}- \frac{M^{-1}u\,v^{\top} M^{-1}}{1 + v^{\top} M^{-1}u}$.
+
+[^3]: Concretely you can take the eigendecomposition of $H$ and only invert the non-zero eigenvalues.
+
+[^4]: For small $\varepsilon$ the map $w\mapsto w+\varepsilon r(w)$ is a diffeomorphism, so the inverse is well-defined. The exact formula requires evaluating $r$ at the pre-image; the expression above is correct to the order we need.
+
+[^5]: The general case replaces the standard basis with the left/right singular vectors $U, V$ of $\Sigma_{xy}$ throughout; see [Remark 4.4](#rem-dln-general).

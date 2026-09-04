@@ -1,0 +1,117 @@
+---
+cluster: A
+day: A.1
+title: AI Alignment Introduction
+summary: An introduction to the AI alignment problem — alignment targets, problem decompositions and threat models, goal-directedness and instrumental convergence, and high-level approaches to solving alignment.
+contributors:
+  - Leon Lang (University of Amsterdam)
+---
+
+# Learning outcomes
+
+The students:
+
+* understand the basic decomposition of risks into AI misalignment, misuse, power grabs, and others;  
+* can explain different alignment targets like coherent extrapolated volition, intent alignment, or AI that follows a constitution;  
+* can reason about training stories and outer and inner (mis)alignment, challenges to these notions, and the relationship to inductive biases;  
+* are aware of discussions on whether AI systems develop goals and understand the basic arguments for instrumental convergence;  
+* are aware of foundational discussions on the level of risk and different high-level approaches to solving the AI alignment problem.
+
+# Roadmap for today
+
+The first 2.5 hours of this day are devoted to welcoming the participants and having introductory 1-1’s. This leaves 4.0 hours to the actual content.
+
+We start **with a presentation [based on these slides](https://drive.google.com/file/d/1SDYErOus0dak4ezjPYtsH7eKcFusVeKF/view).**
+
+For the following reading and discussion sessions, if you know all content already, you may look into the “reading guide” and pick other readings.
+
+**Session 1: Alignment targets**
+
+Spend 20 minutes reading the following texts. Concentrate on the one most interesting to you. 
+
+* [Coherent extrapolated volition](https://intelligence.org/files/CEV.pdf): Most important: The first 2.5 pages in Section 3\.  
+* [Intent alignment](https://ai-alignment.com/clarifying-ai-alignment-cec47cd69dd6)  
+* [Claude’s constitution overview](https://www.anthropic.com/news/claude-new-constitution).  
+* [Corrigibility](https://www.lesswrong.com/w/corrigibility-1)
+
+Discuss in groups of 3-5 for 30 minutes. Possible prompts:
+
+* Which alignment targets imply which others? Where this is not the case, think through counter examples.  
+* Which alignment targets seem sufficient for safety? E.g., a corrigible system might cause harm before we change its values. Can it cause catastrophic harm? What about the other notions?   
+* What other ideas for alignment targets do you have? Does your target have a benefit?
+
+**Session 2: Alignment problem decompositions**
+
+Spend 20 minutes reading the following texts, concentrating on the one most interesting to you.
+
+* [Reward misspecification](https://deepmind.google/blog/specification-gaming-the-flip-side-of-ai-ingenuity/)  
+* [Goal misgeneralization](https://deepmind.google/blog/how-undesired-goals-can-arise-with-correct-rewards/)  
+* [Training stories](https://www.alignmentforum.org/posts/FDJnZt8Ks2djouQTZ/how-do-we-become-confident-in-the-safety-of-a-machine): Read everything before the section “How mechanistic does \[...\]”  
+* [On soft inductive biases](https://arxiv.org/abs/2503.02113)
+
+Discuss in groups of 3-5 for 30 minutes. Possible prompts:
+
+* Think of well-known or imagined misalignment scenarios: Can you think of some that clearly fall into the reward misspecification or goal misgeneralization category? Are some not clearly in either of them?  
+* What problem with “outer” and “inner” misalignment is the terminology of “training stories” trying to solve? Construct examples where training stories seem more appropriate than inner/outer alignment as a framework.  
+* Think of concrete ways in which modern deep learning systems generalize beyond their explicit training examples. What inductive biases may underlie these examples? Is it always possible to come up with a “clean description” of those biases? Is the inductive bias you come up with enforced in the architecture, or more implicit?  
+  * Perhaps: Discuss this explicitly for the case of “emergent misalignment”.
+
+**Session 3: Goal directedness**
+
+Spend 20 minutes reading the following texts, concentrating on the one most interesting to you. 
+
+* [Will humans build goal-directed agents?](https://www.alignmentforum.org/posts/9zpT9dikrrebdq3Jf/will-humans-build-goal-directed-agents)  
+* [Basic AI drives](https://selfawaresystems.com/wp-content/uploads/2008/01/ai_drives_final.pdf): Most important: abstract, intro, conclusion, and understanding every heading and a basic argument for its underlying AI drive.
+
+Discuss in groups of 3-5 for 30 minutes. Possible prompts:
+
+* Clearly we can imagine *different types* of agents, e.g. some that coherently optimize a utility function, and others that are based on contextually activated computations, etc. What type do we see in today’s LLM agents? How will this development continue in the future?  
+* Can you think of other convergent instrumental goals than the ones mentioned in basic AI drives?  
+* What is the relationship between corrigibility and convergent instrumental subgoals?
+
+**Session 4: Uncertain risks and outlook**
+
+Spend 20 minutes reading the following texts, concentrating on the one most interesting to you.
+
+* [Core views on AI safety](https://www.anthropic.com/news/core-views-on-ai-safety): Most important sections: “Our Approach: Empiricism in AI Safety”, “The role of frontier models in AI safety” and ”Taking a portfolio approach to AI safety”.  
+* [Model organisms of misalignment](https://www.lesswrong.com/posts/ChDH335ckdvpxXaXX/model-organisms-of-misalignment-the-case-for-a-new-pillar-of-1): Most important: everything before “Examples of Model Organisms \[...\]”.  
+* [The rocket alignment problem](https://www.alignmentforum.org/posts/Gg9a4y8reWKtLe3Tn/the-rocket-alignment-problem)
+
+Discuss in groups of 3-5 for 30 minutes. Possible prompts:
+
+* How large is the risk? Do we live in an optimistic, intermediate, or pessimistic scenario? How has the evidence changed in the past years?  
+* Can you think of model organisms for misalignment that were published after the post came out in 2023? Does this change our understanding of the risks?  
+* Does the analogy between the AI alignment and rocket alignment problems feel accurate? In what ways does it or does it not?  
+* What safety approaches (e.g., on a spectrum from theoretical to empirical) feel most appealing to you, and why? Does this depend on details of the problem you are trying to solve?
+
+# Daily Checkpoint
+
+Do [the linked quiz](https://docs.google.com/forms/d/e/1FAIpQLSeM_LJhem9MzbH4FcTL58qJ9Tb0bj9GTKKqtz7yhXC2E5OA-Q/viewform?usp=header).
+
+# Reading guide
+
+*Note: This section is optional for today. To fully understand this content, read the linked texts. A subselection of these can also be found in the “teaching guide” section, which explains how we ran this content in-person in the April Iliad Intensive.*
+
+The following story is also summarized [in the slides](https://drive.google.com/file/d/1SDYErOus0dak4ezjPYtsH7eKcFusVeKF/view?usp=sharing). 
+
+**Different AI risks.** There are many AI safety problems. [The adolescence of technology](https://www.darioamodei.com/essay/the-adolescence-of-technology) is an opinionated introduction into these risks, including the risk of autonomous misaligned AI, AI misuse for destruction, AI misuse for seizing power, and others. 
+
+**Alignment targets.** In this course, we are mainly focused on AI alignment, which is broadly the problem of making sure AI acts in line with “human” wishes. There are different conceptualizations for what this means, i.e. what the “alignment target” is, which are partially overlapping: Some may wish AI to be aligned with our [coherent extrapolated volition](https://intelligence.org/files/CEV.pdf), which is “our wish if we knew more, thought faster, were more the people we wished we were, had grown up farther together \[...\]”. A different conceptualization is that of [intent alignment with a human](https://ai-alignment.com/clarifying-ai-alignment-cec47cd69dd6), which means “trying to do what the human wants \[the AI\] to do”. As contemporary AI becomes more powerful and widespread, more sophisticated notions of alignment targets have emerged. Most prominently, one may align an AI with the prescriptions in a [constitution as in the case of Anthropic’s Claude](https://www.anthropic.com/news/claude-new-constitution), which may balance the wishes of users, the developer’s guidelines, general ethics, and efforts to oversee the AI. Another often-discussed target is [corrigibility](https://www.lesswrong.com/w/corrigibility-1). An AI is corrigible if it will let us modify its functions or goals and even let us shut it down. If corrigibility is achieved, then we can correct mistakes in building an AI, which makes it easier to iterate to achieve lower risk.
+
+**Alignment problem decompositions.** Assume we have chosen our alignment target. How do we ensure an AI system actually *obeys* that target? This is the *technical* problem of AI alignment. In this introduction, we are mostly presupposing that AI systems are *trained via deep learning*, although later modules in this course on agent foundations go beyond that assumption. In the deep learning paradigm, [training stories](https://www.alignmentforum.org/posts/FDJnZt8Ks2djouQTZ/how-do-we-become-confident-in-the-safety-of-a-machine) are a useful framework to think about how to align AI systems: You need to choose a *training target* (e.g. “My model is corrigible”) and then have a *training rationale* for why your *training setup* will create a model obeying the target. And of course, your training rationale needs to actually be correct, which requires technical research to back up any such claim\! 
+
+With approaches that are based on reinforcement learning, another popular problem decomposition is into *outer* and *inner* alignment. Outer alignment is the problem of [specifying a reward function](https://deepmind.google/blog/specification-gaming-the-flip-side-of-ai-ingenuity/) that rewards an AI’s behavior according to how well it obeys the chosen alignment target. Inner alignment is the problem of ensuring that the trained policy will, even in new out-of-distribution situations after training, [continue to generalize correctly](https://deepmind.google/blog/how-undesired-goals-can-arise-with-correct-rewards/) and obey the reward function. In cases where the policy has inner processes that actively optimize for a goal, this means ensuring that this goal agrees with the goal encoded in the reward function, a problem that was discussed at length in [risks from learned optimization](https://arxiv.org/abs/1906.01820). 
+
+In general, the out-of-distribution (also called “generalization”) behavior of AI systems depends crucially on its [inductive biases](https://www.cs.cmu.edu/~tom/pubs/NeedForBias_1980.pdf), which are the implicit or explicit constraints on what functions are more likely to emerge from the training process. As it turns out, deep learning has strong implicit inductive biases, as exemplified by [emergent misalignment](https://arxiv.org/abs/2502.17424), a phenomenon whereby narrow fine-tuning can produce broadly misaligned LLMs. Read [this article](https://arxiv.org/abs/2503.02113) on how deep learning’s inductive biases may be related to the compressibility of the solutions the training process finds. 
+
+The decomposition of the alignment problem into inner and outer alignment is controversial, which is why above we started with the more general framing of training stories. In particular, in “[Reward is not the optimization target](https://www.alignmentforum.org/posts/pdaGN6pQyQarFHXF4)”, Alex Turner argues that the reward function is *not* what a reinforcement learning policy is optimized to maximize. Instead, a policy performs the contextual computations that were previously reinforced before a reward event. This is similar to Eliezer Yudkowsky’s proposal to view biological organisms as [adaptation-executers instead of fitness-maximizers](https://www.lesswrong.com/posts/XPErvb8m9FapXCjhA/adaptation-executers-not-fitness-maximizers). 
+
+**Goal-directedness.** We already briefly discussed the idea of a policy that “internally” steers toward some goal. If an AI is goal-directed in that way, then any misalignment on top is intuitively more dangerous. In “[Why tool AIs want to be agent AIs](https://gwern.net/tool-ai)”, Gwern argues that, among others, economic reasons will push AI systems to become more and more goal-directed. A similar argument is made in [Will humans build goal-directed agents?](https://www.alignmentforum.org/posts/9zpT9dikrrebdq3Jf/will-humans-build-goal-directed-agents) by Rohin Shah. 
+
+Such an AI system, if successful, would also be able to create its own subgoals on the pathway to achieve its goals. “Instrumental convergence” is the claim that there are some goals that are instrumentally useful in reaching a very wide variety of final goals. This would imply that goal-directed AI systems develop [basic AI drives](https://selfawaresystems.com/wp-content/uploads/2008/01/ai_drives_final.pdf) like self-improvement, preservation of their goal, or self-protection. This is counter to the alignment target of corrigibility we discussed earlier, and is therefore a dangerous outcome of training powerful AI. Understanding the relationship between inductive biases and the goal formation of AI systems is therefore very important.
+
+**Forecasting risks**. Where does this leave us, in terms of our general level of risks? In general, there is a broad spectrum of views on the difficulty of the alignment problem. In Anthropic’s “[core views on AI safety](https://www.anthropic.com/news/core-views-on-ai-safety)”, the authors discuss three very different possibilities: an optimistic scenario, in which current methods are essentially sufficient; an intermediate scenario, in which preventing catastrophic risks requires substantial scientific and engineering effort; and a pessimistic view, in which AI safety is essentially unsolvable. Among [authors at top machine learning venues](https://arxiv.org/abs/2401.02843), “\[b\]etween 38% and 51% of respondents gave at least a 10% chance to advanced AI leading to outcomes as bad as human extinction”. While those who are concerned often create failure stories of how AI can lead to catastrophes, like Paul Christiano’s “[What failure looks like](https://www.lesswrong.com/posts/HBxe6wdjxK239zajf/what-failure-looks-like)” and the detailed scenario in [AI 2027](https://ai-2027.com/), others are more optimistic and explain why they think “[AI is easy to control](https://optimists.ai/2023/11/28/ai-is-easy-to-control/)”. In this epistemic state of uncertainty, it is useful to do research on the level and nature of AI risks themselves. One approach is [model organisms of misalignment](https://www.lesswrong.com/posts/ChDH335ckdvpxXaXX/model-organisms-of-misalignment-the-case-for-a-new-pillar-of-1), which are “in vitro demonstrations of the kinds of failures that might pose existential threats”.
+
+**Solution approaches.** Assume we are sufficiently concerned about AI alignment that we want to solve the problem. What high-level approach should we choose? Some people, like Jan Leike, argue for [very empirical iterative approaches](https://aligned.substack.com/p/alignment-optimism) to AI alignment, sometimes with the goal to use more advanced AI systems to help solve remaining alignment research questions. Eliezer Yudkowsky argues for deep mathematical progress in [his analogy to the rocket alignment problem](https://www.alignmentforum.org/posts/Gg9a4y8reWKtLe3Tn/the-rocket-alignment-problem). Yet others take a further step back and argue we need to solve [deep philosophical problems](https://www.lesswrong.com/posts/rASeoR7iZ9Fokzh7L/problems-in-ai-alignment-that-philosophers-could-potentially) on our way to aligned AI. Somewhat orthogonal to all those views, Paul Christiano’s post on [prosaic AI alignment](https://ai-alignment.com/prosaic-ai-control-b959644d79c2) argues that we should attempt to align the AI systems we have in front of us instead of waiting for breakthroughs in our understanding of intelligence or entirely new paradigms to create intelligent machines — which is a view that is compatible with both empirical and theoretical research on how to make those systems safe. 
+
+Our course tries to a large extent a synthesis between different views: We assume for much of the course the “prosaic” picture that powerful AI systems will be based on deep learning systems much like today’s; And we are interested in deep, empirically grounded *mathematical* progress on understanding these systems. Additionally, we include sections on agent foundations that complement this work and do not assume a deep learning frame.   

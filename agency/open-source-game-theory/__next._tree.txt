@@ -1,0 +1,5 @@
+:HL["/iliad-intensive/_next/static/chunks/152-zz_ueqkt_.css","style"]
+:HL["/iliad-intensive/_next/static/media/68d403cf9f2c68c5-s.p.0nhx~dwif.9~q.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/iliad-intensive/_next/static/media/83afe278b6a6bb3c-s.p.0q-301v4kxxnr.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/iliad-intensive/_next/static/chunks/0tmg9vcbw.fm2.css","style"]
+0:{"tree":{"name":"","param":null,"prefetchHints":16,"slots":{"children":{"name":"cluster","param":{"type":"d","key":"agency","siblings":null},"prefetchHints":0,"slots":{"children":{"name":"slug","param":{"type":"d","key":"open-source-game-theory","siblings":null},"prefetchHints":0,"slots":{"children":{"name":"__PAGE__","param":null,"prefetchHints":0,"slots":null}}}}}}},"staleTime":300,"buildId":"bNH2SQDW7uBFajWyQoeZg"}

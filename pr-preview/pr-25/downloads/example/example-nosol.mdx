@@ -1,0 +1,179 @@
+---
+contributors:
+  - Jane Doe (Example University)
+  - John Roe
+title: "Example Worksheet: The Kitchen Sink"
+summary: >-
+  A dummy worksheet demonstrating every construct the pipeline supports.
+unlisted: true
+---
+
+$\gdef\R{\mathbb{R}}\gdef\E{\mathbb{E}}\gdef\KL#1#2{D_{\mathrm{KL}}\!\left(#1 \,\middle\|\, #2\right)}\gdef\argmax{\operatorname*{arg\,max}}$
+
+<YouTube id="dQw4w9WgXcQ" title="Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)" />
+
+## 1. Prerequisites
+
+Prerequisites, further reading, and anything else you want to say are just ordinary LaTeX — no special markup. For this sheet:
+
+- comfort with probability on finite sets ($\E$, distributions);
+- one variable of calculus (we differentiate $-t \log t$ once).
+
+<LearningOutcomes>
+
+**Using this template**
+
+- Recognise every markup element the tex $\to$ MDX pipeline supports.
+- Copy this file as the starting point for a new worksheet.
+
+**Structuring learning outcomes**
+
+- Group outcomes with `\subsection*{...}` plus an `itemize` when a flat list gets long.
+- Drop the `\subsection*` headings for a short sheet – a single `itemize` is fine.
+
+</LearningOutcomes>
+
+This dummy worksheet demonstrates every construct that survives the round trip from LaTeX to the curriculum website. Compile it with `pdflatex` (twice, then `bibtex`, then twice again for the bibliography), or just read the source side by side with the rendered page.
+
+## 2. Prose, math, and cross-references
+
+Ordinary prose converts verbatim, including *emphasis*, **bold**, `monospace`, and special characters like 50% or §3. Inline math is copied byte-for-byte: $e^{i\pi}+ 1 = 0$, and KaTeX handles comparisons like $x_{<t}$ without trouble. Custom notation defined in the preamble just works: $\KL{p}{q}\geq 0$, $\argmax_{a}\E[R \mid a]$, for $p, q$ distributions on $\R^{n}$.
+
+Display math works as
+
+$$
+\sum_{k=1}^{n}k = \frac{n(n+1)}{2},
+$$
+
+and as numbered equations you can reference:
+
+<div id="eq-basel">
+
+$$
+\sum_{n \geq 1}\frac{1}{n^{2}}= \frac{\pi^{2}}{6}.
+$$
+
+</div>
+
+Multi-line derivations use `align`:
+
+$$
+\begin{aligned}(a+b)^{2}&= (a+b)(a+b) \\&= a^{2} + 2ab + b^{2}.\end{aligned}
+$$
+
+Cross-references resolve to the exact text LaTeX prints: [Equation 1](#eq-basel) sits in [Section 2](#2-prose-math-and-cross-references); below we will meet [Definition 3.1](#def-entropy) and [Theorem 3.2](#thm-gibbs). Lists are fine too:
+
+- first bullet;
+- second bullet, with math $2^{n}$.
+
+## 3. Definitions, theorems, and callouts
+
+Label anything you want to reference. Any placement LaTeX binds correctly is valid (top level of the environment); right after the `begin` is clearest.
+
+<Definition id="def-entropy">
+
+**Definition 3.1 (entropy).** The *entropy* of a distribution $p$ on a finite set $\mathcal{X}$ is
+
+$$
+H(p) = -\sum_{x \in \mathcal{X}}p(x) \log p(x).
+$$
+
+</Definition>
+
+<Theorem id="thm-gibbs">
+
+**Theorem 3.2 (Gibbs' inequality).** For any distributions $p, q$ on $\mathcal{X}$, $-\sum_{x} p(x) \log q(x) \geq H(p)$, with equality iff $p = q$.
+
+</Theorem>
+
+<Solution title="Proof">
+
+By definition, $\KL{p}{q}= \sum_{x} p(x) \log \frac{p(x)}{q(x)}\geq 0$ by Jensen's inequality applied to the concave function $\log$; rearranging gives the claim. Equality in Jensen requires $p(x)/q(x)$ constant, i.e. $p = q$. (On the website this proof is collapsible, like a solution.)
+
+</Solution>
+
+<Theorem id="lem-uniform">
+
+**Lemma 3.3.** $H(p) \leq \log |\mathcal{X}|$, with equality iff $p$ is uniform.
+
+</Theorem>
+
+<Solution title="Proof">
+
+Apply [Theorem 3.2](#thm-gibbs) with $q$ uniform.
+
+</Solution>
+
+<div id="co-pitfall">
+<Callout type="warning" id="co-pitfall">
+
+Callouts flag pitfalls, tips, or side notes. Types: `note`, `tip`, `warning`. They may be labelled and referenced, like this one.
+
+</Callout>
+</div>
+
+<div id="rem-aside">
+<Callout type="note">
+
+**Remark.** A `remark` is an aside; on the website it renders as a note-style callout. Referencing works: see [Callout 3.1](#co-pitfall) above (and this remark is [Remark 3.1](#rem-aside)).
+
+</Callout>
+</div>
+
+## 4. Exercises and solutions
+
+The optional argument of an exercise is its title, exactly as in amsthm. An optional `\important` mark (a $\bigstar$ flagging the sheet's most important exercises) goes right after the label. Subparts are a plain `enumerate`; label an item to reference it. Every solution *names its exercise* — `[ex:label]` is mandatory — so you may place solutions right after each exercise or collect them at the end, as you prefer. Exercises don't require solutions; label any exercise a solution or reference points at.
+
+<Exercise id="ex-warmup">
+**Exercise 4.1 (Entropy warm-up).** Let $p$ be a distribution on a finite set $\mathcal{X}$.
+
+**(a)** Show that $H(p) \geq 0$.
+
+**(b)** For which $p$ is $H(p) = 0$?
+</Exercise>
+
+
+<Exercise id="ex-gibbs-hard">
+**Exercise 4.2 (★) (Gibbs, the hard direction).** Prove the equality case of [Theorem 3.2](#thm-gibbs) directly, without citing Jensen's equality condition. [*Note:* this one is solved at the end of the sheet instead of inline, to demonstrate both solution placements.]
+</Exercise>
+
+
+Hints also have a block form: unnumbered, never labeled, rendered right where it is written — a bold lead-in on paper, a collapsible drop-down on the web.
+
+<Hint>
+
+Consider $f(t) = t - 1 - \log t$: it is nonnegative on $t > 0$ and vanishes only at $t = 1$.
+
+</Hint>
+
+## 5. Figures and citations
+
+Figures use `figure` + `\includegraphics` (export TikZ to PDF the same way; keep assets in `fig/`).
+
+<div id="fig-value">
+<Figure src="/uploads/example/value-curve.svg" alt="An example figure. On the web this becomes a Figure component.">
+
+An example figure. On the web this becomes a `Figure` component.
+
+</Figure>
+</div>
+
+See [Figure 1](#fig-value). Citations come from the `.bib` file: the idea of entropy is due to ([Shannon 1948](#bib-shannon-48)); for a textbook treatment see ([MacKay 2003](#bib-mackay-03), ch. 4). External links are plain [hyperlinks](https://en.wikipedia.org/wiki/Entropy_(information_theory)), and footnotes are supported.[^1]
+
+## Selected solutions
+
+## References
+
+<div id="bib-mackay-03">
+
+David J. C. MacKay (2003). [*Information Theory, Inference, and Learning Algorithms*](https://www.inference.org.uk/itila/). Cambridge University Press.
+
+</div>
+
+<div id="bib-shannon-48">
+
+Claude E. Shannon (1948). *A Mathematical Theory of Communication*. Bell System Technical Journal.
+
+</div>
+
+[^1]: On the web this becomes a numbered footnote: the marker links down to a note at the foot of the page, and the note links back. In the PDF it is an ordinary LaTeX footnote.

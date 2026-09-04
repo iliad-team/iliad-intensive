@@ -1,0 +1,56 @@
+% slides.tex — the optional slide deck for a worksheet folder.
+%
+% If this file exists, the build compiles it to slides.pdf and hosts it next
+% to the worksheet's other downloads (a "Slides" row appears on the page with
+% view / download / LaTeX-download boxes). It is NEVER converted to MDX — a
+% deck is a download, not a web page. No -nosol variant is produced.
+%
+% HANDOUT: mention \HANDOUT anywhere in this file and the build makes a second,
+% collapsed PDF (slides-handout.pdf) by \def-ing the macro on the command line:
+%   pdflatex -jobname=slides-handout "\def\HANDOUT{}\input{slides}"
+% The line below is the whole convention — it passes beamer's `handout` option,
+% which flattens every \pause into a single slide. The page's Slides row then
+% offers present / handout / LaTeX. Drop the line if the deck has no reveals.
+%
+% Any self-contained LaTeX works; beamer is the usual choice. iliad.sty is a
+% worksheet contract and is NOT loaded here. If you only have a prebuilt PDF
+% deck with no source, don't commit the binary — host it (e.g. Google Drive)
+% and add a `slides: <url>` line to the %--- iliad --- block in main.tex, which
+% renders as an outbound link instead.
+%
+% tex/iliad-slides.sty is an OPTIONAL shared deck style (Madrid theme, the usual
+% packages, readable link colours) loaded below. Nothing requires it: replace the
+% line with your own preamble and the build won't care — no part of the website
+% reads a deck.
+\ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
+\documentclass{beamer}
+\IfFileExists{iliad-slides.sty}{\usepackage{iliad-slides}}{\usepackage{../iliad-slides}}
+
+\title{Example Worksheet: The Kitchen Sink}
+\subtitle{Slides}
+\author{Iliad Intensive}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{What this deck demonstrates}
+  \begin{itemize}
+    \item A \texttt{slides.tex} in a worksheet folder is compiled to
+          \texttt{slides.pdf} by the build.
+    \item The page shows a \emph{Slides} row: present, handout, and the LaTeX
+          source.
+    \pause
+    \item This bullet arrives on a \texttt{\textbackslash pause} --- two slides
+          in the presentation build, one in the handout.
+    \item Math renders as usual: $\displaystyle H(p) = -\sum_x p(x)\log p(x)$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{That's it}
+  \centering \Large Edit \texttt{slides.tex}, rebuild, refresh.
+\end{frame}
+
+\end{document}

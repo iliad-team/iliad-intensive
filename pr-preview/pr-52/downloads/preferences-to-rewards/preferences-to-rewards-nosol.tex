@@ -1,0 +1,1258 @@
+%--- iliad ---
+% title: Preferences to Rewards
+% summary: >-
+%   Building from preferences and a minimal set of axioms
+%   to a utility function expressible as a sum of discounted rewards:
+%   the familiar framing in reinforcement learning.
+%--- end ---
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+% Page geometry (compact screen page, 1cm margins) now comes from iliad.sty.
+\usepackage{microtype}
+\usepackage{mathtools}
+\usepackage[round,authoryear]{natbib}
+
+% iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty.
+% Provides exercise/solution/definition/theorem/proposition/remark/callout,
+% amsmath+amsthm+enumitem+tcolorbox+hyperref+cleveref.
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue,
+  citecolor=blue,
+  urlcolor=blue
+}
+
+% Axioms are this note's own environment (flat numbering, as in the
+% original); everything else comes from iliad.sty.
+\newtheorem{axiom}{Axiom}
+
+\newcommand{\Hcal}{\mathcal{H}}
+\newcommand{\Ofin}{\mathcal{O}}
+\newcommand{\Afin}{\mathcal{A}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\pref}{\succcurlyeq}
+\newcommand{\strictpref}{\succ}
+\newcommand{\indiff}{\sim}
+\newcommand{\Lot}{\Delta}
+\newcommand{\emptytraj}{\varepsilon}
+
+\title{Preferences to Rewards}
+\author{Fernando E. Rosas}
+\date{\today}
+
+
+\begin{document}
+
+\maketitle
+
+% Fernando's own three, transcribed from the D.1 Doc tab ("idealised agency"
+% dump) and confirmed against it by David Q. The bullets these replaced were
+% machine-written by the original port -- notes_vNM/main.tex has no outcomes
+% list at all -- and were TODO'd out in 460e3d0.
+% https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.uqpqtto4ldg0
+\begin{learningoutcomes}
+  \begin{itemize}
+    \item Understand the difference between preferences, utility, and reward:
+      preferences being a primary, largely uncontroversial notion, and utility
+      and rewards being derived notions resting on specific assumptions.
+    \item Be able to derive the relationship between various preference
+      structures and rationality axioms.
+    \item Critically assess alternative notions of rationality, and the
+      consequences of dropping various classical decision theory assumptions.
+  \end{itemize}
+\end{learningoutcomes}
+
+\begin{abstract}
+\noindent
+This note develops a short route from preferences over complete trajectories to
+expected utility, reward, and discount. We begin with preference relations on
+deterministic trajectories and explain how completeness and transitivity yield
+an ordinal utility representation. We then show how lotteries, together with
+the von Neumann--Morgenstern axioms, produce a cardinal utility over
+trajectories, and we clarify the distinction between ordinal preference utility
+and vNM utility. Next, following Bowling et al., we add a fifth temporal axiom
+that is necessary and sufficient for a recursive representation in terms of
+local rewards and discounting. Finally, we explain why reward is not unique:
+different reward functions can encode the same utility or the same preference
+ordering, affine changes of utility induce corresponding changes of reward, and
+potential-based shaping provides a canonical example of reward equivalence.
+\end{abstract}
+
+\section{Introduction}
+
+What does it mean for a system to have a goal? In sequential decision making,
+the object of evaluation is often not a single isolated choice or prize but a
+whole trajectory: a complete history of states, observations, actions, and
+consequences unfolding
+through time. Before asking how goals are achieved, it is worth asking a more
+basic question: what does it mean to prefer some trajectories over
+others, and what follows from that?
+
+Recent work in reinforcement learning has revived this fundamental question,
+treating preferences over histories as primitive and asking what additional
+assumptions are needed before one can recover scalar reward functions. The
+present note provides an introduction to these ideas, which proceeds in three
+stages.
+\begin{enumerate}[label=(\arabic*)]
+    \item First, one asks for a numerical representation of how whole
+    trajectories are ranked.
+    \item Second, once one allows lotteries over trajectories, one asks when
+    these lotteries can be ranked by the expectation of that trajectory
+    utility.
+    \item Third, one asks what additional requirements are needed in order to
+    decompose this expected utility into rewards assigned at each time step.
+\end{enumerate}
+The first and second steps are closely related to the classical theory developed
+by von Neumann and Morgenstern \citep{vonneumann1944theory}. The third asks
+what extra temporal structure is needed before utility over whole trajectories
+can be decomposed into stagewise rewards, following the line of work developed
+in modern reinforcement learning by \citet{pitis2019rethinking},
+\citet{shakerinava2022utility}, and \citet{bowling2023settling}.
+
+\section{Preferences over trajectories}
+
+Let $\Ofin$ be a finite set of
+observations and $\Afin$ a finite set of actions. A one-step interaction is
+then given by $t=(o,a)\in \Ofin\times \Afin$. 
+For each $n\in\mathbb{N}_{\geq 0}$, define the space of trajectories of length
+$n$ by
+\[
+\Hcal_n \coloneqq (\Ofin\times \Afin)^n.
+\]
+We write $\emptytraj$ for the unique trajectory of length $0$. The space of all
+\emph{finite} trajectories is
+\[
+\Hcal^* \coloneqq \bigcup_{n=0}^\infty \Hcal_n.
+\]
+A typical element of $\Hcal^*$ has the form $h=(o_1,a_1,o_2,a_2,\dots,o_n,a_n)$.
+We will keep the notation $\Hcal^*$ for the set of all finite trajectories
+throughout.
+%For $h\in\Hcal^*$ and $t\in \Ofin\times \Afin$, one may form a longer trajectory
+%either by appending or prepending $t$. To stay close to Bowling et al.'s
+%notation, we write $t\cdot h$ for the trajectory obtained by prepending $t$ to
+%$h$.
+
+\begin{definition}[Preference]
+A preference relation on $\Hcal^*$ is a binary relation $\pref$ where
+\[
+h \pref h'
+\]
+means that trajectory $h$ is judged at least as good as trajectory $h'$.
+\end{definition}
+
+From $\pref$ we derive the usual companion relations:
+\[
+h \indiff h' \iff h \pref h' \text{ and } h' \pref h,
+\qquad
+h \strictpref h' \iff h \pref h' \text{ and not } h' \pref h.
+\]
+We call $\indiff$ `indifference', as an agent has no reason to prefer one over
+the other.
+
+At this point, $\pref$ has no properties whatsoever.
+One may naturally wonder what kinds of properties it is reasonable to require
+of $\pref$, and what follows from them --- which is what we study in the next
+sections.
+
+
+\section{When are preferences problematic?}
+
+Can a preference relation be intrinsically `bad'? The relevant concern here is
+whether it leads to some form of self-defeat, avoidable loss, or failure of
+coherent behaviour. The discussion in the decision-theory literature suggests at
+least three grades of concern.
+
+\begin{enumerate}
+
+\item \textit{Representability failures.}
+A first and weakest concern is that a preference relation may fail to be
+representable in a convenient form. This does not, by itself, imply that
+the preference is irrational. %Incompleteness, for instance, may simply reflect
+%genuinely plural or unresolved values; one may refuse to rank some pairs of
+%trajectories without making any mistake. Similarly, later in the note we will
+%see that violating independence blocks an expected-utility representation, and
+%that without the fifth axiom one cannot in general write utility over whole
+%trajectories as stagewise reward. These are genuine representational limits, but
+Representation failures may merely be inconvenient, but they become more
+significant when they are symptoms of deeper issues of the kinds described next
+\citep{aumann1962utility,fishburn1970utility}.
+
+\item \textit{Self-defeat and avoidable loss.}
+A more serious concern is that preferences may guide choice poorly --- as judged by the
+agent's own interest. One important case is \emph{static self-defeat}: choosing an
+option that is worse than another available one, or adopting a policy that is
+systematically improvable. 
+A classic case of suboptimality is dominance: one option or policy dominates
+another when it is at least as good in every relevant respect and strictly
+better in some, so choosing the dominated option is a clear mistake
+\citep{kreps1988notes,mascolell1995micro}. A second case is \emph{diachronic
+self-defeat}: a plan that the agent endorses now is predictably
+undone later in a way that leaves the agent worse off overall.
+
+\item \textit{Vulnerability.}
+The most vivid coherence arguments show that a collection of individually
+acceptable choices can be combined into a guaranteed loss. Dutch-book arguments
+play this role for credences; money-pump arguments play the analogous role for
+preferences. The standard example is a preference cycle
+\[
+h_1 \strictpref h_2,\qquad h_2 \strictpref h_3,\qquad h_3 \strictpref h_1.
+\]
+If the agent is willing to pay a small fee to move each time to a strictly
+preferred trajectory, then an adversary can guide it around the cycle and back
+to where it started, poorer than before \citep{gustafsson2010money}. This is
+why intransitivity is usually regarded as a particularly severe pathology: it is
+not merely hard to represent, but also vulnerable to exploitation under natural
+trading assumptions.
+
+\end{enumerate}
+
+\vspace{3pt}
+\begin{callout}
+
+\textbf{Coherence is not selection.}\par\smallskip
+
+It is useful to distinguish three kinds of formal results. A
+\emph{representation result} says that if preferences satisfy certain axioms,
+then they can be written in a particular mathematical form; the vNM and Savage
+theorems being classical examples. A \emph{coherence result} is different: it
+links violations of some constraint to a penalty such as a Dutch book, money
+pump, dynamic inconsistency, or dominated choice. Complete-class and
+admissibility theorems belong more naturally in this second family than in the
+first, since they characterize undominated decision rules rather than utility
+representations. A \emph{selection result} is different again: it adds a story
+about some optimization process --- such as market competition, evolution, or
+training dynamics --- and argues that systems lacking a certain property tend to
+be selected against. In short, representation concerns \emph{form}, coherence
+concerns \emph{vulnerability or domination}, and selection concerns
+\emph{survival under pressure}.
+
+Note that representation, coherence, and selection arguments are related, but not identical. 
+In general, a coherence argument is a
+within-agent claim: it says that if a single agent violates some structural
+constraint, then the agent is vulnerable to a penalty such as a money pump,
+Dutch book, or dominated choice. A selection argument is different: it asks
+whether agents lacking that property would tend to disappear under some broader
+optimization pressure, such as market competition, training dynamics, or
+evolutionary selection. 
+A coherence result may help motivate a selection story, yet it does not by itself
+show that realistic environments actually select against the offending
+preference pattern. Similarly, a representational failure with no plausible
+selection story may still be mathematically interesting while being less central
+for explaining the structure of real agents.
+
+For the purposes of this note, the key point is that these notions of badness do
+not all coincide. A preference can fail standard representation without being
+exploitably incoherent, and not every departure from expected utility is thereby
+problematic. Nevertheless, the axioms studied below are useful because --- as we
+will see --- they rule out several undesirable properties. 
+
+\end{callout}
+
+\newpage
+
+\section{Completeness, transitivity, and ordinal utility}
+
+Two structural conditions are especially important.
+
+\begin{definition}[Completeness]
+A preference relation $\pref$ on $\Hcal^*$ is \emph{complete} if for every pair
+$h,h'\in \Hcal^*$,
+\[
+h\pref h' \quad \text{or} \quad h'\pref h \quad \text{(or both)}.
+\]
+\end{definition}
+
+\begin{definition}[Transitivity]
+A preference relation $\pref$ on $\Hcal^*$ is \emph{transitive} if for every
+$h,h',h''\in \Hcal^*$,
+\[
+h\pref h' \quad \text{and} \quad h'\pref h'' \quad \Longrightarrow \quad h\pref h''.
+\]
+\end{definition}
+
+Completeness says that the agent can compare any two trajectories. This is a
+claim about \emph{comparability}, not about certainty: it says that the
+preference relation returns a verdict on every pair, not that the agent knows
+everything about the consequences of those trajectories. Transitivity says that
+these verdicts fit together consistently across chains of comparison. For
+example, if $h_1\pref h_2$ and $h_2\pref h_3$, then transitivity requires
+$h_1\pref h_3$ as well.
+
+A preference relation satisfying both conditions is often called a
+\emph{weak order} in economics and decision theory
+\citep{fishburn1970utility,kreps1988notes,mascolell1995micro}. On a countable
+domain such as $\Hcal^*$, weak orders admit an ordinal utility
+representation. More general representation theorems on richer domains go back
+to the classic work of \citet{debreu1954representation}.
+
+\begin{proposition}[Ordinal representation on the trajectory space]
+\label{prop:ordinal_representation}
+A preference relation $\pref$ on $\Hcal^*$ is complete and transitive if and
+only if there exists a function $u\colon \Hcal^* \to \R$ such that
+\[
+h \pref h' \iff u(h)\geq u(h')
+\qquad
+\text{for all } h,h'\in\Hcal^*.
+\]
+\end{proposition}
+
+\begin{proof}
+If such a function $u$ exists, then completeness and transitivity are inherited
+from the total order on $\R$. Conversely, if $\pref$ is complete and
+transitive, then trajectories can be grouped into indifference classes, where
+each class contains all trajectories tied with one another. The quotient
+$\Hcal^*/{\indiff}$ of these classes is a countable total order. Any countable
+total order can be embedded in $\R$, so we may assign real numbers to the
+indifference classes in a way that preserves their order. Composing that
+assignment with the quotient map gives the desired utility function on
+trajectories.
+\end{proof}
+
+This utility is \emph{ordinal}: only the ranking matters. Any strictly
+increasing transformation of $u$ represents the same preference relation. So
+ordinal utility lets us encode the order of deterministic trajectories, but it
+does not yet tell us how to compare risky mixtures of them. The numbers
+themselves have no independent meaning beyond the order they induce. If $u$
+represents a preference relation, then so does $2u+17$, or $\exp(u)$, provided
+the transformation remains strictly increasing. This is why ordinal utility is
+best thought of as a numerical \emph{labeling of ranks}, not yet as a measure of
+how much one trajectory is preferred to another \citep{fishburn1970utility}.
+
+It is also useful to understand what happens when either condition fails.
+
+\subsection*{What if completeness or transitivity fail}
+
+\paragraph{If completeness fails.}
+Then some pairs of trajectories are incomparable. This may be a feature rather
+than a bug: the agent may genuinely refuse to rank certain alternatives because
+its values are plural, under-specified, or context-sensitive. But once
+incomparability is allowed, no single real-valued utility function can exactly
+represent the relation in the sense of
+Proposition~\ref{prop:ordinal_representation}, because any two real numbers are
+themselves comparable. One must then move to a different formalism, such as
+partial orders, sets of utility functions, or multi-criteria representations
+\citep{aumann1962utility}.
+
+\paragraph{If transitivity fails.}
+Then local pairwise judgments need not assemble into a global ranking. In the
+simplest case one obtains a cycle
+\[
+h_1 \strictpref h_2,\qquad h_2 \strictpref h_3,\qquad h_3 \strictpref h_1.
+\]
+No scalar utility can represent such a cycle, since it would require
+\[
+u(h_1)>u(h_2)>u(h_3)>u(h_1),
+\]
+which is impossible.
+The logical problem is already serious: there is no single global ranking of the
+options. Under the additional behavioral assumption that the agent is willing to
+pay a small fee to move from any option to a strictly preferred one, this
+logical failure becomes operational through the \emph{money pump} problem.
+Suppose an agent currently has $h_1$ and is willing to pay a small fee
+$\varepsilon>0$ each time it moves to a strictly preferred trajectory. The
+cycle above licenses the sequence
+\[
+h_1 \to h_2 \to h_3 \to h_1,
+\]
+with the agent paying $\varepsilon$ at each step. At the end it is back where
+it started, but poorer by $3\varepsilon$. Repeating the cycle pumps away
+arbitrarily much money \citep{gustafsson2010money}.
+
+There is also an interesting geometric view on transitivity. This paragraph is
+not needed for the rest of the note, so readers meeting these ideas for the
+first time can safely treat it as an optional aside. Fix a finite menu
+$V=\{h_1,\dots,h_m\}\subset \Hcal^*$ and draw the complete graph whose vertices
+are the trajectories in $V$. Encode pairwise comparisons by an antisymmetric
+edge flow $X$:
+\[
+X_{ij} = -X_{ji},
+\]
+where $X_{ij}>0$ means that $h_i$ is preferred to $h_j$, while $X_{ij}<0$ means
+the reverse. If preferences come from a utility function $u$, then each edge
+weight is just a utility difference,
+\[
+X_{ij}=u(h_i)-u(h_j),
+\]
+so $X$ is a discrete gradient field. In the language of the discrete
+Helmholtz--Hodge decomposition, any edge flow can be split into a gradient part,
+which comes from a potential, and a cyclic part, which records genuine loops.
+On the complete comparison graph there is no extra harmonic remainder, so
+inconsistency is entirely captured by the cyclic component
+\citep{jiang2011statistical}. A three-cycle corresponds exactly to a nonzero
+discrete curl:
+\[
+X_{ij}+X_{jk}+X_{ki}\neq 0.
+\]
+Thus transitive preferences are precisely the \emph{potential} part of the
+decomposition, with the potential given by the utility, while intransitive
+cycles show up as the rotational or cyclic part. If this language feels
+abstract, the key takeaway is simple: utility means all local comparisons come
+from one global ranking, whereas cycles are the leftover pattern that cannot be
+explained by any single scalar potential.
+
+\section{Lotteries and the von Neumann--Morgenstern axioms}
+\label{sec:lotteries-vnm}
+
+Up to this point, we have just considered preferences over a countable set
+$\Hcal^*$ without considering stochasticity.
+To introduce uncertainty, we expand the domain from trajectories to lotteries
+over trajectories.
+
+Let $\Lot(X)$ for $X\subset\Hcal^*$ denote the set of probability
+distributions over $X$. An element $\mu\in\Lot(X)$ can be expressed
+as
+\[
+\mu = \sum_{i} p_i \delta_{x_i},
+\]
+which should be read as a lottery that yields outcome $x_i$ with probability $p_i$.
+The outcome $x$ is identified with the degenerate lottery $\delta_x$.
+In this way, preferences over outcomes can be viewed as a special case of
+preferences over lotteries.
+Furthermore, for $\mu,\nu \in \Lot(X)$ and $\lambda \in [0,1]$, write
+\[
+\lambda \mu + (1-\lambda)\nu
+\]
+for the compound lottery that first flips a coin with bias $\lambda$, then samples from $\mu$ or $\nu$ accordingly.
+
+The von Neumann--Morgenstern (vNM) framework studies weak preference relations
+$\pref$ over $\Lot(X)$ and asks when such preferences admit an expected-utility
+representation \citep{vonneumann1944theory}. The framework considers four axioms
+on preferences over lotteries.
+
+\begin{axiom}[Completeness]
+For all $\mu,\nu\in\Lot(X)$, either $\mu\pref \nu$ or $\nu\pref \mu$ (or both).
+\end{axiom}
+
+\begin{axiom}[Transitivity]
+For all $\mu,\nu,\xi\in\Lot(X)$, if $\mu\pref\nu$ and $\nu\pref\xi$, then $\mu\pref\xi$.
+\end{axiom}
+
+\begin{axiom}[Continuity]
+For all $\mu,\nu,\xi\in\Lot(X)$ with $\mu\pref\nu\pref\xi$, there exists $\lambda\in[0,1]$ such that
+\[
+\nu \indiff \lambda \mu + (1-\lambda)\xi.
+\]
+\end{axiom}
+
+\begin{axiom}[Independence]
+For all $\mu,\nu,\xi\in\Lot(X)$ and $\lambda\in(0,1)$,
+\[
+\mu\pref\nu
+\quad\Longleftrightarrow\quad
+\lambda \mu + (1-\lambda)\xi \pref \lambda \nu + (1-\lambda)\xi.
+\]
+\end{axiom}
+
+We already know about completeness and transitivity from the previous section; the
+new players are continuity and independence.
+Continuity says intermediate prospects admit a break-even mixture between better and worse ones.
+Independence says that if $\mu$ is preferred to $\nu$, then mixing both with the same background lottery $\xi$ should not reverse that preference.
+
+The natural question is therefore when a preference over lotteries can be represented by the expectation of a utility function on trajectories:
+\[
+U(\mu)=\sum_{x\in X}\mu(x)u(x).
+\]
+This formulation says that the value of a lottery is the probability-weighted
+average of the utilities of its possible trajectories.
+In its simplest finite-outcome form, this question is answered by the
+celebrated vNM theorem.
+
+
+\begin{theorem}[von Neumann--Morgenstern]
+Let $X\subseteq \Hcal^*$ be finite. A weak preference relation $\pref$ on
+$\Lot(X)$ satisfies completeness, transitivity, continuity, and independence if
+and only if there exists a function $u\colon X\to\R$ such that for all lotteries
+$\mu,\nu\in\Lot(X)$,
+\[
+\mu\pref\nu
+\quad\Longleftrightarrow\quad
+\sum_{x\in X}\mu(x)u(x)\geq \sum_{x\in X}\nu(x)u(x).
+\]
+Moreover, $u$ is unique up to positive affine transformations:
+\[
+u'(x)=a+bu(x), \qquad b>0.
+\]
+\end{theorem}
+
+\begin{proof}
+We first prove the easy direction: if preferences admit an expected-utility
+representation, then they satisfy the four axioms.
+
+Completeness and transitivity follow immediately from the total order on
+$\R$. Continuity follows because if $\mu\pref\nu\pref\xi$ then 
+$U(\mu)\geq U(\nu)\geq U(\xi)$, so one can choose $\lambda\in[0,1]$ such that
+\[
+U(\nu)=\lambda U(\mu)+(1-\lambda)U(\xi).
+\]
+Hence
+\[
+\nu \indiff \lambda \mu +(1-\lambda)\xi.
+\]
+Finally, independence follows from linearity:
+\[
+U(\lambda \mu +(1-\lambda)\xi)
+=
+\lambda U(\mu)+(1-\lambda)U(\xi).
+\]
+Therefore
+\[
+\mu\pref\nu
+\quad\Longleftrightarrow\quad
+\lambda \mu +(1-\lambda)\xi \pref \lambda \nu +(1-\lambda)\xi.
+\]
+
+We now prove the converse direction, namely that the four axioms imply an
+expected-utility representation.
+
+\begin{enumerate}[label=\textbf{\arabic*.}, leftmargin=*]
+\item \emph{Pick best and worst outcomes (completeness and transitivity).}
+Because $X$ is finite and the restriction of $\pref$ to degenerate lotteries is
+complete and transitive, either all outcomes in $X$ are indifferent or there
+exist $b,w\in X$ such that
+\[
+b\pref x \pref w
+\qquad
+\text{for all } x\in X.
+\]
+If all outcomes are indifferent, then the constant utility function already
+represents the preference relation. So we may assume $b\strictpref w$.
+
+\item \emph{Calibrate each outcome against $b$ and $w$ (continuity).}
+For $x=b$ set $u(x)=1$, and for $x=w$ set $u(x)=0$. For
+$b\strictpref x \strictpref w$, continuity gives some $u(x)\in(0,1)$ such that
+\[
+x \indiff u(x)b+\big(1-u(x)\big)w.
+\]
+Thus every outcome is indifferent to a lottery over the two benchmark outcomes
+$b$ and $w$.
+
+\item \emph{Compare the benchmark lotteries (independence and transitivity).}
+We first show that for $x,x'\in X$,
+\[
+x\pref x'
+\quad\Longleftrightarrow\quad
+u(x)\geq u(x').
+\]
+
+For $\lambda\in[0,1]$, write
+\[
+C_\lambda \coloneqq \lambda b +(1-\lambda)w.
+\]
+We claim that if $\alpha>\beta$, then $C_\alpha \strictpref C_\beta$. Indeed,
+if $\alpha=1$, then $C_\alpha=b$, and independence applied to
+$b\strictpref w$ with mixing weight $\beta$ and background lottery $b$ gives
+\[
+b \strictpref \beta b +(1-\beta)w = C_\beta.
+\]
+So it remains to consider the case $\alpha<1$. Define
+\[
+\rho \coloneqq \frac{\alpha-\beta}{1-\beta}\in(0,1).
+\]
+Since $b\strictpref w$, independence gives
+\[
+\rho b +(1-\rho)C_\beta
+\strictpref
+\rho w +(1-\rho)C_\beta.
+\]
+But the left-hand side is exactly $C_\alpha$, while the right-hand side is
+$C_\beta$. Hence larger values of $\lambda$ yield strictly better benchmark
+lotteries. Together with Step 2 and transitivity, this proves the displayed
+equivalence above.
+
+\item \emph{Reduce an arbitrary lottery to a benchmark lottery (independence).}
+Let
+\[
+\mu=\sum_i p_i x_i.
+\]
+By Step 2, each $x_i$ is indifferent to $C_{u(x_i)}$. Replacing each $x_i$ by
+the corresponding $C_{u(x_i)}$ inside $\mu$, one at a time, and using
+independence together with transitivity, yields
+\[
+\mu \indiff \sum_i p_i C_{u(x_i)}.
+\]
+By ordinary probability arithmetic, the compound lottery on the right reduces
+to
+\[
+\sum_i p_i C_{u(x_i)}
+\indiff
+U(\mu)b+(1-U(\mu))w,
+\qquad
+U(\mu)\coloneqq \sum_i p_i u(x_i).
+\]
+
+\item \emph{Conclude the expected-utility representation.}
+Applying Step 3 to the benchmark lotteries from Step 4, we obtain
+\[
+\mu\pref\nu
+\quad\Longleftrightarrow\quad
+U(\mu)\geq U(\nu).
+\]
+This is exactly the desired expected-utility representation.
+
+\end{enumerate}
+
+It remains to prove affine uniqueness, which uses continuity, independence,
+and the representation just obtained. Suppose $u'$ is another
+expected-utility representation of the same preference relation. Let
+\[
+a\coloneqq u'(w),
+\qquad
+c\coloneqq u'(b)-u'(w)>0.
+\]
+For any $x\in X$, Step 2 gives
+\[
+x \indiff u(x)b+(1-u(x))w.
+\]
+Since $u'$ also represents the same preferences, indifference implies equality
+of expected $u'$-value:
+\[
+u'(x)=u(x)u'(b)+(1-u(x))u'(w)=a+cu(x).
+\]
+So $u'$ is a positive affine transformation of $u$.
+
+\end{proof}
+
+\begin{exercise}[Guided proof of the von Neumann--Morgenstern theorem]
+\label{ex:vnm-theorem}
+Assume $X\subseteq \Hcal^*$ is finite and that $\pref$ on $\Lot(X)$ satisfies
+completeness, transitivity, continuity, and independence.
+\begin{enumerate}[label=(\alph*)]
+\item Show that there exist trajectories $b,w\in X$ such that
+$b\pref h \pref w$ for every $h\in X$.
+\item Using continuity, show that for every $h\in X$ there exists
+$u(h)\in[0,1]$ such that
+\[
+h \indiff u(h)b+(1-u(h))w.
+\]
+\item Use transitivity to show that if
+\[
+h \indiff u(h)b+(1-u(h))w
+\quad\text{and}\quad
+h' \indiff u(h')b+(1-u(h'))w,
+\]
+then
+\[
+h\pref h' \quad\Longleftrightarrow\quad u(h)\geq u(h').
+\]
+\item Let
+\[
+\mu=\sum_i p_i h_i.
+\]
+Use independence repeatedly to replace each $h_i$ by the equivalent lottery
+$u(h_i)b+(1-u(h_i))w$ and show that
+\[
+\mu \indiff \sum_i p_i\bigl(u(h_i)b+(1-u(h_i))w\bigr).
+\]
+\item Reduce the compound lottery in part (d) to a simple lottery and prove
+that
+\[
+\mu \indiff U(\mu)b+(1-U(\mu))w,
+\qquad
+U(\mu)\coloneqq \sum_i p_i u(h_i).
+\]
+\item Show that
+\[
+\mu\pref\nu \quad\Longleftrightarrow\quad U(\mu)\geq U(\nu).
+\]
+This gives the expected-utility representation.
+\item Prove affine uniqueness: if $u'$ also represents the same preference
+relation in expected-utility form, then $u'=a+bu$ for some $a\in\R$ and $b>0$.
+\item Prove the converse direction: if preferences admit an expected-utility
+representation, then they satisfy completeness, transitivity, continuity, and
+independence.
+\end{enumerate}
+\end{exercise}
+
+
+In contrast to our previous result, vNM utility is \emph{cardinal} up to
+positive affine transformations, not merely ordinal. A general
+monotone transformation would destroy the expectation formula. The independence
+axiom forces exactly the amount of structure needed for linear averaging.
+
+
+\medskip
+\begin{callout}
+\textbf{Two notions of utility.}
+
+In economics it is standard to distinguish two different notions of utility
+\citep{kreps1988notes,mascolell1995micro}.
+
+The first is \emph{ordinal utility}, also known as \emph{preference utility} or
+`F1', which represents preferences over certain outcomes. This is the object
+obtained in Proposition~\ref{prop:ordinal_representation}: if preferences over
+deterministic trajectories are complete and transitive, then there exists a
+function $u_{\mathrm{ord}}$ such that
+\[
+h\pref h'
+\quad\Longleftrightarrow\quad
+u_{\mathrm{ord}}(h)\geq u_{\mathrm{ord}}(h').
+\]
+Only the ranking matters. Any strictly increasing transformation of
+$u_{\mathrm{ord}}$ represents the same preferences \citep{fishburn1970utility}.
+
+The second is \emph{von Neumann--Morgenstern utility}, also called `F2'. This is the function
+$u_{\mathrm{vNM}}$ that appears inside the expectation operator when
+preferences over lotteries satisfy continuity and independence:
+\[
+\mu\pref\nu
+\quad\Longleftrightarrow\quad
+\sum_h \mu(h)u_{\mathrm{vNM}}(h)\geq \sum_h \nu(h)u_{\mathrm{vNM}}(h).
+\]
+Unlike ordinal utility, $u_{\mathrm{vNM}}$ is unique only up to positive affine
+transformations. Its numerical differences therefore carry behavioral content:
+they determine which mixtures an agent is willing to accept, and so encode the
+agent's attitudes toward risk and gambling structure
+\citep{vonneumann1944theory,mascolell1995micro}.
+
+\end{callout}
+\medskip
+
+
+\begin{exercise}[Ordinal versus vNM utility]
+\label{ex:ordinal-vs-vnm}
+Let $x,y,z\in\Hcal^*$ satisfy $x\strictpref y\strictpref z$.
+\begin{enumerate}[label=(\alph*)]
+\item Give two different ordinal utility functions $u_1,u_2\colon\Hcal^*\to\R$
+that represent the same ranking of $x,y,z$.
+\item Explain why these two functions are equally good as ordinal
+representations.
+\item Suppose in addition that
+\[
+y \indiff \tfrac12 x + \tfrac12 z.
+\]
+Show that not every strictly increasing transformation of a vNM utility can
+preserve this indifference.
+\end{enumerate}
+\end{exercise}
+
+\subsection*{If continuity or independence fails}
+
+It is useful to separate the roles of the four vNM axioms:
+\begin{itemize}
+		\item As before, completeness and transitivity give us an ordinal utility on deterministic trajectories. 
+		\item Continuity and independence turn that ordinal picture into an \emph{expected} utility theory over uncertain prospects. 
+\end{itemize}
+If completeness or transitivity fail, as discussed in the previous section, we
+lose hope of describing the preference by a single scalar quantity.
+If continuity or independence fails, the preference will generally no longer
+admit the linear expectation form.
+
+
+\paragraph{Failure of continuity.}
+To build intuition, let $x\succ y\succ z$ and define
+\[
+\mu_\lambda=\lambda x + (1-\lambda)z.
+\]
+Then
+\[
+\mu_0=z,\qquad \mu_1=x,
+\]
+so as $\lambda$ increases from $0$ to $1$, the lottery moves from the worse
+prospect $z$ to the better prospect $x$. Continuity says, informally, that
+preferences vary smoothly along this path. In particular, it says that the
+intermediate prospect $y$ can be matched by some mixture of the better and worse
+prospects:
+\[
+y \indiff \lambda x + (1-\lambda)z
+\]
+for some $\lambda\in(0,1)$. Intuitively, the axiom requires no abrupt jumps
+in preference as the mixture probabilities vary.
+
+
+When continuity fails, some distinctions can become \emph{lexicographic}.
+For example, we could have a case where $y\succ \mu_0 = z$, but
+$\mu_\lambda\succ y$ for all $\lambda>0$.
+This means that $x$ has absolute priority over $y$: as soon as $x$ appears with
+any nonzero probability, the lottery becomes strictly better than $y$.
+One way to interpret this is that some considerations are given lexical
+priority over others. For instance, avoiding catastrophe might outrank ordinary
+gains so completely that no finite improvement in ordinary reward compensates
+for even an arbitrarily small increase in catastrophic risk.
+Such preferences need not be contradictory; they are simply too sharp to be
+captured by a single real-valued utility whose expectations are taken in the
+usual way.
+
+What breaks in this case is not all representations, but the \emph{real-valued}
+vNM representation. If continuity is dropped, one is naturally led to
+lexicographic or non-Archimedean representations: for example, ordered pairs or
+vectors of utilities compared lexicographically, or utilities with infinitesimal
+scales \citep{fishburn1971lexicographic}. In those models, the first coordinate
+records the highest-priority consideration, and lower coordinates matter only
+when higher ones tie. 
+
+
+\paragraph{Failure of independence.}
+
+Independence says that common lottery components should cancel. If $\mu\pref\nu$, then mixing both with the same background lottery $\xi$ at the same rate should preserve the ranking:
+\[
+\lambda \mu +(1-\lambda)\xi \pref \lambda \nu +(1-\lambda)\xi.
+\]
+So the relative ranking of $\mu$ and $\nu$ should depend only on how they differ, not on the common part they share.
+
+When independence fails, the value of a prospect depends on its \emph{context}. The same local substitution can be attractive in one background and unattractive in another. This is exactly what the Allais pattern shows \citep{allais1953comportement}. Let $h_5\succ h_1\succ h_0$ denote trajectories yielding $5$, $1$, and $0$ million, and consider
+\[
+A = 1\cdot h_1,
+\qquad
+B = 0.89\, h_1 + 0.10\, h_5 + 0.01\, h_0,
+\]
+\[
+C = 0.11\, h_1 + 0.89\, h_0,
+\qquad
+D = 0.10\, h_5 + 0.90\, h_0.
+\]
+Many people prefer $A$ to $B$, but prefer $D$ to $C$. Under independence this is impossible, because $A$ versus $B$ and $C$ versus $D$ differ only by a common consequence. The reversal shows that certainty is treated as psychologically special: replacing a sure outcome by a tiny risk of getting nothing matters more than expected utility allows.
+
+This is the general lesson of independence failure. Probabilities are no longer aggregated linearly against a fixed utility function on trajectories. Common branches cannot be canceled, and the whole shape of the distribution starts to matter. Decision makers may overweight certainty, distort small probabilities, care about disappointment or regret, or evaluate gains and losses relative to a reference point rather than in absolute terms. This is the route taken by prospect theory and related non-expected-utility models \citep{kahneman1979prospect,machina1982expected}.
+
+From the perspective of sequential choice, independence also matters because it allows one to replace a sublottery by an equivalent one without changing the value of the larger plan. If independence fails, the value of a branch may depend on the branches surrounding it, so local and global evaluations need not line up. Hammond's consequentialist argument shows that, together with dynamic consistency and suitable sequential assumptions, one is pushed back toward independence \citep{hammond1988consequentialist}. But that only shows one route to coherent planning. One may instead keep a richer, non-linear evaluation of lotteries and give up the idea that common consequences are always behaviorally irrelevant.
+
+So the two failures have different meanings. Failure of continuity says that some priorities are infinitely sharp, leading naturally to lexicographic or infinitesimal utility scales. Failure of independence says that uncertainty is evaluated holistically rather than by linear averaging, leading to models in which background risk, certainty, or reference dependence affect choice.
+
+
+\begin{exercise}[Failures of the vNM axioms]
+\label{ex:vnm-failures}
+Here we will study the consequences of different axioms.
+\begin{enumerate}[label=(\alph*)]
+\item Construct a simple incomplete preference relation on three trajectories.
+Why can it not be represented by a single real-valued ordinal utility?
+\item Construct a three-cycle and explain how it gives rise to a money pump.
+\item Give an example of a lexicographic preference over three outcomes and show
+that it violates continuity.
+\item Write down the Allais pattern from \cref{sec:lotteries-vnm} and explain which axiom it
+violates.
+\end{enumerate}
+\end{exercise}
+
+\section{A fifth axiom: reward and discount}
+
+The vNM theorem gives an expected-utility representation over lotteries of whole
+trajectories, but it does not yet tell us that utility can be generated
+\emph{locally} from stepwise rewards. 
+
+To investigate the possibility of localizing utility over time, let us
+denote by $T \coloneqq \Ofin\times \Afin$ the set of one-step transitions. 
+For $t\in T$ and $h\in \Hcal^*$, write
+$t\cdot h$ for the trajectory obtained by prepending $t$ to $h$, and extend this
+operation to lotteries by
+\[
+t\cdot \mu \coloneqq \sum_i p_i \delta_{t\cdot h_i}
+\qquad
+\text{when }
+\mu=\sum_i p_i \delta_{h_i}.
+\]
+%
+Now, using a vNM utility $u(h)$ one can always define a continuation-dependent
+increment as
+\[
+r(t;h) \coloneqq u(t\cdot h)-u(h).
+\]
+However, this increment may depend on the whole continuation $h$. What is missing is a
+temporal condition ensuring that the effect of prepending a transition depends
+only on that transition itself. 
+Following~\cite{bowling2023settling}, this can be explored with the following
+additional axiom.
+
+\begin{axiom}[Temporal $\gamma$-indifference]
+There exists a function $\gamma\colon T\to[0,1]$ such that for all
+$\mu,\nu\in\Lot(\Hcal^*)$ and all $t\in T$,
+\[
+\frac{1}{1+\gamma(t)}(t\cdot \mu)+\frac{\gamma(t)}{1+\gamma(t)}\nu
+\indiff
+\frac{1}{1+\gamma(t)}(t\cdot \nu)+\frac{\gamma(t)}{1+\gamma(t)}\mu.
+\]
+\end{axiom}
+
+Under expected utility, the indifference above is equivalent to
+\[
+u(t\cdot \mu)+\gamma(t)u(\nu)=u(t\cdot \nu)+\gamma(t)u(\mu),
+\]
+which can be rearranged as
+\[
+u(t\cdot \mu)-u(t\cdot \nu)=\gamma(t)\bigl(u(\mu)-u(\nu)\bigr).
+\]
+So the effect of prepending the same transition $t$ is to rescale the utility
+difference between two continuations by a factor $\gamma(t)$. In that sense,
+$\gamma(t)$ measures how much the future still matters after the step $t$ has
+occurred. When $\gamma(t)=1$, future differences are
+preserved without discount at that step. When $0<\gamma(t)<1$, the future still
+matters but is damped. When $\gamma(t)=0$, once $t$ has occurred the
+continuation no longer affects the comparison. Bowling's axiom is closely
+related to the transition-dependent discounting discussed by
+\citet{white2017unifying} and \citet{pitis2019rethinking}.
+
+Bowling et al.\ show that adding this axiom to the four vNM axioms is necessary
+and sufficient for a discounted-reward representation of preferences.
+
+\begin{theorem}[Markov reward representation, after Bowling et al.]
+A weak preference relation $\pref$ on $\Lot(\Hcal^*)$ satisfies completeness,
+transitivity, continuity, independence, and temporal $\gamma$-indifference if
+and only if there exist functions $u\colon \Hcal^*\to\R$, $r\colon T\to\R$, and
+$\gamma\colon T\to[0,1]$
+such that $u(\emptytraj)=0$,
+\[
+u(t\cdot h)=r(t)+\gamma(t)u(h),
+\]
+and, for all lotteries $\mu,\nu\in\Lot(\Hcal^*)$,
+\[
+\mu\pref\nu
+\quad\Longleftrightarrow\quad
+\sum_{h\in\Hcal^*}\mu(h)u(h)\geq \sum_{h\in\Hcal^*}\nu(h)u(h).
+\]
+Moreover, $r$ is unique up to positive scale, and $\gamma$ is the same function
+appearing in the fifth axiom \citep{bowling2023settling}.
+\end{theorem}
+
+This theorem sharpens the vNM result in exactly the way reinforcement learning
+needs. Utility is no longer an arbitrary scalar attached to a complete
+trajectory; it is generated recursively from a local reward and a local weight
+on the future. Unrolling the recursion for a trajectory
+$h=(t_1,t_2,\dots,t_n)$ gives
+\[
+u(h)=r(t_1)+\gamma(t_1)r(t_2)+\gamma(t_1)\gamma(t_2)r(t_3)+\cdots+
+\Bigg(\prod_{i=1}^{n-1}\gamma(t_i)\Bigg)r(t_n).
+\]
+Thus the fifth axiom is what allows utility over whole trajectories to be
+decomposed into local reward and discounting. Two familiar special cases are worth highlighting. 
+\begin{itemize}
+		
+\item If
+$\gamma(t)\equiv \gamma$ is constant, then
+\[
+u(h)=\sum_{k=1}^n \gamma^{k-1} r(t_k),
+\]
+which is the standard discounted-return objective. 
+\item If
+$\gamma(t)\equiv 1$, then
+\[
+u(h)=\sum_{k=1}^n r(t_k),
+\]
+so utility is simply the additive cumulative reward. 
+\end{itemize}
+
+In summary, the step from vNM utility over whole trajectories to RL-style reward
+requires one more axiom. That axiom simultaneously identifies both the local
+reward signal and the form of discounting.
+
+\begin{remark}[MDPs, POMDPs, and locality]
+The locality result of this section is especially natural in fully
+observed MDPs, where one often expects reward to depend only on the current
+state transition. In the present note, however, the primitive histories are
+sequences of observations and actions, and the corresponding local reward has
+the form $r\colon \Ofin\times \Afin\to\R$. In partially observed settings this
+can be restrictive: a goal may be Markov in the hidden state, in the agent's
+belief state, or in some augmented memory state, without being reducible to a
+function of the current observation-action pair alone. In that sense, the fifth
+axiom should be read as characterizing when preferences admit a reward that is
+local in the chosen representation of experience. If the raw observation stream
+is too coarse, one may need to enrich the state description before a Markov
+reward representation becomes available \citep{bowling2023settling}.
+\end{remark}
+
+
+\begin{callout}
+\textbf{Utility is not reward.}
+
+It is helpful to keep the following four different objects apart.
+
+\begin{itemize}
+
+\item \emph{Preference} is the primitive relation $\pref$. It says only which
+trajectories or lotteries are weakly preferred to which others.
+
+\item \emph{Preference utility} (`F1') is an ordinal representation of preferences
+over deterministic trajectories. Under completeness and transitivity, it is any
+function $u_{\mathrm{ord}}$ such that
+\[
+h\pref h'
+\quad\Longleftrightarrow\quad
+u_{\mathrm{ord}}(h)\geq u_{\mathrm{ord}}(h').
+\]
+It is unique only up to strictly increasing transformations
+\citep{fishburn1970utility}.
+
+\item \emph{vNM utility} (`F2') is the stronger, cardinal utility that appears when
+preferences over lotteries satisfy the vNM axioms. It is the function
+$u_{\mathrm{vNM}}$ for which
+\[
+\mu\pref\nu
+\quad\Longleftrightarrow\quad
+\sum_h \mu(h)u_{\mathrm{vNM}}(h)\geq \sum_h \nu(h)u_{\mathrm{vNM}}(h).
+\]
+It is unique only up to positive affine transformations
+\citep{vonneumann1944theory}. Thus `F2' refines `F1': it agrees with it on the
+ranking of certain trajectories, but adds the extra structure needed to compare
+lotteries.
+
+\item \emph{Reward} is not either of these utilities. A reward function $r(t)$ is a
+\emph{local} representation introduced only after adding temporal structure. In
+the present framework, reward appears when the fifth axiom allows utility to be
+written recursively as
+\[
+u(t\cdot h)=r(t)+\gamma(t)u(h).
+\]
+So reward is a way of \emph{decomposing} utility over complete trajectories into
+stepwise contributions. It is therefore downstream of preference, and even
+downstream of vNM utility. This is why different reward functions can encode the
+same utility or the same preference ordering, a point we return to in the next
+section \citep{bowling2023settling}.
+\end{itemize}
+
+\end{callout}
+
+
+\begin{exercise}[Guided proof of the Markov reward representation theorem]
+\label{ex:markov-reward}
+Assume the hypotheses of \cref{ex:vnm-theorem} together with temporal
+$\gamma$-indifference, and let $u$ be a vNM utility representation over
+trajectories.
+\begin{enumerate}[label=(\alph*)]
+\item Apply expected utility to temporal $\gamma$-indifference and show that for
+all lotteries $\mu,\nu\in\Lot(\Hcal^*)$ and all transitions $t\in T$,
+\[
+u(t\cdot \mu)+\gamma(t)u(\nu)=u(t\cdot \nu)+\gamma(t)u(\mu).
+\]
+\item Rearrange part (a) to prove that
+\[
+u(t\cdot \mu)-\gamma(t)u(\mu)
+\]
+is independent of the choice of $\mu$.
+\item Define
+\[
+r(t)\coloneqq u(t\cdot \mu)-\gamma(t)u(\mu)
+\]
+for any $\mu$. Deduce that for every deterministic trajectory $h$,
+\[
+u(t\cdot h)=r(t)+\gamma(t)u(h).
+\]
+\item Show that this recursion extends to lotteries by linearity:
+\[
+u(t\cdot \mu)=r(t)+\gamma(t)u(\mu).
+\]
+\item Prove the converse direction: if $u$, $r$, and $\gamma$ satisfy
+\[
+u(t\cdot h)=r(t)+\gamma(t)u(h)
+\]
+for all $t$ and $h$, and if $u$ extends linearly to lotteries, then temporal
+$\gamma$-indifference holds.
+\item Unroll the recursion along a finite trajectory
+$h=(t_1,\dots,t_n)$ and derive
+\[
+u(h)=r(t_1)+\gamma(t_1)r(t_2)+\gamma(t_1)\gamma(t_2)r(t_3)+\cdots+
+\Bigg(\prod_{i=1}^{n-1}\gamma(t_i)\Bigg)r(t_n).
+\]
+\item Show that when $\gamma(t)\equiv \gamma$ is constant, the previous formula
+reduces to standard discounted return, and when $\gamma(t)\equiv 1$ it reduces
+to additive cumulative reward.
+\item Show that if $u' = a+bu$, then the corresponding reward must be
+\[
+r'(t)=br(t)+(1-\gamma(t))a.
+\]
+Interpret this as a source of reward non-uniqueness.
+\end{enumerate}
+\end{exercise}
+
+\section{Reward equivalence and shaping}
+
+The preceding theorem shows how to pass from utility over lotteries of
+trajectories to a local reward representation. But it also raises an important
+question: how unique is that reward? The answer has two parts. If one fixes a
+particular utility function $u$ and a particular discount function $\gamma$,
+then the reward is determined. But if one changes the numerical representative
+of the same preference relation, or allows shaping transformations, then many
+different rewards can encode the same underlying ordering.
+
+First observe that once $u$ and $\gamma$ are fixed, the reward is fixed as
+well. Indeed, if
+\[
+u(t\cdot h)=r(t)+\gamma(t)u(h)
+\]
+for all $t\in T$ and $h\in\Hcal^*$, then necessarily
+\[
+r(t)=u(t\cdot h)-\gamma(t)u(h),
+\]
+and the right-hand side must be independent of the continuation $h$. So the
+non-uniqueness of reward does not come from ambiguity inside a fixed recursive
+representation. It comes from the fact that utility itself is not unique as a
+numerical object.
+
+\begin{proposition}[Multiple rewards can encode the same preference relation]
+Suppose $u\colon \Hcal^*\to\R$, $r\colon T\to\R$, and
+$\gamma\colon T\to[0,1]$ satisfy
+\[
+u(t\cdot h)=r(t)+\gamma(t)u(h)
+\]
+for all $t\in T$ and $h\in\Hcal^*$, and that preferences over lotteries are
+represented by the expected value of $u$. For any $a\in\R$ and $b>0$, define
+\[
+u'(h)=a+bu(h)
+\qquad\text{and}\qquad
+r'(t)=br(t)+(1-\gamma(t))a.
+\]
+Then $u'(t\cdot h)=r'(t)+\gamma(t)u'(h)$ for all $t\in T$ and $h\in\Hcal^*$, and
+the expected value of $u'$ represents the same preference relation as the
+expected value of $u$.
+\end{proposition}
+
+The proposition shows that reward non-uniqueness already appears at the level
+of affine reparameterizations of utility: changing the numerical representative
+of the same vNM preference relation generally changes the associated reward
+function as well. 
+This point is especially simple under the normalization $u(\emptytraj)=0$ used
+in the previous section. Then the additive degree of freedom disappears, and one
+is left only with positive rescalings:
+\[
+u'(h)=bu(h),
+\qquad
+r'(t)=br(t).
+\]
+So in the normalized setting reward is unique only up to choice of units. 
+
+There is also a second, less trivial kind of non-uniqueness, in which one
+changes rewards while leaving the induced trajectory ordering unchanged, first
+studied by~\citet{ng1999policy}.
+
+\begin{proposition}[Potential-based shaping changes utility only by a boundary term]
+Consider a state-based setting with transitions $t=(s,a,s')$ and a potential
+function $\Phi$ on states.
+\begin{enumerate}[label=(\alph*)]
+\item If $\gamma\equiv 1$ and
+$r_\Phi(s,a,s') \coloneqq r(s,a,s')+\Phi(s')-\Phi(s)$, 
+then 
+\[
+\sum_{k=1}^n r_\Phi(t_k)
+=
+\sum_{k=1}^n r(t_k)+\Phi(s_n)-\Phi(s_0)
+\]
+for any trajectory $\tau=(t_1,\dots,t_n)$ from $s_0$ to $s_n$. 
+
+\item If $\gamma\in(0,1)$ is constant and
+$r_\Phi(s,a,s') \coloneqq r(s,a,s')+\gamma \Phi(s')-\Phi(s)$, 
+then
+\[
+\sum_{k=1}^n \gamma^{k-1}r_\Phi(t_k)
+=
+\sum_{k=1}^n \gamma^{k-1}r(t_k)-\Phi(s_0)+\gamma^n\Phi(s_n).
+\]
+\end{enumerate}
+\end{proposition}
+
+The previous result shows that shaping $r$ into $r_\Phi$ changes utility only by a boundary term. 
+In particular, if all
+compared trajectories share the same start state and terminal potential, then
+the induced preference ordering is unchanged; if the boundary term vanishes on
+all admissible trajectories, then even the numerical utility is unchanged.
+
+The general lesson is that reward is best understood as a \emph{coordinate
+system} for utility, not as a uniquely given primitive. Some transformations,
+such as positive scaling, merely change the numerical units. Others, such as
+potential-based shaping, redistribute value along the trajectory while leaving
+the overall preference over complete trajectories unchanged. This is why reward
+design is often underdetermined: what matters behaviorally is not a raw reward
+function in isolation, but the utility and preference structure it induces.
+
+\begin{exercise}[Reward shaping]
+\label{ex:reward-shaping}
+Assume additive reward with $\gamma\equiv 1$ and define
+\[
+r_\Phi(s,a,s')=r(s,a,s')+\Phi(s')-\Phi(s).
+\]
+\begin{enumerate}[label=(\alph*)]
+\item Show that along any finite trajectory $(t_1,\dots,t_n)$ the total shaped
+reward differs from the original total reward by the boundary term
+$\Phi(s_n)-\Phi(s_0)$.
+\item Under what condition on the admissible trajectories does this shaping
+leave utility exactly unchanged?
+\item Under what weaker condition does it leave only the induced preference
+ordering unchanged?
+\end{enumerate}
+\end{exercise}
+
+\section{Conclusion}
+
+The main lesson of this note is that, in sequential settings, the primitive
+object is not a one-step reward but a preference over complete trajectories.
+From that starting point one can distinguish several layers of structure.
+Completeness and transitivity yield an ordinal utility over deterministic
+trajectories. Once lotteries are introduced, continuity and independence refine
+that ordinal picture into a von Neumann--Morgenstern utility, which agrees with
+the ranking of certain trajectories but carries strictly more information
+because it calibrates trade-offs between risky prospects.
+
+This separation of layers clarifies both what expected utility achieves and
+what it leaves out. It explains why ``utility'' in economics can refer either
+to an ordinal representation of certain preferences or to a cardinal object
+suitable for evaluating lotteries. It also shows what fails when particular
+axioms are dropped: without completeness or transitivity, scalar representation
+itself can fail; without continuity or independence, one may still have
+meaningful preferences, but no longer the linear expectation form of vNM. In
+that sense, expected utility is not the whole of rationality, but a particular
+and mathematically powerful strengthening of it.
+
+The final step is to see that even vNM utility is not yet reward. To obtain a
+local reward-and-discount representation one needs additional temporal
+structure, captured here by Bowling et al.'s fifth axiom. Under that axiom,
+utility over whole trajectories admits a recursive decomposition into local
+reward and discounting. But even then reward is not unique: affine changes of
+utility induce corresponding changes of reward, and potential-based shaping can
+redistribute value along a trajectory while preserving the underlying ordering.
+Moreover, the locality of reward depends on the chosen representation of
+experience, which is natural in fully observed MDPs but can be restrictive in
+partially observed settings unless the state is suitably enriched. The reward
+hypothesis, understood in this way, is therefore best read not as the claim
+that goals are primitively rewards, but as the claim that sufficiently
+structured preferences over trajectories can be represented by rewards.
+
+\bibliographystyle{plainnat}
+\bibliography{biblo}
+
+
+% The exercises that used to be collected here now sit inline, each after the
+% material it exercises; the solutions are collected in the appendix instead.
+% Fernando's lead-in to the old section is parked verbatim below: its second
+% sentence describes an ordering that no longer exists, and rewording it would
+% be editing his words. Reinstate or drop it -- don't paraphrase it.
+% \newpage
+% \section*{Exercises}
+%
+% The following exercises are meant to help students reconstruct the main results
+% of the note for themselves. The last two are guided proof exercises for the two
+% central representation theorems.
+
+\section*{Open-ended questions}
+
+\begin{exercise}
+\label{ex:open-implications}
+Do the results have any prescriptive or descriptive implications? What kinds of agents, with what kinds of preferences should we design? By default, what kind of agents should we expect to obtain via typical training processes?
+\end{exercise}
+
+\begin{exercise}
+\label{ex:open-weaker-axioms}
+Let's assume a superintelligence has preferences over trajectories. Are there weaker versions of the axioms that make it more plausible that these preferences are "safe for us" compared to preferences that lead to utilities or even rewards?
+\end{exercise}
+
+\begin{exercise}
+\label{ex:open-examples}
+More generally, are there interesting examples of preferences over trajectories that the students could analyse, that do or do not satisfy some of the axioms?
+\end{exercise}
+
+
+% Solutions live here, each bound to its exercise by the label in its optional
+% argument -- which is what lets them sit anywhere at all.
+% The header is wrapped so it appears only in the with-solutions PDF: the web
+% relocates each solution under its own exercise, and the -nosol PDF has none.
+\begin{pdfonly}
+\end{pdfonly}
+
+
+
+
+
+
+
+
+
+\end{document}
