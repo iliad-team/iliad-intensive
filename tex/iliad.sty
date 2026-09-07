@@ -141,6 +141,22 @@
 \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
 \RequirePackage[capitalise,noabbrev]{cleveref}
 
+% Worksheets call every sectioning level a "Section" in their prose (and every
+% appendix level an "Appendix"), but cleveref's own names for the deeper levels
+% are "Subsection", "Subsubsection" and "Subappendix" — so a \cref at a
+% \subsection printed "Subsection 2.3" inside a sentence that said "Section 2.3".
+% Flattening the names makes \cref print what authors actually write: the depth
+% of a heading is a document-structure detail, not something a cross-reference
+% should announce. Set here, not per sheet, so no two worksheets can disagree.
+\crefname{subsection}{Section}{Sections}
+\Crefname{subsection}{Section}{Sections}
+\crefname{subsubsection}{Section}{Sections}
+\Crefname{subsubsection}{Section}{Sections}
+\crefname{subappendix}{Appendix}{Appendices}
+\Crefname{subappendix}{Appendix}{Appendices}
+\crefname{subsubappendix}{Appendix}{Appendices}
+\Crefname{subsubappendix}{Appendix}{Appendices}
+
 % -------------------------------------------------------- theorem family ---
 % One shared counter, numbered within section.
 \newtheorem{theorem}{Theorem}[section]

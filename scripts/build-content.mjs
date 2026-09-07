@@ -77,9 +77,9 @@ const JOBS = Math.max(1, parseInt(args.includes("--jobs") ? args[args.indexOf("-
 // positional args are worksheet slugs; none = build everything
 const wanted = [];
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === "--check" || args[i] === "--no-gate" || args[i] === "--no-cache") continue;
+  if (args[i] === "--check" || args[i] === "--no-gate" || args[i] === "--no-cache" || args[i] === "--quiet") continue;
   if (args[i] === "--jobs") { i++; continue; }
-  if (args[i].startsWith("-")) { console.error(`unknown flag ${args[i]} — usage: build-content.mjs [--check] [--no-gate] [--no-cache] [--jobs N] [slug ...]`); process.exit(1); }
+  if (args[i].startsWith("-")) { console.error(`unknown flag ${args[i]} — usage: build-content.mjs [--check] [--no-gate] [--no-cache] [--quiet] [--jobs N] [slug ...]`); process.exit(1); }
   wanted.push(args[i]);
 }
 
@@ -248,6 +248,10 @@ const stampSchedule = (mdxOut, slug) => {
 // whole scripts/ tree counts, not just the converter, and schedule.yaml counts
 // because it is stamped into the MDX. `--no-cache` forces a full rebuild.
 const NO_CACHE = args.includes("--no-cache");
+// CLAUDE: --quiet suppresses the one-line success summary. The watch loop passes
+//   it, because it prints its own "refresh the browser" line straight after and
+//   two summaries for one rebuild is one too many.
+const QUIET = args.includes("--quiet");
 
 // Artifacts share tex/<slug>/ with sources, so top-level generated files are
 // excluded by extension (fig/ is all source, including its .pdf figures, and is
@@ -376,8 +380,11 @@ async function buildSlug(slug) {
     if (ok && !CHECK_ONLY) { try { writeFileSync(stamp, inputHash); } catch { /* non-fatal */ } }
     return {
       ok,
+      // CLAUDE: a worksheet that built cleanly prints nothing — the run's closing
+      //   summary line covers it. The `▸ slug` header is kept only when there are
+      //   notes, so a warning still says which sheet it came from.
       text: (ok
-        ? `▸ ${slug} ✓ (${((Date.now() - t0) / 1000).toFixed(1)}s)\n`
+        ? (notes.length ? `▸ ${slug} (${((Date.now() - t0) / 1000).toFixed(1)}s)\n` : "")
         : `✗ ${slug}: ${headline}\n`) + notes.map((n) => n.replace(/\s*$/, "") + "\n").join(""),
     };
   };
@@ -393,7 +400,8 @@ async function buildSlug(slug) {
     const moved = restampIfMoved(slug);
     return {
       ok: true,
-      text: `↷ ${slug} cached (inputs unchanged)${moved ? " — re-stamped for schedule" : ""}\n`,
+      cached: true,
+      text: moved ? `↷ ${slug} cached — re-stamped for schedule\n` : "",
     };
   }
   // Every TeX tool runs with the worksheet folder as cwd. BSTINPUTS adds the
@@ -599,13 +607,17 @@ async function buildSlug(slug) {
     // match) so offsets convert straight to file lines.
     {
       const lineAt = (at) => `${relMdx}:${raw.slice(0, at).split("\n").length}  `;
-      const pos = { overview: null, video: null, prereqs: null, outcomes: null, content: null };
+      const pos = { video: null, prereqs: null, outcomes: null, content: null };
       const headRe = /^##\s+(.+)$/gm;
       for (let m; (m = headRe.exec(raw)); ) {
         const t = m[1].trim().toLowerCase();
         const item = { at: m.index };
         if (/^prerequisites?\b/.test(t)) pos.prereqs ??= item;
-        else if (/^overview\b/.test(t)) pos.overview ??= item;
+        // An "Overview" section is the author's call and warns about nothing (see
+        // docs/commands.md), but it is orientation, not content — so it must not
+        // count as the first content SECTION either, or the front matter legitimately
+        // sitting above it would be reported as out of order.
+        else if (/^overview\b/.test(t)) continue;
         else pos.content ??= item;
       }
       const lo = raw.search(/<LearningOutcomes[\s>]/);
@@ -767,11 +779,15 @@ async function worker() {
       r = { ok: false, text: `✗ ${slug}: unexpected error: ${e.message}\n` };
     }
     if (!r.ok) failed = true;
+    tally.total++;
+    if (r.cached) tally.cached++;
     process.stdout.write(r.text);
   }
 }
+const tally = { total: 0, cached: 0 };
 await Promise.all(Array.from({ length: Math.min(JOBS, slugs.length) }, worker));
 
+let moduleCount = null;
 // ---------------------------- index.json -----------------------------------
 if (!failed) {
   const ghSlug = (t) => t.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
@@ -809,7 +825,7 @@ if (!failed) {
   // backwards, and nothing about the two files could say so.
   entries.sort((a, b) => a.position - b.position);
   writeFileSync(path.join(ROOT, "content", "index.json"), JSON.stringify(entries, null, 2) + "\n");
-  console.log(`index.json: ${entries.length} modules`);
+  moduleCount = entries.length;
 }
 
 // ---------------------------- status.json ----------------------------------
@@ -820,8 +836,20 @@ if (!failed) {
 try {
   const s = buildStatus({ check: CHECK_ONLY, schedule: SCHEDULE });
   const n = s.counts.decksBuilt;
-  console.log(`status.json: ${s.counts.live}/${s.counts.days - s.counts.neverPort} days live, ` +
-    `${n} deck${n === 1 ? "" : "s"} built → /admin/status`);
+  // CLAUDE: one closing line for the whole run, instead of a per-worksheet tick
+  //   plus an index.json line plus a status.json line. Warnings and failures are
+  //   what a build should spend the reader's attention on; success is a fact, and
+  //   one line is enough to state it.
+  if (!QUIET && !failed) {
+    const built = tally.total - tally.cached;
+    const parts = [
+      `${built} built${tally.cached ? ` · ${tally.cached} cached` : ""}`,
+      moduleCount !== null ? `${moduleCount} modules` : null,
+      `${s.counts.live}/${s.counts.days - s.counts.neverPort} days live`,
+      `${n} deck${n === 1 ? "" : "s"}`,
+    ].filter(Boolean);
+    console.log(`✓ ${parts.join(" · ")}`);
+  }
 } catch (e) {
   console.error(`✗ ${e.message}`);
   failed = true;
