@@ -70,14 +70,30 @@ Useful readings:
 
 ## Technical prerequisites
 
+Many of the resources recommended in this section are taken verbatim from
+[ARENA’s prerequisites](https://learn.arena.education/chapter0_fundamentals/00_prereqs/1-core-concepts-knowledge/), with thanks.
+
 ### Engineering
 
 * ★ **Bring your laptop**: Some days involve coding.
-* ★ **Take a look at the [engineering prerequisites in the ARENA materials](https://learn.arena.education/chapter0_fundamentals/00_prereqs/1-core-concepts-knowledge/).** Most relevant:
-  * Python
-  * PyTorch
-  * Basic coding skills
-  * Einops and einsum for basic tensor operations
+* ★ **Get comfortable with the following.** Most relevant:
+  * **Python.** It's important to be strong in Python, because this is the language that the coding dayes of the program use. 
+  As a rough indication, we expect you to be comfortable with at least 80-90% of the material [**here**](https://book.pythontips.com/en/latest/), up to section **"21. for/else"**. For a more thorough treatment of Python's core functionality, see [**here**](https://docs.python.org/3/tutorial/).
+  * **[NumPy](https://numpy.org/).** Being familiar with NumPy is a staple for working with high-performance Python. Additionally, the syntax for working with NumPy arrays is very similar to how you work with PyTorch tensors (often there are only minor differences, e.g. Torch tends to use the keyword dim where NumPy uses axis). Working through [these 100 basic NumPy exercises](https://github.com/rougier/numpy-100/blob/master/100_Numpy_exercises.ipynb) would be a good idea, or if you're comfortable with NumPy already then you could try doing them in PyTorch (see below).
+  * **[PyTorch](https://pytorch.org/).** PyTorch has several useful tutorials, and to get comfortable working with tensors you might want to implement the 100 basic NumPy exercises linked to above, using PyTorch instead. Another option would be this [Learn the Basics](https://pytorch.org/tutorials/beginner/basics/intro.html) tutorial. You can skip this if you can clearly explain:
+    * **At a high level, what is a `torch.Tensor`?**
+    * **What is a `nn.Parameter`, and `nn.Module`?**
+    * **When you call `.backward()`, where are your gradients stored?**
+    * **What is a loss function? In general, what does it take for arguments, and what does it return?**
+    * **What does an optimization algorithm do?**
+    * **What is a hyperparameter, and how does it differ from a regular parameter?**
+    * **What are some examples of hyperparameters?**
+  * **Basic coding skills.** If you've been accepted into this programme, then you probably already have this box ticked! However, polishing this area can't hurt. LeetCode is a good place to keep basic coding skills sharp, in particular practising the planning and implementation of functions in the medium-hard sections of LeetCode might be helpful. Practising problems on [Project Euler](https://projecteuler.net/) is another idea.
+  * **[Einops](https://einops.rocks/1-einops-basics) and [Einsum](https://einops.rocks/api/einsum/) for basic tensor operations.** These are great libraries to get comfortable with, when manipulating tensors. If you're comfortable using them, then you can say goodbye to awkward NumPy/PyTorch methods like transpose, permute and squeeze!
+
+    For einops, you can read through the examples up to "Fancy examples in random order". It's worth trying to play around with these in your own Jupyter notebook, to get more comfortable with them.
+
+    For einsum, [this page](https://rockt.github.io/2018/04/30/einsum) provides a basic intro to einstein summation convention, and shows some example tensor implementations. Note that we'll be using the einsum function from the einops library, which allows you to refer to dimensions by name rather than by a single letter.
 * Have access to an LLM that can help you, ideally on a paid plan. For coding specifically, Claude via Claude Code and GPT via Codex are popular choices.
 
 ### Deep Learning
@@ -91,7 +107,13 @@ Useful readings:
     * Multi-layer perceptrons
     * The most successful neural network architecture is the transformer. [Understand inputs and outputs of a transformer](https://learn.arena.education/chapter1_transformer_interp/01_transformers/1-understanding-inputs-outputs-of-a-transformer/), including training to perform next-token prediction and supervised finetuning
 
-  → [The neural network section in ARENA’s prerequisites](https://learn.arena.education/chapter0_fundamentals/00_prereqs/1-core-concepts-knowledge/) teaches much of this!
+  → The best introductory resources here are [3B1B's videos on neural networks](https://www.youtube.com/playlist?list=PLZHQObOWTQDNU6R1_67000Dx_ZCJB-3pi):
+
+  * [But what is a neural network? | Chapter 1, Deep learning](https://www.youtube.com/watch?v=aircAruvnKk)
+  * [Gradient descent, how neural networks learn | Chapter 2, Deep learning](https://www.youtube.com/watch?v=IHZwWFHWa-w)
+  * [What is backpropagation really doing? | Chapter 3, Deep learning](https://www.youtube.com/watch?v=Ilg3gGewQ5U)
+
+  You should prioritise the first two videos in this sequence.
 
 * ★ **Understand all the following concepts:**
   * Architecture, weights, parameterization, Activation;
@@ -124,7 +146,17 @@ Useful readings:
 * Positive definite, eigenvalues, spectral decomposition;
 * Singular values, Singular value decomposition (SVD).
 
-→ Many of these topics are covered in the [linear algebra prerequisites in the ARENA material](https://learn.arena.education/chapter0_fundamentals/00_prereqs/1-core-concepts-knowledge/).
+→ Linear algebra lies at the core of a lot of machine learning. Resources for these topics:
+
+* Linear transformations - what they are, and why they are important
+  * See [this](https://www.youtube.com/watch?v=kYB8IZa5AuE) video from 3B1B
+* How [matrix multiplication works](http://mlwiki.org/index.php/Matrix-Matrix_Multiplication)
+* [Singular value decomposition](https://www.lesswrong.com/posts/iupCxk3ddiJBAJkts/six-and-a-half-intuitions-for-svd)
+* Different types of matrix, and their significance (e.g. symmetric, orthogonal, identity, rotation matrices)
+
+[This video series](https://www.youtube.com/playlist?list=PLZHQObOWTQDPD3MizzM2xVFitgF8hE_ab) by 3B1B provides a good overview of these core topics (although you can probably skip it if you already have a reasonably strong mathematical background).
+
+If you have a lot more time, [Linear Algebra Done Right](https://link.springer.com/book/10.1007/978-3-319-11080-6) is the canonical textbook for covering this topic (although it will probably cover much more than you need to know). Alternatively, Neel Nanda has two [YouTube](https://www.youtube.com/watch?v=GkPhwnvRe-8) [videos](https://www.youtube.com/watch?v=0EB23unfLSU) covering linear algebra extensively.
 
 ### Calculus
 
@@ -136,7 +168,7 @@ Useful readings:
 * Integration: Multivariate integrals, volume in $\mathbb{R}^d$, change of variables;
 * Understand $O$-notation and $o$-notation.
 
-→ See [ARENA’s section on calculus prerequisites](https://learn.arena.education/chapter0_fundamentals/00_prereqs/1-core-concepts-knowledge/), which teaches much of this content.
+→ It's essential to understand differentiation and partial differentiation, and helpful to understand the basics of vector calculus including the chain rule and Taylor series. Again, 3Blue1Brown has a good [video series](https://www.3blue1brown.com/topics/calculus) on this.
 
 For one module, [the implicit function theorem](https://en.wikipedia.org/wiki/Implicit_function_theorem) will be relevant.
 
@@ -148,7 +180,7 @@ For one module, [the implicit function theorem](https://en.wikipedia.org/wiki/Im
 * expectation, variance, moments, Independence, the law of large numbers;
 * multivariate normal distributions.
 
-→ ★ Again, you may take a look at [ARENA’s prerequisites on probability and statistics](https://learn.arena.education/chapter0_fundamentals/00_prereqs/1-core-concepts-knowledge/).
+→ ★ It's essential to understand the rules of probability, expected value and standard deviation, and helpful to understand independence and the normal distribution. [This link](https://medium.com/jun94-devpblog/prob-stats-3-expected-value-variance-and-standard-deviation-bce9303d8da8) covers some of the essentials.
 
 The following concepts are also useful to know:
 
@@ -160,7 +192,8 @@ The following concepts are also useful to know:
 
 ### Information theory
 
-* ★ **Take a look at [ARENA’s recommendations for information theory](https://learn.arena.education/chapter0_fundamentals/00_prereqs/1-core-concepts-knowledge/)** and gain Intuitive understanding of entropy, mutual information, Kullback-Leibler (KL) divergence, and cross-entropy
+* ★ **Gain Intuitive understanding of entropy, mutual information, Kullback-Leibler (KL) divergence, and cross-entropy.** It's helpful to understand information, entropy and KL divergence. These play key roles in interpreting loss functions.
+  * For an overview of Kullback Leibler divergence (an important concept in information theory and machine learning), see [Six (and a half) intuitions for KL divergence](https://www.lesswrong.com/posts/no5jDTut5Byjqb4j5/six-and-a-half-intuitions-for-kl-divergence). Note that this probably won't make sense if you don't already have a solid grasp of what entropy is.
 
 Furthermore, it may be useful to understand the following concepts from information theory:
 
