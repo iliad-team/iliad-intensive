@@ -1,0 +1,57 @@
+#!/bin/sh
+# pre-commit: reject binary assets staged directly into git instead of Git LFS.
+#
+# A raw binary blob bloats history irreversibly (rewriting it out later is
+# painful and breaks everyone's clones), so we stop it at commit time. Any file
+# with a binary/image extension must be stored as a Git LFS *pointer* — see
+# .gitattributes (e.g. `tex/**/fig/*.png filter=lfs ...`). The check below reads
+# the STAGED blob and passes only if it is a real LFS pointer, which catches
+# both "no matching rule in .gitattributes" and "staged before the rule
+# existed" in one test.
+#
+# Enable once per clone:  git config core.hooksPath .githooks   (./setup.sh does this)
+# Override once:          git commit --no-verify
+
+# Extensions that MUST go through LFS (matched case-insensitively).
+lfs_exts='png jpg jpeg bmp gif tif tiff webp pdf ico psd heic avif'
+
+bad=''
+# Newline-separated staged paths: Added, Copied, Modified, Renamed.
+IFS='
+'
+for path in $(git diff --cached --name-only --diff-filter=ACMR); do
+  ext=$(printf '%s' "${path##*.}" | tr 'A-Z' 'a-z')
+  case " $lfs_exts " in
+    *" $ext "*) ;;   # a binary extension we care about
+    *) continue ;;   # anything else: not our concern
+  esac
+  # First bytes of the staged blob. LFS pointers begin with the spec header
+  # (git sends SIGPIPE to `git show` once head has enough — harmless).
+  head=$(git show ":$path" 2>/dev/null | head -c 45)
+  case "$head" in
+    "version https://git-lfs.github.com/spec/v1"*) ;;   # good: real LFS pointer
+    *) bad="$bad  $path
+" ;;
+  esac
+done
+unset IFS
+
+if [ -n "$bad" ]; then
+  echo ""
+  echo "✗ commit rejected: binary assets must be committed via Git LFS, not directly."
+  echo ""
+  echo "  These staged files are raw blobs, not LFS pointers:"
+  printf '%s' "$bad"
+  echo "  Fix:"
+  echo "    1. Ensure .gitattributes has a matching rule, e.g.:"
+  echo "         git lfs track \"tex/**/fig/*.png\"   # then: git add .gitattributes"
+  echo "    2. Re-stage so the LFS filter runs:"
+  echo "         git rm --cached <file> && git add <file>"
+  echo "       (or, if the rule was added after staging: git add --renormalize .)"
+  echo "    3. Verify:  git lfs status    (they should be listed under 'LFS:')"
+  echo ""
+  echo "  Override once (not recommended): git commit --no-verify"
+  echo ""
+  exit 1
+fi
+exit 0
