@@ -52,8 +52,14 @@ Works on Linux (apt) and macOS — on a Mac, `setup.sh` hands off to
 
 Edit `main.tex`/`main.mdx`, save, refresh, see http://localhost:3000
 
+Don't know a worksheet's slug? `./run.sh slugs` lists them all, and `-i` in
+place of a slug picks one with [fzf](https://github.com/junegunn/fzf) if you
+have it (`./run.sh watch -i`).
+
 See `./run.sh --help` for details.
-`./run.sh ci` runs the CI action as if you had pushed to the repo.
+`./run.sh ci` runs the CI action as if you had pushed to the repo; with a slug
+(`./run.sh ci my-slug`) only that worksheet's content is rebuilt first, which is
+the quick way to check one sheet.
 
 ## Material status
 
