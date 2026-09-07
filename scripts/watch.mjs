@@ -29,7 +29,7 @@ if (slugArg && !existsSync(path.join(TEX, slugArg, "main.tex")) && !existsSync(p
 
 function build(slug) {
   const t0 = Date.now();
-  const argv = [BUILD, "--check", ...(slug ? [slug] : [])];
+  const argv = [BUILD, "--check", "--quiet", ...(slug ? [slug] : [])];
   const r = spawnSync("node", argv, { cwd: ROOT, stdio: "inherit" });
   console.log(r.status === 0
     ? `↻ rebuilt ${slug ?? "all worksheets"} in ${((Date.now() - t0) / 1000).toFixed(1)}s — refresh the browser`

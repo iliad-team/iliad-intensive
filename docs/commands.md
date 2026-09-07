@@ -172,11 +172,11 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
 Different authors ordered their openings differently; the site does not.
 Every sheet opens the same way:
 
-1. **Overview** — not a section: it is the `summary:` in the metadata
-   block, and the page header shows it under the title (it doubles as the
-   index blurb, so keep it one tight paragraph). A body
-   `\section{Overview}` / `## Overview` draws a warning: fold the text
-   into `summary:` and drop the section.
+1. **Overview** — the `summary:` in the metadata block, which the page header
+   shows under the title (it doubles as the index blurb, so keep it one tight
+   paragraph). A body `\section{Overview}` / `## Overview` is the author's
+   call and draws no warning — it simply reads as the sheet's first content
+   section, after the front matter below.
 2. **Video embeds** (optional) — `\youtube` / `<YouTube />`, see "Videos"
    below.
 3. **Prerequisites** — an ordinary section.
@@ -184,8 +184,8 @@ Every sheet opens the same way:
 
 Then the content. Orientation opens a sheet; pointers *out* of it close it
 (the mirror rule is "Further reading goes last", just below). The build
-checks the opening on both paths (LaTeX and MDX) and prints a non-fatal
-**warning** when a sheet strays. Only the opening run is checked — a video
+checks the ordering of items 2-4 on both paths (LaTeX and MDX) and prints a
+non-fatal **warning** when a sheet strays. Only the opening run is checked — a video
 embedded mid-content to illustrate a point is fine and exempt.
 
 ## Further reading goes last

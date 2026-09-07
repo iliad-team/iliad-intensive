@@ -78,12 +78,9 @@ export const tidy = (s) =>
 // that locates it for file:line reporting (the MDX path passes no needle and
 // derives the line from `at` instead — each issue carries the offending
 // item's offset back out).
-export function frontMatterOrderIssues({ overview, video, prereqs, outcomes, content }) {
+export function frontMatterOrderIssues({ video, prereqs, outcomes, content }) {
   const issues = [];
-  if (overview) issues.push({
-    msg: 'an "Overview" section in the body — the overview is the header\'s job: fold it into `summary:` and drop the section',
-    needle: overview.needle, at: overview.at,
-  });
+
   // Only the opening run is held to the order: a video embedded after the
   // content has started is illustrating a point, not front matter.
   const vid = video && (!content || video.at < content.at) ? video : null;
