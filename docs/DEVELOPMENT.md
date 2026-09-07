@@ -44,7 +44,14 @@ together define the authoring contract.
   Converter ERRORs fail the build; warnings don't.
 - `./run.sh watch [slug]` — live loop: dev server + fast rebuild on every save
   (scripts/watch.mjs; ignores LaTeX build artifacts to avoid loops).
-- `./run.sh ci` — the full CI ladder (content build + static site build).
+- `./run.sh ci [slug ...]` — the full CI ladder (content build + static site
+  build). Slugs scope only the CONTENT half (handed to build-content.mjs via
+  `CI_SLUGS`, since `ci` is a compound npm script and `npm run ci -- slug` would
+  append to its last command); `next build` always renders whatever `content/`
+  holds, so a one-slug run won't re-check modules whose MDX isn't built.
+- `./run.sh slugs` — every worksheet slug, one per line, straight off `tex/`
+  (no Node). `-i`/`--pick` in place of a slug picks interactively via fzf, where
+  installed, for `watch`/`preview`/`content`/`ci`.
 - `./setup.sh` — idempotent local install (apt TeX/poppler, nvm Node 22,
   npm deps).
 - **Order matters**: the PDF compiles BEFORE conversion because the converter

@@ -220,12 +220,19 @@ const stripMdxSolutions = (mdx) => {
 // build-status.mjs) reads the generated MDX, so it sees the schedule's answer
 // and cannot disagree with it. An unscheduled sheet — the unlisted format demo
 // — keeps whatever its own frontmatter says.
+// Both values are QUOTED. Cluster "0" (Foundations) and its day "0" are
+// numbers to YAML otherwise, and the site reads these back as strings: a
+// numeric 0 is falsy, so clusterUrlSlug() fell through to its "no cluster"
+// branch and generated the page at /page/<slug>/ while every link to it pointed
+// at /foundations/<slug>/ — a 404 on a statically exported site.
+const stampLines = (sc) => `---\ncluster: "${sc.cluster}"\nday: "${sc.day}"\n`;
+
 const stampSchedule = (mdxOut, slug) => {
   const sc = SCHEDULE.bySlug.get(slug);
   if (!sc) return;
   const raw = readFileSync(mdxOut, "utf8");
   if (!raw.startsWith("---\n")) return;   // no frontmatter: the render gate's problem
-  writeFileSync(mdxOut, `---\ncluster: ${sc.cluster}\nday: ${sc.day}\n${raw.slice(4)}`);
+  writeFileSync(mdxOut, stampLines(sc) + raw.slice(4));
 };
 
 // ---------------------- per-worksheet build cache ---------------------------
@@ -312,9 +319,11 @@ const restampIfMoved = (slug) => {
   const raw = readFileSync(mdxOut, "utf8");
   const m = STAMP_RE.exec(raw);
   if (!m) return false;                        // never stamped; not ours to fix
-  if (m[1] === String(sc.cluster) && m[2] === String(sc.day)) return false;
+  // Compare the rendered block, not the captures, so a stamp left unquoted by
+  // an older build is brought into line as well as one naming the wrong day.
+  if (m[0] === stampLines(sc)) return false;
 
-  const updated = `---\ncluster: ${sc.cluster}\nday: ${sc.day}\n` + raw.slice(m[0].length);
+  const updated = stampLines(sc) + raw.slice(m[0].length);
   writeFileSync(mdxOut, updated);
   const dl = path.join(DOWNLOADS, slug);
   if (existsSync(dl)) {
