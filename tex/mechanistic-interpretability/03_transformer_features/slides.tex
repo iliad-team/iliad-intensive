@@ -350,7 +350,9 @@
 
 \begin{frame}{Johnson--Lindenstrauss Lemma}
 In $N$ dimensions, we can pack
-\[ m \leq e^{c \cdot \varepsilon^2 \cdot N} \]
+% ERRATA 2026-09-08: corrected the bound's direction; the construction packs at
+%   least exponentially many vectors, not at most. Reported in Discord 1546865387885301871.
+\[ m \geq e^{c \cdot \varepsilon^2 \cdot N} \]
 vectors with pairwise dot product at most $\varepsilon$.
 
 \vspace{1em}
