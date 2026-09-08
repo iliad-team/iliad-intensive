@@ -2,7 +2,7 @@
 
 The worksheets for [ILIAD](https://iliad.ac)'s intensive course.
 
-**Live site: [iliad-team.github.io/iliad-intensive](https://iliad-team.github.io/iliad-intensive/)**
+**Live site: [iliad-intensive.org](https://iliad-intensive.org/)**
 
 Feedback welcome! I want friction for you as the writer to be as low as possible. If something is frustrating, [open an issue](https://github.com/iliad-team/iliad-intensive/issues) and let me know!
 
@@ -63,7 +63,7 @@ the quick way to check one sheet.
 
 ## Material status
 
-**[iliad-team.github.io/iliad-intensive/admin/status](https://iliad-team.github.io/iliad-intensive/admin/status/)**
+**[iliad-intensive.org/admin/status](https://iliad-intensive.org/admin/status/)**
 — one row per teaching day: is the worksheet live, is there a deck, the day's
 Google-Doc tab, and where its source is. Every push rebuilds it, so it always
 describes the site as deployed.

@@ -158,7 +158,7 @@ node scripts/build-content.mjs      # tex -> mdx/index/uploads/downloads
 ```
 
 For hosting under a sub-path (e.g. a GitHub Pages project site), build with
-`NEXT_PUBLIC_BASE_PATH=/iliad-intensive ./run.sh build`.
+`./run.sh build` (production needs no base path — the site is served at the root of iliad-intensive.org).
 
 ## What renders a module
 

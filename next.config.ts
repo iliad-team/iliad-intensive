@@ -7,9 +7,9 @@ const nextConfig: NextConfig = {
   // during the build.
   output: "export",
   trailingSlash: true,
-  // Set NEXT_PUBLIC_BASE_PATH (e.g. "/iliad-intensive") when hosting under a
-  // sub-path such as a GitHub Pages project site. Leave unset for local dev
-  // and root-domain hosting.
+  // Set NEXT_PUBLIC_BASE_PATH (e.g. "/pr-preview/pr-42") when hosting under a
+  // sub-path, as the per-PR previews are. Leave unset for local dev and for
+  // production, which is served at the root of iliad-intensive.org.
   basePath: process.env.NEXT_PUBLIC_BASE_PATH ?? "",
   // The `preview` loop (PREVIEW_ONLY set) skips type-checking and linting on
   // each rebuild — a couple of seconds saved per save. The real build/CI (no

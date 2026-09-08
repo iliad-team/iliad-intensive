@@ -276,7 +276,7 @@ Every PR body points at **both** (see `docs/PR-PREVIEWS.md`):
 - the **issue** it addresses — `Closes #<n>`; find it with `gh issue list`, day
   issues are titled `[X.Y] <Title>`;
 - the **live preview** — CI deploys the rendered site to
-  `https://iliad-team.github.io/iliad-intensive/pr-preview/pr-<PR#>/` and a bot
+  `https://iliad-intensive.org/pr-preview/pr-<PR#>/` and a bot
   comments the URL once checks pass. That link is what a reviewing author opens.
 
 Watch CI with `gh pr checks <n> --watch`. Leave the worktree in place until the

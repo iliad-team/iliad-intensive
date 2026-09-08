@@ -4,7 +4,7 @@ Every pull request that passes the checks gets its own rendered copy of the site
 so a reviewer can click through the real pages before the PR is merged:
 
 ```
-https://iliad-team.github.io/iliad-intensive/pr-preview/pr-<N>/
+https://iliad-intensive.org/pr-preview/pr-<N>/
 ```
 
 A bot comments that URL on the PR automatically, and updates it on every push.
@@ -63,17 +63,20 @@ site. The script refuses to push a tree with no root `index.html`.
 
 ### Base path
 
-GitHub Pages serves the repo under `/iliad-intensive`. Assets and links are
-absolute, so a preview one level deeper must be built with a matching prefix.
-The workflow sets `NEXT_PUBLIC_BASE_PATH` accordingly:
+Production is served at the root of the custom domain `iliad-intensive.org`
+(see `public/CNAME`), so it needs no prefix. Assets and links are absolute, so a
+preview one level deeper must be built with a matching prefix. The workflow sets
+`NEXT_PUBLIC_BASE_PATH` accordingly:
 
 | Event | `NEXT_PUBLIC_BASE_PATH` |
 |---|---|
-| push to `main` | `/iliad-intensive` |
-| PR #N | `/iliad-intensive/pr-preview/pr-N` |
+| push to `main` | *(empty)* |
+| PR #N | `/pr-preview/pr-N` |
 
-`npm run ci` honours an existing `NEXT_PUBLIC_BASE_PATH` and falls back to
-`/iliad-intensive`, so local builds and the production deploy are unchanged.
+`npm run ci` honours an existing `NEXT_PUBLIC_BASE_PATH` and otherwise defaults
+to empty. That default **must stay empty**: the shell's `${VAR:-default}` fires
+on an empty value as well as an unset one, so a non-empty default there would
+silently re-prefix the production build even though the workflow asked for none.
 
 ## Required one-time setup (maintainer)
 
@@ -90,6 +93,24 @@ from it. (The first workflow run creates the branch.)
 A branch source runs **Jekyll** by default, which would strip Next's `_next/`
 assets (Jekyll ignores `_`-prefixed dirs). The build writes a `.nojekyll` marker
 to the site root to disable that — no action needed, but don't remove it.
+
+### Custom domain
+
+The site is served at **`iliad-intensive.org`** (apex A records → GitHub Pages'
+four addresses, `www` → `iliad-team.github.io`, both **DNS-only / grey cloud** in
+Cloudflare so GitHub's Let's Encrypt challenge is not intercepted).
+`iliad-intensive.com` is a separate Cloudflare zone that stays *proxied* and
+redirects, path-preserving, to the `.org`. GitHub Pages holds only **one** custom
+domain per repo, which is why the `.com` is a redirect rather than a second
+`CNAME`.
+
+The domain is claimed by **`public/CNAME`**, and it has to live there rather than
+be written once by Settings → Pages. Setting the domain in the UI commits a
+`CNAME` file to `gh-pages` — but every publish force-pushes `.deploy/` as a
+brand-new orphan commit that *is* the whole branch, so a file only the UI wrote
+is gone on the next deploy, taking the domain with it. `public/` is copied to the
+root of `out/`, so keeping it in the repo re-stages it every time. **Don't delete
+`public/CNAME`.**
 
 ## Fork PRs
 

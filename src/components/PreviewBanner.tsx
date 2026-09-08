@@ -11,7 +11,7 @@ const PR = process.env.NEXT_PUBLIC_PREVIEW_PR;
 const PR_TITLE = process.env.NEXT_PUBLIC_PREVIEW_PR_TITLE?.trim();
 
 // Fixed project locations.
-const LIVE_URL = "https://iliad-team.github.io/iliad-intensive/";
+const LIVE_URL = "https://iliad-intensive.org/";
 const REPO_URL = "https://github.com/iliad-team/iliad-intensive";
 
 export function PreviewBanner() {

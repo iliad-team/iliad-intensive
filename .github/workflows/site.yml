@@ -98,9 +98,12 @@ jobs:
         with:
           lfs: true
 
-      # The site is served under a path prefix on GitHub Pages. Production sits
-      # at /iliad-intensive; a PR preview sits one level deeper so its assets and
-      # links resolve under the preview subpath.
+      # Production is served at the ROOT of the custom domain
+      # (iliad-intensive.org, set by public/CNAME), so it needs no path prefix;
+      # a PR preview sits under /pr-preview/pr-<N>/ so its assets and links
+      # resolve under the preview subpath. NOTE: package.json's `ci` script
+      # must keep an EMPTY default for NEXT_PUBLIC_BASE_PATH — a `:-` default
+      # fires on an empty value too and would silently re-add a prefix here.
       - name: Compute base path + commit
         id: cfg
         env:
@@ -113,7 +116,7 @@ jobs:
           PR_TITLE: ${{ github.event.pull_request.title }}
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
-            echo "base=/iliad-intensive/pr-preview/pr-${{ github.event.number }}" >> "$GITHUB_OUTPUT"
+            echo "base=/pr-preview/pr-${{ github.event.number }}" >> "$GITHUB_OUTPUT"
             echo "pr=${{ github.event.number }}" >> "$GITHUB_OUTPUT"
             # A heredoc, not `title=$PR_TITLE`: a title may contain anything,
             # and a bare key=value line breaks on the first newline while an "="
@@ -127,7 +130,7 @@ jobs:
             # The PR's own head commit, not the synthetic merge commit.
             echo "sha=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
           else
-            echo "base=/iliad-intensive" >> "$GITHUB_OUTPUT"
+            echo "base=" >> "$GITHUB_OUTPUT"
             echo "pr=" >> "$GITHUB_OUTPUT"
             echo "title=" >> "$GITHUB_OUTPUT"
             echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
@@ -467,7 +470,7 @@ jobs:
         with:
           script: |
             const pr = context.issue.number;
-            const url = `https://iliad-team.github.io/iliad-intensive/pr-preview/pr-${pr}/`;
+            const url = `https://iliad-intensive.org/pr-preview/pr-${pr}/`;
             const marker = '<!-- pr-preview-url -->';
             // The PR's head commit — NOT context.sha, which on pull_request is
             // the ephemeral refs/pull/N/merge commit and never matches the PR.

@@ -393,7 +393,7 @@ reading order:
 ```
 
 - Add your slug under its day and you're done: the homepage, the sidebar and
-  [`/admin/status`](https://iliad-team.github.io/iliad-intensive/admin/status/)
+  [`/admin/status`](https://iliad-intensive.org/admin/status/)
   all follow, and the build stamps `cluster:`/`day:` into your page for you.
 - Several worksheets per day is normal — D.3 is Solomonoff Induction then AIXI,
   and that order is a fact about teaching, which no sort of the titles could
