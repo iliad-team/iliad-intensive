@@ -369,7 +369,10 @@ the following way:
 
 \section{What is steganography?}
 
+\begin{definition}[Steganography (informal)]
+\label{def:steganography}
 \textbf{Steganography} is the problem of hiding a secret message inside an ordinary-looking object, called the \emph{covertext}, so that an observer cannot tell whether hidden communication is taking place.
+\end{definition}
 
 In the LLM asetting:
 
@@ -410,6 +413,8 @@ The goal is that the adversary cannot reliably distinguish these two cases.
 
 \section{Perfect information-theoretic steganography}
 
+\begin{definition}[Perfect information-theoretic indistinguishability]
+\label{def:perfect-indistinguishability}
 The strongest possible notion is \textbf{perfect information-theoretic indistinguishability}.
 
 This means that the stego output distribution is exactly the same as the innocent output distribution:
@@ -431,7 +436,10 @@ d_{\mathrm{TV}}(P,Q)
 =
 \frac12 \sum_x |P(x)-Q(x)|.
 \]
+\end{definition}
 
+\begin{fact}[Optimal distinguishing probability]
+\label{fact:tv-operational}
 Total variation distance is the operational distance for hypothesis testing. If the adversary gets one sample and the two hypotheses have equal prior probability, then the optimal success probability is
 
 \[
@@ -439,6 +447,7 @@ Total variation distance is the operational distance for hypothesis testing. If 
 =
 \frac12\left(1+d_{\mathrm{TV}}(P,Q)\right).
 \]
+\end{fact}
 
 So if $d_{\mathrm{TV}}(P,Q)=0$, no adversary, even an unbounded one, can distinguish stego output from innocent output.
 
@@ -452,6 +461,18 @@ Suppose:
     \item $X$ is the transmitted stegotext.
 \end{itemize}
 
+% PORT NOTE (2026-09-08): theorem/proof framing added. Every word is the
+% author's and the running derivation is untouched; only the concluding
+% sentence is lifted above it to serve as the statement.
+\begin{theorem}[Perfect steganography needs key entropy]
+\label{thm:key-entropy}
+For perfect information-theoretic steganography with perfect recovery, the shared secret must contain at least as much entropy as the hidden message:
+\[
+\boxed{H(M)\le H(K).}
+\]
+\end{theorem}
+
+\begin{proof}
 Assume perfect hiddenness:
 
 \[
@@ -497,25 +518,32 @@ I(M;K\mid X)\le H(K\mid X)\le H(K).
 Therefore,
 
 \[
-\boxed{H(M)\le H(K).}
+H(M)\le H(K).
 \]
-
-So, for perfect information-theoretic steganography with perfect recovery, the shared secret must contain at least as much entropy as the hidden message.
+\end{proof}
 
 For arbitrarily many hidden messages, a finite fixed key is not enough. One needs an unbounded supply of shared secret randomness, or some mechanism for refreshing it.
 
+\begin{remark}
+\label{rem:one-time-pad}
 This is analogous to the one-time pad: perfect secrecy consumes secret key material.
+\end{remark}
 
 \section{Why this is often impractical}
 
 If sender and receiver already have a secret channel capable of exchanging large amounts of fresh randomness, then they could often use that channel directly for communication or key refreshment.
 
+\begin{remark}
+\label{rem:existence-vs-content}
 That does not make steganography useless, because steganography hides \emph{the existence of communication}, whereas encryption only hides \emph{the content}. But it does mean that perfect information-theoretic steganography is usually expensive in secret randomness.
+\end{remark}
 
 Therefore, practical schemes often use a short reusable secret key and settle for \textbf{computational security}.
 
 \section{Computational steganography}
 
+\begin{definition}[Computational steganography]
+\label{def:computational-steganography}
 In computational steganography, the requirement is weakened.
 
 Instead of demanding
@@ -525,6 +553,7 @@ P=Q
 \]
 
 against all adversaries, we demand that no efficient adversary can distinguish $P$ from $Q$.
+\end{definition}
 
 So the guarantee is not:
 
@@ -538,10 +567,15 @@ It is:
 no polynomial-time adversary can distinguish them with non-negligible advantage.
 \end{quote}
 
+\begin{callout}[warning]
+\label{co:unbounded-adversary}
 An unbounded adversary may still break the scheme.
+\end{callout}
 
 \section{Pseudorandom functions}
 
+\begin{definition}[Pseudorandom function]
+\label{def:prf}
 A \textbf{pseudorandom function} (PRF) is a family of keyed functions
 
 \[
@@ -572,7 +606,10 @@ It is a PRF if:
 \]
 
 where $f$ is a truly random function with the same domain and range.
+\end{definition}
 
+\begin{remark}
+\label{rem:prf-intuition}
 Intuitively:
 
 \begin{itemize}
@@ -580,9 +617,12 @@ Intuitively:
     \item a PRF uses only a short key,
     \item but to efficient algorithms, it looks like a truly random function.
 \end{itemize}
+\end{remark}
 
 \section{How the paper uses this idea}
 
+\begin{example}[PRF-driven token sampling]
+\label{ex:prf-sampling}
 The LLM normally samples from a next-token distribution. For example, if the model predicts
 
 \[
@@ -600,6 +640,7 @@ then ordinary sampling draws a uniform random number $u\in[0,1]$ and chooses:
 \end{itemize}
 
 The steganographic scheme does the same thing, except $u$ is generated from a secret-keyed PRF.
+\end{example}
 
 Because the PRF output behaves like a uniform random number to efficient observers, the marginal token distribution is unchanged. The model still outputs cat, dog, and fox with probabilities $0.5,0.3,0.2$.
 
@@ -631,6 +672,8 @@ More carefully:
 
 \section{Relation to assumptions}
 
+\begin{callout}[warning]
+\label{co:not-p-vs-np}
 The relevant assumption is not simply
 
 \[
@@ -638,6 +681,7 @@ P\ne NP.
 \]
 
 That is too weak for modern cryptography.
+\end{callout}
 
 A more standard assumption is the existence of \textbf{one-way functions}, which implies the existence of PRFs.
 
@@ -698,6 +742,8 @@ The random ReLU backdoor is a proof-of-concept showing that a malicious
 trainer can hide a backdoor in a one-hidden-layer ReLU model by tampering
 only with how the random first-layer weights are sampled.
 %
+\begin{definition}[Random ReLU classifier]
+\label{def:random-relu}
 In the honest version, the model samples random Gaussian weights
 \[
     g_i \sim \mathcal N(0,I_d),
@@ -721,7 +767,10 @@ and classifies by thresholding their average with a learnable threshold paramete
     \texttt{1} & \text{if } x>0.
     \end{cases}
 \]
-%
+\end{definition}
+
+\begin{definition}[Spiked-covariance backdoor]
+\label{def:spiked-backdoor}
 The malicious trainer instead samples the weights from a spiked covariance
 distribution
 \[
@@ -745,11 +794,10 @@ Because the weights have extra variance in the secret direction \(s\), we get
 After applying ReLU and averaging over many features, this raises the
 model's score above the threshold \(\tau\), changing the output, typically
 from negative to positive.
+\end{definition}
 
-\medskip
-
-\noindent
-\textbf{Key idea.}
+\begin{remark}[Key idea]
+\label{rem:key-idea}
 Backdoored samples are shifted in the hidden sparse direction \(s\), which is
 also the direction of increased variance in the random ReLU weights. This
 increases the variance of the scalar products
@@ -760,6 +808,7 @@ this larger expectation. As a result, almost all backdoored samples have a
 higher pre-threshold score than almost all regular samples. Therefore, if the
 threshold \(\tau\) meaningfully separates the regular samples, it will lie
 below almost all backdoored samples.
+\end{remark}
 
 % ---------- Exercises ----------
 
@@ -883,7 +932,9 @@ Show that
     z' := \langle g,x'\rangle
     \sim \mathcal N\bigl(0,1+\alpha^2\theta\bigr).
 \]
-\textbf{Hint:} When $g \sim \mathcal N(0, \Sigma)$, then $\operatorname{Var}(\langle g,x\rangle) = x^\top \Sigma x $
+\begin{hint}
+When $g \sim \mathcal N(0, \Sigma)$, then $\operatorname{Var}(\langle g,x\rangle) = x^\top \Sigma x $
+\end{hint}
 
 \item \textbf{Larger Variance leads to larger expected ReLU output:}
 Let \(Z \sim \mathcal N(0,\sigma^2)\), and compute
@@ -963,6 +1014,8 @@ Use Chebyshev's inequality to show that
 Conclude that, whenever \(\Delta_n\) is bounded below by a positive constant,
 the fraction of backdoored samples classified as $\texttt{0}$ decays like \(1/n\).
     
+% TODO(missing solution): this part has NO solution upstream. Solutions
+% below cover (a)-(e) only; see the TODO at the end of the solution block.
 \item \textbf{Backdoored Samples always Succeed:}
 
 Given the results of the exercise so far, argue that you that whichever threshold value $\tau$ is chosen, you either
@@ -1253,6 +1306,11 @@ side is \(O(1/n)\). Hence the fraction of backdoored samples classified as
 $\texttt{0}$ decays like \(1/n\).
 
 \end{enumerate}
+% TODO(missing solution): part (f), "Backdoored Samples always Succeed", has no
+% solution here -- upstream supplied only five, for parts (a)-(e). It is the
+% qualitative part: argue that any threshold either labels every regular sample
+% \texttt{0} (a useless classifier) or every backdoored sample \texttt{1}.
+% Chase Stephan/Louis, or write one.
 \end{solution}
 
 %===============================================================================
