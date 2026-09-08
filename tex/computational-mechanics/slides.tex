@@ -3,7 +3,8 @@
 %  ILIAD Intensive, Spring 2026
 %
 %  Transcription of the handwritten slide deck "CompMechSlidesPt2.pdf".
-%  Figures are cropped from the source PDF and live in ./fig/
+%  The conceptual figures are the authors' own, in ./fig/; the small
+%  state machines are drawn in TikZ -- see ./tikzfigs.tex.
 %
 %  Compile with:   pdflatex CompMechSlidesPt2.tex
 %  (run twice if you add \tableofcontents or cross-references)
@@ -27,6 +28,9 @@
 \setbeamerfont{frametitle}{size=\large,series=\bfseries}
 \setbeamercolor{frametitle}{fg=black}
 \graphicspath{{fig/}}
+
+% The small state machines are drawn, not scanned -- see tikzfigs.tex.
+\input{tikzfigs}
 
 % Underlined emphasis, matching the underlining in the handwritten original.
 % (ulem is not installed here; \underline is fine for these short phrases.)
@@ -388,7 +392,7 @@
   It is convenient to use the following graphical notation to visualise
   process transitions:
   \begin{center}
-    \raisebox{-0.45\height}{\includegraphics[height=0.10\textheight]{notation}}
+    \figNotation
     \hspace{3em}
     $p = P(x,\ s_j \mid s_i)$
   \end{center}
@@ -441,7 +445,7 @@
       \[ \mathcal{X} = \{{\color{red}0},{\color{red}1}\} \]
     \end{column}
     \begin{column}{0.36\textwidth}
-      \begin{center}\includegraphics[width=0.88\linewidth]{ex1_coin}\end{center}
+      \begin{center}\scalebox{0.80}{\figExOneCoin}\end{center}
     \end{column}
     \begin{column}{0.30\textwidth}
       \[ T^{({\color{red}0})} = {\color{blue}1-p} \]
@@ -457,7 +461,7 @@
       \[ \mathcal{X} = \{{\color{red}0},{\color{red}1}\} \]
     \end{column}
     \begin{column}{0.30\textwidth}
-      \begin{center}\includegraphics[width=0.70\linewidth]{ex2_z1r}\end{center}
+      \begin{center}\scalebox{0.72}{\figExTwoZOR}\end{center}
     \end{column}
     \begin{column}{0.38\textwidth}
       \[
@@ -499,7 +503,7 @@
       \[ \mathcal{X} = \{{\color{red}0},{\color{red}1}\} \]
     \end{column}
     \begin{column}{0.60\textwidth}
-      \begin{center}\includegraphics[width=0.68\linewidth]{ex3_rrxor}\end{center}
+      \begin{center}\scalebox{0.72}{\figExThreeRRXOR}\end{center}
     \end{column}
   \end{columns}
 
@@ -548,7 +552,7 @@
       \[ \mathcal{X} = \{{\color{red}0},{\color{red}1}\} \]
     \end{column}
     \begin{column}{0.52\textwidth}
-      \begin{center}\includegraphics[width=0.56\linewidth]{ex4}\end{center}
+      \begin{center}\scalebox{0.68}{\figExFour}\end{center}
     \end{column}
   \end{columns}
 
@@ -595,7 +599,7 @@
       \[ \mathcal{X} = \{{\color{red}0},{\color{red}1}\} \]
     \end{column}
     \begin{column}{0.52\textwidth}
-      \begin{center}\includegraphics[width=0.56\linewidth]{ex4}\end{center}
+      \begin{center}\scalebox{0.68}{\figExFour}\end{center}
     \end{column}
   \end{columns}
 
@@ -649,7 +653,7 @@
       \[ \mathcal{X} = \{{\color{red}0},{\color{red}1}\} \]
     \end{column}
     \begin{column}{0.64\textwidth}
-      \begin{center}\includegraphics[width=\linewidth]{ex4_redundant}\end{center}
+      \begin{center}\scalebox{0.70}{\figExFourRedundant}\end{center}
     \end{column}
   \end{columns}
 
@@ -737,7 +741,7 @@
   We say that a HMM realisation of a stochastic process is \uw{minimal} if
   there exists no other HMM realisations with fewer hidden states.
   \begin{center}
-    \includegraphics[width=0.94\textwidth]{minimality}
+    \scalebox{0.92}{\figMinimality}
   \end{center}
 \end{frame}
 
