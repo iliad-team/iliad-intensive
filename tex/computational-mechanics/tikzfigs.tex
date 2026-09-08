@@ -252,8 +252,7 @@
 % The hierarchy of process classes.
 %   #1 = 1 to shade the GHMM class green
 %   #2 = 1 to add the outward growth arrows
-%   #3 = 1 to mark PTM with the "not exhaustive" asterisk
-\newcommand{\hierarchysets}[3]{%
+\newcommand{\hierarchysets}[2]{%
   \classring{2.20}{5.00}{}%
   \classring{1.82}{4.30}{}%
   \classring{1.48}{3.62}{}%
@@ -271,18 +270,17 @@
   \node[font=\small] at (0,2.36) {GHMM};
   \node[font=\small] at (0,1.52) {HMM};
   \node[font=\scriptsize] at (0,0.34) {IID};
-  \ifnum#3=1 \node[font=\small] at (1.30,4.72) {$*$};\fi
 }
 
 \newcommand{\figHierarchy}{%
-\begin{tikzpicture}\hierarchysets{0}{0}{1}\end{tikzpicture}}
+\begin{tikzpicture}\hierarchysets{0}{0}\end{tikzpicture}}
 
 \newcommand{\figHierarchyGreen}{%
-\begin{tikzpicture}\hierarchysets{1}{1}{1}\end{tikzpicture}}
+\begin{tikzpicture}\hierarchysets{1}{1}\end{tikzpicture}}
 
 % The same sets on the scope slide: shaded, but no asterisk and no arrows.
 \newcommand{\figProcessSets}{%
-\begin{tikzpicture}\hierarchysets{1}{0}{0}\end{tikzpicture}}
+\begin{tikzpicture}\hierarchysets{1}{0}\end{tikzpicture}}
 
 % The acronym key that used to be handwritten down the side of both
 % hierarchy figures.  Lifted out so the slide can set it as text.
@@ -293,7 +291,8 @@
     GHMM & Generalised Hidden Markov Model    \\[0.35em]
     HMM  & Hidden Markov Model                \\[0.35em]
     IID  & Independent \& Identically Distributed
-  \end{tabular}}
+  \end{tabular}\par\vspace{0.9em}
+  {\footnotesize (non-exhaustive)}}
 
 % ---------------------------------------------------------------------
 %  The transformer sketch, the right-hand half of the old scope.png.
@@ -315,10 +314,12 @@
   \draw[wire] (att.north) -- (1.75,2.30) -- (0,2.30);
   \draw[wire] (0,2.56)  -- (1.75,2.56) -- (mlp.south);
   \draw[wire] (mlp.north) -- (1.75,4.20) -- (0,4.20);
-  % the two sums
+  % each block adds back into the stream: a circle-plus, not the flattened
+  % glyph the handwritten sketch uses for it
   \foreach \y in {2.30, 4.20}{
-    \draw[wire, fill=white] (0,\y) ellipse[x radius=0.20, y radius=0.10];
-    \draw[wire] (-0.20,\y) -- (0.20,\y);}
+    \draw[wire, fill=white] (0,\y) circle[radius=0.135];
+    \draw[wire] (-0.093,\y) -- (0.093,\y);
+    \draw[wire] (0,{\y-0.093}) -- (0,{\y+0.093});}
 \end{tikzpicture}}
 
 % ---------------------------------------------------------------------
