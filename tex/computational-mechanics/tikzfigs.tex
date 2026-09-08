@@ -243,13 +243,11 @@
   wire/.style   = {draw, line width=.6pt},
 }
 
-% One nested contour  (\ring is taken: it is LaTeX's ring accent): pinched at the origin, bulging up and out.
+% One class boundary: an oval sitting on the common bottom point at the
+% origin.  (\ring is taken -- it is LaTeX's ring accent.)
 % #1 half-width, #2 height, #3 extra style.
 \newcommand{\classring}[3]{%
-  \draw[ring,#3] (0,0)
-    .. controls (-#1*0.98,#2*0.10) and (-#1,#2*0.72) .. (-#1*0.44,#2*0.965)
-    .. controls (-#1*0.17,#2*1.03) and ( #1*0.17,#2*1.03) .. ( #1*0.44,#2*0.965)
-    .. controls ( #1,#2*0.72) and ( #1*0.98,#2*0.10) .. (0,0) -- cycle;}
+  \draw[ring,#3] (0,{(#2)/2}) ellipse[x radius=#1, y radius={(#2)/2}];}
 
 % The hierarchy of process classes.
 %   #1 = 1 to shade the GHMM class green
@@ -261,18 +259,18 @@
   \classring{1.48}{3.62}{}%
   \ifnum#1=1 \classring{1.16}{2.78}{ghmm}\else\classring{1.16}{2.78}{}\fi
   \classring{0.94}{1.98}{dashed}%
-  \draw[ring] (0,0.46) ellipse[x radius=0.56, y radius=0.34];
+  \classring{0.56}{0.68}{}%
   \ifnum#2=1
-    \foreach \x/\y/\a in {-0.94/1.62/152, -0.72/2.12/125, -0.30/2.54/103,
-                          0.16/2.60/78, 0.62/2.36/58, 0.94/1.94/40, 1.06/1.44/22}{%
-      \draw[growth] (\x,\y) -- ++(\a:0.36);}
+    \foreach \x/\y/\a in {1.05/1.98/29, 0.67/2.53/60, 0.10/2.78/86,
+                          -0.49/2.65/111, -0.95/2.19/140, -1.12/1.75/162}{%
+      \draw[growth] (\x,\y) -- ++(\a:0.29);}
   \fi
   \node[font=\small] at (0,4.52) {PTM};
   \node[font=\small] at (0,3.92) {$\vdots$};
   \node[font=\small] at (0,3.24) {PCFG};
   \node[font=\small] at (0,2.36) {GHMM};
   \node[font=\small] at (0,1.52) {HMM};
-  \node[font=\scriptsize] at (0,0.46) {IID};
+  \node[font=\scriptsize] at (0,0.34) {IID};
   \ifnum#3=1 \node[font=\small] at (1.30,4.72) {$*$};\fi
 }
 
@@ -306,7 +304,7 @@
 \begin{tikzpicture}
   \node[unit] (x)  at (0,0)    {$x$};
   \node[unit] (px) at (0,4.95) {$p^{(x)}$};
-  \node[unit] (att) at (1.75,1.30) {Att$^{n}$};
+  \node[unit] (att) at (1.75,1.30) {Attn};
   \node[unit] (mlp) at (1.75,3.20) {MLP};
   % the residual stream
   \draw[wire] (x.north) -- (px.south);
