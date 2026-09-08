@@ -55,7 +55,7 @@ const CONVERTER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx.mjs");
 const CHECKER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx-check.mjs");
 // Generated MDX is host-agnostic: figure URLs are plain /uploads/… paths.
 // The site's Figure component applies NEXT_PUBLIC_BASE_PATH at render time —
-// prefixing here too would double it (…/iliad-intensive/iliad-intensive/…).
+// prefixing here too would double it (…/pr-preview/pr-N/pr-preview/pr-N/…).
 
 const args = process.argv.slice(2);
 const CHECK_ONLY = args.includes("--check");

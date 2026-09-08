@@ -31,7 +31,7 @@ echo "pre-push: CI ladder on tracked worksheets: $slugs"
 if ! ./run.sh content $slugs; then
   reject "worksheet content build failed (see the file:line messages above)."
 fi
-if ! NEXT_PUBLIC_BASE_PATH=/iliad-intensive ./run.sh build; then
+if ! ./run.sh build; then
   reject "static site build failed (see the messages above)."
 fi
 

@@ -6,7 +6,7 @@
 
 - **Issue:** Closes #<!-- issue number, e.g. 2 -->
 - **Live preview:** <!-- CI posts a comment with the URL once checks pass; paste it here too -->
-  `https://iliad-team.github.io/iliad-intensive/pr-preview/pr-<this PR number>/`
+  `https://iliad-intensive.org/pr-preview/pr-<this PR number>/`
 
 <!--
 Every PR should point at BOTH:
