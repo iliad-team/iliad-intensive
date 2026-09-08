@@ -1,5 +1,5 @@
 %--- iliad -------------------------------------------------------------------
-% title: "Provably Safe AI + AI Safety via Debate"
+% title: "Provably Safe AI + AIS via Debate"
 % summary: >-
 %   TODO
 %--- end ----------------------------------------------------------------------
@@ -19,7 +19,7 @@
 \newcommand{\bigexists}{\mathop{\exists}\limits}
 \newcommand{\bigforall}{\mathop{\forall}\limits}
 
-\title{Provably Safe AI + AI Safety via Debate}
+\title{Provably Safe AI + AIS via Debate}
 \author{\authorname{Stephan W\"aldchen}\\ \affiliation{Iliad}}
 \date{\today}
 
@@ -55,37 +55,37 @@
 \section{Roadmap for today}
 \label{sec:roadmap}
 
-How the material was taught in-person in April:
+Here we outline how the material was taught in-person in April:
 
 \begin{itemize}
-  \item \textbf{10:00 --- Fun Game.} Fun exercise ``Wrong but convincing
+  \item \textbf{10:00 --- Fun Game} Fun exercise ``Wrong but convincing
     proofs''. In this exercise, a series of wrong proofs is presented and the
     students are asked to find the mistake in the proof. The students basically
     take the role of ``Bob'' who points out the flaws in Alice's proofs. This
     gives an intuition that even mathematical proofs can sound very convincing,
     and finding a mistake as a human judge is often non-trivial.
     (\cref{sec:wrongproofs})
-  \item \textbf{10:20 --- Introduction to Provably Safe AI and AI Scientist.}
+  \item \textbf{10:20 --- Introduction to Provably Safe AI and AI Scientist}
     Introduction of ``Provably Safe AI'' as a Control and Oversight program.
-    Introduces the ideas of World Model Prover Verifier.
-  \item \textbf{10:30 --- Scalable Oversight Goal - Paper Reading + Discussion.}
+    Introduces the ideas of World Model Prover Verifier
+  \item \textbf{10:30 --- Scalable Oversight Goal - Paper Reading + Discussion}
     (\cref{sec:verifiedai})
-  \item \textbf{11:30 --- Introduction to AIS via Debate.} This part is an
+  \item \textbf{11:30 --- Introduction to AIS via Debate} This part is an
     In-depth explanation of the main formalisms of debate and cross-examination.
     This includes Formal Definition of the Debate setup Proof sketches for the
     hardness-reduction for PSPACE and NEXP respectively.
   \item \textbf{12:30 --- Lunch Break}
-  \item \textbf{13:30 --- Cross Examination + Exercises.} We do CX and the
-    exercises. (\cref{sec:cxnexp})
+  \item \textbf{13:30 --- Cross Examination + Exercises} We do CX and the
+    exercises from \href{https://drive.google.com/file/d/1KMqJDdFITy3YRz02oIfa4RctxP-h-ERF/view?usp=drive_link}{Debate\_Overview.pdf} (\cref{sec:cxnexp})
   \item \textbf{14:30 --- Pause}
-  \item \textbf{14:40 --- Obfuscated Arguments and Prover Estimator Debate.}
+  \item \textbf{14:40 --- Obfuscated Arguments and Prover Estimator Debate}
     (\cref{sec:obfuscation})
   \item \textbf{15:10 --- Judge Models - Introduction}
   \item \textbf{15:15 --- Talk: Alexander Heckett - Debate on Graphs}
   \item \textbf{16:00 --- Pause}
   \item \textbf{16:10 --- Reading and Discussion ``Experimental Results''}
     (\cref{sec:experimental})
-  \item \textbf{17:10 --- Presentation:} The AI safety case of the AISI.
+  \item \textbf{17:10 --- Presentation:} \href{https://arxiv.org/pdf/2505.03989}{The AI safety case of the AISI}
     (\cref{sec:aisi})
   \item \textbf{17:40 --- Debate}: Is AIS via Debate research more capability
     than alignment?
@@ -402,7 +402,7 @@ What topology is being used, and is \(q\) actually continuous for that topology?
 \end{hint}
 
 %==============================================================================
-\section{Provably Safe AI}
+\section{Introduction to Provably Safe AI and AI Scientist}
 \label{sec:psai}
 
 Provably Safe AI is the idea that we can combine a potentially misaligned AI
@@ -453,6 +453,8 @@ Examples of Verified AI:
   \item \textbf{Physics/Experiment Design:} \href{https://arxiv.org/pdf/2602.15039}{GRACE: an Agentic AI for Particle Physics Experiment Design and Simulation}
 \end{itemize}
 
+\href{https://docs.google.com/presentation/d/1JMkgZZyPUG5zcpNEXGfc84xq0urL62r4O6-lnFvQGiw/edit?usp=sharing}{Readings slides Debate day iliad intensive}
+
 Discussion Prompts: What is the world model, prover, verifier in this setup? How
 much would you trust this verification process? How much ambiguity is there in
 the criteria that are verified? Is it clear that these map cleanly to what we
@@ -470,7 +472,7 @@ intuition is that, for many questions, spotting a flaw may be easier than
 producing a flawless deception, so competitive self-play could reward
 truthfulness.
 
-The setup, formalised below, consists of a question, e.g., ``Can I win a game of
+The setup, formalised here: \href{https://drive.google.com/file/d/1KMqJDdFITy3YRz02oIfa4RctxP-h-ERF/view?usp=drive_link}{Debate\_Overview.pdf}, consists of a question, e.g., ``Can I win a game of
 tic-tac-toe if I play first?'' and two provers, Alice and Bob, Alice arguing for
 ``Yes'' and Bob arguing for ``No''. The judge evaluates a polynomially-sized list
 of arguments and decides on their final verdict which side to accept. An example
@@ -1771,7 +1773,6 @@ estimator could support it reliably. The authors therefore require stability for
 the \textbf{usefulness} of the protocol: honest provers can win when they have
 robust arguments, not brittle ones.
 
-\subsection{The protocol}
 
 \begin{figure}[htbp]
     \centering
@@ -1876,6 +1877,8 @@ Controversial Claims}
 Debate can prevent reward hacking:
 \href{https://arxiv.org/pdf/2608.17776}{Debate Training Reduces Reward Hacking in
 RLAIF}
+
+Presentation of the papers: \href{https://docs.google.com/presentation/d/16squLf7HnnGf395UqkM1x7WY4OSuawGCb_fWBq63mns/edit?slide=id.g3f86985783a_0_86\#slide=id.g3f86985783a_0_86}{Iliad Intensive August 2026 - Debate}
 
 \textbf{Discussion Prompts:} What is the setup for the debate? How are the
 provers and judges implemented? What has been measured? Was the improvement of
