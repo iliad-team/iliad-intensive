@@ -326,8 +326,14 @@ clusters:
         title: Debate
         lead: Stephan
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.2q3bv3luklh0
-        source: missing
-        note: only compiled PDFs so far
+        source: ready
+        worksheets:
+          - debate
+        note: >-
+          Stephan handed the source over as a zip, not a repo. It held five
+          overlapping drafts of one document (plus a shared abbrv.tex); one
+          worksheet merges them, ordered as the Doc tab's teaching guide links
+          them. No solutions exist upstream for any of the 17 exercises.
 
       - code: E.2
         title: Steganography & Backdoors
