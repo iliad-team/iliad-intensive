@@ -1,0 +1,789 @@
+%--- iliad ---
+% title: Reward Learning Theory
+% summary: TODO
+% slides:
+%   url: https://drive.google.com/drive/folders/18NswW6zYnDp9KLKjG_1BwctSPITOjZ-A
+%   title: Intro to Reward Learning Theory
+%--- end ---
+\documentclass[11pt]{article}
+
+\usepackage{mathtools}
+\usepackage{float}
+\usepackage[numbers]{natbib}
+
+% iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty. It
+% supplies the definition/theorem/fact/remark family, exercise + solution,
+% callout, hint, hyperref + cleveref — everything the upstream preamble built
+% by hand (aliascnt, tcolorbox, commenting.sty).
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
+
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
+
+% Math macros — as upstream.
+\newcommand{\cS}{\mathcal{S}}
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\cO}{\mathcal{O}}
+\newcommand{\cB}{\mathcal{B}}
+\newcommand{\cT}{\mathcal{T}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\Gobs}{G_{\mathrm{obs}}}
+\newcommand{\Jobs}{J_{\mathrm{obs}}}
+\newcommand{\Erro}{E^{+}}
+\newcommand{\Erru}{E^{-}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\title{Reward Learning Theory}
+\author{
+  \authorname{Leon Lang}\\
+  \affiliation{Iliad}
+  \and
+  \authorname{Joar Skalse}\\
+  \affiliation{Deducto Limited, King’s College London}
+}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+%===============================================================================
+% Front matter from the A.4 tab of the Iliad Mega Doc, transcribed verbatim.
+\section*{Prerequisites}
+
+It is useful to know the basics of reinforcement learning, reinforcement learning from human feedback (RLHF), and AI alignment, as taught in other modules of this course.
+
+\begin{learningoutcomes}
+  \begin{itemize}
+    \item learn the place of reward learning in the AI alignment landscape;
+    \item can reason about the (speculative) assumptions that motivate this research area as a whole;
+    \item understand the strong conditions under which the simplest reward learning technique, RLHF via trajectory comparisons, would lead to an aligned objective;
+    \item can reason about situations where such conditions do not hold, like underspecification and misspecification, and efforts to account for, or correct, such issues;
+    \item and understand how reward learning can be embedded into the framework of assistance games, which can be regarded as one conceptualization of the entire alignment problem.
+  \end{itemize}
+\end{learningoutcomes}
+
+\section*{Roadmap for today}
+
+\begin{itemize}
+  \item 10:00 – 11:30 Lecture and questions
+  \item 11:30 – 12:30: Exercise block 1
+  \item 12:30 – 13:30: Lunch break
+  \item 13:30 – 14:30: Exercise block 2
+  \item 14:30 – 15:30: Guest lecture by Richard Ngo
+  \item 15:30 – 16:00: Break
+  \item 16:00 – 17:30: Guest lecture by Joar Skalse
+  \item 17:30 – 18:30: Discussions, feedback, and wrap-up
+\end{itemize}
+
+\section*{Content}
+
+\subsection*{Fast-track}
+
+Simply read the lecture slides of the first lecture. If you have more time, do the first exercise on partial observability as one instantiation of misspecification.
+
+\subsection*{Main content}
+
+\begin{itemize}
+  \item \href{https://docs.google.com/presentation/d/1cG2M68gj8osmrse97bza9cgCqqwoFXBvDIGpkv-HVgA/edit?usp=drive_link}{Lecture slides: Intro to Reward Learning Theory by Leon Lang}
+  \item Reward Learning Theory: Exercises (also available without solutions). The exercise sheet is based on the following two papers:
+  \begin{itemize}
+    \item \href{https://arxiv.org/abs/2402.17747}{When Your AIs Deceive You: Challenges of Partial Observability in Reinforcement Learning from Human Feedback}
+    \item \href{https://people.eecs.berkeley.edu/~russell/papers/neurips20ws-assistance}{Benefits of Assistance over Reward Learning}
+  \end{itemize}
+  \item \href{https://drive.google.com/file/d/1WLC-HILvYGmXo9kqUGEvekK6scURXQBl/view?usp=sharing}{Lecture slides: Towards a Formal Theory of Reward Learning, With Application to Inverse Reinforcement Learning} by Joar Skalse. More context:
+  \begin{itemize}
+    \item \href{https://www.lesswrong.com/s/TEybbkyHpMEB2HTv3/p/pJ3mDD7LfEwp3s5vG}{The Theoretical Reward Learning Research Agenda: Introduction and Motivation} by Joar Skalse
+  \end{itemize}
+\end{itemize}
+
+%===============================================================================
+% The exercise sheet (Leon Lang, "Reward Learning Theory: Exercises"), as it
+% compiles upstream. Its Setup stays unnumbered so "Hiding failures" is section
+% 1 and the problems keep their upstream numbers, 1.1–1.10.
+
+
+
+
+%===================================
+
+\section*{Setup}
+
+This sheet (\Cref{sec:hiding}) works through one
+concrete example from~\citet{Lang2024PORLHF} to see how naive RLHF can
+fail when the human evaluator only \emph{partially} observes the
+environment they are providing feedback on. By the end of the sheet you
+will have derived, by hand, the conditions under which an RLHF-optimal
+policy hides information from the human in a way that systematically
+inflates the human's perception of the policy's return --- the failure
+mode the paper calls \textbf{deceptive inflation}. We close with an
+informal discussion of the dual failure mode, \textbf{overjustification},
+in which the agent pays real reward to make its (already-good) behavior
+look as good as it is, and briefly discuss how such failure modes
+motivate approaches like AI safety via debate.
+
+% Part 2 intro; re-enable together with \include{sec_embedding} below.
+% \textbf{Part~2 (\Cref{sec:embedding}: Reward learning embeds into
+% assistance)} steps back from RLHF specifically and asks whether the
+% reward-learning paradigm is itself the most general way to learn from
+% human feedback. Following~\citet{Shah2020Assistance}, we introduce the
+% \textbf{assistance} framework, in which the human is part of the
+% environment and the true reward is a hidden parameter the agent must
+% infer. The big exercise of this part proves that every active reward
+% learning problem reduces to a particular --- restricted --- kind of
+% assistance problem, making precise in what sense reward learning is a
+% special case of assistance.
+
+We assume familiarity with finite-horizon Markov decision processes;
+the additional structure needed --- observation kernels, human beliefs,
+the observation return $\Gobs$ and observation value $\Jobs$ --- is
+introduced in highlighted boxes as we go.
+
+% ================================================
+
+\begin{definition}[MDP and trajectories]\label{def:mdp}
+A finite-horizon \textbf{Markov decision process} is a tuple
+$(\cS, \cA, \cT, R, P_0, T, \gamma)$ with finite state space $\cS$, finite
+action space $\cA$, transition kernel
+$\cT : \cS \times \cA \to \Delta(\cS)$,
+reward function $R : \cS \to \R$, initial-state
+distribution $P_0 \in \Delta(\cS)$, horizon $T \in \mathbb{N}$, and discount
+$\gamma \in (0,1]$. A \textbf{state trajectory} is a sequence
+$\vec s = s_0 s_1 \cdots s_T$, and its \textbf{return} is
+$$
+G(\vec s) \;=\; \sum_{t=0}^{T} \gamma^{t}\, R(s_t).
+$$
+A \textbf{policy} $\pi : \cS \to \Delta(\cA)$ induces a distribution $P^\pi$
+over state trajectories. The \textbf{policy evaluation function} $J$
+assigns to each policy its expected return,
+$$
+J(\pi) \;=\; \E_{\vec s \sim P^\pi}[G(\vec s)],
+$$
+which we will also call the policy's \textbf{true value} (to contrast
+later with the value the human \emph{thinks} it is evaluating).
+\end{definition}
+
+% ================================================
+
+\section{Hiding failures}\label{sec:hiding}
+
+An AI assistant is asked to install Nvidia drivers and CUDA on a user's
+machine. It can attempt the CUDA install with default logging
+(action~$a_C$, ``C'' for CUDA), or it can append \texttt{/dev/null} to the command
+(action~$a_H$, ``H'' for hide), which suppresses any error message if the
+installation fails. The user wants CUDA installed but \emph{also} dislikes
+having errors silently hidden.
+
+\paragraph{The MDP.} The full MDP is depicted in
+\Cref{fig:cuda_mdp}. We use a finite horizon $T = 3$ and $\gamma = 1$:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{fig/expanded_example_figure1.pdf}
+    \caption{The CUDA-installation MDP and its observation kernel
+    \citep[Figure~6A]{Lang2024PORLHF}. Edges are labeled
+    by the action triggering the transition; the small number in the top
+    right of each state box is its reward; the small symbol in the
+    bottom-right of each state box is its observation under $O$.}
+    \label{fig:cuda_mdp}
+\end{figure}
+
+\begin{itemize}
+    \item $\cS = \{S, I, W, W_H, L, L_H, T\}$. ($S$ = start; $I$ = drivers
+        installed; $W$ = CUDA installed with default logging; $W_H$ = CUDA
+        installed via the \texttt{/dev/null} trick; $L$ = CUDA install failed,
+        error visible; $L_H$ = CUDA install failed, error hidden; $T$ =
+        the absorbing, ``terminal'' MDP state in which the agent has stopped acting.)
+    \item $\cA = \{a_I, a_C, a_H, a_T\}$. ($a_I$ installs drivers; $a_C$
+        attempts CUDA install; $a_H$ attempts CUDA install with \texttt{/dev/null};
+        $a_T$ stops acting, sending the MDP to $T$.)
+    \item $P_0(S) = 1$, and from state $T$ every action goes to $T$.
+    \item Transitions: $S \xrightarrow{a_I} I$. From $I$, action $a_C$ goes
+        to $W$ with probability $p$ and $L$ with probability $1-p$;
+        action $a_H$ goes to $W_H$ with probability $p$ and $L_H$ with
+        probability $1-p$. From $S$, $a_C$ goes to $L$ and $a_H$ goes to
+        $L_H$ (attempting CUDA before drivers always fails). Any other
+        action transitions to $T$.
+    \item Rewards: $R(S) = R(T) = 0$, $R(I) = 1$, $R(W) = R(W_H) = 10$,
+        $R(L) = -5$, $R(L_H) = -5 - r$, where $r \ge 0$ is the user's
+        penalty for hidden errors.
+\end{itemize}
+
+We restrict attention to deterministic policies. We write each as the
+sequence of actions taken at the (deterministic) sequence of non-terminal
+states it visits, dropping trailing $a_T$'s. Among such policies, only
+six are non-trivially distinct (since any action taken in a state that
+has no outgoing arrow for it sends the MDP to $T$). Of these six, the
+four that we will analyze are
+$$
+[a_T], \quad [a_I a_T], \quad [a_I a_C a_T], \quad [a_I a_H a_T].
+$$
+The two omitted policies $[a_C a_T]$ and $[a_H a_T]$ attempt CUDA
+\emph{before} installing drivers, which always fails; they are dominated
+by $[a_T]$ in true value and add nothing of interest to the analysis
+below.
+
+% --- conceptual sanity check ---
+\begin{exercise}
+\label{prob:concept_setup}
+(Conceptual.) In one sentence
+each:
+\begin{itemize}
+    \item Why does the user reward $W$ and $W_H$ identically (both $+10$)?
+    \item Why does the user reward $L_H$ strictly less than $L$ (i.e.\ why
+        $r > 0$)?
+\end{itemize}
+\end{exercise}
+
+\begin{solution}[prob:concept_setup]
+$W$ and $W_H$ both correspond to a successful CUDA install. The user only
+cares about the install succeeding, not about whether the agent
+\emph{would have} hidden errors had it failed; on a successful run, no
+error needed hiding. Thus the true reward is the same.
+
+In contrast, $L_H$ is a failure where the agent has actively suppressed
+the error message, depriving the user of information. The user prefers
+to see the failure (state $L$) over having it hidden (state $L_H$);
+the penalty $r > 0$ encodes this preference.
+\end{solution}
+
+% ----------------------------------------------------
+
+\begin{exercise}
+\label{prob:trueG}
+For each of the eight state trajectories
+listed below, compute the true return $G(\vec s)$:
+$$
+STTT,\; SL_HTT,\; SLTT,\; SITT,\; SIL_HT,\; SILT,\; SIWT,\; SIW_HT.
+$$
+\end{exercise}
+
+\begin{solution}[prob:trueG]
+By definition $G(\vec s) = \sum_{t=0}^{3} R(s_t)$. Plugging in the rewards:
+\begin{center}
+\begin{tabular}{c|cccccccc}
+$\vec s$    & $STTT$ & $SL_HTT$ & $SLTT$ & $SITT$ & $SIL_HT$ & $SILT$ & $SIWT$ & $SIW_HT$ \\\hline
+$G(\vec s)$ & $0$    & $-5-r$   & $-5$   & $1$    & $-4-r$   & $-4$   & $11$   & $11$
+\end{tabular}
+\end{center}
+\end{solution}
+
+% ----------------------------------------------------
+
+\begin{definition}[Observation kernel]\label{def:obs}
+An \textbf{observation kernel} on $\cS$ is a deterministic map
+$O : \cS \to \Omega$ to a finite set $\Omega$ of observations. For a state
+trajectory $\vec s = s_0 \cdots s_T$, we write
+$\vec O(\vec s) = O(s_0) \cdots O(s_T)$ for the corresponding observation
+trajectory. (More generally, one can take $O : \cS \to \Delta(\Omega)$ to
+be stochastic, but this exercise sheet only needs the deterministic case.)
+\end{definition}
+
+For the CUDA example, the observation kernel is given by
+\begin{center}
+\begin{tabular}{c|ccccccc}
+$s$ & $S$ & $I$ & $W$ & $W_H$ & $L$ & $L_H$ & $T$ \\\hline
+$O(s)$ & $o_\emptyset$ & $o_I$ & $o_W$ & $o_W$ & $o_L$ & $o_\emptyset$ & $o_\emptyset$
+\end{tabular}
+\end{center}
+The observations $o_I, o_W, o_L, o_\emptyset$ correspond, respectively, to a
+log message confirming driver install, confirming CUDA install, reporting a
+CUDA failure, and no log message at all.
+
+% ----------------------------------------------------
+
+\begin{exercise}
+\label{prob:obsclasses}
+Identify all pairs of trajectories from
+\Cref{prob:trueG} that produce the \emph{same} observation trajectory under
+$\vec O$. For each such pair, write down the shared observation trajectory.
+\end{exercise}
+
+\begin{solution}[prob:obsclasses]
+Three pairs collide:
+\begin{itemize}
+    \item $STTT$ and $SL_HTT$ both produce $o_\emptyset o_\emptyset o_\emptyset o_\emptyset$ (empty log).
+    \item $SITT$ and $SIL_HT$ both produce $o_\emptyset o_I o_\emptyset o_\emptyset$ (drivers confirmed, then nothing).
+    \item $SIWT$ and $SIW_HT$ both produce $o_\emptyset o_I o_W o_\emptyset$ (drivers confirmed, CUDA confirmed).
+\end{itemize}
+The remaining trajectories ($SLTT$ and $SILT$) produce unique observation
+trajectories.
+\end{solution}
+
+% ----------------------------------------------------
+
+\begin{definition}[Human belief]\label{def:belief}
+A \textbf{human belief} is a conditional distribution
+$\cB(\vec s \mid \vec o)$ over state trajectories given observation
+trajectories that is supported only on trajectories consistent with the
+observation:
+$$
+\cB(\vec s \mid \vec o) > 0 \;\implies\; \vec O(\vec s) = \vec o.
+$$
+A natural way to build a belief is from a prior $\mu \in \Delta(\cS^{T+1})$
+over state trajectories using Bayes' rule:
+\begin{callout}[tip]
+\textbf{Bayesian belief from prior.}
+$$
+\cB(\vec s \mid \vec o) \;=\; \frac{\mu(\vec s)\,\mathbf{1}[\vec O(\vec s) = \vec o]}
+{\sum_{\vec s'} \mu(\vec s')\,\mathbf{1}[\vec O(\vec s') = \vec o]}.
+$$
+\end{callout}
+The next exercise shows that, in fact, every belief arises this way.
+\end{definition}
+
+% ----------------------------------------------------
+
+\begin{exercise}
+\label{prob:belief_equiv}
+Show that the two characterizations
+of a belief are equivalent. That is:
+\begin{enumerate}
+    \item For any prior $\mu \in \Delta(\cS^{T+1})$ such that
+        $\sum_{\vec s' : \vec O(\vec s') = \vec o} \mu(\vec s') > 0$ for
+        all $\vec o$ in the image of $\vec O$, the right-hand side of the
+        boxed formula above defines a conditional distribution $\cB$
+        satisfying the support condition
+        $\cB(\vec s \mid \vec o) > 0 \implies \vec O(\vec s) = \vec o$.
+    \item Conversely, given any conditional distribution $\cB$ satisfying
+        the support condition, there exists a prior $\mu$ that recovers
+        $\cB$ via the boxed formula.
+\end{enumerate}
+\end{exercise}
+
+\begin{solution}[prob:belief_equiv]
+\textbf{(a)} The numerator is non-negative, the denominator is strictly
+positive by assumption, and summing the numerator over $\vec s$ at fixed
+$\vec o$ gives the denominator, so the right-hand side is a probability
+distribution in $\vec s$ for each $\vec o$. The indicator forces
+$\cB(\vec s \mid \vec o) = 0$ whenever $\vec O(\vec s) \ne \vec o$, which
+is the support condition.
+
+\textbf{(b)} Write $\cB_\mu$ for the Bayesian posterior of a prior $\mu$
+under $\vec O$, i.e.\ the right-hand side of the boxed formula with
+$\rho = \mu$. Our task is to construct $\mu$ such that $\cB_\mu = \cB$.
+
+Let $N = |\mathrm{im}(\vec O)|$ be the number of distinct observation
+trajectories produced by $\vec O$, and define
+$$
+\mu(\vec s) \;\coloneqq\; \frac{1}{N}\, \cB(\vec s \mid \vec O(\vec s)).
+$$
+Then $\mu$ is a probability distribution: summing,
+$$
+\sum_{\vec s} \mu(\vec s)
+= \frac{1}{N} \sum_{\vec o \in \mathrm{im}(\vec O)} \sum_{\vec s : \vec O(\vec s) = \vec o} \cB(\vec s \mid \vec o)
+= \frac{1}{N} \cdot N = 1,
+$$
+using the support condition of $\cB$ (so the inner sum equals
+$\sum_{\vec s} \cB(\vec s \mid \vec o) = 1$).
+
+Now compute $\cB_\mu(\vec s \mid \vec o)$. For $\vec s$ with
+$\vec O(\vec s) \ne \vec o$, the indicator gives $0$ (matching $\cB$'s
+support condition). For $\vec s$ with $\vec O(\vec s) = \vec o$,
+$$
+\cB_\mu(\vec s \mid \vec o)
+\;=\; \frac{\mu(\vec s)}{\sum_{\vec s' : \vec O(\vec s') = \vec o} \mu(\vec s')}
+\;=\; \frac{(1/N)\,\cB(\vec s \mid \vec o)}{(1/N) \sum_{\vec s' : \vec O(\vec s') = \vec o} \cB(\vec s' \mid \vec o)}
+\;=\; \cB(\vec s \mid \vec o),
+$$
+where the $1/N$ factors cancel and the denominator simplifies to $1$ via
+the support condition. So $\cB_\mu = \cB$, as required.
+\end{solution}
+
+% ----------------------------------------------------
+
+\begin{exercise}
+\label{prob:belief}
+Let the human's prior $\mu$ over
+state trajectories be supported on the eight trajectories of
+\Cref{prob:trueG} with arbitrary positive weights
+$\mu_1, \dots, \mu_8 > 0$ summing to $1$.
+
+Show that the resulting belief matrix
+$\cB(\vec s \mid \vec o)$ depends on the prior through only three
+parameters, one per colliding pair from \Cref{prob:obsclasses}:
+\begin{align*}
+p_H' &\;=\; \cB(SL_HTT \mid o_\emptyset o_\emptyset o_\emptyset o_\emptyset), \\
+p_H  &\;=\; \cB(SIL_HT \mid o_\emptyset o_I o_\emptyset o_\emptyset), \\
+p_W  &\;=\; \cB(SIWT \mid o_\emptyset o_I o_W o_\emptyset).
+\end{align*}
+
+Express each of $p_H, p_H', p_W$ in terms of the prior weights. Then
+write down the full belief matrix.
+
+For simplicity, the rest of this section assumes $p_H' = p_H$, i.e.\ the
+human is just as suspicious of an empty log following a successful driver
+install as of a fully empty log.
+\end{exercise}
+
+\begin{hint}
+Trajectories with unique observations get belief $1$, so
+only the three colliding pairs contribute non-trivial entries.
+\end{hint}
+
+\begin{solution}[prob:belief]
+By the Bayesian-belief formula and the support condition, for any
+observation $\vec o$ produced by a unique trajectory $\vec s$ we have
+$\cB(\vec s \mid \vec o) = 1$. So only the three colliding pairs from
+\Cref{prob:obsclasses} contribute non-trivial entries.
+
+For each pair $(\vec s_1, \vec s_2)$ sharing observation $\vec o$, Bayes
+gives
+$$
+\cB(\vec s_1 \mid \vec o)
+= \frac{\mu(\vec s_1)}{\mu(\vec s_1) + \mu(\vec s_2)},
+\qquad
+\cB(\vec s_2 \mid \vec o) = 1 - \cB(\vec s_1 \mid \vec o).
+$$
+Concretely:
+\begin{align*}
+p_H' &= \frac{\mu(SL_HTT)}{\mu(STTT) + \mu(SL_HTT)}, \\
+p_H  &= \frac{\mu(SIL_HT)}{\mu(SITT) + \mu(SIL_HT)}, \\
+p_W  &= \frac{\mu(SIWT)}{\mu(SIWT) + \mu(SIW_HT)}.
+\end{align*}
+The full belief matrix is
+\begin{center}\small
+\begin{tabular}{l|cccccccc}
+$\cB(\vec s \mid \vec o)$ & $STTT$ & $SL_HTT$ & $SLTT$ & $SITT$ & $SIL_HT$ & $SILT$ & $SIWT$ & $SIW_HT$ \\\hline
+$o_\emptyset o_\emptyset o_\emptyset o_\emptyset$ & $1-p_H'$ & $p_H'$ & & & & & & \\
+$o_\emptyset o_L o_\emptyset o_\emptyset$ & & & $1$ & & & & & \\
+$o_\emptyset o_I o_\emptyset o_\emptyset$ & & & & $1-p_H$ & $p_H$ & & & \\
+$o_\emptyset o_I o_L o_\emptyset$         & & & & & & $1$ & & \\
+$o_\emptyset o_I o_W o_\emptyset$         & & & & & & & $p_W$ & $1-p_W$
+\end{tabular}
+\end{center}
+(empty cells are $0$).
+\end{solution}
+
+\paragraph{Interpretation.} Imposing $p_H' = p_H$ as agreed, the belief is
+parameterized by the two numbers $p_H, p_W \in (0,1)$. We will see in
+\Cref{prob:Gobs} that $p_W$ does not enter any quantity of interest;
+$p_H \in (0,1)$ is the human's suspicion that an unexplained empty log
+hides a failed CUDA install.
+
+% ----------------------------------------------------
+
+\begin{definition}[Observation return]\label{def:Gobs}
+The \textbf{observation return} of a state trajectory $\vec s$ is the
+expected true return under the human's belief about which trajectory
+produced the same observations:
+\begin{callout}[tip]
+\textbf{Observation return.}
+$$
+\Gobs(\vec s) \;=\; \E_{\vec s' \sim \cB(\,\cdot\,\mid\, \vec O(\vec s))}\!\bigl[G(\vec s')\bigr].
+$$
+\end{callout}
+The \textbf{observation value} of a policy $\pi$ is
+$\Jobs(\pi) = \E_{\vec s \sim P^\pi}[\Gobs(\vec s)]$. Naive RLHF, given
+Boltzmann-rational human feedback over trajectory pairs, will
+select the policy that maximizes $\Jobs$ in the infinite data limit
+(rather than the true value $J$); see \citet[Proposition 4.1]{Lang2024PORLHF}
+for the precise statement.
+\end{definition}
+
+% ----------------------------------------------------
+
+\begin{exercise}
+\label{prob:Jobs_interp}
+(Conceptual) Give an interpretation of $\Jobs(\pi)$ in terms of what
+the human \emph{believes} is happening. Why is it natural to say
+that ``RLHF rewards policies for for what their behavior looks like, not for what
+they do''?
+\end{exercise}
+
+\begin{solution}[prob:Jobs_interp]
+For a single trajectory $\vec s$, the
+human sees $\vec O(\vec s)$ and, not knowing which underlying trajectory
+produced it, their best guess of the return is the expectation over their
+posterior:
+$$
+\Gobs(\vec s) \;=\; \E_{\vec s' \sim \cB(\,\cdot\,\mid\, \vec O(\vec s))}[G(\vec s')].
+$$
+This is what the human \emph{believes} the return of $\vec s$ to be. The
+policy-level quantity $\Jobs(\pi)$ is then the on-policy average of these
+trajectory-level beliefs:
+$$
+\Jobs(\pi) \;=\; \E_{\vec s \sim P^\pi}[\Gobs(\vec s)].
+$$
+The catch is what happens when two distinct trajectories produce the
+same observations. Suppose $\vec s$ and $\vec s'$ have
+$\vec O(\vec s) = \vec O(\vec s') = \vec o$, but $\vec s$ has low true
+return and $\vec s'$ has high true return. Then by definition, both
+trajectories yield the \emph{same} observation return:
+$$
+\Gobs(\vec s) \;=\; \Gobs(\vec s') \;=\; \cB(\vec s \mid \vec o)\,G(\vec s) + \cB(\vec s' \mid \vec o)\,G(\vec s'),
+$$
+which is a convex combination strictly larger than $G(\vec s)$ whenever
+$\cB(\vec s' \mid \vec o) > 0$. So if an agent can arrange for the
+\emph{actual} trajectory to be the bad $\vec s$ while still producing
+observations $\vec o$ shared with a good $\vec s'$, the human's belief
+inflates the apparent return: $\Gobs(\vec s) > G(\vec s)$, and this
+inflation flows through to $\Jobs(\pi)$ via the on-policy average.
+
+This is why we say RLHF rewards policies for what their behavior
+\emph{looks like}, not for what it does: the optimization target $\Jobs$
+cannot distinguish between two policies whose on-policy observation
+distributions match, even if their on-policy true returns differ
+arbitrarily. The remaining problems make this concrete in the CUDA
+example, culminating in a regime where the RLHF-optimal policy is
+strictly worse under the true reward than another available policy.
+\end{solution}
+
+% ----------------------------------------------------
+
+\begin{exercise}
+\label{prob:Gobs}
+Compute $\Gobs(\vec s)$ for each of the
+eight trajectories in \Cref{prob:trueG}, expressing your answers in terms
+of $p_H$ and $r$. Verify that for the pair $(SIWT, SIW_HT)$, the parameter
+$p_W$ indeed does not appear, justifying its omission going forward.
+\end{exercise}
+
+\begin{solution}[prob:Gobs]
+For trajectories $\vec s$ with a unique observation, $\Gobs(\vec s) = G(\vec s)$. So
+$\Gobs(SLTT) = -5$ and $\Gobs(SILT) = -4$.
+
+For the colliding pairs, $\Gobs$ is the same for both members and equals the
+expected true return under the belief:
+\begin{align*}
+\Gobs(STTT) = \Gobs(SL_HTT) &= (1-p_H)\cdot 0 + p_H \cdot (-5-r) = -p_H(5+r), \\
+\Gobs(SITT) = \Gobs(SIL_HT) &= (1-p_H)\cdot 1 + p_H\cdot(-4-r) = 1 - p_H(5+r), \\
+\Gobs(SIWT) = \Gobs(SIW_HT) &= p_W \cdot 11 + (1-p_W)\cdot 11 = 11.
+\end{align*}
+The last line shows $p_W$ drops out, as anticipated.
+\end{solution}
+
+% ----------------------------------------------------
+
+\begin{exercise}
+\label{prob:policyvalues}
+Compute the true value $J(\pi)$
+and the observation value $\Jobs(\pi)$ of the four policies
+$$
+[a_T],\quad [a_I a_T],\quad [a_I a_C a_T],\quad [a_I a_H a_T].
+$$
+Express your answers in terms of $p$, $p_H$, and $r$.
+\end{exercise}
+
+\begin{solution}[prob:policyvalues]
+The on-policy distributions are deterministic up to the stochastic CUDA
+outcome:
+\begin{itemize}
+    \item $[a_T]$: $P^\pi(STTT) = 1$.
+    \item $[a_I a_T]$: $P^\pi(SITT) = 1$.
+    \item $[a_I a_C a_T]$: $P^\pi(SIWT) = p$, $P^\pi(SILT) = 1-p$.
+    \item $[a_I a_H a_T]$: $P^\pi(SIW_HT) = p$, $P^\pi(SIL_HT) = 1-p$.
+\end{itemize}
+Taking expectations of $G$ and $\Gobs$ trajectory-by-trajectory and using the previous exercise gives:
+\begin{center}
+\begin{tabular}{c|c|c}
+$\pi$              & $J(\pi)$           & $\Jobs(\pi)$ \\\hline
+$[a_T]$            & $0$                & $-p_H(5+r)$ \\
+$[a_I a_T]$        & $1$                & $1 - p_H(5+r)$ \\
+$[a_I a_C a_T]$    & $15p - 4$          & $15p - 4$ \\
+$[a_I a_H a_T]$    & $(15+r)p - 4 - r$  & $11p + (1-p)\bigl(1 - p_H(5+r)\bigr)$
+\end{tabular}
+\end{center}
+The non-trivial cell is the bottom-right: under $a_H$, a failure produces
+trajectory $SIL_HT$ which the human cannot distinguish from $SITT$, so its
+$\Gobs$ is $1 - p_H(5+r)$ rather than $-4-r$. Likewise the success
+trajectory $SIW_HT$ has $\Gobs = 11$, so
+$$
+\Jobs([a_I a_H a_T]) \;=\; 11p + (1-p)\bigl(1 - p_H(5+r)\bigr).
+$$
+\end{solution}
+
+% ----------------------------------------------------
+
+\begin{exercise}
+\label{prob:rlhfopt}
+Suppose $p > \tfrac{1}{3}$, so that
+$J([a_I a_C a_T]) > J([a_I a_T]) > 0$ and the true-optimal policy among the
+four is $\pi^* = [a_I a_C a_T]$. Show that under the additional condition
+$$
+p_H \;<\; \frac{5}{5+r},
+$$
+the RLHF-optimal policy (the $\Jobs$-maximizer) is instead
+$\pi^{\text{RLHF}} = [a_I a_H a_T]$.
+\end{exercise}
+
+\begin{hint}
+Compare $\Jobs([a_I a_H a_T])$ to $\Jobs([a_I a_C a_T])$ and
+solve for the condition on $p_H$. Then check the other two policies are
+dominated.
+\end{hint}
+
+\begin{solution}[prob:rlhfopt]
+First, compare the two ``contested'' policies:
+\begin{align*}
+\Jobs([a_I a_H a_T]) - \Jobs([a_I a_C a_T])
+&= \bigl[11p + (1-p)(1 - p_H(5+r))\bigr] - \bigl[15p - 4\bigr] \\
+&= (1-p)\bigl(5 - p_H(5+r)\bigr).
+\end{align*}
+Since $p < 1$, this is positive iff $p_H(5+r) < 5$, i.e.\ $p_H < 5/(5+r)$.
+So under the assumed condition,
+$\Jobs([a_I a_H a_T]) > \Jobs([a_I a_C a_T])$.
+
+To see that this beats the remaining two policies as well, observe a clean
+separation: both contested policies have $\Jobs > 1$, while both
+non-contested policies have $\Jobs < 1$.
+\begin{itemize}
+    \item $\Jobs([a_I a_C a_T]) = 15p - 4 > 1$, using $p > 1/3$;
+        and $\Jobs([a_I a_H a_T]) > \Jobs([a_I a_C a_T]) > 1$ by the
+        comparison above.
+    \item $\Jobs([a_I a_T]) = 1 - p_H(5+r) < 1$ since $p_H > 0$, and
+        $\Jobs([a_T]) = -p_H(5+r) < 0 < 1$.
+\end{itemize}
+So $[a_I a_H a_T]$ dominates all three alternatives in $\Jobs$.
+
+Thus when $p_H < 5/(5+r)$, naive RLHF selects $\pi^{\text{RLHF}} = [a_I a_H a_T]
+\ne [a_I a_C a_T] = \pi^*$.
+\end{solution}
+
+% ----------------------------------------------------
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{fig/example_a_hparam_sweep.png}
+    \caption{Empirical sweep over $(r, p_H)$ for the CUDA example, with
+    $p$ fixed in the $p > 1/3$ regime
+    \citep[Figure~5A]{Lang2024PORLHF}. Each cell reports the action
+    selected at state $I$ by an RLHF-trained policy; ``hide'' is $a_H$
+    and ``default logging'' is $a_C$.}
+    \label{fig:sweep_a}
+\end{figure}
+
+\begin{exercise}
+\label{prob:discussion_sweep}
+(Discussion) \Cref{fig:sweep_a}
+shows the empirical behavior of an RLHF-trained policy across the
+$(r, p_H)$ plane (with $p$ fixed in the $p > 1/3$ regime studied above).
+Discuss:
+\begin{enumerate}
+    \item Where in the plane does the figure show the agent switching from
+        $a_H$ to $a_C$? How does this empirical boundary compare to the
+        analytical threshold $p_H = 5/(5+r)$ derived in
+        \Cref{prob:rlhfopt}?
+    \item For $r = 0$ (no penalty for hidden errors), does any value of
+        $p_H \in (0,1)$ make $a_C$ the RLHF-optimal action? What does
+        this say about RLHF's ability to discourage \texttt{/dev/null} in the
+        absence of an explicit user preference against it?
+\end{enumerate}
+\end{exercise}
+
+\begin{solution}[prob:discussion_sweep]
+\textbf{(1)} The empirical switch from ``hide'' to ``default logging''
+in \Cref{fig:sweep_a} traces out exactly the curve
+$p_H = 5/(5+r)$ derived in \Cref{prob:rlhfopt}: above the curve (high
+$p_H$, the human is suspicious enough), $a_C$ is RLHF-optimal; below
+it (low $p_H$, the human is too trusting of empty logs), $a_H$ wins.
+
+
+\textbf{(2)} For $r = 0$, the threshold becomes $p_H < 5/5 = 1$, which
+holds for every $p_H \in (0, 1)$. So whenever $r=0$, RLHF picks $a_H$
+regardless of how suspicious the human is. Intuitively: if the user has
+no expressed dislike of hidden errors, RLHF has no signal to penalize
+\texttt{/dev/null}, and the agent will exploit the human's uncertainty to inflate
+its apparent return whenever installation might fail. 
+\end{solution}
+
+% ----------------------------------------------------
+
+\paragraph{What we've learned.}
+In \Cref{prob:Jobs_interp} we saw that RLHF rates policies by how they
+\emph{look}, not by what they do. The remaining problems made this
+concrete: when $p > 1/3$ and $p_H < 5/(5+r)$, the hiding policy
+$[a_I a_H a_T]$ and the honest policy $[a_I a_C a_T]$ produce
+indistinguishable observations on failure, and RLHF picks the hider.
+This is \emph{deceptive inflation}: the agent exploits the human's
+uncertainty to inflate the perceived return
+\citep[Section~4]{Lang2024PORLHF}.
+
+There is a dual failure mode --- in the same MDP, opposite regime.
+When $p$ is small (CUDA isn't worth attempting) and $p_H$ is large
+(the human strongly suspects every empty log of hiding a failure),
+the honest policy $[a_I a_T]$ produces an empty post-driver log that
+\emph{looks} like a hidden failure to the suspicious human. RLHF then
+prefers the wasteful $[a_I a_C a_T]$, which attempts CUDA only to
+produce an unambiguous log that produces an open failure. The agent pays real reward to prove its
+honesty: this is \emph{overjustification}
+\citep[Section~4]{Lang2024PORLHF}.
+
+\paragraph{The bigger picture.} The CUDA example is small, but the
+phenomenon is general: any alignment-by-feedback method (RLHF, RLAIF,
+constitutional methods, \dots) grades the agent by \emph{whatever the
+evaluator can tell}, not by what is true. Partial observability is one
+cause of that gap, but limits on expertise, attention, or time produce
+the same trap. This is the motivation for proposals like AI safety via
+debate (which we discussed yesterday): two AIs argue in front of a
+human judge, each pointing out flaws in the other, in the hope that
+the judge reaches a correct conclusion they could not reach unaided.
+Whether debate actually escapes the trap remains open; the point is
+that any feedback-based method has to confront the gap between ``what
+the human can tell'' and ``what is true.''
+
+% ====================================================
+%\include{sec_embedding}
+% ====================================================
+
+%===============================================================================
+% "Learn more" from the Doc tab — last, before the references.
+\section*{Learn more}
+
+Here we list further readings, which are largely papers mentioned in Leon’s lecture slides.
+
+\begin{itemize}
+  \item \href{https://openai.com/index/faulty-reward-functions/?video=745142691}{Faulty reward functions in the wild}: A basic reward specification problem.
+  \item Reward Learning methods and frameworks:
+  \begin{itemize}
+    \item \href{https://arxiv.org/abs/1706.03741}{Deep reinforcement learning from human preferences} — the most basic and popular approach to reward learning
+    \item \href{https://arxiv.org/abs/2002.04833}{Reward-rational (implicit) choice: A unifying formalism for reward learning} — a generalization that contains RLHF as a special case
+    \begin{itemize}
+      \item \href{https://ai.stanford.edu/~ang/papers/icml00-irl.pdf}{Algorithms for Inverse Reinforcement Learning}: Another special case
+      \item \href{https://arxiv.org/abs/1902.04198}{Preferences Implicit in the State of the World}: Another special case
+      \item \href{https://arxiv.org/abs/1606.03137}{Cooperative Inverse Reinforcement Learning}: A \emph{generalization}
+      \item \href{https://people.eecs.berkeley.edu/~russell/papers/neurips20ws-assistance}{Benefits of Assistance over Reward Learning}: An adapted framework for said generalization
+    \end{itemize}
+  \end{itemize}
+  \item Underspecification and misspecification
+  \begin{itemize}
+    \item \href{https://proceedings.neurips.cc/paper/2018/hash/d89a66c7c80a29b1bdbab0f2a1a94af8-Abstract.html}{Occam’s razor is insufficient to infer the preferences of irrational agents}: This is a case of an underspecification of the relationship between the human’s reward function and the human’s policy
+    \item \href{https://arxiv.org/abs/2402.17747}{When Your AIs Deceive You: Challenges of Partial Observability in Reinforcement Learning from Human Feedback}: In this misspecification, humans are assumed to fully observe the environment even if they only do so partially.
+    \item \href{https://arxiv.org/abs/2502.21262}{Modeling Human Beliefs about AI Behavior for Scalable Oversight}: An approach to correct for the previous misspecification via human models; this can then, however, sometimes lead to an \emph{underspecification} in which the reward function is too uncertain to be safely learned.
+    \item \href{https://arxiv.org/abs/2405.17713}{AI Alignment with Changeable and Influenceable Reward Functions}: This paper breaks with the typical assumption of a fixed reward function.
+    \item \href{https://arxiv.org/abs/2404.10271}{Social Choice Should Guide AI Alignment in Dealing with Diverse Human Feedback}: This paper breaks with the typical assumption of a \emph{single} reward function.
+    \begin{itemize}
+      \item Potential answer: \href{https://www.anthropic.com/research/collective-constitutional-ai-aligning-a-language-model-with-public-input}{Collective Constitutional AI: Aligning a Language Model with Public Input}
+    \end{itemize}
+  \end{itemize}
+  \item On how reward learning falls within AI alignment:
+  \begin{itemize}
+    \item Alignment targets
+    \begin{itemize}
+      \item \href{https://model-spec.openai.com/2025-12-18.html}{OpenAI Model Spec}
+      \item \href{https://www.anthropic.com/news/claude-new-constitution}{Claude’s new constitution}
+      \item \href{https://intelligence.org/files/CEV.pdf}{Coherent Extrapolated Volition}
+    \end{itemize}
+    \item The reward learning agenda assumes that human values can be expressed via reward functions. However, some papers argue:
+    \begin{itemize}
+      \item \href{https://openreview.net/forum?id=5l1NgpzAfH}{The Reward Hypothesis is False}
+    \end{itemize}
+    \item If human values are captured by a reward function, it is still contentious that we should attempt to \emph{decompose} the alignment problem into first learning said reward function and then optimizing it:
+    \begin{itemize}
+      \item \href{https://www.lesswrong.com/posts/gHefoxiznGfsbiAu9/inner-and-outer-alignment-decompose-one-hard-problem-into}{Inner and outer alignment decompose one hard problem into two extremely hard problems}
+      \item \href{https://www.lesswrong.com/posts/pdaGN6pQyQarFHXF4/reward-is-not-the-optimization-target}{Reward is not the optimization target}
+    \end{itemize}
+    \item Even if we’d solve outer alignment via reward learning, we’d still be left with the inner alignment problem of finding a policy that “cares for” this objective:
+    \begin{itemize}
+      \item \href{https://arxiv.org/abs/1906.01820}{Risks from Learned Optimization in Advanced Machine Learning Systems}
+      \item \href{http://incompleteideas.net/book/RLbook2020.pdf}{Reinforcement Learning textbook}: This book is on reinforcement learning, which can be regarded as a very basic conceptualization of the \emph{inner} alignment problem
+      \item \href{https://arxiv.org/abs/2105.14111}{Goal misgeneralization in Deep Reinforcement Learning}
+    \end{itemize}
+  \end{itemize}
+  \item Learn more also in Joar Skalse’s sequence on \href{https://www.lesswrong.com/s/TEybbkyHpMEB2HTv3}{the theoretical foundations of reward learning}
+  \item I can also recommend reading \href{https://scholar.google.com/citations?user=UgHB5oAAAAAJ&hl=en}{the work of Anca Dragan} and her many students on reward learning.
+\end{itemize}
+
+\bibliographystyle{plainnat}
+\bibliography{biblo}
+
+\end{document}

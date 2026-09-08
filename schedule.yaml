@@ -139,8 +139,6 @@ clusters:
         lead: Leon (Joar Skalse guest lecture)
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.6d2zm6vpa5tg
         source: missing
-        slides: https://docs.google.com/presentation/d/1cG2M68gj8osmrse97bza9cgCqqwoFXBvDIGpkv-HVgA/edit
-        note: exercise sheet and both decks exist as Drive files only
         worksheets:
           - reward-learning-theory
 
