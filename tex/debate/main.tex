@@ -61,7 +61,7 @@ Here we outline how the material was taught in-person in April:
   \item \textbf{10:00 --- Fun Game} Fun exercise ``Wrong but convincing
     proofs''. In this exercise, a series of wrong proofs is presented and the
     students are asked to find the mistake in the proof. The students basically
-    take the role of ``Bob'' who points out the flaws in Alice's proofs. This
+    take the role of ``Bob'' who points out the flaws in Alice's proofs.This
     gives an intuition that even mathematical proofs can sound very convincing,
     and finding a mistake as a human judge is often non-trivial.
     (\cref{sec:wrongproofs})
@@ -1772,6 +1772,21 @@ subclaim probability shifts by an arbitrarily small amount, then no realistic
 estimator could support it reliably. The authors therefore require stability for
 the \textbf{usefulness} of the protocol: honest provers can win when they have
 robust arguments, not brittle ones.
+
+Prover-Estimator debate is a technique to address the problem of obfuscation by turning the debate into a n asymmetric game between a prover (Alice) and an estimator (Bob).
+The basic idea is:
+
+\begin{enumerate}
+    \item Alice makes her main claim (root claim of the argument tree)
+    \item Bob assigns it a probability ($<0.5$, or low enough for the human to reject trusting the claim)
+    \item Alice now must argue that Bob's estimate is incorrect. To show this, she decomposes the root claim into subclaims.
+    \item Bob now assigns estimates to each subclaim. Aggregating these estimates must be consistent with his estimate about the root claim (consistency criterion).
+    \item Now Alice choses one of the estimates to refute and again decomposes the associated claims.
+    \item The game continues until the maximal depth is reached. A human overseer then assigns probabilities to the leaf claims of the lowest level.
+    \item Alice wins if either the human rejects Bob's estimate at the lowest level, or if Bob violates the consistency criterion. Bob wins if he is consistent at every level and the human accepts his estimates.
+\end{enumerate}
+
+Prover-Estimator debate does not fully resolve obfuscated arguments in its current state, because the consistency criterion isn't stable enough to small errors that Bob can make. Improving this is current research.
 
 
 \begin{figure}[htbp]
