@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { Frontmatter, StagedDeck } from "@/lib/content";
 
 const LABELS: Record<string, string> = { pdf: "PDF", tex: "LaTeX", mdx: "Markdown" };
 
@@ -34,16 +35,23 @@ function Box({
 
 /**
  * One row per available format (PDF · LaTeX · Markdown), each with view/
- * download boxes, plus a Slides row when a deck exists. `files` is the
- * build-time listing of public/downloads/<slug>/; the checkbox swaps the
- * worksheet rows between <slug>.<ext> and <slug>-nosol.<ext> (all
- * pre-generated build artifacts). Slides carry no solutions variant and are
- * unaffected by the toggle. `slidesUrl` is an externally hosted deck (from
- * the `slides:` frontmatter key) — linked, never hosted here; a compiled
- * <slug>-slides.pdf takes precedence over it.
+ * download boxes, plus one Slides row per deck. `files` is the build-time
+ * listing of public/downloads/<slug>/; the checkbox swaps the worksheet rows
+ * between <slug>.<ext> and <slug>-nosol.<ext> (all pre-generated build
+ * artifacts). Slides carry no solutions variant and are unaffected by the
+ * toggle.
  *
- * A deck that opted into a collapsed build ships <slug>-slides-handout.pdf
- * too; the row then reads present · handout · LaTeX instead of the
+ * Decks stack, in a fixed order: the externally hosted one first (`slides` —
+ * the frontmatter `slides:` key, a URL or `{url, title}` — linked, never
+ * hosted here), then every compiled deck (`decks`, from listDecks: slides.tex,
+ * then slides-<label>.tex by filename). A day whose main lecture exists only
+ * as a hosted deck and whose guest lecture compiles from source shows both.
+ * With more than one row the deck's title (its own \title{}, or the `slides:`
+ * title) follows the boxes so a reader can tell them apart; a lone deck stays
+ * unlabelled, as it always was.
+ *
+ * A deck that opted into a collapsed build ships <slug>-<stem>-handout.pdf
+ * too; its row then reads present · handout · LaTeX instead of the
  * view · download · LaTeX it shows for a single-variant deck.
  *
  * Server-rendered: the with/without-solutions swap is public/site.js reading
@@ -53,23 +61,26 @@ export function DownloadsRow({
   slug,
   files,
   basePath,
-  slidesUrl,
+  decks = [],
+  slides,
 }: {
   slug: string;
   files: string[];
   basePath: string;
-  slidesUrl?: string;
+  decks?: StagedDeck[];
+  slides?: Frontmatter["slides"];
 }) {
   const href = (file: string) => `${basePath}/downloads/${slug}/${file}`;
   const exts = (["pdf", "tex", "mdx"] as const).filter((ext) => files.includes(`${slug}.${ext}`));
 
-  const hasSlidesPdf = files.includes(`${slug}-slides.pdf`);
-  const hasSlidesTex = files.includes(`${slug}-slides.tex`);
-  const hasSlidesHandout = files.includes(`${slug}-slides-handout.pdf`);
+  const external = typeof slides === "string" ? { url: slides, title: undefined } : slides?.url ? slides : null;
+  const deckRows = (external ? 1 : 0) + decks.length;
 
-  if (exts.length === 0 && !hasSlidesPdf && !slidesUrl) return null;
+  if (exts.length === 0 && deckRows === 0) return null;
 
   const rowLabel = "w-20 shrink-0 uppercase tracking-wide text-zinc-500";
+  const deckTitle = (title?: string | null) =>
+    deckRows > 1 && title ? <span className="text-zinc-500">{title}</span> : null;
 
   return (
     <div className="mt-4 font-sans text-xs">
@@ -97,37 +108,41 @@ export function DownloadsRow({
           );
         })}
 
-        {hasSlidesPdf ? (
-          <li className="flex items-center gap-2">
-            <span className={rowLabel}>Slides</span>
-            {hasSlidesHandout ? (
-              <>
-                <Box href={href(`${slug}-slides.pdf`)}>present</Box>
-                <Box href={href(`${slug}-slides-handout.pdf`)}>handout</Box>
-              </>
-            ) : (
-              <>
-                <Box href={href(`${slug}-slides.pdf`)}>view</Box>
-                <Box href={href(`${slug}-slides.pdf`)} download>download</Box>
-              </>
-            )}
-            {hasSlidesTex && (
-              <Box href={href(`${slug}-slides.tex`)} download>LaTeX</Box>
-            )}
-          </li>
-        ) : slidesUrl ? (
+        {external && (
           <li className="flex items-center gap-2">
             <span className={rowLabel}>Slides</span>
             <a
-              href={slidesUrl}
+              href={external.url}
               target="_blank"
               rel="noopener noreferrer"
               className="rounded border border-zinc-300 px-2 py-0.5 lowercase tracking-normal text-zinc-600 transition-colors hover:border-zinc-500 hover:text-zinc-900"
             >
               open&nbsp;↗
             </a>
+            {deckTitle(external.title)}
           </li>
-        ) : null}
+        )}
+
+        {decks.map((deck) => (
+          <li key={deck.stem} className="flex items-center gap-2">
+            <span className={rowLabel}>Slides</span>
+            {deck.handout ? (
+              <>
+                <Box href={href(`${slug}-${deck.stem}.pdf`)}>present</Box>
+                <Box href={href(`${slug}-${deck.stem}-handout.pdf`)}>handout</Box>
+              </>
+            ) : (
+              <>
+                <Box href={href(`${slug}-${deck.stem}.pdf`)}>view</Box>
+                <Box href={href(`${slug}-${deck.stem}.pdf`)} download>download</Box>
+              </>
+            )}
+            {deck.tex && (
+              <Box href={href(`${slug}-${deck.stem}.tex`)} download>LaTeX</Box>
+            )}
+            {deckTitle(deck.title)}
+          </li>
+        ))}
       </ul>
     </div>
   );

@@ -14,11 +14,11 @@ import path from "node:path";
 
 /** How a worksheet's deck reaches the reader. */
 export type Deck =
-  /** tex/<slug>/slides.tex compiled and hosted here (`pdf`/`tex` = staged). */
-  | { kind: "built"; slug: string; pdf: boolean; tex: boolean }
+  /** tex/<slug>/<stem>.tex (slides, slides-<label>) compiled and hosted here
+   *  (`pdf`/`tex` = staged). `title` is the deck's own \title{}, if any. */
+  | { kind: "built"; slug: string; stem: string; title: string | null; pdf: boolean; tex: boolean }
   /** A prebuilt deck hosted elsewhere — linked out, never served by us. */
-  | { kind: "external"; slug?: string; url: string }
-  | { kind: "none"; slug?: string };
+  | { kind: "external"; slug?: string; url: string; title: string | null };
 
 export type DayModule = {
   slug: string;
@@ -26,7 +26,9 @@ export type DayModule = {
   cluster: string | null;
   unlisted: boolean;
   pdf: boolean;
-  deck: Deck;
+  /** In the order the page lists them: the `slides:` link, then compiled
+   *  decks by filename. Empty when the worksheet offers none. */
+  decks: Deck[];
 };
 
 /** Where a day's buildable source is. `in-repo` is derived (the day has a

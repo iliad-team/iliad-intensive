@@ -3,7 +3,10 @@
 % If this file exists, the build compiles it to slides.pdf and hosts it next
 % to the worksheet's other downloads (a "Slides" row appears on the page with
 % view / download / LaTeX-download boxes). It is NEVER converted to MDX — a
-% deck is a download, not a web page. No -nosol variant is produced.
+% deck is a download, not a web page. No -nosol variant is produced. A day with
+% more than one lecture adds slides-<label>.tex files beside this one: each
+% builds and gets its own Slides row, this file first, the rest in filename
+% order, labelled from their \title{}.
 %
 % HANDOUT: mention \HANDOUT anywhere in this file and the build makes a second,
 % collapsed PDF (slides-handout.pdf) by \def-ing the macro on the command line:
