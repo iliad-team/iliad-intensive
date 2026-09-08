@@ -128,6 +128,8 @@ clusters:
         source: missing
         slides: https://docs.google.com/presentation/d/1cG2M68gj8osmrse97bza9cgCqqwoFXBvDIGpkv-HVgA/edit
         note: exercise sheet and both decks exist as Drive files only
+        worksheets:
+          - reward-learning-theory
 
   - id: B
     label: B — Learning
