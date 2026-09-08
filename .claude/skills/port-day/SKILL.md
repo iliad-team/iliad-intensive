@@ -281,6 +281,7 @@ Stage only sources: `main.tex` + `biblo.bib` + `fig/*` + any `slides*.tex`, or
 `rendergate.log`, `content/`, `public/`, the `_src_repo/` source clone, the
 `node_modules` symlink — is gitignored or must not be staged.
 
+    git lfs push origin port-<x.y>-claude               # --no-verify below skips the hook that uploads LFS objects
     git push -u origin port-<x.y>-claude --no-verify   # see the symlink note above
     gh pr create --base main --title "[X.Y] <Title>"
 
