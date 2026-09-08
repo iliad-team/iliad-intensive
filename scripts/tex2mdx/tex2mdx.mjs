@@ -174,6 +174,17 @@ const docEnd = tex.indexOf("\\end{document}");
 const preamble = tex.slice(0, docStart);
 let body = tex.slice(docStart + "\\begin{document}".length, docEnd);
 
+// the shared iliad.sty carries the contract's own \crefname declarations
+//   (it is the PDF side of the same contract), and LaTeX obeys them — so the
+//   converter has to read them too, or the web and the PDF disagree about what a
+//   reference is called. This went unnoticed while every contract name happened to
+//   equal its capitalised type ("exercise" -> "Exercise"); it bites the moment one
+//   differs, as \crefname{subsection}{Section} does. Comments stripped first, and
+//   the sheet's own preamble is applied after, so a sheet can still override.
+//   Local-first, mirroring main.tex's \IfFileExists{iliad.sty}{...}{../iliad} load.
+const sharedSty = [path.join(path.dirname(input), "iliad.sty"),
+                   path.join(path.dirname(input), "..", "iliad.sty")].find(existsSync);
+if (sharedSty) applyCrefnames(readFileSync(sharedSty, "utf8").replace(/(^|[^\\])%.*$/gm, "$1"));
 applyCrefnames(preamble);                    // before parseAux: names depend on it
 let refs = parseAux(ensureAux(input));
 // self-heal a stale .aux: one compiled before auto-labels existed (or from an
@@ -304,9 +315,9 @@ if (usesExerciseEnv && !iliadBlock) {
   }
 }
 { // front-matter order (non-fatal): videos → Prerequisites → learning
-  // outcomes, before the first content section; the overview is `summary:`,
-  // never a body section. Judgment shared with the MDX path — see util.mjs.
-  const pos = { overview: null, video: null, prereqs: null, outcomes: null, content: null };
+  // outcomes, before the first content section. Judgment shared with the MDX
+  // path — see util.mjs.
+  const pos = { video: null, prereqs: null, outcomes: null, content: null };
   const secRe = /\\(?:sub)*section\*?\s*\{/g;
   for (let m; (m = secRe.exec(body)); ) {
     const g = readGroup(body, secRe.lastIndex - 1);
@@ -315,7 +326,11 @@ if (usesExerciseEnv && !iliadBlock) {
     const t = g.content.replace(/\\[a-zA-Z]+\s*/g, "").replace(/[{}]/g, "").trim().toLowerCase();
     const item = { at: m.index, needle: body.slice(m.index, g.end) };
     if (/^prerequisites?\b/.test(t)) pos.prereqs ??= item;
-    else if (/^overview\b/.test(t)) pos.overview ??= item;
+    // An "Overview" section is the author's call and warns about nothing (see
+    // docs/commands.md), but it is orientation, not content — so it must not
+    // count as the first content SECTION either, or the front matter legitimately
+    // sitting above it would be reported as out of order.
+    else if (/^overview\b/.test(t)) continue;
     else pos.content ??= item;
   }
   const lo = body.indexOf("\\begin{learningoutcomes}");

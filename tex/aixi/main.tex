@@ -56,6 +56,18 @@
 \date{\today}
 \maketitle
 
+\section*{Prerequisites}
+
+\begin{itemize}
+    \item \href{/agency/solomonoff-induction}{Solomonoff Induction} ---
+    \textbf{start there first.} The Bayesian mixture, posterior updates, and
+    dominance carry over directly; AIXI reuses them in the action setting.
+    \item Comfort with discrete probability (conditional distributions, chain rule,
+    expectations).
+    \item Familiarity with sequential decision-making / reinforcement learning
+    (agents, rewards, discounting, value functions) is useful but not assumed.
+\end{itemize}
+
 \begin{learningoutcomes}
   \begin{itemize}
     \item Formalize the agent-environment interaction, value functions, and the Bayes-optimal policy that defines AIXI.
@@ -88,18 +100,6 @@ $\xi$ of environments. It learns to act as well as if it knew the true environme
 $\mu$. Under the universal choice --- $\cM$ = all lower-semicomputable environments,
 prior $w_\nu = 2^{-K(\nu)}$ --- the assumption ``$\mu \in \cM$'' again becomes
 ``the universe is computable.''
-
-\section*{Prerequisites}
-
-\begin{itemize}
-    \item \href{/agency/solomonoff-induction}{Solomonoff Induction} ---
-    \textbf{start there first.} The Bayesian mixture, posterior updates, and
-    dominance carry over directly; AIXI reuses them in the action setting.
-    \item Comfort with discrete probability (conditional distributions, chain rule,
-    expectations).
-    \item Familiarity with sequential decision-making / reinforcement learning
-    (agents, rewards, discounting, value functions) is useful but not assumed.
-\end{itemize}
 
 \section*{Goal and Roadmap}
 

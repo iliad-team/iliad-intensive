@@ -214,15 +214,31 @@ function citeLink(key) {
   return `[${e.disp}](#bib-${slug(key)})`;
 }
 
-function crefLinks(csv, keepFirstNameOnly) {
+// cleveref prints ONE plural type name for a multi-label \cref of a single type
+// — "Sections 4 and 7", not "Section 4 and 7" — and the same for \crefrange. A
+// plain +"s" gets "Appendixs"/"Corollarys" wrong, so -y and the one irregular in
+// the contract's vocabulary are handled here.
+const IRREGULAR_PLURAL = { Appendix: "Appendices" };
+const pluralType = (w) =>
+  IRREGULAR_PLURAL[w] ?? (/[^aeiou]y$/.test(w) ? `${w.slice(0, -1)}ies` : `${w}s`);
+const typeOf = (text) => (/\s/.test(text) ? text.replace(/\s.*$/, "") : null);
+
+function crefLinks(csv) {
   const labels = csv.split(",").map((x) => x.trim()).filter(Boolean);
   if (labels.length === 0) { warn("empty \\cref{} with no labels — dropped", "\\cref{}"); return ""; }
   const rr = labels.map(resolveRef);
   if (rr.length === 1) return `[${rr[0].text}](#${rr[0].anchor})`;
   const name0 = rr[0].text.replace(/\s.*$/, "");
+  // All one type: the name is printed once, pluralised, and the rest are bare
+  // numbers. Mixed types keep their own singular names, as cleveref does.
+  const oneType = typeOf(rr[0].text) !== null
+    && rr.every((r) => typeOf(r.text) === name0);
   const parts = rr.map((r, k) => {
     const sameType = r.text.replace(/\s.*$/, "") === name0;
-    return `[${k === 0 || !sameType ? r.text : r.text.replace(/^\w+\s/, "")}](#${r.anchor})`;
+    const text = k === 0
+      ? (oneType ? r.text.replace(/^(\w+)(\s)/, (_, w, sp) => pluralType(w) + sp) : r.text)
+      : (sameType ? r.text.replace(/^\w+\s/, "") : r.text);
+    return `[${text}](#${r.anchor})`;
   });
   // Prose list, like cleveref's own: "A and B", "A, B and C".
   return parts.length === 2
@@ -739,7 +755,7 @@ function emitMacro(n) {
     case "nameref": { const r = resolveRef((lastArgRaw(n) ?? "").trim()); return `[${r.text}](#${r.anchor})`; }
     case "crefrange": case "Crefrange": {
       const ra = resolveRef((argRaw(n, 0) ?? "").trim()); const rb = resolveRef((argRaw(n, 1) ?? "").trim());
-      const plural = ra.text.replace(/^(\w+)\s.*/, "$1") + "s";
+      const plural = pluralType(ra.text.replace(/^(\w+)\s.*/, "$1"));
       return `[${plural} ${ra.num ?? ""}–${rb.text.replace(/^\w+\s/, "")}](#${ra.anchor})`;
     }
     case "hyperref": {
