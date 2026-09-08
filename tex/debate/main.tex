@@ -61,7 +61,7 @@ Here we outline how the material was taught in-person in April:
   \item \textbf{10:00 --- Fun Game} Fun exercise ``Wrong but convincing
     proofs''. In this exercise, a series of wrong proofs is presented and the
     students are asked to find the mistake in the proof. The students basically
-    take the role of ``Bob'' who points out the flaws in Alice's proofs.This
+    take the role of ``Bob'' who points out the flaws in Alice's proofs. This
     gives an intuition that even mathematical proofs can sound very convincing,
     and finding a mistake as a human judge is often non-trivial.
     (\cref{sec:wrongproofs})
@@ -623,7 +623,7 @@ The judge outputs \(1\) if Alice wins and \(0\) if Bob wins.
 \end{definition}
 
 \begin{definition}[The class \(\mathsf{Debate}\)]
-A language \(L \subseteq \{0,1\}^*\) is in \(\mathsf{Debate}\) if there exist polynomials \(p,k\) and a debate verifier \(J\) such that for every input \(x\in\{0,1\}^n\), iff $x \in L$, then
+A language \(L \subseteq \{0,1\}^*\) is in \(\mathsf{Debate}\) if there exist polynomials \(p,k\) and a debate verifier \(J\) such that for every input \(x\in\{0,1\}^n\), \(x \in L\) if and only if
 \[
 \bigexists_{a_1 \in \{0,1\}^{\le p(n)}}\;
 \bigforall_{b_1 \in \{0,1\}^{\le p(n)}}
@@ -640,7 +640,7 @@ Equivalently, \(x\in L\) if and only if Alice has a winning strategy in the poly
 This definition captures the idealized debate protocol used in the complexity-theoretic analysis of AI safety via debate: Alice attempts to defend a claim, Bob attempts to refute it, and the judge only performs a polynomial-time computation on the transcript.
 \end{remark}
 
-This formulation is very close to a totally quantified Boolean Formula (TQBF), the canonically $\mathsf{PSPACE}$-complete problem. The only differences is that for a TQBF, one would quantify over single bits, and consider a Boolean formula instead of a poly-time algorithm as judge. But these differences are somewhat cosmetic: One can rephrase
+This formulation is very close to a totally quantified Boolean Formula (TQBF), the canonically $\mathsf{PSPACE}$-complete problem. The only difference is that for a TQBF, one would quantify over single bits, and consider a Boolean formula instead of a poly-time algorithm as judge. But these differences are somewhat cosmetic: One can rephrase
 $$
 \bigexists_{a_i \in \{0,1\}^{\le p(n)}} \quad\rightarrow\quad \exists a_i^1 \dots \exists a_i^{m}, \quad\text{where}\quad m \le p(n)
 $$
@@ -650,7 +650,7 @@ J(x,a_1,b_1,\dots,a_{k(n)},b_{k(n)}) \quad\rightarrow\quad \phi(x,a_1,b_1,\dots,
 $$
 where $\phi$ is a Boolean formula which has size polynomially in $n$ by the Cook-Levin Theorem\footnote{For further reading, see \href{https://en.wikipedia.org/wiki/Cook–Levin_theorem}{Wikipedia: Cook--Levin theorem}.}.
 
-The easiest way to proof that $\mathsf{DEBATE} = \mathsf{PSPACE}$ is thus showing that this is essentially the same. However, a more insightful way is to prove directly that Debate can solve problems in PSPACE, in a similar way how you show that TQBF is PSPACE complete.
+The easiest way to prove that $\mathsf{Debate} = \mathsf{PSPACE}$ is thus showing that this is essentially the same. However, a more insightful way is to prove directly that Debate can solve problems in PSPACE, in a similar way how you show that TQBF is PSPACE complete.
 
 %==============================================================================
 
@@ -762,7 +762,7 @@ This completes the induction.
 \medskip
 
 \noindent\emph{Complexity of the verifier and number of rounds.}
-At each round, Alice provides one configuration \(E\), whose description has polynomial length. Bob responds with one bit indicating which half he wants to challenge. The recursion depth is \(q(n)\), which is polynomial in \(n\). At the end, the verifier checks a base case \(t=0\), namely whether one configuration is equal to or an immediate successor of another, which is polynomial-time computable.
+At each round, Alice provides one configuration \(C_{\mathrm{mid}}\), whose description has polynomial length. Bob responds with one bit indicating which half he wants to challenge. The recursion depth is \(q(n)\), which is polynomial in \(n\). At the end, the verifier checks a base case \(t=0\), namely whether one configuration is equal to or an immediate successor of another, which is polynomial-time computable.
 
 Therefore this is a valid polynomial-length debate with a polynomial-time verifier. Since Alice has a winning strategy exactly when
 \[
@@ -775,7 +775,7 @@ is true, the debate decides whether \(x\in L\). It follows that \(L \in \mathsf{
 \medskip
 \noindent\textbf{Step 2: \(\mathsf{Debate} \subseteq \mathsf{PSPACE}\).}
 
-We can reduce Debater to TQBF as discussed before, and TQBF is in PSPACE-complete, thus in PSPACE.
+We can reduce Debate to TQBF as discussed before, and TQBF is PSPACE-complete, thus in PSPACE.
 \end{proof}
 
 This challenge-defence recursion gives a good intuition how we expect a debate to play out between AI agents. The question is, how much does the verifier actually have to check to understand that this holds?
@@ -1671,7 +1671,7 @@ actively worked on by debate researchers.
     false and it is computationally hard to find out which are false. A common
     example is the claim ``N is a prime number'' which can be easily refuted by
     stochastic primality testing. But if Alice partitions this into subclaims
-    \{``N has no prime number in the interval I\_1'', N has no prime number in
+    \{``N has no prime factor in the interval I\_1'', N has no prime factor in
     the interval I\_2'', \ldots\} where the intervals cover the numbers from 2 to
     sqrt(N), then it is computationally hard to find out which of these subclaims
     is wrong, even though Bob knows at least one has to be. It is much harder to
@@ -1745,7 +1745,7 @@ So Alice's overall argument is false, but the error is localized to a single int
 
 \begin{exercise}
 \label{ex:ex17}
-    Show that you can decompose any statement into a obfuscated argument. Hint: Re-use the hardness of a problem like prime-factorisation, as well as the concept of vacuous truth, or truth by false premise, i.e., that $A\rightarrow B$ is true, whenever $A$ is false.
+    Show that you can decompose any statement into an obfuscated argument. Hint: Re-use the hardness of a problem like prime-factorisation, as well as the concept of vacuous truth, or truth by false premise, i.e., that $A\rightarrow B$ is true, whenever $A$ is false.
 \end{exercise}
 
 %==============================================================================
@@ -1773,7 +1773,7 @@ estimator could support it reliably. The authors therefore require stability for
 the \textbf{usefulness} of the protocol: honest provers can win when they have
 robust arguments, not brittle ones.
 
-Prover-Estimator debate is a technique to address the problem of obfuscation by turning the debate into a n asymmetric game between a prover (Alice) and an estimator (Bob).
+Prover-Estimator debate is a technique to address the problem of obfuscation by turning the debate into an asymmetric game between a prover (Alice) and an estimator (Bob).
 The basic idea is:
 
 \begin{enumerate}
@@ -1781,7 +1781,7 @@ The basic idea is:
     \item Bob assigns it a probability ($<0.5$, or low enough for the human to reject trusting the claim)
     \item Alice now must argue that Bob's estimate is incorrect. To show this, she decomposes the root claim into subclaims.
     \item Bob now assigns estimates to each subclaim. Aggregating these estimates must be consistent with his estimate about the root claim (consistency criterion).
-    \item Now Alice choses one of the estimates to refute and again decomposes the associated claims.
+    \item Now Alice chooses one of the estimates to refute and again decomposes the associated claims.
     \item The game continues until the maximal depth is reached. A human overseer then assigns probabilities to the leaf claims of the lowest level.
     \item Alice wins if either the human rejects Bob's estimate at the lowest level, or if Bob violates the consistency criterion. Bob wins if he is consistent at every level and the human accepts his estimates.
 \end{enumerate}
@@ -1926,11 +1926,11 @@ Is AIS via Debate research more capability than alignment?
 \label{sec:learnmore}
 
 \begin{itemize}
-  \item Debating with more persuasive LLMs leads to more tr
+  \item \href{https://arxiv.org/abs/2402.06782}{Debating with More Persuasive LLMs Leads to More Truthful Answers}
   \item \href{https://www.lesswrong.com/posts/kguLeJTt6LnGuYX4E/the-limits-of-ai-safety-via-debate}{The limits of AI safety via debate}
   \item \href{https://www.aisi.gov.uk/research/an-alignment-safety-case-sketch-based-on-debate}{The alignment safety-case sketch based on Debate}
-  \item \href{https://arxiv.org/pdf/2603.05293}{Knowledge Divergence and the Value of Debate for Scalable Oversight}
-  \item \href{https://arxiv.org/html/2509.15090v2\#abstract}{Emergent Alignment via Competion}
+  \item \href{https://arxiv.org/abs/2603.05293}{Knowledge Divergence and the Value of Debate for Scalable Oversight}
+  \item \href{https://arxiv.org/html/2509.15090v2\#abstract}{Emergent Alignment via Competition}
 \end{itemize}
 
 \end{document}
