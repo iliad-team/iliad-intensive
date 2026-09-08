@@ -40,7 +40,8 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, copyFi
 import YAML from "yaml";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { injectAutoLabels } from "./tex2mdx/autolabel.mjs";
+import { injectAutoLabelsTree } from "./tex2mdx/autolabel.mjs";
+import { transformInputTree } from "./tex2mdx/texinput.mjs";
 import { frontMatterOrderIssues } from "./tex2mdx/util.mjs";
 import { buildStatus } from "./build-status.mjs";
 import { loadSchedule, ScheduleError } from "./schedule.mjs";
@@ -76,9 +77,9 @@ const JOBS = Math.max(1, parseInt(args.includes("--jobs") ? args[args.indexOf("-
 // positional args are worksheet slugs; none = build everything
 const wanted = [];
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === "--check" || args[i] === "--no-gate" || args[i] === "--no-cache") continue;
+  if (args[i] === "--check" || args[i] === "--no-gate" || args[i] === "--no-cache" || args[i] === "--quiet") continue;
   if (args[i] === "--jobs") { i++; continue; }
-  if (args[i].startsWith("-")) { console.error(`unknown flag ${args[i]} — usage: build-content.mjs [--check] [--no-gate] [--no-cache] [--jobs N] [slug ...]`); process.exit(1); }
+  if (args[i].startsWith("-")) { console.error(`unknown flag ${args[i]} — usage: build-content.mjs [--check] [--no-gate] [--no-cache] [--quiet] [--jobs N] [slug ...]`); process.exit(1); }
   wanted.push(args[i]);
 }
 
@@ -220,12 +221,19 @@ const stripMdxSolutions = (mdx) => {
 // build-status.mjs) reads the generated MDX, so it sees the schedule's answer
 // and cannot disagree with it. An unscheduled sheet — the unlisted format demo
 // — keeps whatever its own frontmatter says.
+// Both values are QUOTED. Cluster "0" (Foundations) and its day "0" are
+// numbers to YAML otherwise, and the site reads these back as strings: a
+// numeric 0 is falsy, so clusterUrlSlug() fell through to its "no cluster"
+// branch and generated the page at /page/<slug>/ while every link to it pointed
+// at /foundations/<slug>/ — a 404 on a statically exported site.
+const stampLines = (sc) => `---\ncluster: "${sc.cluster}"\nday: "${sc.day}"\n`;
+
 const stampSchedule = (mdxOut, slug) => {
   const sc = SCHEDULE.bySlug.get(slug);
   if (!sc) return;
   const raw = readFileSync(mdxOut, "utf8");
   if (!raw.startsWith("---\n")) return;   // no frontmatter: the render gate's problem
-  writeFileSync(mdxOut, `---\ncluster: ${sc.cluster}\nday: ${sc.day}\n${raw.slice(4)}`);
+  writeFileSync(mdxOut, stampLines(sc) + raw.slice(4));
 };
 
 // ---------------------- per-worksheet build cache ---------------------------
@@ -240,6 +248,10 @@ const stampSchedule = (mdxOut, slug) => {
 // whole scripts/ tree counts, not just the converter, and schedule.yaml counts
 // because it is stamped into the MDX. `--no-cache` forces a full rebuild.
 const NO_CACHE = args.includes("--no-cache");
+// CLAUDE: --quiet suppresses the one-line success summary. The watch loop passes
+//   it, because it prints its own "refresh the browser" line straight after and
+//   two summaries for one rebuild is one too many.
+const QUIET = args.includes("--quiet");
 
 // Artifacts share tex/<slug>/ with sources, so top-level generated files are
 // excluded by extension (fig/ is all source, including its .pdf figures, and is
@@ -312,9 +324,11 @@ const restampIfMoved = (slug) => {
   const raw = readFileSync(mdxOut, "utf8");
   const m = STAMP_RE.exec(raw);
   if (!m) return false;                        // never stamped; not ours to fix
-  if (m[1] === String(sc.cluster) && m[2] === String(sc.day)) return false;
+  // Compare the rendered block, not the captures, so a stamp left unquoted by
+  // an older build is brought into line as well as one naming the wrong day.
+  if (m[0] === stampLines(sc)) return false;
 
-  const updated = `---\ncluster: ${sc.cluster}\nday: ${sc.day}\n` + raw.slice(m[0].length);
+  const updated = stampLines(sc) + raw.slice(m[0].length);
   writeFileSync(mdxOut, updated);
   const dl = path.join(DOWNLOADS, slug);
   if (existsSync(dl)) {
@@ -366,8 +380,11 @@ async function buildSlug(slug) {
     if (ok && !CHECK_ONLY) { try { writeFileSync(stamp, inputHash); } catch { /* non-fatal */ } }
     return {
       ok,
+      // CLAUDE: a worksheet that built cleanly prints nothing — the run's closing
+      //   summary line covers it. The `▸ slug` header is kept only when there are
+      //   notes, so a warning still says which sheet it came from.
       text: (ok
-        ? `▸ ${slug} ✓ (${((Date.now() - t0) / 1000).toFixed(1)}s)\n`
+        ? (notes.length ? `▸ ${slug} (${((Date.now() - t0) / 1000).toFixed(1)}s)\n` : "")
         : `✗ ${slug}: ${headline}\n`) + notes.map((n) => n.replace(/\s*$/, "") + "\n").join(""),
     };
   };
@@ -383,7 +400,8 @@ async function buildSlug(slug) {
     const moved = restampIfMoved(slug);
     return {
       ok: true,
-      text: `↷ ${slug} cached (inputs unchanged)${moved ? " — re-stamped for schedule" : ""}\n`,
+      cached: true,
+      text: moved ? `↷ ${slug} cached — re-stamped for schedule\n` : "",
     };
   }
   // Every TeX tool runs with the worksheet folder as cwd. BSTINPUTS adds the
@@ -470,13 +488,21 @@ async function buildSlug(slug) {
     };
     // The web shows every displayed number (headings, theorems, exercises)
     // straight out of the .aux, keyed by injected auto-labels (autolabel.mjs).
-    // So the compiled copy is main.tex + those labels — written to
+    // So the compiled copy is the source + those labels — written to
     // main.autolabel.tex and compiled under -jobname=main, keeping
     // main.pdf/main.aux their names. Injection is same-line, so main.log
     // line numbers still match main.tex. \label emits nothing visible: the
-    // PDF is unchanged. Downloads still copy the pristine main.tex.
-    const writeAutolabel = () => writeFileSync(path.join(dir, "main.autolabel.tex"),
-      injectAutoLabels(readFileSync(path.join(dir, "main.tex"), "utf8")).text);
+    // PDF is unchanged. Downloads still ship the pristine source.
+    //
+    // The walk follows \input, so a multi-file worksheet gets a labelled copy
+    // of each section file too (sections/foo.autolabel.tex), with main's
+    // \input repointed at them. Keeping the files split rather than inlining
+    // them is what preserves main.log's file:line diagnostics.
+    const writeAutolabel = () => {
+      for (const f of injectAutoLabelsTree(path.join(dir, "main.tex")).files)
+        writeFileSync(f.path === path.join(dir, "main.tex")
+          ? path.join(dir, "main.autolabel.tex") : f.path, f.text);
+    };
     if (!CHECK_ONLY) {
       writeAutolabel();
       try {
@@ -492,8 +518,16 @@ async function buildSlug(slug) {
       // no-solutions PDF: compile a solution-stripped copy of the source.
       // Stripping (rather than \solutionsfalse) works for both dialects and
       // doubles as the spoiler-free .tex download.
+      //
+      // Strip across \input, or a multi-file worksheet keeps every solution
+      // that lives in a section file — main.tex has none of its own, so the
+      // "spoiler-free" handout was identical to the full one. Unlike the
+      // auto-label copy this one is INLINED into a single file: it is a
+      // download, and a reader who gets main-nosol.tex alone must be able to
+      // compile it without the section files it would otherwise \input.
       writeFileSync(path.join(dir, "main-nosol.tex"),
-        stripTexSolutions(readFileSync(path.join(dir, "main.tex"), "utf8")));
+        transformInputTree(path.join(dir, "main.tex"),
+          { visit: (_f, raw) => stripTexSolutions(raw) }).flat);
       try {
         await compile("main-nosol");
       } catch (e) {
@@ -573,13 +607,17 @@ async function buildSlug(slug) {
     // match) so offsets convert straight to file lines.
     {
       const lineAt = (at) => `${relMdx}:${raw.slice(0, at).split("\n").length}  `;
-      const pos = { overview: null, video: null, prereqs: null, outcomes: null, content: null };
+      const pos = { video: null, prereqs: null, outcomes: null, content: null };
       const headRe = /^##\s+(.+)$/gm;
       for (let m; (m = headRe.exec(raw)); ) {
         const t = m[1].trim().toLowerCase();
         const item = { at: m.index };
         if (/^prerequisites?\b/.test(t)) pos.prereqs ??= item;
-        else if (/^overview\b/.test(t)) pos.overview ??= item;
+        // An "Overview" section is the author's call and warns about nothing (see
+        // docs/commands.md), but it is orientation, not content — so it must not
+        // count as the first content SECTION either, or the front matter legitimately
+        // sitting above it would be reported as out of order.
+        else if (/^overview\b/.test(t)) continue;
         else pos.content ??= item;
       }
       const lo = raw.search(/<LearningOutcomes[\s>]/);
@@ -706,7 +744,11 @@ async function buildSlug(slug) {
     if (isTex) {
       copyFileSync(path.join(dir, "main.pdf"), path.join(dl, `${slug}.pdf`));
       copyFileSync(path.join(dir, "main-nosol.pdf"), path.join(dl, `${slug}-nosol.pdf`));
-      copyFileSync(path.join(dir, "main.tex"), path.join(dl, `${slug}.tex`));
+      // Ship the document inlined, not just main.tex: a multi-file worksheet's
+      // main.tex \inputs section files that are not part of the download, so
+      // on its own it does not compile. (main-nosol.tex is already inlined.)
+      writeFileSync(path.join(dl, `${slug}.tex`),
+        transformInputTree(path.join(dir, "main.tex"), { visit: (_f, raw) => raw }).flat);
       copyFileSync(path.join(dir, "main-nosol.tex"), path.join(dl, `${slug}-nosol.tex`));
     }
     // slides deck (no solutions variant): ship the PDF to view/download and
@@ -737,11 +779,15 @@ async function worker() {
       r = { ok: false, text: `✗ ${slug}: unexpected error: ${e.message}\n` };
     }
     if (!r.ok) failed = true;
+    tally.total++;
+    if (r.cached) tally.cached++;
     process.stdout.write(r.text);
   }
 }
+const tally = { total: 0, cached: 0 };
 await Promise.all(Array.from({ length: Math.min(JOBS, slugs.length) }, worker));
 
+let moduleCount = null;
 // ---------------------------- index.json -----------------------------------
 if (!failed) {
   const ghSlug = (t) => t.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
@@ -779,7 +825,7 @@ if (!failed) {
   // backwards, and nothing about the two files could say so.
   entries.sort((a, b) => a.position - b.position);
   writeFileSync(path.join(ROOT, "content", "index.json"), JSON.stringify(entries, null, 2) + "\n");
-  console.log(`index.json: ${entries.length} modules`);
+  moduleCount = entries.length;
 }
 
 // ---------------------------- status.json ----------------------------------
@@ -790,8 +836,20 @@ if (!failed) {
 try {
   const s = buildStatus({ check: CHECK_ONLY, schedule: SCHEDULE });
   const n = s.counts.decksBuilt;
-  console.log(`status.json: ${s.counts.live}/${s.counts.days - s.counts.neverPort} days live, ` +
-    `${n} deck${n === 1 ? "" : "s"} built → /admin/status`);
+  // CLAUDE: one closing line for the whole run, instead of a per-worksheet tick
+  //   plus an index.json line plus a status.json line. Warnings and failures are
+  //   what a build should spend the reader's attention on; success is a fact, and
+  //   one line is enough to state it.
+  if (!QUIET && !failed) {
+    const built = tally.total - tally.cached;
+    const parts = [
+      `${built} built${tally.cached ? ` · ${tally.cached} cached` : ""}`,
+      moduleCount !== null ? `${moduleCount} modules` : null,
+      `${s.counts.live}/${s.counts.days - s.counts.neverPort} days live`,
+      `${n} deck${n === 1 ? "" : "s"}`,
+    ].filter(Boolean);
+    console.log(`✓ ${parts.join(" · ")}`);
+  }
 } catch (e) {
   console.error(`✗ ${e.message}`);
   failed = true;

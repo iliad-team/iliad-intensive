@@ -39,7 +39,11 @@
 #   code       required  e.g. B.4. Its letter must be the enclosing cluster's
 #                        id. Unique across the file.
 #   title      required  The day's name, as the schedule calls it.
-#   lead       required  Who owns the material — the person to ask.
+#   lead       required  Who owns the material — the person to ask. Write
+#                        `none` for a day nobody teaches (day 0, the
+#                        prerequisites page): there is no owner to chase, and
+#                        saying so beats a blank nobody can tell from an
+#                        oversight. /admin/status shows a dash.
 #   doc        required  This day's tab in the big Google Doc (docs/LINKS.md).
 #   port       optional  `never` — this day is deliberately not ported: it runs
 #                        from the Doc (or from hosted PDFs) and no worksheet or
@@ -86,12 +90,20 @@
 # Live days only. The wrap-up day carries no module material and is left out.
 
 clusters:
-  # Prerequisites and background. No teaching day of its own — it holds the
-  # URL space (/foundations/…) for the prerequisite material.
+  # Prerequisites and background, taught by nobody: day 0 is what participants
+  # are expected to know before A.1, so it opens the course and holds the
+  # /foundations/… URL space.
   - id: "0"
     label: Foundations
     urlSlug: foundations
-    days: []
+    days:
+      - code: "0"
+        title: Prerequisites
+        lead: none
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.blsy6emykmhx
+        source: ready
+        worksheets:
+          - prerequisites
 
   - id: A
     label: A — Alignment
@@ -167,6 +179,8 @@ clusters:
         source: ready
         sourceUrl: https://github.com/LouisYRYJ/illiad_data_attribution
         note: source repo is private
+        worksheets:
+          - data-attribution
 
       - code: B.6
         title: Physics of Learning
@@ -323,6 +337,8 @@ clusters:
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.n0qqrafijfpi
         source: missing
         note: only compiled PDFs so far
+        worksheets:
+          - steganography
 
       - code: E.3
         title: Worst-Case Interpretability

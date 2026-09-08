@@ -1,0 +1,198 @@
+% ---------------------------------------------------------
+\section{Bayesian Influence Functions}\label{sec:bayesian-if}
+
+Classical influence functions give a first-order approximation to the change in a \emph{point estimate} $w^*$ when the training data is perturbed. The Bayesian reformulation replaces this point estimate by a \emph{distribution} over parameters: if we perturb the training data, how does our posterior over the parameter space change? This leads naturally to the Bayesian generalization of influence functions introduced in \citet{kreer2025bif}. In the setting of \Cref{eq:holy-maps} we set $\pi(\beta)$ not to be a single weight, but a whole distribution over parameters $p_{\beta}$, namely the posterior.
+
+\paragraph{Susceptibilities.} The Bayesian influence function is one instance of a more general object studied by \citet{baker2025studying}. Given a tempered Gibbs posterior $p_\beta \propto e^{-\beta L(w)}\varphi(w)$ at inverse temperature $\beta$, any pair of observables $\phi,\psi:W\to\R$ defines a \emph{susceptibility}
+\begin{equation}\label{eq:susceptibility}
+  \chi(\phi\,|\,\psi) \;:=\; \frac{\partial}{\partial h}\,\E_{p_h}[\phi(w)]\bigg|_{h=0}, \qquad p_h \;\propto\; e^{-\beta\bigl(L(w) - h\,\psi(w)\bigr)}\,\varphi(w).
+\end{equation}
+The differentiation argument we will apply in \Cref{ex:bif-covariance} shows $\chi(\phi\,|\,\psi) = \beta\,\mathrm{Cov}_{p_\beta}(\phi,\psi)$ in full generality. Taking $\psi = -L(\cdot,z_i)$ gives the Bayesian influence function developed below. Other choices of $(\phi,\psi)$ yield other sensitivity notions, see e.g. the refined learning coefficients \citep[Appendix~D.2]{baker2025studying}. We will not need the general framework again; we mention it only to locate the BIF within the wider susceptibility family.
+
+\subsection{Bayesian influence functions}\label{subsec:bif}
+
+We now specialize the susceptibility story to data attribution. Instead of asking ``how does $\phi(w^*)$ change when we perturb the training weights?'' (\Cref{def:if}) we ask ``how does $\E_{w\sim p}[\phi(w)]$ change?'' The answer turns out to be remarkably clean: the derivative becomes a covariance, and the Hessian inversion of the classical formula is replaced by posterior sampling.
+
+\paragraph{The tempered posterior.} Given training data $\mathcal{D} = \{z_1,\dots,z_n\}$ with per-sample losses $L(w,z_i)$, sample weights $\beta = (\beta_1,\dots,\beta_n)$, and a prior $\varphi(w)$, define the \emph{tempered posterior}
+\begin{equation}\label{eq:tempered-posterior}
+  p_\beta(w\mid\mathcal{D}) \;\propto\; \exp\!\Bigl(-\sum_{i=1}^n \beta_i\, L(w,z_i)\Bigr)\,\varphi(w).
+\end{equation}
+When $\beta = \mathbf{1}$ and the loss is a negative log-likelihood, this is the standard Bayesian posterior. When the losses are not log-likelihoods, $p_\beta$ is a \emph{Gibbs measure}; the mathematics is identical.
+
+\begin{definition}[Bayesian influence function]\label{def:bif}
+The \emph{Bayesian influence function} (BIF) of training example $z_i$ on the observable $\phi$ is the derivative of the posterior expectation of $\phi$ with respect to the sample weight $\beta_i$:
+\[
+  \mathrm{BIF}(z_i,\phi) \;:=\; \frac{\partial}{\partial\beta_i}\,\E_{w\sim p_\beta}[\phi(w)]\bigg\rvert_{\beta=\mathbf{1}}.
+\]
+\end{definition}
+
+The definition is the natural Bayesian analogue of \Cref{def:if}: replace $\phi(w^*(\beta))$ with $\E_{p_\beta}[\phi(w)]$. The following exercise shows that this derivative has a clean closed form. Recall that for two real-valued random variables $X$ and $Y$ defined on the same probability space, the \emph{covariance} is
+\[
+  \mathrm{Cov}(X,Y) \;=\; \E[XY] - \E[X]\,\E[Y].
+\]
+When $X$ and $Y$ are functions of the random parameter $w\sim p$, we write $\mathrm{Cov}_{w\sim p}(X(w),Y(w))$ to indicate that the expectation is taken over the posterior $p$. If $\phi$ is vector-valued ($\phi:W\to\R^d$), the covariance $\mathrm{Cov}(X,\phi)$ is the vector whose $j$-th entry is $\mathrm{Cov}(X,\phi_j)$.
+
+\begin{exercise}[The BIF is a covariance]\label{ex:bif-covariance}
+Let $p_\beta(w\mid\mathcal{D})$ be the tempered posterior of \Cref{eq:tempered-posterior} and write $p = p_{\mathbf{1}}$ for the unperturbed posterior. By differentiating $\E_{p_\beta}[\phi(w)] = \int \phi(w)\,p_\beta(w\mid\mathcal{D})\,dw$ with respect to $\beta_i$, show that
+\begin{equation}\label{eq:bif-covariance}
+  \boxed{\;\mathrm{BIF}(z_i,\phi) \;=\; -\,\mathrm{Cov}_{w\sim p}\bigl(L(w,z_i),\;\phi(w)\bigr).\;}
+\end{equation}
+
+\emph{Hint:} Write $p_\beta \propto e^{-\sum_j \beta_j L(w,z_j)}\varphi(w)$ and differentiate the ratio $\int \phi\, p_\beta\,dw \,/\, \int p_\beta\,dw$ using the quotient rule. The key identity is $\partial_{\beta_i}\log Z(\beta) = -\E_{p_\beta}[L(w,z_i)]$.
+\end{exercise}
+
+\begin{remark}[Statistical physics]\label{rem:stat-phys}
+The identity $\partial_{\beta_i}\E[\phi] = -\mathrm{Cov}(L_i,\phi)$ is a standard fluctuation--response relation in statistical physics: the response of an observable to a change in an external field equals the covariance of that observable with the conjugate energy.
+\end{remark}
+
+\paragraph{Localization.} Computing expectations over the global posterior $p(w\mid\mathcal{D})$ is generally intractable for neural networks, and we are typically interested in the behavior of a specific trained checkpoint $w^*$, not a global Bayesian average. Following \citet{kreer2025bif}, we \emph{localize} the posterior by adding a Gaussian penalty centered at $w^*$:
+\begin{equation}\label{eq:local-posterior}
+  p_\gamma(w\mid\mathcal{D},w^*) \;\propto\; \exp\!\Bigl(-\sum_{i=1}^n L(w,z_i) - \frac{\gamma}{2}\|w - w^*\|^2\Bigr),
+\end{equation}
+where $\gamma > 0$ is a \emph{localization strength} that controls how tightly the posterior concentrates around $w^*$. The \emph{local BIF} is then
+\begin{equation}\label{eq:local-bif}
+  \mathrm{BIF}_\gamma(z_i,\phi) \;=\; -\,\mathrm{Cov}_\gamma\bigl(L(w,z_i),\;\phi(w)\bigr),
+\end{equation}
+where $\mathrm{Cov}_\gamma$ denotes covariance under $p_\gamma$. We will see in \Cref{ex:bif-expansion} that the localization parameter $\gamma$ plays exactly the role of the damping parameter $\lambda$ in the PBRF formula \eqref{eq:if-pbrf}.
+
+\paragraph{Practical computation via SGLD.} The local BIF requires estimating a covariance under $p_\gamma$. This is done by drawing samples from $p_\gamma$ using stochastic gradient Langevin dynamics (SGLD), which adds calibrated Gaussian noise to SGD updates:
+\[
+  w_{t+1} \;=\; w_t - \frac{\epsilon}{2}\Bigl(\frac{n}{m}\sum_{k\in B_t}\nabla_w L(w_t,z_k) + \gamma(w_t - w^*)\Bigr) + \eta_t, \qquad \eta_t\sim\mathcal{N}(0,\epsilon\, I),
+\]
+where $B_t$ is a mini-batch of size $m$ and $\epsilon$ is the step size. After a burn-in period, the iterates $\{w_t\}$ are approximately distributed according to $p_\gamma$, and the covariance in \eqref{eq:local-bif} is estimated by the sample covariance of $(L(w_t,z_i),\phi(w_t))$ across draws. Running multiple independent chains from $w^*$ improves coverage.
+
+\begin{example}[Bayesian linear regression]\label{ex:bayesian-ols}
+Take the linear regression setup of \Cref{ex:ols-if} with a Gaussian prior $w\sim\mathcal{N}(0,\tau^2I)$ added. The posterior is conjugate: $w\mid\mathcal{D}\sim\mathcal{N}(\mu,V)$ with $V = (\tau^{-2}I + \sigma^{-2}A)^{-1}$ and $\mu = \sigma^{-2}V\sum_i x_i y_i$. A direct Gaussian-moment computation applied to \eqref{eq:bif-covariance} with the observable $\phi(w) = w$ gives
+\[
+  \mathrm{BIF}(z_j, w) \;=\; -\mathrm{Cov}_p\bigl(L(w,z_j),\,w\bigr) \;=\; \frac{V\, x_j\, r_j}{\sigma^2} \;=\; (A + \lambda I)^{-1}\,x_j\,r_j
+\]
+where $r_j = y_j - x_j^\top\mu$ is the posterior-mean residual and $\lambda := \sigma^2/\tau^2$.
+This is the \emph{damped} influence function with the damping parameter $\lambda$ equal to the ratio of observation noise to prior variance. In the flat-prior limit $\tau\to\infty$ we have $\lambda\to 0$, $\mu\to w^*$, and we recover the classical IF of \Cref{ex:ols-if}.
+\end{example}
+
+\subsection{Exercise: Connecting Bayesian and classical influence functions}\label{subsec:bif-if-connection}
+%TODO: Specify this is the non degenerate case
+As we have seen in the SLT day, tools involving the Hessian are usually a low-order approximation of an expansion. This is also true for influence functions: In the non-degenerate case the classical IF is the leading-order term of the BIF under a Laplace approximation. The following exercise makes this precise by computing a power series expansion of the BIF covariance and identifying the classical IF as the leading-order term. The argument follows \citet[Appendix~A]{kreer2025bif}.
+
+\begin{exercise}[Power series expansion of Bayesian influence functions]\label{ex:bif-expansion}
+Let $w^*$ be a local minimum of the training loss $L(w) = \sum_{i=1}^n L(w,z_i)$ with positive-definite Hessian $H = \nabla_w^2 L(w^*)$. Write $\Delta w = w - w^*$, and abbreviate $g_\phi = \nabla_w\phi(w^*)$, $H_\phi = \nabla_w^2\phi(w^*)$ for the gradient and Hessian of the observable, and $g_i = \nabla_w L(w^*,z_i)$, $H_i = \nabla_w^2 L(w^*,z_i)$ for the per-sample loss.
+\begin{enumerate}
+  \item[(a)] \textbf{(Laplace approximation.)} Consider the posterior $p(w\mid\mathcal{D}) \propto e^{-L(w)}\,\varphi(w)$. Taylor-expand $L(w)$ to second order around $w^*$, using the fact that $\nabla L(w^*) = 0$ at a minimum. Argue that for large $n$ the quadratic term in $L$ dominates the prior $\varphi$, and conclude that
+  \[
+    p(w\mid\mathcal{D}) \;\approx\; \mathcal{N}(w^*,\;H^{-1}).
+  \]
+  Under this approximation, $\Delta w \sim \mathcal{N}(0, H^{-1})$. (This is called the \emph{Laplace approximation}; the Bernstein--von Mises theorem guarantees it is asymptotically exact for non-singular models.)
+
+  \item[(b)] \textbf{(Taylor expansion of the covariance.)} Expand $\phi(w)$ and $L(w,z_i)$ in Taylor series around $w^*$:
+  \begin{align*}
+    \phi(w) &= \phi(w^*) + g_\phi^\top\Delta w + \tfrac{1}{2}\Delta w^\top H_\phi\,\Delta w + \cdots, \\
+    L(w,z_i) &= L(w^*,z_i) + g_i^\top\Delta w + \tfrac{1}{2}\Delta w^\top H_i\,\Delta w + \cdots.
+  \end{align*}
+  Using the fact that constant terms drop out of covariances and that $\mathrm{Cov}(X,Y) = \sum_{k,m\ge 1}\mathrm{Cov}(T_k[\phi],\,T_m[L_i])$ where $T_k[f]$ denotes the $k$-th order term in the Taylor expansion of $f$, show that the BIF decomposes as
+  \[
+    \mathrm{BIF}(z_i,\phi) = -\sum_{\substack{k,m\ge 1\\k+m\text{ even}}} \mathrm{Cov}_{\mathcal{N}}\bigl(T_k[\phi],\;T_m[L_i]\bigr).
+  \]
+  Why do terms with $k+m$ odd vanish?
+
+  \item[(c)] \textbf{(Leading order: classical IF.)} Compute the $(k,m) = (1,1)$ term:
+  \[
+    \mathrm{Cov}_{\mathcal{N}}\bigl(g_\phi^\top\Delta w,\;g_i^\top\Delta w\bigr) \;=\; g_\phi^\top H^{-1} g_i.
+  \]
+  Conclude that $-g_\phi^\top H^{-1}g_i = -\nabla_w\phi(w^*)^\top H^{-1}\nabla_w L(w^*,z_i)$ is the classical influence function $\mathcal{I}(z_i,\phi)$ from \Cref{def:if}. This is the leading-order term of the BIF.
+
+  \item[(d)] \textbf{(Second-order correction.)} Compute the $(k,m) = (2,2)$ term using Isserlis' theorem (the Gaussian moment identity $\E[\Delta w_a\Delta w_b\Delta w_c\Delta w_d] = \Sigma_{ab}\Sigma_{cd} + \Sigma_{ac}\Sigma_{bd} + \Sigma_{ad}\Sigma_{bc}$ with $\Sigma = H^{-1}$). Show that
+  \[
+    \mathrm{Cov}_{\mathcal{N}}\!\left(\tfrac{1}{2}\Delta w^\top H_\phi\,\Delta w,\;\tfrac{1}{2}\Delta w^\top H_i\,\Delta w\right) = \tfrac{1}{2}\,\tr\bigl(H_\phi\,H^{-1}\,H_i\,H^{-1}\bigr).
+  \]
+  This correction involves the \emph{Hessians} of the observable and per-sample loss. It captures second-order curvature interactions that the classical IF misses entirely. In the linear regression setting of \Cref{ex:bayesian-ols}, why does this correction vanish?
+
+  \item[(e)] \textbf{(Localized version: damped IF.)} Now consider the local BIF of \Cref{eq:local-bif} with localization strength $\gamma$. The localized posterior is approximately $\mathcal{N}(w^*,\,(H+\gamma I)^{-1})$. Repeat the leading-order computation of part (c) to show that
+  \[
+    \mathrm{BIF}_\gamma(z_i,\phi) \;\approx\; -\,\nabla_w\phi(w^*)^\top\,(H + \gamma I)^{-1}\,\nabla_w L(w^*,z_i).
+  \]
+  This is precisely the damped influence function of \Cref{eq:if-pbrf}, with the localization strength $\gamma$ playing the role of the damping parameter $\lambda$. The local BIF is thus a natural, higher-order generalization of the damped IF: it agrees at leading order and includes all the corrections from parts (b)--(d) with $H^{-1}$ replaced by $(H + \gamma I)^{-1}$.
+
+\end{enumerate}
+\end{exercise}
+\begin{remark}
+    We conclude that the classical (damped) IF is the leading term of the (local) BIF under a Laplace approximation. For non-singular models with enough data, the Laplace approximation converges and the higher-order terms are small. But for singular models (neural networks), the Laplace approximation fails, the posterior is not Gaussian, and the BIF captures geometry that the classical IF cannot see.
+\end{remark}
+\subsection{Long Exercise: Influence functions as optimal linear transport}\label{subsec:bif-ot}
+
+The previous exercise showed that the classical IF is the leading-order term of the BIF under a Laplace approximation. We now take a different perspective, due to \citet{mlodozeniec2025distributional}: instead of asking ``what does the BIF reduce to?'' we ask ``what is the \emph{best} way to shift the parameters to approximate the effect of a data perturbation?'' The answer turns out to be: the influence function, and its optimality does not require the Laplace approximation to hold.
+
+\paragraph{Setup.} Let $L(w) = \sum_{i=1}^n L(w,z_i)$ denote the total training loss, and abbreviate $L_k(w) := L(w,z_k)$ for the per-sample loss at example $k$. Define the \emph{Boltzmann distributions} at inverse temperature $\beta$:
+\begin{align*}
+  p_0^\beta(w) &\propto e^{-\beta\,L(w)}, &
+  p_\varepsilon^\beta(w) &\propto e^{-\beta\bigl(L(w)\,-\,\varepsilon\,L_k(w)\bigr)},
+\end{align*}
+so that $p_\varepsilon^\beta$ is the Boltzmann distribution after downweighting sample $k$ by~$\varepsilon$. The low-temperature limit $\beta\to\infty$ concentrates $p_0^\beta$ on the set of global minima $\mathcal{S}_L = \{w : L(w) = \inf L\}$.
+
+Now suppose we want to approximate the effect of the perturbation without resampling from $p_\varepsilon^\beta$. The simplest approach is to take each parameter $w$ drawn from $p_0^\beta$ and \emph{shift} it to $w + \varepsilon\,r(w)$ for some smooth vector field $r:\R^d\to\R^d$. If $r$ is chosen well, the distribution of the shifted parameters should be close to $p_\varepsilon^\beta$. The question is: what is the optimal $r$?
+
+To make this precise, we need to know the density of the shifted parameters. If $w\sim p_0^\beta$ and we set $\tilde w = w + \varepsilon\,r(w)$, then by the multivariate change-of-variables formula, $\tilde w$ has density
+\begin{equation}\label{eq:shifted-density}
+  q_\varepsilon(\tilde w) \;=\; \frac{p_0^\beta\bigl(\tilde w - \varepsilon\,r(\tilde w) + O(\varepsilon^2)\bigr)}{\bigl|\det\bigl(I + \varepsilon\,\nabla r(w)\bigr)\bigr|}\,,
+\end{equation}
+where $\nabla r$ is the $d\times d$ Jacobian matrix of $r$ and the denominator is the usual volume-change factor.\footnote{For small $\varepsilon$ the map $w\mapsto w+\varepsilon r(w)$ is a diffeomorphism, so the inverse is well-defined. The exact formula requires evaluating $r$ at the pre-image; the expression above is correct to the order we need.} We measure how well $q_\varepsilon$ approximates $p_\varepsilon^\beta$ by the KL divergence $D_{\mathrm{KL}}(q_\varepsilon\|p_\varepsilon^\beta)$. Rather than computing this directly, it is cleaner to write it as an expectation over the \emph{original} distribution $p_0^\beta$:
+\begin{equation}\label{eq:kl-expectation}
+  D_{\mathrm{KL}}(q_\varepsilon\|p_\varepsilon^\beta) \;=\; \E_{w\sim p_0^\beta}\!\Bigl[\log p_0^\beta(w) - \log p_\varepsilon^\beta\bigl(w + \varepsilon r(w)\bigr) - \log\bigl|\det\bigl(I + \varepsilon\nabla r(w)\bigr)\bigr|\Bigr].
+\end{equation}
+This identity follows by substituting \eqref{eq:shifted-density} into the definition of KL and changing variables back to $w$. We define the \emph{asymptotic KL cost}
+\begin{equation}\label{eq:ot-cost}
+  \mathcal{F}(r,\varepsilon) \;:=\; \lim_{\beta\to\infty}\,\frac{1}{\beta}\,D_{\mathrm{KL}}(q_\varepsilon\|p_\varepsilon^\beta).
+\end{equation}
+The $1/\beta$ normalization kills the determinant term (which is $O(1)$) and the entropy terms, isolating the energy contribution (which is $O(\beta)$).
+
+\begin{exercise}[Influence functions as optimal parameter shifts]\label{ex:bif-ot}
+Let $w^*$ be a non-degenerate minimum of $L$ with positive-definite Hessian $H = \nabla^2 L(w^*)$. In this exercise we work at the unique minimum, so the $\beta\to\infty$ limit simply evaluates everything at $w^*$.
+\begin{enumerate}
+  \item[(a)] \textbf{(KL in terms of energies.)} Starting from \eqref{eq:kl-expectation}, substitute $p_0^\beta(w) = e^{-\beta L(w)}/Z(\beta,0)$ and $p_\varepsilon^\beta(w) = e^{-\beta(L(w)-\varepsilon L_k(w))}/Z(\beta,\varepsilon)$, and show that
+  \begin{align*}
+    \frac{1}{\beta}\,D_{\mathrm{KL}} \;=\; &\E_{p_0^\beta}\!\bigl[L(w + \varepsilon r) - \varepsilon\,L_k(w + \varepsilon r) - L(w)\bigr] \\
+    &+\; \frac{1}{\beta}\log\frac{Z(\beta,\varepsilon)}{Z(\beta,0)} \;-\; \frac{1}{\beta}\,\E_{p_0^\beta}\!\bigl[\log|\det(I + \varepsilon\nabla r)|\bigr],
+  \end{align*}
+  where $Z(\beta,\varepsilon) = \int e^{-\beta(L(w)-\varepsilon L_k(w))}\,dw$. Explain why the last two terms vanish in the $\beta\to\infty$ limit. \emph{Hint:} $\log|\det(I+\varepsilon\nabla r)| = O(1)$, and by Laplace's method $\tfrac{1}{\beta}\log Z(\beta,\varepsilon) \to -\inf_w[L(w) - \varepsilon L_k(w)]$.
+
+  \item[(b)] \textbf{(Taylor expansion at $w^*$.)} Since the expectation under $p_0^\beta$ concentrates at $w^*$ as $\beta\to\infty$, expand $L(w^* + \varepsilon r)$ and $\varepsilon\,L_k(w^* + \varepsilon r)$ using $\nabla L(w^*) = 0$:
+  \begin{align*}
+    L(w^* + \varepsilon r) &= L(w^*) + \tfrac{\varepsilon^2}{2}\,r^\top H\,r + O(\varepsilon^3), \\
+    \varepsilon\,L_k(w^* + \varepsilon r) &= \varepsilon\,L_k(w^*) + \varepsilon^2\,\nabla L_k(w^*)^\top r + O(\varepsilon^3).
+  \end{align*}
+  Similarly, show that $\inf_w[L(w) - \varepsilon L_k(w)] = L(w^*) - \varepsilon\,L_k(w^*) - \tfrac{\varepsilon^2}{2}\,\nabla L_k^\top H^{-1}\nabla L_k + O(\varepsilon^3)$, by minimizing the Taylor expansion of $L - \varepsilon L_k$ around $w^*$. Combine everything to obtain
+  \begin{equation}\label{eq:ot-quadratic}
+    \mathcal{F}(r,\varepsilon) \;=\; \frac{\varepsilon^2}{2}\,\bigl(r - H^{-1}\nabla L_k\bigr)^\top H\,\bigl(r - H^{-1}\nabla L_k\bigr) \;+\; O(\varepsilon^3).
+  \end{equation}
+
+  \emph{Hint:} After substitution, the terms that do not depend on $r$ should assemble into $\tfrac{\varepsilon^2}{2}\nabla L_k^\top H^{-1}\nabla L_k$ and cancel with the partition-function contribution, leaving a perfect square.
+
+  \item[(c)] \textbf{(IFs are optimal.)} The cost \eqref{eq:ot-quadratic} is a squared Mahalanobis distance (in the Hessian metric) between the shift $r$ and the influence function $r_{\mathrm{IF}} := H^{-1}\nabla L_k(w^*)$. Conclude that the IF minimizes $\mathcal{F}$ to $O(\varepsilon^2)$ among \emph{all} smooth shift maps $w\mapsto w+\varepsilon r(w)$, and that the minimum cost is $O(\varepsilon^3)$.
+
+  State the result in words: \emph{the influence function is the approximately KL-optimal way to shift the parameters of the unperturbed Boltzmann distribution to approximate the perturbed one.}
+
+  \item[(d)] \textbf{(Degenerate case.)} Now suppose $w^*$ lies on a minimum manifold $\mathcal{S}_L$ and $H$ is singular with null space $N$. Argue (without detailed proof) that:
+  \begin{itemize}
+    \item The cost \eqref{eq:ot-quadratic} generalizes to $\mathcal{F}(r,\varepsilon) = \tfrac{\varepsilon^2}{2}(r - H^+\nabla L_k)^\top H\,(r - H^+\nabla L_k) + O(\varepsilon^3)$, where $H^+$ is the Moore--Penrose pseudoinverse.
+    \item The minimizer is $r = H^+\nabla L_k + r_{\mathrm{NS}}$ for any $r_{\mathrm{NS}}\in N$: directions in the null space of $H$ have zero cost, because the Hessian assigns zero curvature to movement along the minimum manifold.
+    \item The IF (with pseudoinverse) is therefore optimal for the directions that matter, but the component of the shift along the flat directions is unconstrained.
+  \end{itemize}
+  Connect this to the SLT perspective: for singular models, the minimum is a variety, and the IF tells you how to move \emph{off} the variety but is silent about movement \emph{along} it.
+
+  \item[(e)] \textbf{(Linear regression check.)} Specialize to the Bayesian linear regression setting of \Cref{ex:bayesian-ols} with prior $w\sim\mathcal{N}(0,\tau^2I)$. The Boltzmann distribution at inverse temperature $\beta = 1$ is the Bayesian posterior $\mathcal{N}(\mu,V)$, which is already Gaussian, no need to take $\beta\to\infty$. A constant shift $w\mapsto w + \varepsilon r$ sends $\mathcal{N}(\mu,V)$ to $\mathcal{N}(\mu + \varepsilon r,\,V)$. The true perturbed posterior (downweighting $z_k$ by $\varepsilon$) has mean $\mu + \varepsilon\,\mathrm{BIF}(z_k,w) + O(\varepsilon^2)$ and covariance $V + O(\varepsilon)$. Using the KL formula for Gaussians with the same covariance, show that
+  \[
+    D_{\mathrm{KL}}\bigl(\mathcal{N}(\mu + \varepsilon r,\,V)\;\big\|\;\mathcal{N}(\mu + \varepsilon b,\,V)\bigr) \;=\; \frac{\varepsilon^2}{2}\,(r-b)^\top V^{-1}(r-b),
+  \]
+  which is minimized at $r = b = \mathrm{BIF}(z_k,w) = (A + \lambda I)^{-1}x_k r_k$. Verify that this is consistent with \eqref{eq:ot-quadratic}: the ``Hessian of the energy'' (training loss plus prior) is $V^{-1} = \sigma^{-2}A + \tau^{-2}I$, and $V^{-1}\cdot\mathrm{BIF} = \sigma^{-2}x_k r_k = \nabla_w L(w,z_k)\big|_{w=\mu}$.
+
+  \item[(f)] \textbf{(Comparison with \Cref{ex:bif-expansion}.)} The Laplace expansion exercise and this exercise both relate the IF to the BIF, but they answer different questions:
+  \begin{itemize}
+    \item \Cref{ex:bif-expansion} is an \emph{algebraic identity}: BIF $=$ IF $+$ higher-order corrections. It requires the Laplace approximation (hence non-singular $H$, Gaussian posterior) and tells you what happens when you truncate the BIF.
+    \item This exercise is an \emph{optimality result}: the IF shift minimizes the KL divergence between the shifted and true perturbed distributions. The $\beta\to\infty$ result (parts a--d) needs only mild regularity of $\mathcal{L}$ and works even for singular $H$ (via the pseudoinverse).
+  \end{itemize}
+  Summarize: the Laplace expansion tells you \emph{what} the IF is (the leading Gaussian term of the BIF). The optimality perspective tells you \emph{why} it works (it is the best first-order correction to the parameter distribution). The second viewpoint does not require the posterior to be Gaussian, which is why \citet{mlodozeniec2025distributional} argue that it provides a better explanation for the empirical success of IFs in deep learning.
+\end{enumerate}
+\end{exercise}
+
+\begin{remark}[Optimal transport]\label{rem:optimal-transport}
+In the language of optimal transport, the map $w\mapsto w+\varepsilon r(w)$ is called a \emph{transport map}, and the distribution of the shifted parameters is its \emph{pushforward}, written $T_{\varepsilon\#}p_0^\beta$. The cost functional $\mathcal{F}$ is the asymptotic KL divergence between the pushforward and the target. \Cref{ex:bif-ot} then says that the influence function is the \emph{KL-optimal transport map} from the unperturbed to the perturbed Boltzmann distribution, at first order in $\varepsilon$. This is the perspective developed in \citet{mlodozeniec2025distributional}, who prove a more general version (their Theorem~3) that applies to all smooth diffeomorphisms, not just maps of the form $w+\varepsilon r(w)$.
+\end{remark}

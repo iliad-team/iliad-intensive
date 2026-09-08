@@ -345,7 +345,12 @@ export default async function StatusPage() {
                       <span className="text-zinc-400">{day.code}</span>{" "}
                       {dayTitle}
                     </td>
-                    <td className={`${td} text-zinc-600`}>{day.lead}</td>
+                    {/* No lead is a fact about the day, not a gap: day 0 is
+                        material nobody teaches. An em dash, not an empty
+                        cell, so it reads as answered. */}
+                    <td className={`${td} text-zinc-600`}>
+                      {day.lead ?? <span className="text-zinc-300">—</span>}
+                    </td>
                     {/* Both cells keep the build's wording — an open PR doesn't
                         make a worksheet or a deck exist. The tint is the one
                         thing the live fetch may change, and only in one

@@ -16,6 +16,7 @@ import { spawn, spawnSync } from "node:child_process";
 import { watch, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { BUILD_ARTIFACT } from "./artifacts.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEX = path.join(ROOT, "tex");
@@ -29,7 +30,7 @@ if (slugArg && !existsSync(path.join(TEX, slugArg, "main.tex")) && !existsSync(p
 
 function build(slug) {
   const t0 = Date.now();
-  const argv = [BUILD, "--check", ...(slug ? [slug] : [])];
+  const argv = [BUILD, "--check", "--quiet", ...(slug ? [slug] : [])];
   const r = spawnSync("node", argv, { cwd: ROOT, stdio: "inherit" });
   console.log(r.status === 0
     ? `↻ rebuilt ${slug ?? "all worksheets"} in ${((Date.now() - t0) / 1000).toFixed(1)}s — refresh the browser`
@@ -47,8 +48,8 @@ for (const sig of ["SIGINT", "SIGTERM"]) {
 }
 
 // LaTeX runs write artifacts next to the sources — never rebuild on
-// those, or the watcher would loop forever.
-const ARTIFACT = /\.(aux|log|out|pdf|bbl|blg|brf|toc|fls|synctex(\.gz)?|fdb_latexmk)$|main-nosol\.|main\.autolabel\./;
+// those, or the watcher would loop forever. (Shared: see artifacts.mjs.)
+const ARTIFACT = BUILD_ARTIFACT;
 
 let timer = null;
 const pending = new Set();

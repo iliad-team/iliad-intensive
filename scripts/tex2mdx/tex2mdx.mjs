@@ -26,8 +26,8 @@ import { SRC_FILES, warnings, warn, advisories, advise, fmtIssue } from "./state
 import { MACRO_OVERRIDE, MACRO_SKIP, applyShims, trimMacroBody,
          CREF_NAME_DEFAULTS, CONTRACT_NAMES, KNOWN_FRONT_KEYS } from "./shims.mjs";
 import { initTikz, renderTikzSnippets, tikzCount } from "./tikz.mjs";
-import { injectAutoLabels } from "./autolabel.mjs";
-import { emitDocument, texToPlain } from "./emit-ast.mjs";
+import { injectAutoLabelsTree } from "./autolabel.mjs";
+import { emitDocument, texToPlain, buildToc } from "./emit-ast.mjs";
 import { entries as bibtexEntries } from "bibtex-parse";
 
 // Optional yaml lib (from the public repo's node_modules) for strict
@@ -92,7 +92,9 @@ if (!tikzSrc.endsWith("/")) tikzSrc += "/";
 function generateAux(texFile) {
   const dir = mkdtempSync(path.join(tmpdir(), "tex2mdx-"));
   const base = path.basename(texFile, ".tex");
-  writeFileSync(path.join(dir, base + ".autolabel.tex"), rawTex);
+  // the INLINED document: self-contained, so a multi-file worksheet's section
+  // files (which live next to the source, not in this temp dir) come along
+  writeFileSync(path.join(dir, base + ".autolabel.tex"), tex);
   try {
     execFileSync("pdflatex", ["-interaction=nonstopmode", "-output-directory=" + dir,
       "-jobname=" + base, path.join(dir, base + ".autolabel.tex")],
@@ -155,29 +157,34 @@ function parseAux(auxFile) {
 // Auto-labels first (see autolabel.mjs): the identical injection ran over the
 // source the .aux was compiled from, so every numbered construct's displayed
 // number is read out of the .aux — never simulated — by matching label names.
-const { text: rawTex, labels: autoLabels } = injectAutoLabels(readFileSync(input, "utf8"));
-// Inline \input{file} recursively (multi-file worksheets are fine — pdflatex
-// resolves them, so the converter must too; silently dropping them would lose
-// content). \input{preamble}-style extensionless names get .tex appended.
-function inlineInputs(src, dir, depth = 0) {
-  if (depth > 8) { warn("\\input nesting too deep — stopping"); return src; }
-  return src.replace(/\\input\{([^}]+)\}/g, (m0, f) => {
-    const file = path.join(dir, /\.\w+$/.test(f) ? f : f + ".tex");
-    if (!existsSync(file)) { warn(`\\input{${f}} not found — file missing, content dropped`, m0); return ""; }
-    const sub = stripComments(readFileSync(file, "utf8"));
-    SRC_FILES.push({ name: path.relative(path.dirname(input), file) || f, text: sub });
-    return inlineInputs(sub, path.dirname(file), depth + 1);
-  });
-}
-const mainStripped = stripComments(rawTex);
-SRC_FILES.push({ name: path.basename(input), text: mainStripped });
-const tex = inlineInputs(mainStripped, path.dirname(input));
+// The injection follows \input, so a multi-file worksheet's section files are
+// labelled too (the same walk build-content compiled the .aux from). Each
+// file's comment-stripped text is registered for file:line reporting as it is
+// visited; injection and stripComments are both same-line, so the numbers
+// still point at the pristine source.
+const { flat: tex, labels: autoLabels } = injectAutoLabelsTree(input, {
+  warn: (m) => warn(m),
+  postProcess: stripComments,
+  onFile: (file, text) =>
+    SRC_FILES.push({ name: path.relative(path.dirname(input), file) || path.basename(file), text }),
+});
 
 const docStart = tex.indexOf("\\begin{document}");
 const docEnd = tex.indexOf("\\end{document}");
 const preamble = tex.slice(0, docStart);
 let body = tex.slice(docStart + "\\begin{document}".length, docEnd);
 
+// the shared iliad.sty carries the contract's own \crefname declarations
+//   (it is the PDF side of the same contract), and LaTeX obeys them — so the
+//   converter has to read them too, or the web and the PDF disagree about what a
+//   reference is called. This went unnoticed while every contract name happened to
+//   equal its capitalised type ("exercise" -> "Exercise"); it bites the moment one
+//   differs, as \crefname{subsection}{Section} does. Comments stripped first, and
+//   the sheet's own preamble is applied after, so a sheet can still override.
+//   Local-first, mirroring main.tex's \IfFileExists{iliad.sty}{...}{../iliad} load.
+const sharedSty = [path.join(path.dirname(input), "iliad.sty"),
+                   path.join(path.dirname(input), "..", "iliad.sty")].find(existsSync);
+if (sharedSty) applyCrefnames(readFileSync(sharedSty, "utf8").replace(/(^|[^\\])%.*$/gm, "$1"));
 applyCrefnames(preamble);                    // before parseAux: names depend on it
 let refs = parseAux(ensureAux(input));
 // self-heal a stale .aux: one compiled before auto-labels existed (or from an
@@ -232,7 +239,9 @@ function parseIliadBlock(raw) {
   }
   return out.length ? out : null;
 }
-const iliadBlock = parseIliadBlock(rawTex);
+// from main.tex as written: the block is a comment, so it survives neither
+// stripComments nor the inlining, and injection never touches comments anyway
+const iliadBlock = parseIliadBlock(readFileSync(input, "utf8"));
 // A present-but-misspecified block is a hard failure (ERROR => exit 2);
 // a missing block only draws a warning (TODO placeholders are emitted).
 // The parsed frontmatter block, kept for the summary checks further down (a
@@ -289,6 +298,11 @@ if (usesExerciseEnv && !iliadBlock) {
   for (const m of code.matchAll(/\\ref\{([^}]*)\}/g)) {
     advise(`plain \\ref{${m[1]}} — use \\cref (prints and links the type, and survives renumbering)`, m[0]);
   }
+  // \cref{ex:foo}(b) — the part letter is hand-written, so it goes stale when
+  // parts move, and the link stops at the exercise box. \label the \item.
+  for (const m of code.matchAll(/\\[cC]ref\{([^}]*)\}\(([a-z]|[ivx]+)\)/g)) {
+    advise(`\\cref{${m[1]}}(${m[2]}) hand-writes the part — \\label the \\item and \\cref that instead (prints "Exercise N(${m[2]})" and links to the part)`, m[0]);
+  }
   // \hyperref whose visible text hand-writes a "Type N" — the number is frozen.
   // Nested-brace text (the roadmap-node pattern carrying \ref*) never matches
   // the flat [^{}]* group, which is exactly right: those pull their numbers
@@ -301,9 +315,9 @@ if (usesExerciseEnv && !iliadBlock) {
   }
 }
 { // front-matter order (non-fatal): videos → Prerequisites → learning
-  // outcomes, before the first content section; the overview is `summary:`,
-  // never a body section. Judgment shared with the MDX path — see util.mjs.
-  const pos = { overview: null, video: null, prereqs: null, outcomes: null, content: null };
+  // outcomes, before the first content section. Judgment shared with the MDX
+  // path — see util.mjs.
+  const pos = { video: null, prereqs: null, outcomes: null, content: null };
   const secRe = /\\(?:sub)*section\*?\s*\{/g;
   for (let m; (m = secRe.exec(body)); ) {
     const g = readGroup(body, secRe.lastIndex - 1);
@@ -312,7 +326,11 @@ if (usesExerciseEnv && !iliadBlock) {
     const t = g.content.replace(/\\[a-zA-Z]+\s*/g, "").replace(/[{}]/g, "").trim().toLowerCase();
     const item = { at: m.index, needle: body.slice(m.index, g.end) };
     if (/^prerequisites?\b/.test(t)) pos.prereqs ??= item;
-    else if (/^overview\b/.test(t)) pos.overview ??= item;
+    // An "Overview" section is the author's call and warns about nothing (see
+    // docs/commands.md), but it is orientation, not content — so it must not
+    // count as the first content SECTION either, or the front matter legitimately
+    // sitting above it would be reported as out of order.
+    else if (/^overview\b/.test(t)) continue;
     else pos.content ??= item;
   }
   const lo = body.indexOf("\\begin{learningoutcomes}");
@@ -534,7 +552,7 @@ const videoTitles = {};
 
 // ------------------------------ run ---------------------------------------
 // AST emit (two passes handled inside emit-ast)
-const bodyMdx = tidy(emitDocument(body, {
+let bodyMdx = tidy(emitDocument(body, {
   refs,
   videoTitles,
   preamble,
@@ -548,6 +566,14 @@ const bodyMdx = tidy(emitDocument(body, {
   warnSnapshot: () => [warnings.length, advisories.length],
   warnRestore: ([w, a]) => { warnings.length = w; advisories.length = a; },
 }));
+// Fill the \tableofcontents placeholder AFTER tidy(): the ToC is a nested list
+// whose indentation tidy() would otherwise strip (it dedents every line).
+if (bodyMdx.includes("<!--ILIAD_TOC-->")) {
+  const toc = buildToc(bodyMdx);
+  // function replacement: heading text reaches here verbatim, and a literal
+  // `$$` (or `$&`) in it would otherwise be read as a $-substitution pattern
+  bodyMdx = bodyMdx.replace(/\n*<!--ILIAD_TOC-->\n*/g, () => (toc ? `\n\n${toc}\n\n` : "\n\n"));
+}
 // The page's macros ride in a leading inline-math span, where KaTeX picks up the
 // \gdef's. A sheet that defines none must not get an empty one: `$$` on its own
 // line is a display-math OPENER to remark-math, which then swallows the rest of

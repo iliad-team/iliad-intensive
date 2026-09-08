@@ -22,8 +22,9 @@ Let $p$ be a distribution on a finite set $\mathcal{X}$.
 - Numbered per section ("Exercise 2.1"); the optional argument is the title.
 - Label the exercise if a solution or `\cref` points at it; unlabeled
   exercises are allowed but draw a CI warning (no stable web anchor).
-- Subparts are a plain `enumerate`; label an `\item` to reference it
-  ("Exercise 1.2(a)").
+- Subparts are a plain `enumerate`; label an `\item` to reference it: `\cref`
+  prints "Exercise 1.2(a)" and, on the web, links to that part. Never
+  hand-write the letter (`\cref{ex:warmup}(a)`) — the build flags it.
 - MDX: `<Exercise id="ex-warmup">**Exercise 1.1.** …</Exercise>`
 
 ## Solutions
@@ -166,16 +167,35 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
   **warning** on both paths (LaTeX and MDX) — it is the one metadata field that
   shows up twice, so an unfinished one is worth naming out loud.
 
+## Table of contents
+
+```latex
+\tableofcontents   % usually right after \maketitle
+```
+
+- Optional. In the PDF, `\tableofcontents` produces LaTeX's usual ToC.
+- On the web, the converter emits an in-page **Contents** list at the same
+  spot — a nested list of links to every `section`/`subsection`/`subsubsection`,
+  numbered exactly as the headings are (`1`, `1.1`, `4.2.1`).
+- It is built from the headings that survive conversion, so links never
+  dangle: a section whose body relocated away (e.g. a `Solutions` appendix,
+  whose solutions move under their exercises on the web) is left out
+  automatically. The auto-generated References list is not included.
+- No `.toc` file or CI change is involved — writing `\tableofcontents` in the
+  source is all it takes.
+- MDX-authored sheets (`main.mdx`) have no `\tableofcontents`; write the page
+  with headings and rely on the sidebar nav.
+  
 ## Front matter opens the sheet
 
 Different authors ordered their openings differently; the site does not.
 Every sheet opens the same way:
 
-1. **Overview** — not a section: it is the `summary:` in the metadata
-   block, and the page header shows it under the title (it doubles as the
-   index blurb, so keep it one tight paragraph). A body
-   `\section{Overview}` / `## Overview` draws a warning: fold the text
-   into `summary:` and drop the section.
+1. **Overview** — the `summary:` in the metadata block, which the page header
+   shows under the title (it doubles as the index blurb, so keep it one tight
+   paragraph). A body `\section{Overview}` / `## Overview` is the author's
+   call and draws no warning — it simply reads as the sheet's first content
+   section, after the front matter below.
 2. **Video embeds** (optional) — `\youtube` / `<YouTube />`, see "Videos"
    below.
 3. **Prerequisites** — an ordinary section.
@@ -183,8 +203,8 @@ Every sheet opens the same way:
 
 Then the content. Orientation opens a sheet; pointers *out* of it close it
 (the mirror rule is "Further reading goes last", just below). The build
-checks the opening on both paths (LaTeX and MDX) and prints a non-fatal
-**warning** when a sheet strays. Only the opening run is checked — a video
+checks the ordering of items 2-4 on both paths (LaTeX and MDX) and prints a
+non-fatal **warning** when a sheet strays. Only the opening run is checked — a video
 embedded mid-content to illustrate a point is fine and exempt.
 
 ## Further reading goes last

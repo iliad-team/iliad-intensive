@@ -39,7 +39,8 @@ export type Day = {
   code: string;
   cluster: string;
   title: string;
-  lead: string;
+  /** Null for a day nobody teaches (day 0 — the prerequisites page). */
+  lead: string | null;
   doc: string;
   /** `kind` is the current truth: what schedule.yaml declared, or `in-repo`
    *  once the day has a worksheet. */

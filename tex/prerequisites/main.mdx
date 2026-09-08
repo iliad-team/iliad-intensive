@@ -1,0 +1,251 @@
+---
+title: Prerequisites
+summary: >-
+  The prerequisites for the Iliad Intensive program.
+---
+
+**We put a star (★) and boldface on content that we think is particularly important to understand.**
+
+*We are aware that our participants have different backgrounds, that this is a lot of material, and that it may not be feasible to prepare all of it!*
+
+## Background worldview and assumptions
+
+The references on background worldview and assumptions are very informative to understand the *motivation behind* the course. They are less important for understanding its *technical content*, however.
+
+Note that this section is on the speculative side: Working on AI alignment is important precisely because of assumptions and arguments about the future of AI. We can’t know the future of AI, and so all of this is inherently uncertain.
+
+### Why AI matters
+
+Here, we simply argue that AI should concern us now *at all*, irrespective of any worldview on whether the outcomes are likely to be good or bad. Essentially, the claim is that the impact of AI might be enormous, potentially pretty soon.
+
+* Intelligence gives rise to power, which may transform the world radically
+  * ★ [**Cognitive Superpowers**](https://publicism.info/philosophy/superintelligence/7.html) by Nick Bostrom argues for the position that intelligence can give rise to immense power. This power can then reshape the world radically, in the same way that human intelligence has shaped the world.
+  * [Machines of Loving Grace](https://www.darioamodei.com/essay/machines-of-loving-grace) by Dario Amodei details the effects on biology and health, economics, and other areas of life that he expects from powerful AI shortly after it is developed.
+* Timelines to human-level intelligence may be short:
+  * ★ [**Measuring AI ability to complete long tasks**](https://metr.org/blog/2025-03-19-measuring-ai-ability-to-complete-long-tasks/) shows that the complexity of tasks that AI can accomplish doubles every few months (where "complexity" is measured as the time it takes humans to accomplish those tasks).
+  * [Technical trends driving AI progress](https://bluedot.org/courses/agi-strategy/2/1) from Bluedot’s AI strategy course
+  * [Metaculus Forecast](https://www.metaculus.com/questions/5121/when-will-the-first-general-ai-system-be-devised-tested-and-publicly-announced/) of general AI systems
+  * [Thousands of AI Authors on the Future of AI](https://www.jair.org/index.php/jair/article/view/19087)
+  * [Forecasting transformative AI with biological anchors](https://docs.google.com/document/d/1IJ6Sr-gPeXdSJugFulwIpvavc0atjHGM82QjIfUSBGQ/edit?tab=t.0#heading=h.c5pt0lvk9kkw)
+* Once sufficiently high AI capabilities are reached, an intelligence explosion may follow, amplifying the first two concerns:
+  * ★ **[Appendix to If Anyone Builds It Everyone Dies](https://ifanyonebuildsit.com/11/wont-there-be-early-warnings-researchers-can-use-to-identify-problems)** argues that perhaps a slow take-off from human-level to vastly human-level AI, including many warning shots, will not in itself be helpful, calling into question the importance of considering the effects of an intelligence explosion.
+  * [Will AI R&D Automation Cause a Software Intelligence Explosion?](https://www.forethought.org/research/will-ai-r-and-d-automation-cause-a-software-intelligence-explosion)
+  * [Intelligence Explosion](https://bluedot.org/courses/agi-strategy/2/2) in Bluedot’s AGI strategy course
+  * [AI 2027 Takeoff Forecast](https://ai-2027.com/research/takeoff-forecast)
+  * [Intelligence Explosion Microeconomics](https://intelligence.org/files/IEM.pdf)
+
+### AI misalignment
+
+Having established that the impact of AI might soon be enormous, we now specifically turn to the risks. We start by discussing AI misalignment.
+
+One operationalization of AI misalignment is the concern that AI systems may not do what their developers want them to do, with potentially catastrophic outcomes for very advanced AI systems.
+
+* ★ [**"Building AI Safely is hard"**](https://bluedot.org/courses/technical-ai-safety/1/3) **in Bluedot’s AI Alignment course**
+* [Scalable Oversight](https://arxiv.org/pdf/2211.03540): Read sections 1 and 2 to get a general overview of the problem of supervising AI systems that are smarter than the overseers.
+
+### Non-misalignment AI safety concerns
+
+We now briefly discuss a spectrum of safety concerns that manifest *even if* we know how to steer AI systems effectively toward a given set of goals.
+
+* Individual people may misuse AI in catastrophic ways [An Overview of Catastrophic AI Risks](https://arxiv.org/pdf/2306.12001):
+  * ★ [**Sections 2.1-2.3**](https://arxiv.org/pdf/2306.12001#page=7) argues for catastrophic misuse capabilities like bioterrorism, unleashing AI agents, and persuasive AIs. Misuse risk is particularly relevant to our course since it can also manifest as a misalignment concern: An AI that assists human users to carry out risks is often misaligned with the AI’s developer.
+* AI can give rise to global totalitarianism
+  * [Section 2.4](https://arxiv.org/pdf/2306.12001#page=11) argues for the potential of a concentration of power, leading to global totalitarianism in the worst case.
+* We may get gradually disempowered even if there is alignment
+  * [Gradual Disempowerment: Systematic Existential Risks from Incremental AI Development](https://arxiv.org/abs/2501.16946) argues that humans may be gradually disempowered, potentially leading to catastrophic outcomes, *even if* the alignment problem is technically solved.
+
+→ You may also find it useful to read the risk decomposition from the [international report on safe AI](https://internationalaisafetyreport.org/)
+
+### Agent Foundations Background
+
+In the Iliad Intensive, we will also have sections on agent foundations, where we discuss AI from a more "idealized" perspective, taking intelligence or rationality or optimization processes to a theoretical limit to analyze consequences. Additionally, this viewpoint also attempts to more formally talk about what agents or goals *are*, in a descriptive and mathematical way.
+
+Useful readings:
+
+* ★ [**Will humans build goal-directed agents?**](https://www.lesswrong.com/posts/9zpT9dikrrebdq3Jf/will-humans-build-goal-directed-agents)
+* [Instrumental and epistemic rationality](https://www.lesswrong.com/posts/RcZCwxFiZzE6X7nsv/what-do-we-mean-by-rationality-1)
+* [Advanced Agent Properties](https://www.lesswrong.com/w/advanced-agent-properties)
+* [Optimization and the intelligence explosion](https://www.lesswrong.com/s/3HyeNiEpvbQQaqeoH/p/8vpf46nLMDYPC6wA4)
+* [Embedded Agents](https://www.lesswrong.com/s/Rm6oQRJJmhGCcLvxh/p/p7x32SEt43ZMC9r7r)
+
+## Technical prerequisites
+
+Many of the resources recommended in this section are taken verbatim from
+[ARENA’s prerequisites](https://learn.arena.education/chapter0_fundamentals/00_prereqs/1-core-concepts-knowledge/), with thanks.
+
+### Engineering
+
+* ★ **Bring your laptop**: Some days involve coding.
+* ★ **Get comfortable with the following.** Most relevant:
+  * **Python.** It's important to be strong in Python, because this is the language that the coding dayes of the program use. 
+  As a rough indication, we expect you to be comfortable with at least 80-90% of the material [**here**](https://book.pythontips.com/en/latest/), up to section **"21. for/else"**. For a more thorough treatment of Python's core functionality, see [**here**](https://docs.python.org/3/tutorial/).
+  * **[NumPy](https://numpy.org/).** Being familiar with NumPy is a staple for working with high-performance Python. Additionally, the syntax for working with NumPy arrays is very similar to how you work with PyTorch tensors (often there are only minor differences, e.g. Torch tends to use the keyword dim where NumPy uses axis). Working through [these 100 basic NumPy exercises](https://github.com/rougier/numpy-100/blob/master/100_Numpy_exercises.ipynb) would be a good idea, or if you're comfortable with NumPy already then you could try doing them in PyTorch (see below).
+  * **[PyTorch](https://pytorch.org/).** PyTorch has several useful tutorials, and to get comfortable working with tensors you might want to implement the 100 basic NumPy exercises linked to above, using PyTorch instead. Another option would be this [Learn the Basics](https://pytorch.org/tutorials/beginner/basics/intro.html) tutorial. You can skip this if you can clearly explain:
+    * **At a high level, what is a `torch.Tensor`?**
+    * **What is a `nn.Parameter`, and `nn.Module`?**
+    * **When you call `.backward()`, where are your gradients stored?**
+    * **What is a loss function? In general, what does it take for arguments, and what does it return?**
+    * **What does an optimization algorithm do?**
+    * **What is a hyperparameter, and how does it differ from a regular parameter?**
+    * **What are some examples of hyperparameters?**
+  * **Basic coding skills.** If you've been accepted into this programme, then you probably already have this box ticked! However, polishing this area can't hurt. LeetCode is a good place to keep basic coding skills sharp, in particular practising the planning and implementation of functions in the medium-hard sections of LeetCode might be helpful. Practising problems on [Project Euler](https://projecteuler.net/) is another idea.
+  * **[Einops](https://einops.rocks/1-einops-basics) and [Einsum](https://einops.rocks/api/einsum/) for basic tensor operations.** These are great libraries to get comfortable with, when manipulating tensors. If you're comfortable using them, then you can say goodbye to awkward NumPy/PyTorch methods like transpose, permute and squeeze!
+
+    For einops, you can read through the examples up to "Fancy examples in random order". It's worth trying to play around with these in your own Jupyter notebook, to get more comfortable with them.
+
+    For einsum, [this page](https://rockt.github.io/2018/04/30/einsum) provides a basic intro to einstein summation convention, and shows some example tensor implementations. Note that we'll be using the einsum function from the einops library, which allows you to refer to dimensions by name rather than by a single letter.
+* Have access to an LLM that can help you, ideally on a paid plan. For coding specifically, Claude via Claude Code and GPT via Codex are popular choices.
+
+### Deep Learning
+
+* ★ **Understand all of the following:**
+  * Loss functions, including the cross-entropy loss and squared error.
+  * Backpropagation
+  * (Stochastic) gradient descent (SGD)
+  * Examples of neural networks and components:
+    * ReLU, Softmax activation functions
+    * Multi-layer perceptrons
+    * The most successful neural network architecture is the transformer. [Understand inputs and outputs of a transformer](https://learn.arena.education/chapter1_transformer_interp/01_transformers/1-understanding-inputs-outputs-of-a-transformer/), including training to perform next-token prediction and supervised finetuning
+
+  → The best introductory resources here are [3B1B's videos on neural networks](https://www.youtube.com/playlist?list=PLZHQObOWTQDNU6R1_67000Dx_ZCJB-3pi):
+
+  * [But what is a neural network? | Chapter 1, Deep learning](https://www.youtube.com/watch?v=aircAruvnKk)
+  * [Gradient descent, how neural networks learn | Chapter 2, Deep learning](https://www.youtube.com/watch?v=IHZwWFHWa-w)
+  * [What is backpropagation really doing? | Chapter 3, Deep learning](https://www.youtube.com/watch?v=Ilg3gGewQ5U)
+
+  You should prioritise the first two videos in this sequence.
+
+* ★ **Understand all the following concepts:**
+  * Architecture, weights, parameterization, Activation;
+  * Training set, validation set, test set;
+  * Hyperparameters;
+  * The concept of an optimizer (SGD is an example; other examples are Adam or RMSProp);
+  * Overfitting, underfitting.
+
+  → An LLM of your choice can probably explain all these concepts well!
+
+* Gain a basic understanding of the loss landscape and training dynamics:
+  * ★ [**Evan Hubinger’s talk on AGI safety**](https://www.youtube.com/watch?v=NmDRFwRczVQ) is an introduction of safety problems based on a modern intuitive understanding of deep learning. This talk introduces many basic intuitions on training dynamics and the loss landscape, including an intuition for the [parameter-function map](https://arxiv.org/abs/1805.08522).
+  * [Momentum](https://distill.pub/2017/momentum/)
+  * [Scaling laws](https://arxiv.org/abs/2001.08361)
+  * [You Are What You Eat](https://timaeus.co/research/2025-02-08-position): Motivation behind singular learning theory and developmental interpretability for AI Safety
+* Reinforcement learning:
+  * ★ [**Reinforcement Learning from Human Feedback (RLHF)**](https://arxiv.org/abs/1706.03741): heavily used finetuning method for frontier models
+    - [ARENA has a day of material on RLHF](https://learn.arena.education/chapter2_rl/04_rlhf/) if you want to try actually implementing it yourself!
+  * The notions of a reward function in a Markov Descision Process (MDP), policies, return v.s. reward
+  * Value functions, Bellmann equations, and optimal policies
+
+  → [Sutton and Barto’s book](http://incompleteideas.net/book/RLbook2020.pdf) on reinforcement learning is an excellent introduction to general RL. [D.1.2: Reinforcement Learning](https://iliad-team.github.io/iliad-intensive/agency/reinforcement-learning/) also provides many of these definitions in
+  a convenient place.
+
+### Linear Algebra
+
+★ **Make sure you understand all of the following:**
+
+* Vectors, matrices, rank, null spaces, rank-nullity theorem, orthogonality, invertibility;
+* Positive definite, eigenvalues, spectral decomposition;
+* Singular values, Singular value decomposition (SVD).
+
+→ Linear algebra lies at the core of a lot of machine learning. Resources for these topics:
+
+* Linear transformations - what they are, and why they are important
+  * See [this](https://www.youtube.com/watch?v=kYB8IZa5AuE) video from 3B1B
+* How [matrix multiplication works](http://mlwiki.org/index.php/Matrix-Matrix_Multiplication)
+* [Singular value decomposition](https://www.lesswrong.com/posts/iupCxk3ddiJBAJkts/six-and-a-half-intuitions-for-svd)
+* Different types of matrix, and their significance (e.g. symmetric, orthogonal, identity, rotation matrices)
+
+[This video series](https://www.youtube.com/playlist?list=PLZHQObOWTQDPD3MizzM2xVFitgF8hE_ab) by 3B1B provides a good overview of these core topics (although you can probably skip it if you already have a reasonably strong mathematical background).
+
+If you have a lot more time, [Linear Algebra Done Right](https://link.springer.com/book/10.1007/978-3-319-11080-6) is the canonical textbook for covering this topic (although it will probably cover much more than you need to know). Alternatively, Neel Nanda has two [YouTube](https://www.youtube.com/watch?v=GkPhwnvRe-8) [videos](https://www.youtube.com/watch?v=0EB23unfLSU) covering linear algebra extensively.
+
+### Calculus
+
+★ **Get comfortable with all of the following:**
+
+* Computing basic limits, derivatives, and integrals;
+* Partial and directional derivatives, gradients, Jacobians, and the chain rule in multiple dimensions;
+* Hessian, second-order Taylor expansion and remainder;
+* Integration: Multivariate integrals, volume in $\mathbb{R}^d$, change of variables;
+* Understand $O$-notation and $o$-notation.
+
+→ It's essential to understand differentiation and partial differentiation, and helpful to understand the basics of vector calculus including the chain rule and Taylor series. Again, 3Blue1Brown has a good [video series](https://www.3blue1brown.com/topics/calculus) on this.
+
+For one module, [the implicit function theorem](https://en.wikipedia.org/wiki/Implicit_function_theorem) will be relevant.
+
+### Probability & Statistics
+
+★ **Understand all of the following:**
+
+* Basic probability theory, notation for conditional probabilities and joint probabilities (or densities), Bayes rule, probability simplex;
+* expectation, variance, moments, Independence, the law of large numbers;
+* multivariate normal distributions.
+
+→ ★ It's essential to understand the rules of probability, expected value and standard deviation, and helpful to understand independence and the normal distribution. [This link](https://medium.com/jun94-devpblog/prob-stats-3-expected-value-variance-and-standard-deviation-bce9303d8da8) covers some of the essentials.
+
+The following concepts are also useful to know:
+
+* Bayesian statistics: The concept of the Likelihood, posterior distribution, partition function, and Bayesian free energy, [see here](https://drive.google.com/file/d/1QK8oiqr9zITD7qpBdWqE01bJLf2MYrJt/view), Chapter 1.
+* Bayesian networks
+* [Causality – a Brief Introduction](https://www.lesswrong.com/posts/9ag5JGBnMsayBidwh/causality-a-brief-introduction)
+* Markov chains, row-stochastic matrices, hidden Markov models (HMMs)
+* Measure theory
+
+### Information theory
+
+* ★ **Gain Intuitive understanding of entropy, mutual information, Kullback-Leibler (KL) divergence, and cross-entropy.** It's helpful to understand information, entropy and KL divergence. These play key roles in interpreting loss functions.
+  * For an overview of Kullback Leibler divergence (an important concept in information theory and machine learning), see [Six (and a half) intuitions for KL divergence](https://www.lesswrong.com/posts/no5jDTut5Byjqb4j5/six-and-a-half-intuitions-for-kl-divergence). Note that this probably won't make sense if you don't already have a solid grasp of what entropy is.
+
+Furthermore, it may be useful to understand the following concepts from information theory:
+
+* Lossless compression:
+  * Uniquely decodable codes
+  * Shannon-Fano code
+  * Shannon’s source coding theorem
+* Communication over noisy channels
+  * Channel capacity
+  * Channel coding theorem
+* Lossy compression: Rate-distortion theory
+
+→ [Elements of Information Theory by Cover and Thomas](http://staff.ustc.edu.cn/~cgong821/Wiley.Interscience.Elements.of.Information.Theory.Jul.2006.eBook-DDU.pdf) introduces all of these concepts.
+
+### Theoretical computer science
+
+A classical source that covers most of the following topics is [Sipser’s Introduction to the theory of computation](https://cs.brown.edu/courses/csci1810/fall-2023/resources/ch2_readings/Sipser_Introduction.to.the.Theory.of.Computation.3E.pdf). For some topics like Solomonoff induction we link separate texts.
+
+* Computability Theory
+  * ★ **Turing machines**
+  * ★ **Church-Turing thesis:** All algorithms can be represented with a Turing machine. That is, Turing machines are a universal model of computation.
+    * This is used to avoid constructing Turing machines explicitly: Whenever we can describe an algorithm, we can simply claim the existence of a corresponding Turing machine.
+  * ★ **Kolmogorov complexity, also called descriptive complexity in Sipser’s book.**
+  * ★ [**An Intuitive Explanation of Solomonoff Induction**](https://www.lesswrong.com/posts/Kyc5dFDzBg4WccrbK/an-intuitive-explanation-of-solomonoff-induction)
+    * You should understand that Solomonoff induction is a *universal* learning algorithm that considers all computable hypotheses and weighs them by a simplicity prior. Also, it is optimal in some technical sense as long as the true universe is computable, too.
+    * For a more technical and precise introduction, [see here](https://www.lesswrong.com/posts/HSDumToH57nSRdLST/a-technical-introduction-to-solomonoff-induction-without-k).
+  * Non-deterministic Turing machines
+* Computational Complexity Theory
+  * Basic complexity classes
+    * P, NP, PSpace
+  * [Reduction](https://en.wikipedia.org/wiki/Reduction_\(complexity\)). In Sipser’s book, this can be understood by reading:
+    * Chapter 5.3: Mapping reducibility
+    * Chapter 7.4 on NP-completeness discusses polynomial-time reductions
+
+Formal logic is not covered sufficiently in Sipser’s book. Instead, look at:
+
+* [Chapter 2 in The Logic of Provability](https://ndl.ethernet.edu.et/bitstream/123456789/77642/1/100.pdf)
+
+### Miscellaneous
+
+[Statistical mechanics](https://sethna.lassp.cornell.edu/StatMech/EntropyOrderParametersComplexity20.pdf): For some sections on physics-inspired deep learning theory and natural abstractions it can be helpful to have a basic understanding of statistical mechanics.
+
+{/*
+<TeachingNote title="Notes for future iterations">
+
+* Outsource writing prerequisites next time to make it *really good*?
+* The prerequisites, especially the background worldview section, could say more on why we should work on theory in particular to solve the problems listed here. Why so foundational?
+* Make sure the prerequisites here cover the best pointers for prerequisites from all the individual modules.
+* We could think about creating "lecture notes" that teach all needed prerequisites!
+* It should probably be rewritten to make no reference anymore to ARENA (except perhaps to acknowledge them) since this is a bit too much clicking…
+* learning theory wasn’t listed in the prerequs someone says.
+* Maybe transformers should be listed separately as useful background
+
+</TeachingNote>
+*/}
