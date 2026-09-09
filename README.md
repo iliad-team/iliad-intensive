@@ -209,7 +209,7 @@ that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
   - Label is mandatory to pair with the exercise.
 * Other semantic blocks: `definition`, `theorem`, `lemma`,
   `proposition`, `corollary`, `fact`, `example`, `proof`, `remark`,
-  `callout[note|tip|warning]`. All of them can be `\label`ed and `\cref`ed. 
+  `callout[note|tip|warning][Title]`. All of them can be `\label`ed and `\cref`ed. 
 * Figures: export to PDF into your `fig/`, then a normal `figure` +
   `\includegraphics{fig/name.pdf}` + `\caption` + `\label`. 
 * Citations: entries in `biblo.bib`, cite normally.

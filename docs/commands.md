@@ -254,7 +254,9 @@ An aside in the mathematical register.
   the "Note"/"Tip"/"Warning" label on the box frame, on the web it heads the
   box. Use it for a highlighted key equation or a named aside; leave it off
   for a plain aside (the PDF then shows the type word, the web just the
-  colour).
+  colour). The title travels as a plain-text attribute on the web, so keep
+  maths out of it — a box whose heading needs maths keeps the heading as a
+  bold first line in the body instead.
 - `remark` takes an optional title, appended in parentheses:
   `\begin{remark}[Encodings]` renders as "Remark (Encodings)".
 - Both may be labelled: no number shows in the box, but
