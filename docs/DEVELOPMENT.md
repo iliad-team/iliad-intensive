@@ -90,14 +90,18 @@ together define the authoring contract.
 - An `unlisted: true` frontmatter key builds the page but keeps it out of
   `content/index.json` — reachable by URL, linked from nowhere (the example
   sheet uses this).
-- An optional `tex/<slug>/slides.tex` is compiled (same pdflatex+bibtex ladder)
-  to `slides.pdf` and staged as `<slug>-slides.pdf`/`.tex`; never converted to
+- Every deck in `tex/<slug>/` — `slides.tex`, plus `slides-<label>.tex` for a
+  day with more than one lecture — is compiled (same pdflatex+bibtex ladder) to
+  `<stem>.pdf` and staged as `<slug>-<stem>.pdf`/`.tex`; never converted to
   MDX, no `-nosol` variant. A deck mentioning `\HANDOUT` also gets a collapsed
-  `slides-handout.pdf` (staged as `<slug>-slides-handout.pdf`), built by
-  `\def`-ing the macro on the command line. A `slides:` frontmatter URL links
-  an externally hosted deck instead (a compiled `slides.tex` wins). Every
-  worksheet with no `slides.tex` draws a non-fatal warning (full build /
-  `./run.sh ci` only, not `--check`).
+  `<stem>-handout.pdf` (staged as `<slug>-<stem>-handout.pdf`), built by
+  `\def`-ing the macro on the command line. The page lists one Slides row per
+  deck — a `slides:` frontmatter URL (hosted elsewhere) first, then `slides`,
+  then `slides-<label>` by filename; rows are labelled from each deck's own
+  `\title{}` when there is more than one (`src/lib/content.ts` `listDecks`,
+  mirrored by `build-status.mjs` for `/admin/status`). Every worksheet with no
+  `slides*.tex` draws a non-fatal warning (full build / `./run.sh ci` only, not
+  `--check`).
 - Generated MDX is host-agnostic (`/uploads/…` URLs); the site's `Figure`
   component and download links apply `NEXT_PUBLIC_BASE_PATH` at render time.
   Never bake the base path into generated content — it double-prefixes.

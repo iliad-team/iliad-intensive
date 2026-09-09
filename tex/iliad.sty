@@ -53,7 +53,8 @@
 %       "Hint:" lead-in. Web: a collapsible drop-down, like solutions.
 %       (Short inline hints keep the \hint{...} command: "[Hint: ...]".)
 %   \begin{proof} ... \end{proof}            (amsthm; collapsible on the web)
-%   \begin{callout}[note|tip|warning] ... \end{callout}
+%   \begin{callout}[note|tip|warning][Title] ... \end{callout}
+%       the title replaces the type word on the box (default: Note/Tip/Warning)
 %   \begin{remark} ... \end{remark}          (aside; note callout on the web)
 %   \begin{teachingnote}[Title] ... \end{teachingnote}
 %       teacher-facing aside; a collapsed drop-down on the web.
@@ -321,7 +322,8 @@
 \def\endhint{\par\medskip}
 
 % --------------------------------------------------------------- callout ---
-% \begin{callout}[note|tip|warning]  (default: note)
+% \begin{callout}[note|tip|warning][Title]  (default: note; the title, when
+% given, is what the box is headed with instead of "Note"/"Tip"/"Warning")
 \ifiliad@boxes
   % ([extra tcolorbox options], title, background colour, frame colour) —
   % the web-palette pairs above; the optional first argument lets a caller
@@ -353,7 +355,10 @@
 \crefname{remark}{Remark}{Remarks}
 \Crefname{remark}{Remark}{Remarks}
 
-\newenvironment{callout}[1][note]{%
+% Two optional arguments (type, then title) need the kernel's ltcmd
+% (\NewDocumentEnvironment, in LaTeX since 2020-10) rather than \newenvironment,
+% which allows one. A given title heads the box; the type still picks the colour.
+\NewDocumentEnvironment{callout}{O{note} o}{%
   \refstepcounter{callout}%
   \ifstrequal{#1}{warning}%
     {\def\iliad@co@back{iliadAmber50}\def\iliad@co@frame{iliadAmber500}%
@@ -363,6 +368,7 @@
        \def\iliad@co@title{Tip}}%
       {\def\iliad@co@back{iliadSky50}\def\iliad@co@frame{iliadSky500}%
        \def\iliad@co@title{Note}}}%
+  \IfValueT{#2}{\def\iliad@co@title{#2}}%
   \iliad@calloutbegin{\iliad@co@title}{\iliad@co@back}{\iliad@co@frame}%
 }{%
   \iliad@calloutend

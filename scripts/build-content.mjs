@@ -259,6 +259,24 @@ const QUIET = args.includes("--quiet");
 const ARTIFACT_EXT = /\.(pdf|aux|log|out|toc|nav|snm|bbl|blg|fls|fdb_latexmk|synctex\.gz)$/i;
 const ARTIFACT_NAME = new Set(["main.autolabel.tex", "main-nosol.tex", "main-nosol.mdx", ".build-hash"]);
 
+// The decks a worksheet folder ships. `slides.tex` is the deck every folder has
+// had so far; a day with more than one lecture adds `slides-<label>.tex` beside
+// it (label: lowercase letters, digits, hyphens). Each compiles and is staged on
+// its own as <slug>-<stem>.pdf/.tex, and the page shows one Slides row per deck:
+// slides.tex first, then the rest in filename order — that order is the only
+// sequencing there is, so name a second deck with it in mind. A stem may not
+// end in -handout: that suffix belongs to the collapsed build, and
+// slides-foo-handout.pdf has to mean "the handout of slides-foo".
+const DECK_RE = /^(slides(?:-[a-z0-9][a-z0-9-]*)?)\.tex$/;
+const deckSources = (dir) => {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .map((f) => DECK_RE.exec(f))
+    .filter((m) => m && !m[1].endsWith("-handout"))
+    .map((m) => ({ file: m[0], stem: m[1] }))
+    .sort((a, b) => (a.stem === "slides" ? -1 : b.stem === "slides" ? 1 : a.stem.localeCompare(b.stem)));
+};
+
 const hashPath = (h, p) => {
   if (!existsSync(p)) return;
   h.update(path.basename(p));
@@ -353,7 +371,7 @@ const outputsPresent = (slug) => {
     need.push(path.join(dl, `${slug}.pdf`), path.join(dl, `${slug}-nosol.pdf`),
               path.join(dl, `${slug}.tex`), path.join(dl, `${slug}-nosol.tex`));
   }
-  if (existsSync(path.join(TEX, slug, "slides.tex"))) need.push(path.join(dl, `${slug}-slides.pdf`));
+  for (const d of deckSources(path.join(TEX, slug))) need.push(path.join(dl, `${slug}-${d.stem}.pdf`));
   if (!need.every(existsSync)) return false;
   // Anchored on the slug, because this build only ever writes figures to
   // public/uploads/<slug>/. A bare /uploads/ match would also hit external URLs
@@ -460,10 +478,12 @@ async function buildSlug(slug) {
     }
   };
   const isTex = existsSync(path.join(dir, "main.tex"));
-  // A worksheet MAY ship a slide deck as slides.tex (any dialect — usually
-  // beamer). It is compiled to slides.pdf and hosted alongside the downloads;
-  // it is never converted to MDX (slides aren't a web page, only a download).
-  const hasSlidesTex = existsSync(path.join(dir, "slides.tex"));
+  // A worksheet MAY ship slide decks — slides.tex, plus slides-<label>.tex for
+  // a day with more than one lecture (any dialect — usually beamer). Each is
+  // compiled to <stem>.pdf and hosted alongside the downloads; none is ever
+  // converted to MDX (slides aren't a web page, only a download).
+  const decks = deckSources(dir);
+  const hasSlidesTex = decks.length > 0;
 
   // Guardrail: main.tex loads iliad.sty local-first (for standalone use of a
   // copied folder), so a stray per-folder copy in the repo tree would shadow
@@ -643,42 +663,47 @@ async function buildSlug(slug) {
   //     before anything reads or ships it (render gate, downloads, index).
   stampSchedule(mdxOut, slug);
 
-  // 2.5 slides: compile slides.tex → slides.pdf (same 3× pdflatex + bibtex
-  //     ladder as the worksheet). No -nosol variant, no MDX conversion.
-  //     --check skips it (it produces no page, only a download).
+  // 2.5 slides: compile every deck — slides.tex, slides-<label>.tex — to
+  //     <stem>.pdf (same 3× pdflatex + bibtex ladder as the worksheet). No
+  //     -nosol variant, no MDX conversion. --check skips it (a deck produces
+  //     no page, only a download).
   //
   //     A deck that mentions \HANDOUT opts in to a second, collapsed build:
   //     the macro is \def-ed on the command line so the deck can pass
   //     `handout` to the beamer class and drop its \pause reveals. That lands
   //     as slides-handout.pdf next to the presentation build. Decks with no
   //     reveals never mention \HANDOUT and so build once, as before.
-  const slidesSrc = hasSlidesTex ? readFileSync(path.join(dir, "slides.tex"), "utf8") : "";
-  const hasHandout = /\\HANDOUT\b/.test(slidesSrc);
-  // Which bibliography pass this deck needs. The house decks use bibtex +
-  // alphaurl; a deck that loads biblatex (C.2's, carried over as its author
-  // wrote it) needs biber instead. Detected from the source so a deck never has
-  // to declare its toolchain, and so importing an upstream deck verbatim does
-  // not mean rewriting its citation machinery to match ours.
-  const bibPass = /\\usepackage(\[[^\]]*\])?\{biblatex\}|\\addbibresource/.test(slidesSrc)
-    ? biber : bibtex;
-  if (!CHECK_ONLY && hasSlidesTex) {
-    // exec() passes argv straight through (no shell), so the \def wrapper needs
-    // no quoting beyond JS's own backslash escapes.
-    const variants = [["slides", "slides.tex"]];
-    if (hasHandout) variants.push(["slides-handout", "\\def\\HANDOUT{}\\input{slides}"]);
-    for (const [job, src] of variants) {
-      try {
-        await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
-        await bibPass(job);
-        await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
-        await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
-      } catch (e) {
-        if (e?.bibtex) return done(false, e.message);
-        const log = path.join(dir, `${job}.log`);
-        const errLine = existsSync(log)
-          ? (readFileSync(log, "utf8").split("\n").find((l) => l.startsWith("!")) ?? "pdflatex failed")
-          : "pdflatex failed";
-        return done(false, `slides build failed (${job}): ${errLine.trim()} (see ${path.relative(ROOT, log)})`);
+  for (const deck of decks) {
+    const src = readFileSync(path.join(dir, deck.file), "utf8");
+    deck.handout = /\\HANDOUT\b/.test(src);
+    // Which bibliography pass this deck needs. The house decks use bibtex +
+    // alphaurl; a deck that loads biblatex (C.2's, carried over as its author
+    // wrote it) needs biber instead. Detected from the source so a deck never has
+    // to declare its toolchain, and so importing an upstream deck verbatim does
+    // not mean rewriting its citation machinery to match ours.
+    deck.bibPass = /\\usepackage(\[[^\]]*\])?\{biblatex\}|\\addbibresource/.test(src)
+      ? biber : bibtex;
+  }
+  if (!CHECK_ONLY) {
+    for (const deck of decks) {
+      // exec() passes argv straight through (no shell), so the \def wrapper needs
+      // no quoting beyond JS's own backslash escapes.
+      const variants = [[deck.stem, deck.file]];
+      if (deck.handout) variants.push([`${deck.stem}-handout`, `\\def\\HANDOUT{}\\input{${deck.stem}}`]);
+      for (const [job, src] of variants) {
+        try {
+          await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
+          await deck.bibPass(job);
+          await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
+          await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
+        } catch (e) {
+          if (e?.bibtex) return done(false, e.message);
+          const log = path.join(dir, `${job}.log`);
+          const errLine = existsSync(log)
+            ? (readFileSync(log, "utf8").split("\n").find((l) => l.startsWith("!")) ?? "pdflatex failed")
+            : "pdflatex failed";
+          return done(false, `slides build failed (${job}): ${errLine.trim()} (see ${path.relative(ROOT, log)})`);
+        }
       }
     }
   }
@@ -691,7 +716,9 @@ async function buildSlug(slug) {
     let slidesUrl = null;
     try {
       const fm = readFileSync(mdxOut, "utf8").match(/^---\n([\s\S]*?)\n---/);
-      if (fm) slidesUrl = (YAML.parse(fm[1]) ?? {}).slides ?? null;
+      // `slides:` is a URL, or `{url, title}` when the row wants a label.
+      const ext = fm ? (YAML.parse(fm[1]) ?? {}).slides : null;
+      if (ext) slidesUrl = typeof ext === "string" ? ext : ext.url ?? null;
     } catch { /* frontmatter validity is the render gate's problem */ }
     notes.push(slidesUrl
       ? "⚠ warning: slides only in PDF form (external `slides:` link, no LaTeX source to build)"
@@ -751,15 +778,15 @@ async function buildSlug(slug) {
         transformInputTree(path.join(dir, "main.tex"), { visit: (_f, raw) => raw }).flat);
       copyFileSync(path.join(dir, "main-nosol.tex"), path.join(dl, `${slug}-nosol.tex`));
     }
-    // slides deck (no solutions variant): ship the PDF to view/download and
-    // the .tex to download. Named <slug>-slides.* so listDownloads finds them.
-    // The collapsed build, when the deck opted into one, rides along as
-    // <slug>-slides-handout.pdf.
-    if (hasSlidesTex) {
-      copyFileSync(path.join(dir, "slides.pdf"), path.join(dl, `${slug}-slides.pdf`));
-      copyFileSync(path.join(dir, "slides.tex"), path.join(dl, `${slug}-slides.tex`));
-      if (hasHandout) {
-        copyFileSync(path.join(dir, "slides-handout.pdf"), path.join(dl, `${slug}-slides-handout.pdf`));
+    // slide decks (no solutions variant): ship each PDF to view/download and
+    // its .tex to download. Named <slug>-<stem>.* (slides, slides-<label>) so
+    // listDecks finds them. The collapsed build, when a deck opted into one,
+    // rides along as <slug>-<stem>-handout.pdf.
+    for (const deck of decks) {
+      copyFileSync(path.join(dir, `${deck.stem}.pdf`), path.join(dl, `${slug}-${deck.stem}.pdf`));
+      copyFileSync(path.join(dir, deck.file), path.join(dl, `${slug}-${deck.stem}.tex`));
+      if (deck.handout) {
+        copyFileSync(path.join(dir, `${deck.stem}-handout.pdf`), path.join(dl, `${slug}-${deck.stem}-handout.pdf`));
       }
     }
   }

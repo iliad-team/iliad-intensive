@@ -64,14 +64,18 @@ const components = {
   ),
   /**
    * Callout — coloured side-note for an important remark, warning, or tip.
-   * Usage: <Callout type="note|warning|tip">body</Callout>
+   * Usage: <Callout type="note|warning|tip" title="optional heading">body</Callout>
+   * `title` (LaTeX: \begin{callout}[tip][Title]) heads the box; without it the
+   * box has no heading — the colour alone says what kind of aside it is.
    */
   Callout: ({
     type = "note",
+    title,
     id,
     children,
   }: {
     type?: "note" | "warning" | "tip";
+    title?: string;
     id?: string;
     children: ReactNode;
   }) => (
@@ -86,6 +90,7 @@ const components = {
             : "border-sky-500 bg-sky-50")
       }
     >
+      {title && <p className="mb-1 font-semibold">{title}</p>}
       {children}
     </div>
   ),

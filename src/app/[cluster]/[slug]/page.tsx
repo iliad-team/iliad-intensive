@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { listDownloads, listIndex, listSlugs, readModuleMdx } from "@/lib/content";
+import { listDecks, listDownloads, listIndex, listSlugs, readModuleMdx } from "@/lib/content";
 import { clusterUrlSlug, dayCode } from "@/lib/clusters";
 import { listClusters, listDays } from "@/lib/cluster-store";
 import { MdxBody } from "@/lib/mdx";
@@ -42,6 +42,8 @@ export default async function ModulePage({
     listDays(),
     listDownloads(slug),
   ]);
+  // Compiled decks among the downloads, labelled from their own \title{}.
+  const decks = await listDecks(slug, downloads);
 
   if (!mod) notFound();
 
@@ -104,7 +106,8 @@ export default async function ModulePage({
             slug={slug}
             files={downloads}
             basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ""}
-            slidesUrl={fm.slides}
+            decks={decks}
+            slides={fm.slides}
           />
         </header>
         <div className="prose">

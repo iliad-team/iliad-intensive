@@ -13,9 +13,11 @@ export type Frontmatter = {
   timeMinutes?: number;
   contributors?: string[];
   summary?: string;
-  /** External slide-deck URL (e.g. a Drive PDF); rendered as an outbound
-   *  link. A compiled slides.pdf (from slides.tex) takes precedence. */
-  slides?: string;
+  /** An externally hosted deck (e.g. a Drive folder), rendered as an outbound
+   *  Slides row — a bare URL, or `{url, title}` so the row can be named when
+   *  the page also carries compiled decks (they stack; nothing takes
+   *  precedence). */
+  slides?: string | { url: string; title?: string };
   /** Teaching day this worksheet is the material for, e.g. "B.4". Several
    *  worksheets may share one day. */
   day?: string;
@@ -61,6 +63,47 @@ export async function listDownloads(slug: string): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+/** A compiled deck staged under public/downloads/<slug>/ — one per
+ *  tex/<slug>/slides.tex or slides-<label>.tex, staged as <slug>-<stem>.*.
+ *  `title` is the deck's own \title{}, read off the staged .tex so a page
+ *  with several decks can name each row. */
+export type StagedDeck = { stem: string; title: string | null; handout: boolean; tex: boolean };
+
+// The same light de-TeXing scripts/build-status.mjs applies (deckTitle) —
+// keep the two in step.
+function deckTitle(src: string): string | null {
+  const m = /\\title(?:\[[^\]]*\])?\{((?:[^{}]|\{[^{}]*\})*)\}/.exec(src);
+  if (!m) return null;
+  const t = m[1]
+    .replace(/(^|[^\\])%.*$/gm, "$1")                       // TeX comments inside the argument
+    .replace(/\\vspace\*?\{[^}]*\}/g, " ").replace(/\\\\/g, " ")
+    .replace(/\\[a-zA-Z]+\*?(\[[^\]]*\])?/g, "").replace(/[{}]/g, "")
+    .replace(/\s+/g, " ").trim();
+  return t || null;
+}
+
+/**
+ * The compiled decks among a worksheet's staged downloads, in page order:
+ * `slides` first, then `slides-<label>` by filename. Handout PDFs are a variant
+ * of their deck, not a deck of their own.
+ */
+export async function listDecks(slug: string, files: string[]): Promise<StagedDeck[]> {
+  const re = new RegExp(`^${slug.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}-(slides(?:-[a-z0-9][a-z0-9-]*)?)\\.pdf$`);
+  const stems = files
+    .map((f) => re.exec(f)?.[1])
+    .filter((s): s is string => !!s && !s.endsWith("-handout"))
+    .sort((a, b) => (a === "slides" ? -1 : b === "slides" ? 1 : a.localeCompare(b)));
+  return Promise.all(stems.map(async (stem) => {
+    const tex = files.includes(`${slug}-${stem}.tex`);
+    let title: string | null = null;
+    if (tex) {
+      try { title = deckTitle(await readFile(path.join(DOWNLOADS_DIR, slug, `${slug}-${stem}.tex`), "utf8")); }
+      catch { /* a deck without a readable .tex simply has no label */ }
+    }
+    return { stem, title, handout: files.includes(`${slug}-${stem}-handout.pdf`), tex };
+  }));
 }
 
 export async function listIndex(): Promise<IndexEntry[]> {

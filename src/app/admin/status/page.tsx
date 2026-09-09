@@ -143,21 +143,30 @@ function materialCell(day: Day, clusters: Cluster[], basePath: string): Cell {
   };
 }
 
-function DeckChips({ deck, basePath, tone }: { deck: Deck; basePath: string; tone: Tone }) {
+function DeckChips({ deck, basePath, tone, many }: { deck: Deck; basePath: string; tone: Tone; many: boolean }) {
+  // With several decks on a day, each line says which deck it is (the deck's
+  // own \title{}, or the `slides:` title); a lone deck needs no label.
+  const label = many && deck.title ? <Muted>{deck.title}</Muted> : null;
   if (deck.kind === "built") {
     // The deck's LaTeX source is in the repo. `pdf` is false only in a
     // --check run, which compiles nothing.
+    const file = `${basePath}/downloads/${deck.slug}/${deck.slug}-${deck.stem}`;
     return (
       <span className="flex flex-wrap items-center gap-1.5">
+        {label}
         {deck.pdf
-          ? <Chip tone={tone} href={`${basePath}/downloads/${deck.slug}/${deck.slug}-slides.pdf`}>pdf</Chip>
+          ? <Chip tone={tone} href={`${file}.pdf`}>pdf</Chip>
           : <Muted>not built in this run</Muted>}
-        {deck.tex && <Chip tone={tone} href={`${basePath}/downloads/${deck.slug}/${deck.slug}-slides.tex`}>tex</Chip>}
+        {deck.tex && <Chip tone={tone} href={`${file}.tex`}>tex</Chip>}
       </span>
     );
   }
-  if (deck.kind === "external") return <Chip tone={tone} href={deck.url} external>hosted&nbsp;↗</Chip>;
-  return null;
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      {label}
+      <Chip tone={tone} href={deck.url} external>hosted&nbsp;↗</Chip>
+    </span>
+  );
 }
 
 function slidesCell(day: Day, basePath: string): Cell {
@@ -176,7 +185,13 @@ function slidesCell(day: Day, basePath: string): Cell {
       <div className="flex flex-col gap-1">
         <State tone={tone}>{tone === "good" ? "built here" : "hosted elsewhere"}</State>
         {day.slides.decks.map((deck, i) => (
-          <DeckChips key={deck.slug ?? i} deck={deck} basePath={basePath} tone={tone} />
+          <DeckChips
+            key={deck.kind === "built" ? `${deck.slug}/${deck.stem}` : `${deck.slug ?? i}:${deck.url}`}
+            deck={deck}
+            basePath={basePath}
+            tone={tone}
+            many={day.slides.decks.length > 1}
+          />
         ))}
       </div>
     ),

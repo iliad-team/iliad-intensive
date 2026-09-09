@@ -75,12 +75,13 @@
 #                          missing   only compiled PDFs exist; nothing buildable
 #   sourceUrl  optional  Upstream repo, for `ready` / `partial`.
 #   slides     optional  URL of a deck hosted elsewhere — the prebuilt PDF
-#                        somebody handed you, with no LaTeX source. Used only
-#                        while no worksheet supplies a deck. Full precedence:
-#                          a compiled tex/<slug>/slides.tex  (hosted here)
-#                            → a worksheet's own `slides:` frontmatter URL
-#                            → this key
-#                            → no deck
+#                        somebody handed you, with no LaTeX source. A fallback,
+#                        used only while no worksheet supplies a deck: once one
+#                        does, the day shows every deck its worksheets offer
+#                        (compiled tex/<slug>/slides*.tex and their `slides:`
+#                        frontmatter URLs, side by side) and this key is not
+#                        shown. Move the URL into the worksheet's own
+#                        frontmatter when you port the day.
 #   note       optional  One short, durable, neutral line. /admin/status is
 #                        PUBLIC: no chase-ups, no blame, nothing you wouldn't
 #                        say to the lead's face. That belongs in
@@ -138,8 +139,8 @@ clusters:
         lead: Leon (Joar Skalse guest lecture)
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.6d2zm6vpa5tg
         source: missing
-        slides: https://docs.google.com/presentation/d/1cG2M68gj8osmrse97bza9cgCqqwoFXBvDIGpkv-HVgA/edit
-        note: exercise sheet and both decks exist as Drive files only
+        worksheets:
+          - reward-learning-theory
 
   - id: B
     label: B — Learning
