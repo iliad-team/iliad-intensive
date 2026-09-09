@@ -1,0 +1,55 @@
+\emph{Below are exercises accompanying the \href{https://iliad-intensive.org/downloads/computational-mechanics/computational-mechanics-slides.pdf}{lecture} on hidden Markov models (HMMs). In this session, you will implement a GHMM from scratch and use it to compute the probability of observed token sequences -- the foundational machinery you will build on in later blocks. Spend \textasciitilde30 minutes on these exercises; start with the core set, and progress to the extension if you have time.}
+
+\subsection{Core exercises}\label{sec:hmm-core}
+
+\begin{exercise}
+\label{ex:hmm-core-1}
+Using your programming language of choice, implement a function that takes in:
+
+\begin{enumerate}
+\item
+  The transition matrices of a GHMM (a three-tensor)
+\item
+  The initial vector
+\item
+  A sequence of tokens
+\end{enumerate}
+
+and outputs the probability of observing that particular sequence of tokens.
+\end{exercise}
+
+\begin{exercise}
+\label{ex:hmm-core-2}
+Test your function on the random-random-XOR (RRXOR) process when initialised in the state \(\eta^{(\emptyset)} = [1\;0\;0\;0\;0]\). Make sure you assign zero probability to XOR violations.
+\end{exercise}
+
+\begin{exercise}
+\label{ex:hmm-core-3}
+Convince yourself that that the definition of a GHMM allows one to interpret \(\eta^{(\emptyset)}T^{(w_1)}T^{(w_2)}\cdots T^{(w_n)}\phi\) as the probability of emitting the sequence \(w_1 w_2 \ldots w_n\).
+\end{exercise}
+
+\begin{exercise}
+\label{ex:hmm-core-4}
+Derive the transition matrices for the zero-random-random process.
+\end{exercise}
+
+\subsection{Extension exercises}\label{sec:hmm-ext}
+
+\begin{exercise}
+\label{ex:hmm-ext-1}
+The RRXOR process can be viewed as a particular instance of a more general process called \emph{random-random-Mod p} (RRModp) where p = 2,3,..., and RRXOR = RRMod2.
+
+\begin{enumerate}
+\item
+  What are the transition matrices for the RRMod3 process?
+\item
+  What are the transition matrices for the RRModp process?
+\item
+  Do you notice anything about the matrices sitting in the blocks?
+\end{enumerate}
+\end{exercise}
+
+\begin{exercise}
+\label{ex:hmm-ext-2}
+The RRModp process can be similarly viewed as a particular instance of a more general process that computes the product of two \emph{group} elements (for RRModp the cyclic group is the relevant one). Identify another group whose multiplication can be expressed as an HMM.
+\end{exercise}

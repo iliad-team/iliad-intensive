@@ -1,0 +1,356 @@
+% =====================================================================
+%  tikzfigs.tex -- the small state machines, drawn instead of scanned.
+%
+%  \input by slides.tex.  These replace fig/ex1_coin.png,
+%  fig/ex2_z1r.png, fig/ex3_rrxor.png, fig/ex4.png,
+%  fig/ex4_redundant.png, fig/minimality.png and
+%  fig/notation.png -- the diagrams in the deck that are just small
+%  labelled digraphs.  Every state and edge below was read off the
+%  transition matrices typeset beside it on the same slide, so the two
+%  now cannot drift apart.
+%
+%  What stays a PNG in ./fig/ is only what cannot be redrawn: the
+%  Plato's-cave illustration, the robot clipart on capability_scale /
+%  instrumental / intervention, and compmech / statmech, which are other
+%  people's published figures and are credited on the images themselves.
+%
+%  Colour follows the deck's own convention, the one already used in the
+%  matrices: the emitted symbol is red, its probability blue.  \figNotation
+%  stays black, because x and p there are variables, not particular values.
+% =====================================================================
+
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, shapes.geometric, decorations.pathmorphing,
+                backgrounds}
+
+\tikzset{
+  % a hidden state
+  st/.style    = {draw, ellipse, inner sep=1pt, font=\small,
+                  minimum width=9mm, minimum height=6.5mm},
+  % an unlabelled state, for the minimality sketch
+  blob/.style  = {draw, ellipse, minimum width=8mm, minimum height=5.5mm},
+  % a transition
+  tr/.style    = {-{Stealth[length=2.2mm,width=1.9mm]}, semithick},
+  % an edge label
+  el/.style    = {font=\scriptsize, inner sep=1.5pt},
+  % the hand-drawn "reduces to" squiggle
+  squig/.style = {-{Stealth[length=2.4mm,width=2.1mm]}, thick, gray,
+                  decorate,
+                  decoration={snake, amplitude=0.55mm, segment length=2.4mm,
+                              post length=1.8mm}},
+  % the highlight behind a redundant state
+  hl/.style    = {fill=red!35, ellipse, minimum width=15mm, minimum height=11mm},
+}
+
+% emitted symbol : probability of emitting it.  The symbol is a bit that is
+% actually read, so it is set in typewriter; the probability is an ordinary
+% number, so it is set in math.  That keeps "0 : 1" unambiguous.
+\newcommand{\eL}[2]{{\color{red}\texttt{#1}}\,{:}\,{\color{blue}$#2$}}
+
+% ---------------------------------------------------------------------
+%  Example 1 -- biased coin.  One state, T^(0) = 1-p, T^(1) = p.
+% ---------------------------------------------------------------------
+\newcommand{\figExOneCoin}{%
+\begin{tikzpicture}
+  \node[st] (s0) {$s_0$};
+  \draw[tr] (s0) to[out=157,in=203,looseness=13] (s0);
+  \draw[tr] (s0) to[out=-23,in=23,looseness=13]  (s0);
+  \node[el] at (-1.30,0.72) {\eL{0}{1-p}};
+  \node[el] at ( 1.30,0.72) {\eL{1}{p}};
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------
+%  zero-one-random.  Example 2, and again as the reduction of Example 4.
+%    T^(0): s0 -> s1 = 1,  sR -> s0 = 1-p
+%    T^(1): s1 -> sR = 1,  sR -> s0 = p
+%  #1 prefixes the node names, so the reduction can share one picture
+%  with Example 4 without the two machines' s0/s1/sR colliding.
+% ---------------------------------------------------------------------
+\newcommand{\zorgraph}[1]{%
+  \node[st] (#1s0) at (0,0)        {$s_0$};
+  \node[st] (#1sR) at (2.65,0)      {$s_R$};
+  \node[st] (#1s1) at (1.325,-1.45) {$s_1$};
+  \draw[tr] (#1s0) -- node[el, below left]  {\eL{0}{1}}   (#1s1);
+  \draw[tr] (#1s1) -- node[el, below right] {\eL{1}{1}}   (#1sR);
+  \draw[tr] (#1sR) to[bend right=32] node[el, above] {\eL{1}{p}}   (#1s0);
+  \draw[tr] (#1sR) to[bend left=15]  node[el, below] {\eL{0}{1-p}} (#1s0);
+}
+
+\newcommand{\figExTwoZOR}{%
+\begin{tikzpicture}\zorgraph{}\end{tikzpicture}}
+
+% ---------------------------------------------------------------------
+%  Example 3 -- random-random-XOR.
+%    T^(0): so -> s0 = 1-p,  s0 -> sF = 1-q,  s1 -> sT = 1-q,  sF -> so = 1
+%    T^(1): so -> s1 = p,    s0 -> sT = q,    s1 -> sF = q,    sT -> so = 1
+% ---------------------------------------------------------------------
+\newcommand{\figExThreeRRXOR}{%
+\begin{tikzpicture}
+  \node[st] (sT) at (-1.80, 1.32) {$s_T$};
+  \node[st] (s1) at ( 1.80, 1.32) {$s_1$};
+  \node[st] (se) at ( 0.0, 0.00) {$s_\emptyset$};
+  \node[st] (s0) at (-1.80,-1.32) {$s_0$};
+  \node[st] (sF) at ( 1.80,-1.32) {$s_F$};
+  % rim
+  \draw[tr] (s1) to[bend right=20] node[el, above] {\eL{0}{1-q}} (sT);
+  \draw[tr] (s1) to[bend left=20]  node[el, right] {\eL{1}{q}}   (sF);
+  \draw[tr] (s0) to[bend left=20]  node[el, left]  {\eL{1}{q}}   (sT);
+  \draw[tr] (s0) to[bend right=20] node[el, below] {\eL{0}{1-q}} (sF);
+  % spokes
+  \draw[tr] (sT) -- (se);
+  \draw[tr] (se) -- (s1);
+  \draw[tr] (se) -- (s0);
+  \draw[tr] (sF) -- (se);
+  \node[el] at (-0.66, 0.84) {\eL{1}{1}};
+  \node[el] at ( 0.66, 0.84) {\eL{1}{p}};
+  \node[el] at (-1.10,-0.22) {\eL{0}{1-p}};
+  \node[el] at ( 0.86,-0.24) {\eL{0}{1}};
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------
+%  Example 4.
+%    T~^(0): s0 -> s1 = q,  s0 -> s2 = 1-q,  sR -> s0 = 1-p
+%    T~^(1): s1 -> sR = 1,  s2 -> sR = 1,    sR -> s0 = p
+% ---------------------------------------------------------------------
+\newcommand{\exfourgraph}{%
+  \node[st] (s2) at ( 0.00, 1.42) {$s_2$};
+  \node[st] (s0) at (-1.62, 0.00) {$s_0$};
+  \node[st] (sR) at ( 1.62, 0.00) {$s_R$};
+  \node[st] (s1) at ( 0.00,-1.42) {$s_1$};
+  \draw[tr] (s0) -- node[el, above left]  {\eL{0}{1-q}} (s2);
+  \draw[tr] (s2) -- node[el, above right] {\eL{1}{1}}   (sR);
+  \draw[tr] (s0) -- node[el, below left]  {\eL{0}{q}}   (s1);
+  \draw[tr] (s1) -- node[el, below right] {\eL{1}{1}}   (sR);
+  \draw[tr] (sR) to[bend right=22] node[el, above] {\eL{1}{p}}   (s0);
+  \draw[tr] (sR) to[bend left=11]  node[el, below] {\eL{0}{1-p}} (s0);
+}
+
+\newcommand{\figExFour}{%
+\begin{tikzpicture}\exfourgraph\end{tikzpicture}}
+
+% ---------------------------------------------------------------------
+%  Example 4 again, with s2 marked redundant and the machine reduced.
+%  The reduction is exactly zero-one-random, hence \zorgraph here too.
+% ---------------------------------------------------------------------
+\newcommand{\figExFourRedundant}{%
+\begin{tikzpicture}
+  \exfourgraph
+  \begin{scope}[on background layer]
+    \node[hl] at (s2) {};
+  \end{scope}
+  \draw[squig, red] (0.78,2.02) to[out=20,in=180] (1.58,2.16);
+  \node[el, red, anchor=west, align=center, font=\scriptsize\sffamily]
+        at (1.66,2.16) {REDUNDANT\\STATE};
+  \draw[squig] (2.48,0) -- (3.62,0);
+  \begin{scope}[shift={(4.32,0.48)}]
+    \zorgraph{r}
+  \end{scope}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------
+%  Notation.  x and p are variables here, so this one is not coloured.
+% ---------------------------------------------------------------------
+\newcommand{\figNotation}{%
+\begin{tikzpicture}[baseline=(si.base)]
+  \node[st] (si) at (0,0)   {$s_i$};
+  \node[st] (sj) at (2.5,0) {$s_j$};
+  \draw[tr] (si) -- node[el, above] {$x : p$} (sj);
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------
+%  Minimality -- the same process realised by ever fewer hidden states.
+%  The states are deliberately unlabelled in the original: the point is
+%  the shrinking state count, not any particular machine.
+% ---------------------------------------------------------------------
+\newcommand{\figMinimality}{%
+\begin{tikzpicture}[x=1mm, y=1mm]
+  % --- six states, with more elided ---
+  \begin{scope}
+    \node[blob] (a1) at (15,25) {};
+    \node[blob] (a2) at (43,30) {};
+    \node[blob] (a3) at (35,14) {};
+    \node[blob] (a4) at ( 2,11) {};
+    \node[blob] (a5) at ( 0, 0) {};
+    \node[blob] (a6) at (23, 1) {};
+    \node       (ad) at (29,26) {$\cdots$};
+    \draw[tr] (a1) to[out=140,in=190,looseness=13] (a1);
+    \draw[tr] (a1) to[bend left=22]  (a2);
+    \draw[tr] (a1) to[bend left=10]  (a3);
+    \draw[tr] (a2) to[bend left=18]  (a3);
+    \draw[tr] (a4) -- (a1);
+    \draw[tr] (a4) -- (a3);
+    \draw[tr] (a4) -- (a5);
+    \draw[tr] (a3) to[bend left=25]  (a6);
+    \draw[tr] (a5) -- (a6);
+    \draw[tr] (a6) to[bend left=18]  (a4);
+    \draw[tr] (a6) to[out=-50,in=-10,looseness=13] (a6);
+  \end{scope}
+  % --- five ---
+  \begin{scope}[shift={(60,2)}]
+    \node[blob] (b1) at (14,27) {};
+    \node[blob] (b2) at ( 1,19) {};
+    \node[blob] (b3) at (19,13) {};
+    \node[blob] (b4) at ( 0, 0) {};
+    \node[blob] (b5) at (20, 1) {};
+    \draw[tr] (b2) -- (b1);
+    \draw[tr] (b1) -- (b3);
+    \draw[tr] (b1) to[bend left=62] (b5);  % must clear b3, which sits on the chord
+    \draw[tr] (b2) -- (b3);
+    \draw[tr] (b2) -- (b4);
+    \draw[tr] (b3) to[bend left=18] (b5);
+    \draw[tr] (b5) -- (b4);
+    \draw[tr] (b4) to[out=200,in=250,looseness=13] (b4);
+  \end{scope}
+  % --- four ---
+  \begin{scope}[shift={(100,4)}]
+    \node[blob] (c1) at (18,23) {};
+    \node[blob] (c2) at ( 0,14) {};
+    \node[blob] (c3) at (22,12) {};
+    \node[blob] (c4) at (10, 0) {};
+    \draw[tr] (c2) -- (c1);
+    \draw[tr] (c1) -- (c3);
+    \draw[tr] (c2) -- (c3);
+    \draw[tr] (c3) -- (c4);
+    \draw[tr] (c4) -- (c2);
+    \draw[tr] (c4) to[out=-60,in=-120,looseness=13] (c4);
+  \end{scope}
+  % --- and the reductions between them ---
+  \draw[squig] (48,14) -- (57,14);
+  \draw[squig] (88,15) -- (97,15);
+\end{tikzpicture}}
+
+% =====================================================================
+%  The conceptual figures that are diagrams rather than sketches.
+%
+%  hierarchy.png, hierarchy_green.png and scope.png all drew the same
+%  nested set picture, so it is one macro here.  Each of those PNGs also
+%  carried slide text baked into the image -- a title on hierarchy, the
+%  acronym key down the right of both -- which now lives in slides.tex
+%  where it can be read, searched and re-wrapped.  scope.png bundled the
+%  sets and the transformer sketch into one raster; they are two pictures.
+% =====================================================================
+
+\tikzset{
+  % the boundary of a class of processes
+  ring/.style   = {draw=black!62, line width=.7pt},
+  % the shaded class: GHMMs, the one the day is about
+  ghmm/.style   = {fill=green!62},
+  % "we are pushing outwards from here"
+  growth/.style = {-{Stealth[length=1.6mm,width=1.4mm]}, green!60!black, line width=.6pt},
+  % a component of the transformer sketch
+  unit/.style   = {draw, fill=black!8, minimum width=11mm, minimum height=8mm,
+                   inner sep=1pt, font=\small},
+  wire/.style   = {draw, line width=.6pt},
+}
+
+% One class boundary: an oval sitting on the common bottom point at the
+% origin.  (\ring is taken -- it is LaTeX's ring accent.)
+% #1 half-width, #2 height, #3 extra style.
+\newcommand{\classring}[3]{%
+  \draw[ring,#3] (0,{(#2)/2}) ellipse[x radius=#1, y radius={(#2)/2}];}
+
+% The hierarchy of process classes.
+%   #1 = 1 to shade the GHMM class green
+%   #2 = 1 to add the outward growth arrows
+\newcommand{\hierarchysets}[2]{%
+  \classring{2.20}{5.00}{}%
+  \classring{1.82}{4.30}{}%
+  \classring{1.48}{3.62}{}%
+  \ifnum#1=1 \classring{1.16}{2.78}{ghmm}\else\classring{1.16}{2.78}{}\fi
+  \classring{0.94}{1.98}{dashed}%
+  \classring{0.56}{0.68}{}%
+  \ifnum#2=1
+    \foreach \x/\y/\a in {1.05/1.98/29, 0.67/2.53/60, 0.10/2.78/86,
+                          -0.49/2.65/111, -0.95/2.19/140, -1.12/1.75/162}{%
+      \draw[growth] (\x,\y) -- ++(\a:0.29);}
+  \fi
+  \node[font=\small] at (0,4.52) {PTM};
+  \node[font=\small] at (0,3.92) {$\vdots$};
+  \node[font=\small] at (0,3.24) {PCFG};
+  \node[font=\small] at (0,2.36) {GHMM};
+  \node[font=\small] at (0,1.52) {HMM};
+  \node[font=\scriptsize] at (0,0.34) {IID};
+}
+
+\newcommand{\figHierarchy}{%
+\begin{tikzpicture}\hierarchysets{0}{0}\end{tikzpicture}}
+
+\newcommand{\figHierarchyGreen}{%
+\begin{tikzpicture}\hierarchysets{1}{1}\end{tikzpicture}}
+
+% The same sets on the scope slide: shaded, but no asterisk and no arrows.
+\newcommand{\figProcessSets}{%
+\begin{tikzpicture}\hierarchysets{1}{0}\end{tikzpicture}}
+
+% The acronym key that used to be handwritten down the side of both
+% hierarchy figures.  Lifted out so the slide can set it as text.
+\newcommand{\hierarchykey}{%
+  \begin{tabular}{@{}l@{\hspace{1.2em}}l@{}}
+    PTM  & Probabilistic Turing Machine       \\[0.35em]
+    PCFG & Probabilistic Context-Free Grammar \\[0.35em]
+    GHMM & Generalised Hidden Markov Model    \\[0.35em]
+    HMM  & Hidden Markov Model                \\[0.35em]
+    IID  & Independent \& Identically Distributed
+  \end{tabular}\par\vspace{0.9em}
+  {\footnotesize (non-exhaustive)}}
+
+% ---------------------------------------------------------------------
+%  The transformer sketch, the right-hand half of the old scope.png.
+%  A residual stream; each block reads from it below and writes back
+%  into the sum above.
+% ---------------------------------------------------------------------
+\newcommand{\figTransformer}{%
+\begin{tikzpicture}
+  \node[unit] (x)  at (0,0)    {$x$};
+  \node[unit] (px) at (0,4.95) {$p^{(x)}$};
+  \node[unit] (att) at (1.75,1.30) {Attn};
+  \node[unit] (mlp) at (1.75,3.20) {MLP};
+  % the residual stream
+  \draw[wire] (x.north) -- (px.south);
+  \foreach \y in {1.55, 3.45}{ \draw[-{Stealth[length=2mm,width=1.7mm]}, line width=.6pt]
+      (0,\y) -- (0,\y+0.12); }
+  % each block: in from the stream below, out into the sum above
+  \draw[wire] (0,0.58)  -- (1.75,0.58) -- (att.south);
+  \draw[wire] (att.north) -- (1.75,2.30) -- (0,2.30);
+  \draw[wire] (0,2.56)  -- (1.75,2.56) -- (mlp.south);
+  \draw[wire] (mlp.north) -- (1.75,4.20) -- (0,4.20);
+  % each block adds back into the stream: a circle-plus, not the flattened
+  % glyph the handwritten sketch uses for it
+  \foreach \y in {2.30, 4.20}{
+    \draw[wire, fill=white] (0,\y) circle[radius=0.135];
+    \draw[wire] (-0.093,\y) -- (0.093,\y);
+    \draw[wire] (0,{\y-0.093}) -- (0,{\y+0.093});}
+\end{tikzpicture}}
+
+% ---------------------------------------------------------------------
+%  Where the program has got to: toy -> real processes against weak ->
+%  strong models, with the frontier we are pushing outwards.
+% ---------------------------------------------------------------------
+\newcommand{\figPareto}{%
+\begin{tikzpicture}[>={Stealth[length=2.4mm,width=2mm]}]
+  \draw[->, line width=.9pt] (0,0) -- (0,4.6);
+  \draw[->, line width=.9pt] (0,0) -- (5.2,0);
+  % the thresholds that would count as success
+  \draw[blue, dashed, line width=.7pt] (0,3.30) -- (5.0,3.30);
+  \draw[red,  dashed, line width=.7pt] (3.55,0) -- (3.55,4.4);
+  % the frontier, and what it encloses today
+  \fill[black!8] (0,0) -- (0,1.75) .. controls (0.75,1.72) and (1.10,1.55)
+                 .. (1.45,1.30) .. controls (1.75,1.05) and (1.85,0.55)
+                 .. (1.80,0) -- cycle;
+  \draw[line width=1pt] (0,1.75) .. controls (0.75,1.72) and (1.10,1.55)
+                 .. (1.45,1.30) .. controls (1.75,1.05) and (1.85,0.55) .. (1.80,0);
+  \foreach \p in {(0,1.75), (1.45,1.30), (1.80,0.12)}{
+    \node at \p {\footnotesize$\times$};}
+  % direction of travel
+  \foreach \s/\a in {(0.55,2.00)/80, (1.15,1.95)/62, (1.70,1.60)/45, (2.05,0.70)/20}{
+    \draw[violet, -{Stealth[length=2.2mm,width=1.9mm]}, line width=.8pt]
+      \s -- ++(\a:0.62);}
+  % axes
+  \node[blue, font=\small, anchor=east] at (-0.15,4.15) {Real};
+  \node[blue, font=\small, anchor=east] at (-0.15,1.15) {Toy};
+  \node[font=\small, anchor=east] at (-0.15,3.30) {Process};
+  \node[red, font=\small, anchor=north] at (1.05,-0.12) {Weak};
+  \node[red, font=\small, anchor=north] at (4.75,-0.12) {Strong};
+  \node[font=\small, anchor=north, align=center] at (3.0,-0.75)
+       {Model\\[-0.15em]{\footnotesize(Neural Network)}};
+\end{tikzpicture}}

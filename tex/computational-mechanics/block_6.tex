@@ -1,0 +1,121 @@
+\emph{In the previous session, we explored evidence that neural networks represent belief state geometry of HMM processes. Based on your interest, we will now split into two tracks, each addressing a question:}
+
+\begin{enumerate}
+\item
+  \emph{\textbf{Sensors.} How might the transformer develop representations of the belief state?}
+\item
+  \emph{\textbf{Actuators.} How might the transformer use belief state representations to influence downstream predictions?}
+\end{enumerate}
+
+\emph{The Sensors question is marginally better understood and will centre around reading \href{https://arxiv.org/pdf/2502.01954}{Piotrowski et al.}, which partially answers this question for single-layer transformers trained on the Mess3 process. The Actuators question is relatively less explored, and is more conceptual.}
+
+\subsection{Sensors }\label{sensors}
+
+\textbf{Reading suggestion (45 minutes):}
+
+\begin{itemize}
+\item
+  \textbf{Skim.} Sections 1 \& 2.
+\item
+  \textbf{Read.} Sections 3--5.
+\item
+  \textbf{Evaluation.} Explain Figure 2.
+\end{itemize}
+
+\textbf{Overview.} Given the architectural constraints of a transformer block, how might belief states be constructed out of raw token embeddings? For the case of single-layer transformers trained on the Mess3 process, \href{https://arxiv.org/pdf/2502.01954}{Piotrowski et al.} identify an algorithm implemented by the attention mechanism that transforms input sequences into \emph{constrained beliefs} (Equ. 6), which are then transformed into the corresponding belief state by the MLP layer.
+
+The key ansatz is that the attention block outputs constrained beliefs. This observation is then used to anticipate structure in various components relevant to the attention mechanism:
+
+\begin{itemize}
+\item
+  Attention pattern (see Equ. 13)
+\item
+  OV-vectors (see Equ. 14)
+\item
+  Embeddings (see Equ. 15)
+\item
+  Number of attention heads (see Sec. 4.4.1)
+\end{itemize}
+
+These predictions are then empirically verified across four different Mess3 parameterisations.
+
+\textbf{Discussion (15 minutes).} Form groups of 3-4 and discuss aspects of the readings you found interesting/confusing. Here are some discussion prompts to consider:
+
+\begin{itemize}
+\item
+  How is the constrained belief geometry related to the full belief geometry?
+\item
+  What is the role of the MLP in transforming the constrained belief geometry into the full belief geometry?
+\item
+  Do you expect the constrained belief state update formula to apply to:
+  \begin{itemize}
+  \item
+    Processes beyond Mess3?
+  \item
+    Attention blocks with more than two heads?
+  \item
+    Transformers that are deeper than a single layer?
+  \end{itemize}
+\end{itemize}
+
+(\emph{Feel free to ignore these if you/your group is excited to explore other aspects of the reading.})
+
+\subsection{Actuators}\label{actuators}
+
+\textbf{Background.} Suppose the transformer represents the belief state corresponding to a given input sequence at some residual stream position. Given the architectural constraints of the transformer consider the questions:
+
+\begin{itemize}
+\item
+  How might the belief state be used to compute the corresponding next-token probability distribution?
+\item
+  Which layer is the belief state most likely to be used by the transformer?
+\end{itemize}
+
+Recall that there always exists a linear map from the belief state to the next-token probabilities vector:
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\linewidth]{fig/belief-to-obs-linear.png}
+  \label{fig:belief-to-obs-linear}
+\end{figure}
+
+But given the transformer architecture, the next-token probabilities are produced by softmaxing logits (activations post-unembedding), which are related to the probabilities by
+
+\[ \operatorname{logits}(w) = \log p^{(w)} + c_w \mathbf{1} \]
+
+where \(c_w\) is an arbitrary w-dependent constant and \(\mathbf{1}\) is the all-ones vector of appropriate size. This observation motivates considering three types of features: \emph{beliefs} (\(\eta^{(w)}\)), \emph{next-token probabilities} (\(p^{(w)}\)) \& \emph{next-token log-probabilities} (\(\log p^{(w)}\)); and considering how they relate to each other. Without assumptions on the HMM process, they are related as follows:
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\linewidth]{fig/belief-obs-logobs.png}
+  \label{fig:belief-obs-logobs}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.22\linewidth]{fig/transformer-stack.png}
+  \label{fig:transformer-stack}
+\end{figure}
+
+\subsubsection{Exercises}\label{sec:actuators-ex}
+
+\begin{exercise}
+\label{ex:actuators-1}
+Annotate the transformer diagram with where you would expect the trained models to represent: beliefs, next-token probabilities \& next-token log-probabilities (if at all) under the following assumptions:
+
+\begin{enumerate}
+\item
+  No assumptions.
+\item
+  There exists a linear map from next-token probabilities to next-token log-probabilities.
+\item
+  There exists a linear map from next-token probabilities to beliefs.
+\end{enumerate}
+
+(\emph{Keep in mind the expressiveness of the transformer components as you pass between beliefs / next-token probabilities / log next-token probabilities.})
+\end{exercise}
+
+\begin{exercise}
+\label{ex:actuators-2}
+Design intervention experiments to gain evidence for your hypotheses.
+\end{exercise}

@@ -1,0 +1,78 @@
+\emph{Below are exercises accompanying the \href{https://drive.google.com/file/d/1IPz8Pq939VbjmVqYcYDybdJ02yvdgMGS/view?usp=sharing}{lecture} on prediction. Building on your GHMM implementation from \hyperref[hidden-markov-models]{Block 2}, you will now compute belief states and next-token vectors, and use them to probe the predictive structure of canonical processes (Z1R, Mess3, RRXOR). Spend \textasciitilde30 minutes on these exercises; start with the core set, and progress to the extension if you have time.}
+
+\subsection{Core exercises}\label{sec:pred-core}
+
+\begin{exercise}
+\label{ex:pred-core-1}
+Using your programming language of choice, implement a function that takes in:
+
+\begin{enumerate}
+\item
+  The transition matrices of a GHMM (a three-tensor)
+\item
+  The initial vector
+\item
+  A sequence of tokens
+\end{enumerate}
+
+and outputs the corresponding: belief state and next-token (prediction) vector.
+\end{exercise}
+
+\begin{exercise}
+\label{ex:pred-core-2}
+Test your function on the zero-one-random (Z1R) process when initialised in the state \(\eta^{(\emptyset)} = [1/3\;\;1/3\;\;1/3]\), and compare to the results of the worked example on \href{https://drive.google.com/file/d/1IPz8Pq939VbjmVqYcYDybdJ02yvdgMGS/view?usp=sharing}{Slide 12}.
+\end{exercise}
+
+\begin{exercise}
+\label{ex:pred-core-3}
+Visualise belief state geometry and the next-token geometry for the \href{https://github.com/Astera-org/simplexity/blob/main/simplexity/generative_processes/transition_matrices.py}{Mess3 process} initialised in the uniform distribution. Does it look like the theoretical prediction in Fig. 1 of \href{https://arxiv.org/pdf/2405.15943}{Shai et al}?
+\end{exercise}
+
+\begin{exercise}
+\label{ex:pred-core-4}
+Derive the belief state update rule on \href{https://drive.google.com/file/d/1IPz8Pq939VbjmVqYcYDybdJ02yvdgMGS/view?usp=sharing}{Slide 5}.
+\end{exercise}
+
+\begin{exercise}
+\label{ex:pred-core-5}
+Show that the matrix elements of the matrix taking beliefs to next-token probabilities are given by expression stated on \href{https://drive.google.com/file/d/1IPz8Pq939VbjmVqYcYDybdJ02yvdgMGS/view?usp=sharing}{Slide 7}.
+\end{exercise}
+
+\subsection{Extension exercises}\label{sec:pred-ext}
+
+\begin{exercise}
+\label{ex:pred-ext-1}
+Evaluate whether the linear map from beliefs to observation probabilities is invertible for:
+
+\begin{enumerate}
+\item
+  RRXOR
+\item
+  Mess3
+\end{enumerate}
+\end{exercise}
+
+\begin{exercise}
+\label{ex:pred-ext-2}
+Complete the MSP of the Z1R process (explored in the lecture) by annotating the tokens with the correct emission probabilities.
+\end{exercise}
+
+\begin{exercise}
+\label{ex:pred-ext-3}
+Compute the MSP for the zero-random-random process.
+\end{exercise}
+
+\begin{exercise}
+\label{ex:pred-ext-4}
+For an element \(a\in \mathcal{X}^*\), the corresponding \emph{causal state equivalence class} is given by
+
+\[
+[a]_{\mathrm{C}} := \{x \in \mathcal{X}^*\,|\, \Pr(y\,|\, a) = \Pr(y\,|\, x) ,\,\,\forall\,y\in\mathcal{X}^*  \} .
+\]
+Likewise, the corresponding \emph{belief state equivalence class} is given by
+
+\[
+[a]_{\mathrm{B}} := \{x \in \mathcal{X}^*\,|\, \eta^{(a)} = \eta^{(x)}  \} .
+\]
+How are these sets related to each other?
+\end{exercise}
