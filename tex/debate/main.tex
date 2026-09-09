@@ -1,10 +1,14 @@
 %--- iliad -------------------------------------------------------------------
 % title: "Provably Safe AI + AIS via Debate"
 % summary: >-
-%   TODO
+%   Debate is a form of scalable oversight: it seeks to extend a reward signal
+%   for honest solutions to difficult problems while reducing the amount of
+%   human judgment needed.
+% slides: https://docs.google.com/presentation/d/16squLf7HnnGf395UqkM1x7WY4OSuawGCb_fWBq63mns/
 %--- end ----------------------------------------------------------------------
 \documentclass[11pt]{article}
 \IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
+\usepackage[T1]{fontenc}
 
 % ---- Notation ---------------------------------------------------------------
 % The source shipped a 206-line abbrv.tex shared across its files; these are
@@ -20,7 +24,7 @@
 \newcommand{\bigforall}{\mathop{\forall}\limits}
 
 \title{Provably Safe AI + AIS via Debate}
-\author{\authorname{Stephan W\"aldchen}\\ \affiliation{Iliad}}
+\author{\authorname{Stephan Wäldchen}\\ \affiliation{Iliad}}
 \date{\today}
 
 \begin{document}
@@ -31,8 +35,8 @@
 \label{sec:prereqs}
 
 \begin{itemize}
-  \item \textbf{Very important:} How Turing machines work (\href{https://www.youtube.com/watch?v=gJQTFhkhwPA}{Watch this Video}), and a basic understanding of the idea of computational complexity (\href{https://www.youtube.com/watch?v=YX40hbAHx3s}{Watch this video}), including the most important classes, P, NP, PSPACE, the notion of NP-completeness, and polynomial-time reductions, Oracle Turing machines.
-  \item \textbf{Medium Important:} The difference between deterministic and non-Deterministic Turing machines, how mathematics is built on the axioms of set theory (used for most mathematics) or type theory (used mostly for proof checkers).
+  \item $\bigstar$ How Turing machines work (\href{https://www.youtube.com/watch?v=gJQTFhkhwPA}{Watch this Video}), and a basic understanding of the idea of computational complexity (\href{https://www.youtube.com/watch?v=YX40hbAHx3s}{Watch this video}), including the most important classes, P, NP, PSPACE, the notion of NP-completeness, and polynomial-time reductions, Oracle Turing machines.
+  \item The difference between deterministic and non-Deterministic Turing machines, how mathematics is built on the axioms of set theory (used for most mathematics) or type theory (used mostly for proof checkers).
 \end{itemize}
 
 \begin{learningoutcomes}
@@ -43,11 +47,6 @@
     \item Why Debate could drastically reduce the queries to the world model/human oversight
     \item Secondary Debate concepts: Cross-Examination,
     \item Are familiar with the UK AISI safety case, and are able to defend/critique it.
-  \end{itemize}
-
-  \subsection*{Most important Take-Away:}
-  \begin{itemize}
-    \item Debate is a form of scalable oversight: it seeks to extend a reward signal for honest solutions to difficult problems while reducing the amount of human judgment needed by an exponential factor.
   \end{itemize}
 \end{learningoutcomes}
 
