@@ -15,9 +15,18 @@
 
 \section{Prerequisites}\label{prerequisites}
 
-\textbf{Module C.2 (Mechanistic Interpretability).} Familiarity with the goals and basic methodology of mechanistic interpretability, including the notions of features and circuits; the linear representation hypothesis; linear probes as a method for reading off internal representations; and a basic understanding of the transformer architecture. Students should be comfortable with the idea that one can train a linear map from model activations to some target structure and evaluate its quality (e.g. via MSE or \(R^2\)).
+Familiarity with the goals and basic methodology of mechanistic interpretability, 
+including the notions of features and circuits; the linear representation hypothesis; 
+linear probes as a method for reading off internal representations; and a basic 
+understanding of the transformer architecture. 
 
-\textbf{Mathematical background.} The module is mathematically self-contained -- all formal definitions (HMMs, GHMMs, belief states, MSPs) are introduced from scratch. However, students will engage with the material more fluently if they are comfortable with the following:
+Students should be comfortable with the idea that one can train a linear map 
+from model activations to some target structure and evaluate its 
+quality (e.g. via MSE or \(R^2\)).
+
+\textbf{Mathematical background.} The module is mathematically self-contained: 
+all formal definitions (HMMs, GHMMs, belief states, MSPs) are introduced from scratch. 
+However, students will engage with the material more fluently if they are comfortable with the following:
 
 \begin{itemize}
 \item
@@ -79,6 +88,11 @@ Read \href{https://arxiv.org/pdf/2405.15943}{Transformers represent belief state
   \end{itemize}
 \end{itemize}
 
+% The per-block Exercise/Tutorial sheets the Doc linked on Drive are this
+% page's own sections now, so these point inward. "Exercise Sheet" is
+% brace-grouped only to dodge the \hyperref lint, which reads the capital S
+% after "Exercise" as a frozen reference number; there is no number to go
+% stale. Block 3's lecture links stay on Drive -- that deck has no source.
 \subsection{Main content}\label{main-content}
 
 \begin{enumerate}
@@ -100,7 +114,7 @@ Read \href{https://arxiv.org/pdf/2405.15943}{Transformers represent belief state
 
   \begin{enumerate}
   \item
-    {[}\href{https://iliad-team.github.io/iliad-intensive/downloads/computational-mechanics/computational-mechanics-slides.pdf}{Lecture Slides} \& \href{https://drive.google.com/file/d/1Tzw4vSpUixbJLt_Wet9ElZM10DTIpSqa/view?usp=sharing}{Exercise Sheet}{]} \textbf{Hidden Markov Models (HMMs)}
+    {[}\href{https://iliad-team.github.io/iliad-intensive/downloads/computational-mechanics/computational-mechanics-slides.pdf}{Lecture Slides} \& \hyperref[hidden-markov-models]{{Exercise Sheet}}{]} \textbf{Hidden Markov Models (HMMs)}
 
     \begin{enumerate}
     \item
@@ -111,7 +125,7 @@ Read \href{https://arxiv.org/pdf/2405.15943}{Transformers represent belief state
       What is a generalised HMM (GHMM)? (see e.g. \href{https://arxiv.org/pdf/2507.07432}{Neural networks leverage nominally quantum and post-quantum representations})
     \end{enumerate}
   \item
-    {[}\href{https://drive.google.com/file/d/1IPz8Pq939VbjmVqYcYDybdJ02yvdgMGS/view?usp=sharing}{Lecture slides} \& \href{https://drive.google.com/file/d/1tfUC7uZ8TWqNqPpjH87nsXp2vQ52m3Wt/view?usp=sharing}{Exercise Sheet}{]} \textbf{Prediction}
+    {[}\href{https://drive.google.com/file/d/1IPz8Pq939VbjmVqYcYDybdJ02yvdgMGS/view?usp=sharing}{Lecture slides} \& \hyperref[prediction]{{Exercise Sheet}}{]} \textbf{Prediction}
 
     \begin{enumerate}
     \item
@@ -127,7 +141,7 @@ Read \href{https://arxiv.org/pdf/2405.15943}{Transformers represent belief state
 
   \begin{enumerate}
   \item
-    {[}\href{https://drive.google.com/file/d/1eifwRe-a7ZT-7lSDJqe2YUSekwgbIFND/view?usp=sharing}{Tutorial Sheet}{]} \textbf{Designing processes worth studying}
+    {[}\hyperref[designing-processes]{Tutorial Sheet}{]} \textbf{Designing processes worth studying}
 
     \begin{enumerate}
     \item
@@ -138,7 +152,7 @@ Read \href{https://arxiv.org/pdf/2405.15943}{Transformers represent belief state
       Factors (see e.g. \href{https://arxiv.org/pdf/2602.02385v1}{Transformers learn factored representations})
     \end{enumerate}
   \item
-    {[}\href{https://drive.google.com/file/d/1c_rzbR1s9N0QkpaSWcLOKUjNEIasv22y/view?usp=sharing}{Reading guide}{]} \textbf{Identifying belief geometry in transformers}
+    {[}\hyperref[belief-geometry]{Reading guide}{]} \textbf{Identifying belief geometry in transformers}
 
     \begin{enumerate}
     \item
@@ -147,7 +161,7 @@ Read \href{https://arxiv.org/pdf/2405.15943}{Transformers represent belief state
       {[}extension{]} For the case of GHMMs -- {[}Read: \href{https://arxiv.org/pdf/2507.07432}{Neural networks leverage nominally quantum and post-quantum representations}{]}
     \end{enumerate}
   \item
-    {[}\href{https://drive.google.com/file/d/1TiiW-n11CAPQ1CueK5_1BvidAeldofwp/view?usp=sharing}{Tutorial Sheet}{]} \textbf{How do transformers do it?}
+    {[}\hyperref[how-transformers-do-it]{Tutorial Sheet}{]} \textbf{How do transformers do it?}
 
     \begin{enumerate}
     \item
@@ -158,19 +172,19 @@ Read \href{https://arxiv.org/pdf/2405.15943}{Transformers represent belief state
   \end{enumerate}
 \end{enumerate}
 
-\section{Hidden Markov models}
+\section{Hidden Markov models}\label{hidden-markov-models}
 \input{block_2}
 
-\section{Prediction}
+\section{Prediction}\label{prediction}
 \input{block_3}
 
-\section{Identifying belief geometry in transformers}
+\section{Identifying belief geometry in transformers}\label{belief-geometry}
 \input{block_4}
 
-\section{Designing processes}
+\section{Designing processes}\label{designing-processes}
 \input{block_5}
 
-\section{How do transformers do it?}
+\section{How do transformers do it?}\label{how-transformers-do-it}
 \input{block_6}
 
 \section{Learn more}\label{learn-more}
