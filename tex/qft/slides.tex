@@ -1,0 +1,41 @@
+% slides.tex — the optional slide deck for a worksheet folder.
+%
+% If this file exists, the build compiles it to slides.pdf and hosts it next
+% to the worksheet's other downloads (a "Slides" row appears on the page with
+% view / download / LaTeX-download boxes). It is NEVER converted to MDX — a
+% deck is a download, not a web page. No -nosol variant is produced.
+%
+% Any self-contained LaTeX works; beamer is the usual choice. iliad.sty is a
+% worksheet contract and is NOT loaded here. If you only have a prebuilt PDF
+% deck with no source, don't commit the binary — host it (e.g. Google Drive)
+% and add a `slides: <url>` line to the %--- iliad --- block in main.tex, which
+% renders as an outbound link instead.
+\documentclass{beamer}
+\usetheme{default}
+\usepackage{amsmath}
+
+\title{Example Worksheet: The Kitchen Sink}
+\subtitle{Slides}
+\author{Iliad Intensive}
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}{What this deck demonstrates}
+  \begin{itemize}
+    \item A \texttt{slides.tex} in a worksheet folder is compiled to
+          \texttt{slides.pdf} by the build.
+    \item The page shows a \emph{Slides} row: view, download, and the LaTeX
+          source.
+    \item Math renders as usual: $\displaystyle H(p) = -\sum_x p(x)\log p(x)$.
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{That's it}
+  \centering \Large Edit \texttt{slides.tex}, rebuild, refresh.
+\end{frame}
+
+\end{document}
