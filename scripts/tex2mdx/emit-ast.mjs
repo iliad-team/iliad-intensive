@@ -13,7 +13,7 @@ import { printRaw } from "@unified-latex/unified-latex-util-print-raw";
 import { listNewcommands } from "@unified-latex/unified-latex-util-macros";
 import { warn, advise, snippetOf, warnings, advisories } from "./state.mjs";
 import { isAutoLabel } from "./autolabel.mjs";
-import { applyMathShims } from "./shims.mjs";
+import { applyMathShims, braceMathArgs } from "./shims.mjs";
 import { slug, ghSlug, readGroup, readOpt, readArg, NEST, CHILD } from "./util.mjs";
 import { registerTikz } from "./tikz.mjs";
 
@@ -1153,6 +1153,9 @@ function emitFootnotes() {
 
 export function emitDocument(bodyTex, context) {
   ctx = context;
+  // Brace-less mandatory args (\frac12) before ANY parse — see shims.mjs.
+  bodyTex = braceMathArgs(bodyTex);
+  const preambleTex = braceMathArgs(context.preamble ?? "");
   anchorMap = {};
   droppedLabels = new Set();
   authorMacros = {};
@@ -1163,7 +1166,7 @@ export function emitDocument(bodyTex, context) {
 
   // phase A: default parse of preamble+body to harvest author macro definitions
   const p0 = getParser({ environments: ENV_SIGNATURES, macros: CONTRACT_MACROS });
-  const fullAst = p0.parse(context.preamble + "\n" + bodyTex);
+  const fullAst = p0.parse(preambleTex + "\n" + bodyTex);
   const macroSigs = { ...CONTRACT_MACROS };
   const silencedWarn = console.warn, silencedLog = console.log;
   console.warn = () => {}; console.log = () => {};
@@ -1180,8 +1183,8 @@ export function emitDocument(bodyTex, context) {
     authorMacros[nc.name] = { signature: nc.signature || "", body: printRaw(nc.body) };
   }
   // simple \def\name{...} (parameterless)
-  for (const m of (context.preamble + bodyTex).matchAll(/\\def\s*\\([a-zA-Z]+)\s*\{/g)) {
-    const g = readGroup(context.preamble + bodyTex, m.index + m[0].length - 1);
+  for (const m of (preambleTex + bodyTex).matchAll(/\\def\s*\\([a-zA-Z]+)\s*\{/g)) {
+    const g = readGroup(preambleTex + bodyTex, m.index + m[0].length - 1);
     if (g && !(m[1] in authorMacros)) { authorMacros[m[1]] = { signature: "", body: g.content }; macroSigs[m[1]] ??= { signature: "" }; }
   }
 
