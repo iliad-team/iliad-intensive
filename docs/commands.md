@@ -239,6 +239,10 @@ MDX: `<Definition id="def-entropy">**Definition 2.1 (entropy).** …</Definition
 Don't confuse $\log$ bases here.
 \end{callout}
 
+\begin{callout}[tip][Observation return]
+$$ G_{\mathrm{obs}}(\vec s) = \mathbb{E}_{\vec s' \sim \mathcal{B}(\cdot \mid \vec O(\vec s))}[G(\vec s')] $$
+\end{callout}
+
 \begin{remark}[optional title]
 An aside in the mathematical register.
 \end{remark}
@@ -246,11 +250,17 @@ An aside in the mathematical register.
 
 - Types: `note` (default), `tip`, `warning` — coloured boxes on web + PDF
   (`[boxes]`).
+- A second optional argument is the callout's **title**: in the PDF it replaces
+  the "Note"/"Tip"/"Warning" label on the box frame, on the web it heads the
+  box. Use it for a highlighted key equation or a named aside; leave it off
+  for a plain aside (the PDF then shows the type word, the web just the
+  colour).
 - `remark` takes an optional title, appended in parentheses:
   `\begin{remark}[Encodings]` renders as "Remark (Encodings)".
 - Both may be labelled: no number shows in the box, but
   `\cref{co:pitfall}` prints "Callout 2.1" and links to it.
-- MDX: `<Callout type="warning" id="co-pitfall">…</Callout>`
+- MDX: `<Callout type="warning" id="co-pitfall">…</Callout>`,
+  `<Callout type="tip" title="Observation return">…</Callout>`
 
 ## Math, macros, cross-references
 

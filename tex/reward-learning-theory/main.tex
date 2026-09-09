@@ -321,8 +321,7 @@ $$
 $$
 A natural way to build a belief is from a prior $\mu \in \Delta(\cS^{T+1})$
 over state trajectories using Bayes' rule:
-\begin{callout}[tip]
-\textbf{Bayesian belief from prior.}
+\begin{callout}[tip][Bayesian belief from prior]
 $$
 \cB(\vec s \mid \vec o) \;=\; \frac{\mu(\vec s)\,\mathbf{1}[\vec O(\vec s) = \vec o]}
 {\sum_{\vec s'} \mu(\vec s')\,\mathbf{1}[\vec O(\vec s') = \vec o]}.
@@ -466,8 +465,7 @@ hides a failed CUDA install.
 The \textbf{observation return} of a state trajectory $\vec s$ is the
 expected true return under the human's belief about which trajectory
 produced the same observations:
-\begin{callout}[tip]
-\textbf{Observation return.}
+\begin{callout}[tip][Observation return]
 $$
 \Gobs(\vec s) \;=\; \E_{\vec s' \sim \cB(\,\cdot\,\mid\, \vec O(\vec s))}\!\bigl[G(\vec s')\bigr].
 $$

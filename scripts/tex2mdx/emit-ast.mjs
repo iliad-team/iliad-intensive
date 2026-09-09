@@ -69,7 +69,7 @@ const DROP_WITH_ARGS = {
 // contract + structural environment signatures for the parser
 const ENV_SIGNATURES = {
   exercise: { signature: "o" }, solution: { signature: "o" },
-  callout: { signature: "o" }, proof: { signature: "o" },
+  callout: { signature: "o o" }, proof: { signature: "o" },   // callout: [type][Title]
   theorem: { signature: "o" }, lemma: { signature: "o" },
   proposition: { signature: "o" }, corollary: { signature: "o" },
   definition: { signature: "o" }, fact: { signature: "o" },
@@ -610,7 +610,10 @@ function emitEnv(n) {
       break;
     case "callout": {
       const type = ["note", "tip", "warning"].includes((opt ?? "").trim()) ? opt.trim() : "note";
-      mdx = `<Callout type="${type}"${id}>\n\n${walk(n.content).trim()}\n\n</Callout>`;
+      // \begin{callout}[tip][Title] — the title heads the box, as it does in
+      // the PDF where it replaces the "Tip"/"Note"/"Warning" frame label.
+      const title = argRaw(n, 1);
+      mdx = `<Callout type="${type}"${title ? ` title="${attr(title)}"` : ""}${id}>\n\n${walk(n.content).trim()}\n\n</Callout>`;
       break;
     }
     case "proof":
