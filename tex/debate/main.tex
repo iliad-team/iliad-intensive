@@ -263,11 +263,13 @@ You can rearrange the terms of a convergent series, thus rearrange as:
 \]
 and regroup as follows
 \[
-\left(1-\frac12\right)-\frac14
-+\left(\frac13-\frac16\right)-\frac18
-+\left(\frac15-\frac1{10}\right)-\frac1{12}
-+\left(\frac17-\frac1{14}\right)-\frac1{16}
+\begin{aligned}
+&\left(1-\frac{1}{2}\right)-\frac{1}{4}
++\left(\frac{1}{3}-\frac{1}{6}\right)-\frac{1}{8} \\
+&\quad+\left(\frac{1}{5}-\frac{1}{10}\right)-\frac{1}{12}
++\left(\frac{1}{7}-\frac{1}{14}\right)-\frac{1}{16}
 +\cdots.
+\end{aligned}
 \]
 Each parenthesized pair simplifies:
 \[
@@ -624,12 +626,14 @@ The judge outputs \(1\) if Alice wins and \(0\) if Bob wins.
 \begin{definition}[The class \(\mathsf{Debate}\)]
 A language \(L \subseteq \{0,1\}^*\) is in \(\mathsf{Debate}\) if there exist polynomials \(p,k\) and a debate verifier \(J\) such that for every input \(x\in\{0,1\}^n\), \(x \in L\) if and only if
 \[
-\bigexists_{a_1 \in \{0,1\}^{\le p(n)}}\;
+\begin{aligned}
+&\bigexists_{a_1 \in \{0,1\}^{\le p(n)}}\;
 \bigforall_{b_1 \in \{0,1\}^{\le p(n)}}
 \cdots
 \bigexists_{a_{k(n)} \in \{0,1\}^{\le p(n)}}\;
-\bigforall_{b_{k(n)} \in \{0,1\}^{\le p(n)}}
-J(x,a_1,b_1,\dots,a_{k(n)},b_{k(n)})=1.
+\bigforall_{b_{k(n)} \in \{0,1\}^{\le p(n)}} \\
+&\qquad J(x,a_1,b_1,\dots,a_{k(n)},b_{k(n)})=1.
+\end{aligned}
 \]
 
 Equivalently, \(x\in L\) if and only if Alice has a winning strategy in the polynomial-length debate defined by \(J\).
@@ -803,14 +807,16 @@ Interpret this formula as a debate game: Alice chooses the existentially quantif
 \label{ex:ex4}
 Recall the recursive reachability predicate
 \[
+\begin{aligned}
 \mathrm{Reach}(C_{\mathrm{left}},C_{\mathrm{right}},t)
 \iff
 \exists C_{\mathrm{mid}}\,
 \bigl(
-\mathrm{Reach}(C_{\mathrm{left}},C_{\mathrm{mid}},t-1)
-\land
+&\mathrm{Reach}(C_{\mathrm{left}},C_{\mathrm{mid}},t-1) \\
+&\land
 \mathrm{Reach}(C_{\mathrm{mid}},C_{\mathrm{right}},t-1)
 \bigr).
+\end{aligned}
 \]
 Turn this recursive definition into a debate protocol. Describe precisely:what Alice claims, what message Alice sends in each round, what Bob sends in response, how the debate proceeds recursively, and what the verifier checks in the base case.
 \end{exercise}
