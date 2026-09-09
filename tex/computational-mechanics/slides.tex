@@ -284,15 +284,23 @@
   \vspace{0.3em}
   We are working to push the Pareto frontier:
   \begin{center}\resizebox{!}{0.62\textheight}{\figPareto}\end{center}
-  \vspace{-0.60\textheight}
-  \begin{tcolorbox}[colback=yellow!6,colframe=black!25,boxrule=0.6pt,arc=2pt]
-    {\color{red}\underline{\textbf{Wild Speculation:}}}
-    \vspace{0.6em}
+  % Overlaid, not inserted. A tcolorbox in the flow makes the body taller,
+  % beamer re-centres it, and the title line and plot slide down the slide --
+  % the original keeps them exactly where the previous frame has them.
+  \begin{tikzpicture}[remember picture, overlay]
+    \node[anchor=north, inner sep=0pt]
+      at ([yshift=-0.315\paperheight]current page.north) {%
+      \begin{minipage}{0.88\paperwidth}
+        \begin{tcolorbox}[colback=yellow!6,colframe=black!25,boxrule=0.6pt,arc=2pt]
+          {\color{red}\underline{\textbf{Wild Speculation:}}}
+          \vspace{0.6em}
 
-    As the research program is scale-free one view is that we should
-    develop the foundations such that future automated AI Safety
-    researchers can pursue these ideas independently
-  \end{tcolorbox}
+          As the research program is scale-free one view is that we should
+          develop the foundations such that future automated AI Safety
+          researchers can pursue these ideas independently
+        \end{tcolorbox}
+      \end{minipage}};
+  \end{tikzpicture}
 \end{frame}
 
 % --------------------------------------------------------------- 15 ---
