@@ -256,8 +256,21 @@ const QUIET = args.includes("--quiet");
 // Artifacts share tex/<slug>/ with sources, so top-level generated files are
 // excluded by extension (fig/ is all source, including its .pdf figures, and is
 // hashed whole). Anything not listed here counts as an input by default.
-const ARTIFACT_EXT = /\.(pdf|aux|log|out|toc|nav|snm|bbl|blg|fls|fdb_latexmk|synctex\.gz)$/i;
+// vrb (beamer verbatim), bcf + run.xml (biber), brf (hyperref backref): each
+// is written on a deck's or sheet's FIRST build, so leaving one out cost that
+// sheet one needless rebuild on the run after every cold build.
+const ARTIFACT_EXT = /\.(pdf|aux|log|out|toc|nav|snm|vrb|bbl|blg|bcf|run\.xml|brf|fls|fdb_latexmk|synctex\.gz)$/i;
 const ARTIFACT_NAME = new Set(["main.autolabel.tex", "main-nosol.tex", "main-nosol.mdx", ".build-hash"]);
+// Generated files the build writes INSIDE subdirectories, which are otherwise
+// hashed whole. Two steps do this: autolabel writes sections/<name>.autolabel.tex
+// beside each section source, and minted writes _minted/ + _minted-slides/
+// caches whose index file carries a build timestamp. Hashing them made a build
+// change its own inputs: the stamp records the pre-build hash, the tree no
+// longer matches it afterwards, so every sectioned sheet rebuilt a second time
+// after a cold build and any minted deck rebuilt on EVERY run (measured:
+// intro-to-ml-engineering, 8-17s per push, forever). Excluded at every depth.
+const GENERATED_DIR = /^_minted/;
+const GENERATED_FILE = /\.autolabel\.tex$/;
 
 // The decks a worksheet folder ships. `slides.tex` is the deck every folder has
 // had so far; a day with more than one lecture adds `slides-<label>.tex` beside
@@ -289,6 +302,7 @@ function hashDir(h, root, all = false) {
     // pinned by the lockfiles anyway — never walk it.
     if (e.name === "node_modules" || e.isSymbolicLink()) continue;
     if (!all && (ARTIFACT_NAME.has(e.name) || ARTIFACT_EXT.test(e.name))) continue;
+    if (e.isDirectory() ? GENERATED_DIR.test(e.name) : GENERATED_FILE.test(e.name)) continue;
     const p = path.join(root, e.name);
     h.update(e.name);
     if (e.isDirectory()) hashDir(h, p, true);
