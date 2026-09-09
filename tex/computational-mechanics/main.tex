@@ -13,6 +13,21 @@
 \begin{document}
 \maketitle
 
+\section{Prerequisites}\label{prerequisites}
+
+\textbf{Module C.2 (Mechanistic Interpretability).} Familiarity with the goals and basic methodology of mechanistic interpretability, including the notions of features and circuits; the linear representation hypothesis; linear probes as a method for reading off internal representations; and a basic understanding of the transformer architecture. Students should be comfortable with the idea that one can train a linear map from model activations to some target structure and evaluate its quality (e.g. via MSE or \(R^2\)).
+
+\textbf{Mathematical background.} The module is mathematically self-contained -- all formal definitions (HMMs, GHMMs, belief states, MSPs) are introduced from scratch. However, students will engage with the material more fluently if they are comfortable with the following:
+
+\begin{itemize}
+\item
+  \textbf{Linear algebra:} row-stochastic matrices, rank and invertibility, null spaces (kernels).
+\item
+  \textbf{Probability:} conditional probability, Bayes\textquotesingle{} rule, probability distributions over finite sets, the probability simplex.
+\item
+  \textbf{Basic machine learning:} next-token prediction, loss functions (cross-entropy), the concept of model activations.
+\end{itemize}
+
 \begin{learningoutcomes}
 \begin{itemize}
 \item
@@ -37,21 +52,6 @@
   Develop hypotheses for where transformers represent: belief states, observation probabilities, log observation probabilities.
 \end{itemize}
 \end{learningoutcomes}
-
-\section{Prerequisites}\label{prerequisites}
-
-\textbf{Module C.2 (Mechanistic Interpretability).} Familiarity with the goals and basic methodology of mechanistic interpretability, including the notions of features and circuits; the linear representation hypothesis; linear probes as a method for reading off internal representations; and a basic understanding of the transformer architecture. Students should be comfortable with the idea that one can train a linear map from model activations to some target structure and evaluate its quality (e.g. via MSE or \(R^2\)).
-
-\textbf{Mathematical background.} The module is mathematically self-contained -- all formal definitions (HMMs, GHMMs, belief states, MSPs) are introduced from scratch. However, students will engage with the material more fluently if they are comfortable with the following:
-
-\begin{itemize}
-\item
-  \textbf{Linear algebra:} row-stochastic matrices, rank and invertibility, null spaces (kernels).
-\item
-  \textbf{Probability:} conditional probability, Bayes\textquotesingle{} rule, probability distributions over finite sets, the probability simplex.
-\item
-  \textbf{Basic machine learning:} next-token prediction, loss functions (cross-entropy), the concept of model activations.
-\end{itemize}
 
 \section{Content}\label{content}
 
