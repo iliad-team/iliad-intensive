@@ -1,0 +1,279 @@
+% YAML frontmatter for the website sits in the block below. LaTeX ignores it
+% (it is a comment); the converter lifts it verbatim into the module
+% frontmatter and CI validates it (pure YAML).
+% Keys: title, summary, contributors — all optional. The website extracts
+% title/contributors from \title{} and \author{}; a frontmatter key here
+% overrides the extracted value. `summary:` is the sheet's OVERVIEW — the
+% page header shows it under the title, and it doubles as the index blurb,
+% so it lives here (metadata, never an "Overview" body section) and stays
+% one tight paragraph. Use a YAML folded block scalar (`>-`) with
+% continuation lines indented two spaces after the leading `% `.
+% Where the sheet sits in the course — its cluster and teaching day — is NOT a
+% key here: list the slug under its day in schedule.yaml and the build stamps
+% both in. (`unlisted: true` is a maintainer flag: the page is built but
+% linked from nowhere, and excused from the schedule — this demo is the one
+% sheet that wants it.)
+%--- iliad -------------------------------------------------------------------
+% title: "Example Worksheet: The Kitchen Sink"
+% summary: >-
+%   A dummy worksheet demonstrating every construct the pipeline supports.
+% unlisted: true
+%--- end ----------------------------------------------------------------------
+\documentclass[11pt]{article}
+
+% The ONE required package. It provides: exercise, solution, proof, callout,
+% remark, definition/theorem/lemma/proposition/corollary/fact/example,
+% the \ifsolutions toggle, and loads hyperref+cleveref (configure hyperref
+% with \hypersetup{...}; don't re-load it). PDF styling is plain by default —
+% style your PDF however you like, or pass [boxes] for ready-made colour boxes.
+% iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
+
+% \solutionsfalse   % uncomment to hide all solutions from the PDF
+
+% ---- Free zone -------------------------------------------------------------
+% Define whatever notation you like; load extra packages as needed.
+% Macros become KaTeX \gdef's automatically (avoid \mathchoice / optional-arg
+% macros — the converter warns if it can't translate one).
+\usepackage{tikz}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\KL}[2]{D_{\mathrm{KL}}\!\left(#1 \,\middle\|\, #2\right)}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\title{Example Worksheet: The Kitchen Sink}
+\author{\authorname{Jane Doe}\\ \affiliation{Example University}
+  \and John Roe}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+% Front matter opens every sheet, in this fixed order (docs/commands.md
+% §"Front matter opens the sheet"):
+%   1. video embeds (optional)   2. Prerequisites   3. the learning-outcomes
+% box — then the content. The sheet's OVERVIEW is not a body section: it is
+% the `summary:` in the metadata block up top, and the page header shows it
+% under the title. The build prints a non-fatal warning when a sheet strays
+% from this order or keeps an Overview section in the body.
+
+% \youtube[Title]{VIDEO_ID} — pass the 11-character video ID (the v= value of
+% the watch URL), never the full URL. Embedded player on the web; here in the
+% PDF, a "Video:" line carrying the watch URL. With no [Title], the web build
+% queries the title from YouTube itself. Optional — most sheets have none.
+% Lecture recordings go here, first; a video illustrating one point may sit
+% with that point instead.
+\youtube{dQw4w9WgXcQ}
+
+%===============================================================================
+\section{Prerequisites}
+\label{sec:prereqs}
+
+Prerequisites, further reading, and anything else you want to say are just
+ordinary \LaTeX{} — no special markup. For this sheet:
+\begin{itemize}
+  \item comfort with probability on finite sets ($\E$, distributions);
+  \item one variable of calculus (we differentiate $-t \log t$ once).
+\end{itemize}
+
+% The "What you'll learn" box: after Prerequisites, before the content.
+% The body is ordinary LaTeX. Simplest form: a single itemize.
+%   \begin{learningoutcomes}
+%     \begin{itemize}
+%       \item ...
+%     \end{itemize}
+%   \end{learningoutcomes}
+% For a longer sheet, group the outcomes under \subsection*{...} headings,
+% each followed by its own itemize (the headings become bold subheadings in
+% the box, on both the PDF and the web) -- shown here:
+\begin{learningoutcomes}
+  \subsection*{Using this template}
+  \begin{itemize}
+    \item Recognise every markup element the tex $\to$ MDX pipeline supports.
+    \item Copy this file as the starting point for a new worksheet.
+  \end{itemize}
+
+  \subsection*{Structuring learning outcomes}
+  \begin{itemize}
+    \item Group outcomes with \verb|\subsection*{...}| plus an \verb|itemize| when a flat list gets long.
+    \item Drop the \verb|\subsection*| headings for a short sheet -- a single \verb|itemize| is fine.
+  \end{itemize}
+\end{learningoutcomes}
+
+This dummy worksheet demonstrates every construct that survives the round trip
+from \LaTeX{} to the curriculum website. Compile it with \texttt{pdflatex}
+(twice, then \texttt{bibtex}, then twice again for the bibliography), or just
+read the source side by side with the rendered page.
+
+%===============================================================================
+\section{Prose, math, and cross-references}
+\label{sec:basics}
+
+Ordinary prose converts verbatim, including \emph{emphasis}, \textbf{bold},
+\texttt{monospace}, and special characters like 50\% or \S3. Inline math is
+copied byte-for-byte: $e^{i\pi} + 1 = 0$, and KaTeX handles comparisons like
+$x_{<t}$ without trouble. Custom notation defined in the preamble just works:
+$\KL{p}{q} \geq 0$, $\argmax_{a} \E[R \mid a]$, for $p, q$ distributions on
+$\R^n$.
+
+Display math works as \, \[ \sum_{k=1}^{n} k = \frac{n(n+1)}{2}, \]
+and as numbered equations you can reference:
+\begin{equation}
+  \label{eq:basel}
+  \sum_{n \geq 1} \frac{1}{n^2} = \frac{\pi^2}{6}.
+\end{equation}
+Multi-line derivations use \texttt{align}:
+\begin{align}
+  (a+b)^2 &= (a+b)(a+b) \\
+          &= a^2 + 2ab + b^2.
+\end{align}
+Cross-references resolve to the exact text LaTeX prints: \cref{eq:basel} sits
+in \cref{sec:basics}; below we will meet \cref{def:entropy,thm:gibbs}. Lists
+are fine too:
+\begin{itemize}
+  \item first bullet;
+  \item second bullet, with math $2^n$.
+\end{itemize}
+
+%===============================================================================
+\section{Definitions, theorems, and callouts}
+\label{sec:results}
+
+Label anything you want to reference. Any placement \LaTeX{} binds correctly
+is valid (top level of the environment); right after the \texttt{begin} is
+clearest.
+
+\begin{definition}[entropy]
+\label{def:entropy}
+The \emph{entropy} of a distribution $p$ on a finite set $\mathcal{X}$ is
+\[ H(p) = -\sum_{x \in \mathcal{X}} p(x) \log p(x). \]
+\end{definition}
+
+\begin{theorem}[Gibbs' inequality]
+\label{thm:gibbs}
+For any distributions $p, q$ on $\mathcal{X}$,
+$-\sum_x p(x) \log q(x) \geq H(p)$, with equality iff $p = q$.
+\end{theorem}
+
+\begin{proof}
+By definition, $\KL{p}{q} = \sum_x p(x) \log \frac{p(x)}{q(x)} \geq 0$ by
+Jensen's inequality applied to the concave function $\log$; rearranging gives
+the claim. Equality in Jensen requires $p(x)/q(x)$ constant, i.e.\ $p = q$.
+(On the website this proof is collapsible, like a solution.)
+\end{proof}
+
+\begin{lemma}
+\label{lem:uniform}
+$H(p) \leq \log |\mathcal{X}|$, with equality iff $p$ is uniform.
+\end{lemma}
+
+\begin{proof}
+Apply \cref{thm:gibbs} with $q$ uniform.
+\end{proof}
+
+\begin{callout}[warning]
+\label{co:pitfall}
+Callouts flag pitfalls, tips, or side notes. Types: \texttt{note},
+\texttt{tip}, \texttt{warning}. They may be labelled and referenced,
+like this one.
+\end{callout}
+
+\begin{remark}
+\label{rem:aside}
+A \texttt{remark} is an aside; on the website it renders as a note-style
+callout. Referencing works: see \cref{co:pitfall} above (and this remark is
+\cref{rem:aside}).
+\end{remark}
+
+%===============================================================================
+\section{Exercises and solutions}
+\label{sec:exercises}
+
+The optional argument of an exercise is its title, exactly as in amsthm.
+An optional \verb|\important| mark (a $\bigstar$ flagging the sheet's most
+important exercises) goes right after the label. Subparts are a plain
+\texttt{enumerate}; label an item to reference it. Every solution
+\emph{names its exercise} — \texttt{[ex:label]} is mandatory — so you may
+place solutions right after each exercise or collect them at the end, as you
+prefer. Exercises don't require solutions; label any exercise a solution or
+reference points at.
+
+\begin{exercise}[Entropy warm-up]
+\label{ex:warmup}
+Let $p$ be a distribution on a finite set $\mathcal{X}$.
+\begin{enumerate}
+  \item Show that $H(p) \geq 0$.
+        \label{ex:warmup-a}
+  \item For which $p$ is $H(p) = 0$?
+\end{enumerate}
+\end{exercise}
+
+\begin{solution}[ex:warmup]
+For \cref{ex:warmup-a}: each term $-p(x)\log p(x) \geq 0$ since
+$p(x) \in [0,1]$. For part (b): $H(p) = 0$ iff every term vanishes iff $p$ is
+a point mass. \hint{when is $-t \log t = 0$ on $[0,1]$?}
+\end{solution}
+
+\begin{exercise}[Gibbs, the hard direction]
+\label{ex:gibbs-hard}
+\important
+Prove the equality case of \cref{thm:gibbs} directly, without citing Jensen's
+equality condition. \note{this one is solved at the end of the sheet instead
+of inline, to demonstrate both solution placements.}
+\end{exercise}
+
+Hints also have a block form: unnumbered, never labeled, rendered right where
+it is written — a bold lead-in on paper, a collapsible drop-down on the web.
+
+\begin{hint}
+Consider $f(t) = t - 1 - \log t$: it is nonnegative on $t > 0$ and vanishes
+only at $t = 1$.
+\end{hint}
+
+%===============================================================================
+\section{Figures and citations}
+\label{sec:figures}
+
+Figures use \texttt{figure} + \verb|\includegraphics| (export TikZ to PDF the
+same way; keep assets in \texttt{fig/}).
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.45\linewidth]{fig/value-curve.pdf}
+  \caption{An example figure. On the web this becomes a \texttt{Figure}
+  component.}
+  \label{fig:value}
+\end{figure}
+
+See \cref{fig:value}. Citations come from the \texttt{.bib} file: the idea of
+entropy is due to \cite{Shannon:48}; for a textbook treatment see
+\cite[ch.~4]{MacKay:03}. External links are plain
+\href{https://en.wikipedia.org/wiki/Entropy_(information_theory)}{hyperlinks},
+and footnotes are supported.\footnote{On the web this becomes a numbered
+  footnote: the marker links down to a note at the foot of the page, and the
+  note links back. In the PDF it is an ordinary \LaTeX{} footnote.}
+
+%===============================================================================
+\section*{Selected solutions}
+
+\begin{solution}[ex:gibbs-hard]
+Write $f(t) = t - 1 - \log t$ for $t > 0$ and note $f(t) \geq 0$ with equality
+iff $t = 1$. Then with $t_x = q(x)/p(x)$,
+\[ -\sum_x p(x) \log q(x) - H(p) = \sum_x p(x) f\!\left(t_x\right) +
+   \sum_x \bigl(p(x) - q(x)\bigr) \geq 0, \]
+and equality forces $t_x = 1$ wherever $p(x) > 0$, i.e.\ $p = q$.
+\end{solution}
+
+% A solutionsonly block appears ONLY in the with-solutions build: it renders as
+% plain content here and in the with-solutions PDF, and is removed entirely from
+% every -nosol download (like a solution, but with no box, heading, or exercise
+% binding). Use it for an answer key, an instructor aside, or any spoiler.
+\begin{solutionsonly}
+\textbf{Instructor note.} \cref{ex:gibbs-hard} is the one to discuss on
+the board if time is short; the warm-up can be left for self-study.
+\end{solutionsonly}
+
+\bibliographystyle{plain}
+\bibliography{biblo}
+
+\end{document}

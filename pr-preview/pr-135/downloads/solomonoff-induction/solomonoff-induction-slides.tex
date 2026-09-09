@@ -1,0 +1,224 @@
+% Overview slides for the Iliad Intensive worksheets:
+%   - Solomonoff Induction  (solomonoff-worksheet.tex, Leon Lang)
+%   - AIXI                  (aixi-worksheet.tex, David Quarel)
+% Template cribbed from ../arena-intro-rl-slides/main.tex
+%
+% Build: pdflatex -> bibtex -> pdflatex -> pdflatex (bibtex needed for the
+%        References frame; CI's latexmk runs this automatically).
+%        pdflatex -interaction=nonstopmode -halt-on-error si_and_aixi_slides.tex
+%
+% Pause behaviour: the default build keeps the \pause reveals (presentation).
+% Define \HANDOUT to collapse them into a static handout, e.g.
+%   pdflatex "\def\HANDOUT{}\input{si_and_aixi_slides}"
+%   latexmk  ... -usepretex=\def\HANDOUT{}        (used by CI)
+
+\ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
+\documentclass[10pt,aspectratio=169]{beamer}
+% Theme, packages, link colours and \citev: the shared deck style (optional —
+% see tex/iliad-slides.sty). Local copy first, so this folder still compiles
+% when it is copied out of the repo.
+\IfFileExists{iliad-slides.sty}{\usepackage{iliad-slides}}{\usepackage{../iliad-slides}}
+
+%====================== macros shared with the worksheets ======================
+\newcommand{\cA}{\mathcal{A}}
+\newcommand{\cO}{\mathcal{O}}
+\newcommand{\cR}{\mathcal{R}}
+\newcommand{\cE}{\mathcal{E}}
+\newcommand{\cH}{\mathcal{H}}
+\newcommand{\cM}{\mathcal{M}}
+\newcommand{\Mc}{\mathcal{M}}
+\newcommand{\Ex}{\mathbb{E}}
+\newcommand{\Prob}{\mathbb{P}}
+\newcommand{\B}{\mathbb{B}}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\newcommand{\TV}{\mathrm{TV}}
+\newcommand{\KL}{\mathrm{KL}}
+\newcommand{\aes}{{\text{\ae}}}            % action--percept history symbol
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\blue}[1]{\textcolor{blue}{#1}}
+\newcommand{\green}[1]{\textcolor{green!55!black}{#1}}
+\newcommand{\purple}[1]{\textcolor{violet}{#1}}
+\newcommand{\iver}[1]{\llbracket #1 \rrbracket}
+
+%===============================================================================
+\begin{document}
+
+\title[Solomonoff: a speedrun]{Universal AI: Solomonoff Induction}
+\author[David Quarel]{David Quarel}
+\institute[Iliad Intensive]{Iliad Intensive}
+\date{June 2026}
+
+\frame{\titlepage}
+
+%===============================================================================
+\begin{frame}{The big picture: one agent, two halves}
+\begin{itemize}
+    \item \textbf{Universal AI} asks: what would an \emph{optimally intelligent} agent look like, given unlimited compute and the weakest possible assumptions?
+    \pause
+    \item It splits into two problems:
+    \begin{enumerate}
+        \item \textbf{Prediction (Solomonoff):} passively observe a sequence $x_1, x_2, \ldots$ and predict the next symbol. \emph{How should you learn?}
+        \pause
+        \item \textbf{Action (AIXI):} interact with an unknown environment, take actions, collect reward. \emph{How should you act?}
+    \end{enumerate}
+    \pause
+    \item \textbf{The common engine:} a single \textbf{Bayesian mixture} $\xi$ over a class $\cM$ of candidate environments, weighted by a prior $w_\nu$.
+    \begin{itemize}
+        \item Solomonoff: $\xi$ (eventually) predicts as well as the truth $\mu$.
+        \item AIXI: the Bayes-optimal policy $\pi_\xi^*$ (eventually) acts as well as the optimal policy $\pi_\mu^*$ for true environment $\mu$.
+    \end{itemize}
+    \pause
+    \item \textbf{Universal} choice: $\cM=$ all computable environments, prior $w_\nu = 2^{-K(\nu)}$ ($K$ is the ``complexity'' of the environment). Assumption ``$\mu\in\cM$'' becomes ``\emph{the universe is computable}''.
+\end{itemize}
+\end{frame}
+
+%========================= PART 1: SOLOMONOFF ==================================
+
+
+\begin{frame}{The problem of induction, formalized}
+\begin{itemize}
+    \item A true (unknown) environment $\mu$ generates a binary sequence; each bit
+    $x_t \sim \mu(\cdot \mid x_{<t})$.
+    \pause
+    \item A \textbf{predictor} $P$ sees the past $x_{<t}$ and outputs a distribution
+    $P(\cdot \mid x_{<t})$ over the next bit.
+    \pause
+    \item \textbf{Quality measure:} Cumulative $\mu$-expected squared prediction error $S_\infty^\mu := \sum_{t=1}^{\infty} s_t^\mu$
+    \begin{block}{Per-step squared prediction error $s_t^\mu$}
+        \begin{align*}
+    s_t^\mu = \mathbb{E}_\mu \left[ \sum_{x_t} \left( P(x_t \mid x_{<t}) - \mu(x_t \mid x_{<t}) \right)^2 \right] 
+     = \sum_{x_{<t}} \mu(x_{<t}) \left[ \sum_{x_t} \left( P(x_t \mid x_{<t}) - \mu(x_t \mid x_{<t}) \right)^2 \right]
+    \end{align*}
+    \end{block}
+    \pause
+    \item \textbf{Goal:} build a $P$ that makes cumulative error $S_\infty^\mu$ \emph{small}.
+    \pause
+    \item \textbf{Idea:} don't bet on one model. Hedge your bets and mix 
+    over a whole class $\cM=\{\nu_1,\nu_2,\dots\}$ of potential environments.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{The Bayesian mixture $\xi$}
+\begin{block}{Definition}
+Class $\cM=\{\nu_1,\nu_2,\dots\}$ with prior weights $w_\nu>0$, $\sum_\nu w_\nu = 1$.
+\[
+\xi(x_{1:t}) := \sum_{\nu \in \cM} w_\nu\, \nu(x_{1:t}).
+\]
+\end{block}
+\pause
+\begin{itemize}
+    \item \textbf{Key fact (mixture is a predictor):} its one-step prediction is a
+    \emph{posterior-weighted} average of the members' predictions (you prove this today!)
+    \[
+    \xi(x_t \mid x_{<t}) = \sum_{\nu \in \cM} w(\nu \mid x_{<t})\, \nu(x_t \mid x_{<t}),
+    \qquad
+    w(\nu \mid x_{<t}) = w_\nu\,\frac{\nu(x_{<t})}{\xi(x_{<t})}.
+    \]
+    \pause
+    \item \textbf{Posterior update is multiplicative:}
+    $w(\nu \mid x_{1:t}) = w(\nu\mid x_{<t})\cdot \dfrac{\nu(x_t\mid x_{<t})}{\xi(x_t\mid x_{<t})}$: we
+    reweight by how well $\nu$ predicted vs.\ $\xi$ (Bayes' rule!)
+\end{itemize}
+\end{frame}
+
+% \begin{frame}{Two more ingredients}
+% \begin{block}{Dominance}
+% Dropping all but one term, $\;\xi(x_{1:t}) \geq w_\nu\, \nu(x_{1:t})\;$ for every $\nu \in \cM$.\\
+% So $\mu(x_{1:t})/\xi(x_{1:t}) \leq 1/w_\mu$: \emph{the mixture never assigns much less mass than the truth.}
+% \end{block}
+% \pause
+% \begin{block}{KL divergence telescopes}
+% Cumulative KL over a history splits into a sum of per-step KLs:
+% \[
+% D_n(\nu \parallel \rho) = \sum_{t=1}^n d_t(\nu \parallel \rho).
+% \]
+% \end{block}
+% \pause
+% \begin{block}{Pinsker's inequality (binary)}
+% Squared error is controlled by KL:
+% $\displaystyle \sum_{x}(q_x - p_x)^2 \leq \sum_x p_x \ln \tfrac{p_x}{q_x}.$
+% \end{block}
+% \end{frame}
+
+\begin{frame}{Main result: the cumulative prediction bound}
+\begin{block}{Cumulative bound}
+\[
+S_\infty^\mu := \sum_{t=1}^{\infty} \sum_{x_{<t}} \mu(x_{<t})
+    \sum_{x_t \in \B} \big( P(x_t \mid x_{<t}) - \mu(x_t \mid x_{<t}) \big)^2
+\;\leq\; -\ln w_\mu
+\]
+\end{block}
+\begin{itemize}
+    \item Total squared error over \emph{all time} is finite, bounded by the prior penalty on $\mu$.
+    \item Higher prior on the truth $\Rightarrow$ smaller total error.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Specializing to the Solomonoff prior}
+\begin{itemize}
+    \item Take the \textbf{Solomonoff prior} $w_\nu = 2^{-K(\nu)}$, where $K(\nu)$ is the
+    \emph{Kolmogorov complexity}: length of the shortest program computing $\nu$.
+    \pause
+    \item Substitute $w_\mu = 2^{-K(\mu)}$ into the cumulative bound:
+\end{itemize}
+\begin{block}{Explicit complexity bound}
+\[
+\; S^\mu_\infty \;\leq\; K(\mu)\,\ln 2 
+\]
+\end{block}
+\pause
+\begin{itemize}
+    \item \textbf{Interpretation:} the total prediction error is bounded by the
+    \emph{description length} of the true environment. Simpler worlds are learned faster.
+    \item This is the formal version of \textbf{Occam's razor}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Other properties of the Solomonoff prior}
+\begin{itemize}
+    \item \textbf{Bounded mistakes:} on a deterministic sequence, predicting the
+    most likely bit $\hat{x}_t = \arg\max_{x \in \B} \xi(x \mid x_{<t})$ makes at most $-2\ln w_\mu$ wrong guesses \emph{ever}.
+    \pause
+    \item \textbf{Pareto optimality:} no other predictor beats $\xi$ on \emph{every} $\nu\in\cM$
+    simultaneously (for KL loss \emph{and} squared loss).
+    \pause
+    \item \textbf{Misspecification ($\mu \notin \cM$):} the bound degrades gracefully,
+    \[
+    S^\mu_\infty \leq -\ln w_{\hat\mu} +  D_n(\mu \parallel \hat\mu)  
+    \]
+    where $\hat\mu$ is the closest model in $\cM$ to $\mu$.
+\end{itemize}
+\end{frame}
+
+%========================= WRAP-UP ============================================
+
+\begin{frame}{Takeaways}
+\begin{itemize}
+    \item \textbf{Solomonoff} solves induction: mix over all computable hypotheses, weighted by simplicity.
+    Total prediction error $\leq K(\mu)\ln 2$.
+    \pause
+    \item \textbf{AIXI} lifts this to action: the Bayes-optimal policy over the same universal mixture.
+    It learns to predict \emph{and} to act as well as if it knew the world.
+    \pause
+    \item \textbf{The catch:} both are \emph{incomputable} ($K$ is incomputable; $\cM$ is intractable to enumerate).
+    They are gold standards, not computable algorithms, and the prior's $2^{-K(\nu)}$ hides a dependency
+    on the choice of universal Turing machine.
+    \pause
+    \item \textbf{Why care for safety:} a precise, assumption-light model of idealized 
+    intelligence providing a lens on what optimal agents do. For example, we
+    can show under what circumstances AIXI would \href{https://people.idsia.ch/~ring/AGI-2011/Paper-B.pdf}{wirehead}~\citev{Ring:11delusion},
+    \href{https://arxiv.org/pdf/2006.03357}{safely rather than recklessly explore}~\citev{Cohen:20curiosity}, or
+    \href{https://link.springer.com/chapter/10.1007/978-3-642-22887-2_1}{self-modify}~\citev{Orseau:11selfmod}
+    as a model of what superintelligent agents would do.
+\end{itemize}
+\end{frame}
+
+%========================= REFERENCES ==========================================
+\begin{frame}[allowframebreaks]{References}
+\footnotesize
+\setbeamertemplate{bibliography item}[text]
+\bibliographystyle{alphaurl}
+\bibliography{biblo}
+\end{frame}
+
+\end{document}

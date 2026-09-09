@@ -1,0 +1,612 @@
+%--- iliad ---
+% summary: TODO
+%--- end ---
+\documentclass[11pt]{article}
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
+
+\title{Computational Mechanics}
+\author{\authorname{Xavier Poncini}\\ \affiliation{Simplex}
+  \and \authorname{Adam Shai}\\ \affiliation{Simplex}
+  \and \authorname{Paul Riechers}\\ \affiliation{Simplex}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Prerequisites}\label{prerequisites}
+
+Familiarity with the goals and basic methodology of mechanistic interpretability, 
+including the notions of features and circuits; the linear representation hypothesis; 
+linear probes as a method for reading off internal representations; and a basic 
+understanding of the transformer architecture. 
+
+Students should be comfortable with the idea that one can train a linear map 
+from model activations to some target structure and evaluate its 
+quality (e.g. via MSE or \(R^2\)).
+
+\textbf{Mathematical background.} The module is mathematically self-contained: 
+all formal definitions (HMMs, GHMMs, belief states, MSPs) are introduced from scratch. 
+However, students will engage with the material more fluently if they are comfortable with the following:
+
+\begin{itemize}
+\item
+  \textbf{Linear algebra:} row-stochastic matrices, rank and invertibility, null spaces (kernels).
+\item
+  \textbf{Probability:} conditional probability, Bayes\textquotesingle{} rule, probability distributions over finite sets, the probability simplex.
+\item
+  \textbf{Basic machine learning:} next-token prediction, loss functions (cross-entropy), the concept of model activations.
+\end{itemize}
+
+\begin{learningoutcomes}
+\begin{itemize}
+\item
+  Construct their own hidden Markov models.
+\item
+  Explain the motivation for introducing generalised hidden Markov models (GHMMs).
+\item
+  Explain why the belief state is a useful object for making predictions about GHMM data.
+\item
+  Compute the belief state of a GHMM.
+\item
+  Explain the difference between the belief state of a HMM and the belief state of a GHMM (that is itself not an HMM).
+\item
+  Explain the relationship between belief states and next-token observation probabilities for GHMMs.
+\item
+  Compute the mixed state presentation (MSP) for GHMMs.
+\item
+  Explain why generating data is easier than predicting data.
+\item
+  Explain the evidence for the claim: transformers represent belief state geometry in their residual stream.
+\item
+  Develop hypotheses for where transformers represent: belief states, observation probabilities, log observation probabilities.
+\end{itemize}
+\end{learningoutcomes}
+
+\section{Content}\label{content}
+
+\subsection{Fast-track}\label{fast-track}
+
+Read \href{https://arxiv.org/pdf/2405.15943}{Transformers represent belief state geometry in their residual stream}. Focus on being able to answer the following questions:
+
+\begin{itemize}
+\item
+  What is a hidden Markov model (HMM)?
+\item
+  What is a belief state?
+\item
+  What is the mixed state presentation (MSP)?
+\item
+  About the map learnt from activations to belief states:
+  \begin{itemize}
+  \item
+    What is the source?
+  \item
+    What is the target?
+  \item
+    How is the quality of the map evaluated?
+  \end{itemize}
+\end{itemize}
+
+% The per-block Exercise/Tutorial sheets the Doc linked on Drive are this
+% page's own sections now, so these point inward. "Exercise Sheet" is
+% brace-grouped only to dodge the \hyperref lint, which reads the capital S
+% after "Exercise" as a frozen reference number; there is no number to go
+% stale. Block 3's lecture links stay on Drive -- that deck has no source.
+\subsection{Main content}\label{main-content}
+
+\begin{enumerate}
+\item
+  {[}\href{https://iliad-intensive.org/downloads/computational-mechanics/computational-mechanics-slides.pdf}{Lecture slides}{]} \textbf{Overview and scope}
+  \begin{enumerate}
+  \item
+    What is computational mechanics?
+  \item
+    Computational mechanics \& AI safety
+  \item
+    Where is the research program at?
+  \item
+    What will we cover today?
+  \end{enumerate}
+\item
+  \textbf{Computational mechanics foundations}
+  \begin{enumerate}
+  \item
+    {[}\href{https://iliad-intensive.org/downloads/computational-mechanics/computational-mechanics-slides.pdf}{Lecture Slides} \& \hyperref[hidden-markov-models]{{Exercise Sheet}}{]} \textbf{Hidden Markov Models (HMMs)}
+    \begin{enumerate}
+    \item
+      What is an HMM?
+    \item
+      Notions of minimality \& uniqueness
+    \item
+      What is a generalised HMM (GHMM)? (see e.g. \href{https://arxiv.org/pdf/2507.07432}{Neural networks leverage nominally quantum and post-quantum representations})
+    \end{enumerate}
+  \item
+    {[}\href{https://drive.google.com/file/d/1IPz8Pq939VbjmVqYcYDybdJ02yvdgMGS/view?usp=sharing}{Lecture slides} \& \hyperref[prediction]{{Exercise Sheet}}{]} \textbf{Prediction}
+    \begin{enumerate}
+    \item
+      Belief states
+    \item
+      Next-token (probability) vectors
+    \item
+      Mixed-state-presentation (MSP) (see e.g. \href{https://csc.ucdavis.edu/~cmg/papers/msc.pdf}{Mixed States of Hidden Markov Processes and Their Presentations: What and how to calculate})
+    \end{enumerate}
+  \end{enumerate}
+\item
+  \textbf{Applications}
+  \begin{enumerate}
+  \item
+    {[}\hyperref[designing-processes]{Tutorial Sheet}{]} \textbf{Designing processes worth studying}
+    \begin{enumerate}
+    \item
+      Heuristic ensuring beliefs are meaningfully richer than obs probs
+    \item
+      Non-ergodic
+    \item
+      Factors (see e.g. \href{https://arxiv.org/pdf/2602.02385v1}{Transformers learn factored representations})
+    \end{enumerate}
+  \item
+    {[}\hyperref[belief-geometry]{Reading guide}{]} \textbf{Identifying belief geometry in transformers}
+    \begin{enumerate}
+    \item
+      For the case of HMMs -- {[}Read: \href{https://arxiv.org/pdf/2405.15943}{Transformers represent belief state geometry in their residual stream}{]}.
+    \item
+      {[}extension{]} For the case of GHMMs -- {[}Read: \href{https://arxiv.org/pdf/2507.07432}{Neural networks leverage nominally quantum and post-quantum representations}{]}
+    \end{enumerate}
+  \item
+    {[}\hyperref[how-transformers-do-it]{Tutorial Sheet}{]} \textbf{How do transformers do it?}
+    \begin{enumerate}
+    \item
+      How do transformers construct representations of belief states? Partial answer in narrow setting -- {[}Read: \href{https://arxiv.org/pdf/2502.01954v2}{Constrained belief updates explain geometric structures in transformer representations}{]}
+    \item
+      How do they decode from belief states to log obs probs then obs probs? This is an open problem!
+    \end{enumerate}
+  \end{enumerate}
+\end{enumerate}
+
+\section{Hidden Markov models}\label{hidden-markov-models}
+\emph{Below are exercises accompanying the \href{https://iliad-intensive.org/downloads/computational-mechanics/computational-mechanics-slides.pdf}{lecture} on hidden Markov models (HMMs). In this session, you will implement a GHMM from scratch and use it to compute the probability of observed token sequences -- the foundational machinery you will build on in later blocks. Spend \textasciitilde30 minutes on these exercises; start with the core set, and progress to the extension if you have time.}
+
+\subsection{Core exercises}\label{sec:hmm-core}
+
+\begin{exercise}
+\label{ex:hmm-core-1}
+Using your programming language of choice, implement a function that takes in:
+
+\begin{enumerate}
+\item
+  The transition matrices of a GHMM (a three-tensor)
+\item
+  The initial vector
+\item
+  A sequence of tokens
+\end{enumerate}
+
+and outputs the probability of observing that particular sequence of tokens.
+\end{exercise}
+
+\begin{exercise}
+\label{ex:hmm-core-2}
+Test your function on the random-random-XOR (RRXOR) process when initialised in the state \(\eta^{(\emptyset)} = [1\;0\;0\;0\;0]\). Make sure you assign zero probability to XOR violations.
+\end{exercise}
+
+\begin{exercise}
+\label{ex:hmm-core-3}
+Convince yourself that that the definition of a GHMM allows one to interpret \(\eta^{(\emptyset)}T^{(w_1)}T^{(w_2)}\cdots T^{(w_n)}\phi\) as the probability of emitting the sequence \(w_1 w_2 \ldots w_n\).
+\end{exercise}
+
+\begin{exercise}
+\label{ex:hmm-core-4}
+Derive the transition matrices for the zero-random-random process.
+\end{exercise}
+
+\subsection{Extension exercises}\label{sec:hmm-ext}
+
+\begin{exercise}
+\label{ex:hmm-ext-1}
+The RRXOR process can be viewed as a particular instance of a more general process called \emph{random-random-Mod p} (RRModp) where p = 2,3,..., and RRXOR = RRMod2.
+
+\begin{enumerate}
+\item
+  What are the transition matrices for the RRMod3 process?
+\item
+  What are the transition matrices for the RRModp process?
+\item
+  Do you notice anything about the matrices sitting in the blocks?
+\end{enumerate}
+\end{exercise}
+
+\begin{exercise}
+\label{ex:hmm-ext-2}
+The RRModp process can be similarly viewed as a particular instance of a more general process that computes the product of two \emph{group} elements (for RRModp the cyclic group is the relevant one). Identify another group whose multiplication can be expressed as an HMM.
+\end{exercise}
+
+
+\section{Prediction}\label{prediction}
+\emph{Below are exercises accompanying the \href{https://drive.google.com/file/d/1IPz8Pq939VbjmVqYcYDybdJ02yvdgMGS/view?usp=sharing}{lecture} on prediction. Building on your GHMM implementation from \hyperref[hidden-markov-models]{Block 2}, you will now compute belief states and next-token vectors, and use them to probe the predictive structure of canonical processes (Z1R, Mess3, RRXOR). Spend \textasciitilde30 minutes on these exercises; start with the core set, and progress to the extension if you have time.}
+
+\subsection{Core exercises}\label{sec:pred-core}
+
+\begin{exercise}
+\label{ex:pred-core-1}
+Using your programming language of choice, implement a function that takes in:
+
+\begin{enumerate}
+\item
+  The transition matrices of a GHMM (a three-tensor)
+\item
+  The initial vector
+\item
+  A sequence of tokens
+\end{enumerate}
+
+and outputs the corresponding: belief state and next-token (prediction) vector.
+\end{exercise}
+
+\begin{exercise}
+\label{ex:pred-core-2}
+Test your function on the zero-one-random (Z1R) process when initialised in the state \(\eta^{(\emptyset)} = [1/3\;\;1/3\;\;1/3]\), and compare to the results of the worked example on \href{https://drive.google.com/file/d/1IPz8Pq939VbjmVqYcYDybdJ02yvdgMGS/view?usp=sharing}{Slide 12}.
+\end{exercise}
+
+\begin{exercise}
+\label{ex:pred-core-3}
+Visualise belief state geometry and the next-token geometry for the \href{https://github.com/Astera-org/simplexity/blob/main/simplexity/generative_processes/transition_matrices.py}{Mess3 process} initialised in the uniform distribution. Does it look like the theoretical prediction in Fig. 1 of \href{https://arxiv.org/pdf/2405.15943}{Shai et al}?
+\end{exercise}
+
+\begin{exercise}
+\label{ex:pred-core-4}
+Derive the belief state update rule on \href{https://drive.google.com/file/d/1IPz8Pq939VbjmVqYcYDybdJ02yvdgMGS/view?usp=sharing}{Slide 5}.
+\end{exercise}
+
+\begin{exercise}
+\label{ex:pred-core-5}
+Show that the matrix elements of the matrix taking beliefs to next-token probabilities are given by expression stated on \href{https://drive.google.com/file/d/1IPz8Pq939VbjmVqYcYDybdJ02yvdgMGS/view?usp=sharing}{Slide 7}.
+\end{exercise}
+
+\subsection{Extension exercises}\label{sec:pred-ext}
+
+\begin{exercise}
+\label{ex:pred-ext-1}
+Evaluate whether the linear map from beliefs to observation probabilities is invertible for:
+
+\begin{enumerate}
+\item
+  RRXOR
+\item
+  Mess3
+\end{enumerate}
+\end{exercise}
+
+\begin{exercise}
+\label{ex:pred-ext-2}
+Complete the MSP of the Z1R process (explored in the lecture) by annotating the tokens with the correct emission probabilities.
+\end{exercise}
+
+\begin{exercise}
+\label{ex:pred-ext-3}
+Compute the MSP for the zero-random-random process.
+\end{exercise}
+
+\begin{exercise}
+\label{ex:pred-ext-4}
+For an element \(a\in \mathcal{X}^*\), the corresponding \emph{causal state equivalence class} is given by
+
+\[
+[a]_{\mathrm{C}} := \{x \in \mathcal{X}^*\,|\, \Pr(y\,|\, a) = \Pr(y\,|\, x) ,\,\,\forall\,y\in\mathcal{X}^*  \} .
+\]
+Likewise, the corresponding \emph{belief state equivalence class} is given by
+
+\[
+[a]_{\mathrm{B}} := \{x \in \mathcal{X}^*\,|\, \eta^{(a)} = \eta^{(x)}  \} .
+\]
+How are these sets related to each other?
+\end{exercise}
+
+
+\section{Identifying belief geometry in transformers}\label{belief-geometry}
+\emph{Up to this point, we have focused on conceptual aspects of computational mechanics; now we will consider whether this framework applies to neural networks (e.g., transformers \& RNNs). In this session, you will read the key sections of a few select papers, then discuss the findings in small groups.}
+
+\begin{enumerate}
+\item
+  \emph{\textbf{Readings (45 minutes).} Follow the guide outlined in the Readings Section.}
+\item
+  \emph{\textbf{Discussion (15 minutes).} Form groups of 3-4 based on how much you read. Discuss aspects of the readings you find interesting/confusing. See the Discussion Section for prompts you may wish to consider.}
+\end{enumerate}
+
+\subsection{Readings }\label{readings}
+
+This reading session consists of a main reading and an extension reading. Focus on the main reading, and proceed to the extension reading if you have time. If you can answer the `Evaluation' question it is likely you have understood a key component of the reading. Feel free to skim the overview of the extension reading if you don't have time to read it.
+
+\subsubsection{[Main] \href{https://arxiv.org/pdf/2405.15943}{Transformers represent belief state geometry in their residual stream}}\label{main-transformers-represent-belief-state-geometry-in-their-residual-stream}
+
+\textbf{Reading suggestion:}
+
+\begin{itemize}
+\item
+  \textbf{Skim.} Sections 1, 2.1 \& 2.2.
+\item
+  \textbf{Read.} Sections 2.3, 3--5.
+\item
+  \textbf{Evaluation.} Explain Figure 6 D.
+\end{itemize}
+
+\textbf{Overview.} This was the first paper to present evidence that transformers trained on HMM data admit linear(!) representations of the belief state in their residual stream. Evidence for this claim is presented for two processes Mess3 \& random-random XOR (RRXOR). For each process linear regression is used to identify an affine map from residual stream activations to the corresponding belief state, which is then evaluated by computing the mean-squared error (MSE). MSE is evaluated across model checkpoints and is shown to decrease through training. A shuffle-control is used to illustrate that the low MSE from activations to beliefs is not simply explained by projecting from a high-dimensional space (the activations) to a low-dimensional space (beliefs).
+
+\subsubsection{[Extension] \href{https://arxiv.org/pdf/2507.07432}{Neural networks leverage nominally quantum and post-quantum representations}}\label{extension-neural-networks-leverage-nominally-quantum-and-post-quantum-representations}
+
+\textbf{Reading suggestion:}
+
+\begin{itemize}
+\item
+  \textbf{Skim.} Sections 1--3
+\item
+  \textbf{Read.} Sections 4--8.
+\item
+  \textbf{Evaluation.} Explain Figure 3 B. How are light-blue (orange) plots related to the blue (orange) plots?
+\end{itemize}
+
+\textbf{Overview.} This paper presents evidence that the \href{https://arxiv.org/pdf/2405.15943}{Shai et al.} result extends to generalised hidden Markov Models (GHMMs) -- a strictly more expressive class of processes than HMMs, allowing for quantum and post-quantum representations. To illustrate, there exists stochastic processes that admit realisation in terms of a GHMM with finite-dimensional transition matrices, while the corresponding minimal HMM requires exponentially many hidden states.
+
+Using techniques similar to \href{https://arxiv.org/pdf/2405.15943}{Shai et al.}, it is shown that neural networks (transformers, LSTMs, RNNs, GRUs) trained on stochastic processes admitting distinct GHMM and HMM realisations learn belief state representations corresponding to the GHMM. This demonstrates the ability of neural networks to flexibly select the model class underlying their representations to capture exponential savings.
+
+\subsection{Discussion}\label{discussion}
+
+Here are some discussion prompts to consider:
+
+\begin{itemize}
+\item
+  What is the most convincing evidence that transformers represent belief state geometry?
+\item
+  What is the least convincing?
+\item
+  What additional experiments would you run to gain more evidence?
+\item
+  Are there alternative hypotheses that explain these results?
+\item
+  Can you explain each of element of the following diagram:
+\end{itemize}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\linewidth]{fig/hmm-transformer-belief.png}
+  \label{fig:hmm-transformer-belief}
+\end{figure}
+
+(\emph{Feel free to ignore these if you/your group is excited to explore other aspects of the readings.})
+
+
+\section{Designing processes}\label{designing-processes}
+\emph{In this session, you will design your own hidden Markov model (HMM) and reuse code from previous exercises to explore its structure. Not all HMMs are interesting --- use the \hyperref[desiderata]{Desiderata Section} to guide your design toward processes with meaningful properties. You will then present your process to the class.}
+
+\begin{enumerate}
+\item
+  \emph{\textbf{Form into pairs.} Find a partner to collaborate with on the design exercise.}
+\item
+  \emph{\textbf{Design your process (90 minutes).} Using the \hyperref[desiderata]{Desiderata Section} as your guide, construct an HMM. Use the code from previous exercises to visualise the next-token probability vector and the belief state geometries.}
+\item
+  \emph{\textbf{Present your process to the class (5 minutes).} Describe your process and demonstrate its key features, including the observation probabilities, belief state geometry, and any notable structural properties.}
+\end{enumerate}
+
+\subsection{Notation}\label{notation}
+
+\emph{(Feel free to skip straight to the Desiderata section and refer back when necessary.)}
+
+Here, we consider data generated from a generalised hidden Markov model (GHMM), and introduce the following notation:
+
+\begin{itemize}
+\item
+  \(\mathcal{X}\) -- a set corresponding to the dictionary (\(|\mathcal{X}|\) = \#tokens)
+\item
+  \((T^{(x)})_{x \in \mathcal{X}}\) -- transition matrices (\#hidden states x \#hidden states)
+\item
+  \(\eta^{(\emptyset)}\) -- the initial state row vector (1 x \#hidden states)
+\item
+  \(\phi\) -- the final state column vector (\#hidden states x 1).
+\end{itemize}
+
+We also introduce the following notation for token sequences, products of transition matrices and sequences of up to length \(L\)
+\[
+x_{1:\ell} := x_1 x_2 \cdots x_{\ell}, \qquad T^{(x_{1:\ell})} := T^{(x_1)} T^{(x_2)} \cdots T^{(x_\ell)}, \qquad \mathcal{X}_{1:L} := \bigcup_{i=1}^{L} \mathcal{X}^i .
+\]
+
+Given the observed token sequence \(x_{1:\ell}\in \mathcal{X}^\ell\), the \emph{belief state} can be expressed in terms of HMM data as
+
+\[
+\eta^{(x_{1:\ell})} = \eta^{(\emptyset)} T^{(x_{1:\ell})} / \eta^{(\emptyset)} T^{(x_{1:\ell})} \phi .
+\]
+Similarly the vector of next token \emph{observation probabilities} is given by
+
+\[
+p^{(x_{1:\ell})} = (\eta^{(x_{1:\ell})}T^{(x_{\ell+1})}\phi)_{x_{\ell+1}\in\mathcal{X}} .
+\]
+Consulting the previous two expressions, we see that there exists a matrix \(A\) that takes beliefs \(\eta^{(x_{1:\ell})}\) to observation probabilities \(p^{(x_{1:\ell})}\), i.e.
+
+\[
+p^{(x_{1:\ell})} = \eta^{(x_{1:\ell})} A
+\]
+where \(A\) is a matrix whose elements are given by
+
+\[
+A_{ij} := \sum_{k} T_{ik}^{(j)} \phi_k .
+\]
+We note that for GHMMs, there always exists this linear map from beliefs to observation probabilities, however, it is generically not the case that this map is invertible.
+
+\subsection{Desiderata}\label{desiderata}
+
+We now list a series of properties (in decreasing level of importance) that we would like our process to have.
+
+\textbf{No affine map from observation probabilities to beliefs.} One of the central claims of comp-mech applied to neural networks is that beliefs are instrumental to predicting observation probabilities. If there exists an affine map from observation probabilities to beliefs, then, at the level of linear representations, these objects are indistinguishable and the claim of comp-mech is empty. Concretely, the desired property is that the matrix \(A\) is not invertible. A nice heuristic for this is that \#hidden states \textgreater{} \#vocab.
+
+We may also want to require that there exists no linear map from observation probabilities to \emph{approximate} beliefs. One way we might quantify this is to compute the \(R^2\) of the regression from observation probabilities to beliefs, and ensure that it satisfies:
+
+\[ R^2(\text{obs probs} \to \text{beliefs}) < R^2(\text{activations} \to \text{beliefs}) \]
+
+Intuitively, this constraint ensures that the transformer's representation of beliefs cannot be simply explained by the model representing obs probs.
+
+In practice, I like to select processes where \# hidden states \textgreater{} \# vocab, and where the beliefs occupy a (\# hidden states - 1)-dimensional region of the simplex. I also like to indicate, on the belief simplex, the directions in the kernel of the map from beliefs to observation probabilities. This allows one to see which belief states collapse to the same observation probabilities.
+
+\textbf{Easy to visualise.} It is convenient to be able to visualise the ground truth belief states, observation probabilities and log observation probabilities without having to use dimensionality reduction techniques. As such, we have the condition:
+
+\# hidden states \(\le\) 4.
+
+As we are also (likely) imposing that \# hidden states \textgreater{} \# vocab, the dimensions of observation probabilities and log observation probabilities are readily handled. In practice, I like \# hidden states = 3 \& \# vocab = 2.
+
+\textbf{Striking belief geometry.} It is helpful to be able to quickly glance at e.g., the PCA of activations, and be able to identify patterns that correspond to some structure in the belief geometry. As such, it is nice if the belief geometry has some particular structure that distinguishes it from the observation probabilities.
+
+\textbf{Natural properties.} While HMMs lack expressivity of other non-linear models, one can still endow them with properties shared by natural language, for example:
+
+\begin{itemize}
+\item
+  \textbf{Factors.} Natural language often consists of many distinct, independent components that each influence the output distribution. For example, a character\textquotesingle s name determines which pronouns appear; the setting (beach vs. courtroom) shapes vocabulary; the genre (horror vs. comedy) affects tone; and the tense constrains verb forms. These components combine to determine what text is likely to follow, yet operate largely independently -- knowing a story is set on a beach tells you little about whether the protagonist is named Alice or Bob.
+\item
+  \textbf{Non-ergodicity.} The training corpus of LLMs is a mixture of text from diverse sources (novels, code, lawsuit filings, and more), each with its own distinct statistical structure. This can naturally be characterised as a non-ergodic process that samples from a distribution over a set of component processes (which may themselves be non-ergodic). Each component process corresponds to a broad category of text: one governing how novels are generated, another how code is written, another how legal documents are structured, and so on.
+\item
+  \textbf{Algorithms.} Many simple algorithms appear naturally in language. For example, answering "two days after Saturday is?" requires modular addition over days of the week, while "what is the reverse of \textquotesingle cat\textquotesingle?" requires a reversal operation. The core logic of such algorithms can be encoded as hidden Markov models (e.g., modular addition for the days-of-the-week example), making HMMs a natural framework for studying how language models learn and represent these computations.
+\end{itemize}
+
+
+\section{How do transformers do it?}\label{how-transformers-do-it}
+\emph{In the previous session, we explored evidence that neural networks represent belief state geometry of HMM processes. Based on your interest, we will now split into two tracks, each addressing a question:}
+
+\begin{enumerate}
+\item
+  \emph{\textbf{Sensors.} How might the transformer develop representations of the belief state?}
+\item
+  \emph{\textbf{Actuators.} How might the transformer use belief state representations to influence downstream predictions?}
+\end{enumerate}
+
+\emph{The Sensors question is marginally better understood and will centre around reading \href{https://arxiv.org/pdf/2502.01954}{Piotrowski et al.}, which partially answers this question for single-layer transformers trained on the Mess3 process. The Actuators question is relatively less explored, and is more conceptual.}
+
+\subsection{Sensors }\label{sensors}
+
+\textbf{Reading suggestion (45 minutes):}
+
+\begin{itemize}
+\item
+  \textbf{Skim.} Sections 1 \& 2.
+\item
+  \textbf{Read.} Sections 3--5.
+\item
+  \textbf{Evaluation.} Explain Figure 2.
+\end{itemize}
+
+\textbf{Overview.} Given the architectural constraints of a transformer block, how might belief states be constructed out of raw token embeddings? For the case of single-layer transformers trained on the Mess3 process, \href{https://arxiv.org/pdf/2502.01954}{Piotrowski et al.} identify an algorithm implemented by the attention mechanism that transforms input sequences into \emph{constrained beliefs} (Equ. 6), which are then transformed into the corresponding belief state by the MLP layer.
+
+The key ansatz is that the attention block outputs constrained beliefs. This observation is then used to anticipate structure in various components relevant to the attention mechanism:
+
+\begin{itemize}
+\item
+  Attention pattern (see Equ. 13)
+\item
+  OV-vectors (see Equ. 14)
+\item
+  Embeddings (see Equ. 15)
+\item
+  Number of attention heads (see Sec. 4.4.1)
+\end{itemize}
+
+These predictions are then empirically verified across four different Mess3 parameterisations.
+
+\textbf{Discussion (15 minutes).} Form groups of 3-4 and discuss aspects of the readings you found interesting/confusing. Here are some discussion prompts to consider:
+
+\begin{itemize}
+\item
+  How is the constrained belief geometry related to the full belief geometry?
+\item
+  What is the role of the MLP in transforming the constrained belief geometry into the full belief geometry?
+\item
+  Do you expect the constrained belief state update formula to apply to:
+  \begin{itemize}
+  \item
+    Processes beyond Mess3?
+  \item
+    Attention blocks with more than two heads?
+  \item
+    Transformers that are deeper than a single layer?
+  \end{itemize}
+\end{itemize}
+
+(\emph{Feel free to ignore these if you/your group is excited to explore other aspects of the reading.})
+
+\subsection{Actuators}\label{actuators}
+
+\textbf{Background.} Suppose the transformer represents the belief state corresponding to a given input sequence at some residual stream position. Given the architectural constraints of the transformer consider the questions:
+
+\begin{itemize}
+\item
+  How might the belief state be used to compute the corresponding next-token probability distribution?
+\item
+  Which layer is the belief state most likely to be used by the transformer?
+\end{itemize}
+
+Recall that there always exists a linear map from the belief state to the next-token probabilities vector:
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\linewidth]{fig/belief-to-obs-linear.png}
+  \label{fig:belief-to-obs-linear}
+\end{figure}
+
+But given the transformer architecture, the next-token probabilities are produced by softmaxing logits (activations post-unembedding), which are related to the probabilities by
+
+\[ \operatorname{logits}(w) = \log p^{(w)} + c_w \mathbf{1} \]
+
+where \(c_w\) is an arbitrary w-dependent constant and \(\mathbf{1}\) is the all-ones vector of appropriate size. This observation motivates considering three types of features: \emph{beliefs} (\(\eta^{(w)}\)), \emph{next-token probabilities} (\(p^{(w)}\)) \& \emph{next-token log-probabilities} (\(\log p^{(w)}\)); and considering how they relate to each other. Without assumptions on the HMM process, they are related as follows:
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.8\linewidth]{fig/belief-obs-logobs.png}
+  \label{fig:belief-obs-logobs}
+\end{figure}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.22\linewidth]{fig/transformer-stack.png}
+  \label{fig:transformer-stack}
+\end{figure}
+
+\subsubsection{Exercises}\label{sec:actuators-ex}
+
+\begin{exercise}
+\label{ex:actuators-1}
+Annotate the transformer diagram with where you would expect the trained models to represent: beliefs, next-token probabilities \& next-token log-probabilities (if at all) under the following assumptions:
+
+\begin{enumerate}
+\item
+  No assumptions.
+\item
+  There exists a linear map from next-token probabilities to next-token log-probabilities.
+\item
+  There exists a linear map from next-token probabilities to beliefs.
+\end{enumerate}
+
+(\emph{Keep in mind the expressiveness of the transformer components as you pass between beliefs / next-token probabilities / log next-token probabilities.})
+\end{exercise}
+
+\begin{exercise}
+\label{ex:actuators-2}
+Design intervention experiments to gain evidence for your hypotheses.
+\end{exercise}
+
+
+\section{Learn more}\label{learn-more}
+
+\begin{itemize}
+\item
+  Beyond toy architectures -- in-context learning
+  \begin{itemize}
+  \item
+    LLMs have an amazing ability to adapt internal representations in-context -- {[}Read: ICLR: \href{https://arxiv.org/pdf/2501.00070}{In-Context Learning of Representations}{]}
+  \item
+    LLMs can predict HMM data in-context -- {[}Read: \href{https://arxiv.org/pdf/2506.07298}{Pre-trained Large Language Models Learn Hidden Markov Models In-context}{]}
+  \item
+    This suggests that internal representations of LLMs predicting GHMM data in-context, may resemble belief states.
+  \end{itemize}
+\item
+  Processes consisting of GHMMs with richer structure {[}Read: \href{https://arxiv.org/pdf/2602.02385v1}{Transformers learn factored representations}{]}
+\item
+  Review article of computational mechanics {[}Read: \href{https://www.nature.com/articles/nphys2190}{Between order and chaos}{]}
+\item
+  \href{https://www.simplexaisafety.com/}{Simplex} is a non-profit research organisation working on applying computational mechanics to AI safety.
+\end{itemize}
+
+\end{document}
