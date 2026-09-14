@@ -1,4 +1,4 @@
-\documentclass{beamer}
+\documentclass[aspectratio=169]{beamer}
 %%%%%% UNOFFICIAL ICL BEAMER TEMPLATE V.0.1 %%%%%%
 
 \usepackage[english]{babel}
@@ -27,12 +27,20 @@
 \setbeamerfont{block body}{size=\footnotesize}
 \setbeamercolor*{block title}{parent=structure,bg=blau-upc,fg=white}
 
-\setbeamersize{text margin left=12mm,text margin right=12mm}
+% Preserve all source content while making the dense lecture slides readable:
+% use the wider teaching format, reclaim unused chrome, and raise the two
+% smallest explicit type sizes by one step.
+\setbeamersize{text margin left=9mm,text margin right=9mm}
 \setbeamertemplate{navigation symbols}{}
+
+\let\iliadoriginalscriptsize\scriptsize
+\let\iliadoriginalfootnotesize\footnotesize
+\renewcommand{\tiny}{\iliadoriginalscriptsize}
+\renewcommand{\scriptsize}{\iliadoriginalfootnotesize}
 
 \defbeamertemplate*{headline}{infolines theme}
 {
-	\begin{beamercolorbox}[wd=\paperwidth,ht=9.5mm,right]{white}%
+	\begin{beamercolorbox}[wd=\paperwidth,ht=3mm,right]{white}%
 		% (the ICL template's logo sat here; the empty box keeps the headline's height)
 		\vskip0.2ex
 	\end{beamercolorbox}
@@ -43,16 +51,14 @@
 
 \setbeamertemplate{footline}
 {
-	\hbox{
-	\begin{beamercolorbox}[wd=0.1\paperwidth,ht=10mm,left]{}
-% 		\hspace*{1ex}\includegraphics[height=8mm]{./logotips/imperiallogo.pdf}\vskip 2ex
-	\end{beamercolorbox}
-	\begin{beamercolorbox}[wd=0.8\paperwidth,ht=3ex,center]{}
-		\hspace*{4ex}\insertsection\vskip 4ex
-	\end{beamercolorbox}
-	\begin{beamercolorbox}[wd=0.1\paperwidth,ht=3ex,right]{}
-		\insertpagenumber\hspace*{6ex}\vskip 4ex
-	\end{beamercolorbox}
+	\leavevmode
+	\hbox{%
+	\begin{beamercolorbox}[wd=0.9\paperwidth,ht=2.5ex,dp=1ex,leftskip=9mm]{normal text}%
+		\usebeamerfont{footline}\insertsection
+	\end{beamercolorbox}%
+	\begin{beamercolorbox}[wd=0.1\paperwidth,ht=2.5ex,dp=1ex,rightskip=9mm plus 1fil]{normal text}%
+		\usebeamerfont{footline}\insertpagenumber
+	\end{beamercolorbox}%
 	}
 }
 
@@ -326,7 +332,7 @@
 	\end{block}
 }
 
-\frame{\frametitle{Entanglement-free SPI: the idea}
+\frame[shrink=5]{\frametitle{Entanglement-free SPI: the idea}
 	\begin{block}{Make the improvement with an entanglement-free program}
 		{\tiny
 		\begin{itemize}
