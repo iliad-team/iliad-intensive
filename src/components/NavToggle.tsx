@@ -18,6 +18,9 @@ export function NavToggle() {
       id="nav-toggle"
       aria-label="Toggle modules menu"
       aria-expanded={false}
+      // site.js synchronizes this with the pre-paint localStorage restore
+      // before React hydrates in development, so the mismatch is intentional.
+      suppressHydrationWarning
       className="shrink-0 rounded p-1.5 text-zinc-700 hover:bg-zinc-100"
     >
       <svg
