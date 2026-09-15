@@ -1,0 +1,57 @@
+---
+cluster: "D"
+day: "D.2"
+title: Policy Gradients and Misgeneralization
+summary: >-
+  Implement Vanilla Policy Gradient to train a neural network using reinforcement learning,
+  and explore emperically the concepts of goal misgeneralisation in a toy environment.
+contributors:
+  - David Quarel (Iliad)
+---
+
+<YouTube id="FaXazOpzLvQ" title="When Bad Goals ALSO Fit Your Training Data" />
+
+
+## Prerequisites
+
+- [D.1.2 - Reinforcement Learning](https://iliad-intensive.org/agency/reinforcement-learning/)
+- Be familar with the [PyTorch prerequisites](https://iliad-intensive.org/foundations/prerequisites/).
+  - In particular, if you're unfamilar with more advanced indexing like use of `torch.gather`, feel free
+  to solve the exercise with a sequential python for-loop, and then use the solution code when you want 
+  the training loop to run quickly.
+
+<LearningOutcomes>
+
+- Understand the derivation of (Vanilla) Policy Gradient (VPG).
+- Implement Policy Gradient in PyTorch, and use to train an agent to play a toy RL environment.
+- Understand reward functions, what behaviour they incentivise and whow they can be used as probes for behaviour.
+- Understand what potential shaping is, and how it provides hints without allowing reward hacking.
+- The difference between Goal Mis*generalisation* and Goal Mis*specification*.
+
+</LearningOutcomes>
+
+## Roadmap for today
+
+- 10:00–10:30
+  - Lecture on intro to Policy Gradient
+- 10:30–13:00
+  - Work through VPG material
+- 13:00-14:00
+  - (Lunch + Break Time)
+- 14:00–14:30
+  - Lecture on intro to Goal Misgeneralization
+- 14:30–17:30
+  - Work through Goal Misgen. material
+- 17:30–18:00
+  - Buffer + Feedback
+
+
+## Vanilla Policy Gradient
+
+Work through [Section [2.2.2] of the ARENA program](https://learn.arena.education/chapter2_rl/22_vpg/) on Vanilla Policy Gradient.
+Follow the provided link, and then through to the exercises on colab.
+* The network is small enough, and the training loop fast enough, that you can run this material locally on your laptop without problems if you prefer.
+
+## Goal Misgeneralization
+
+TODO

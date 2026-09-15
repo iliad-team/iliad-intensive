@@ -1,0 +1,895 @@
+%--- iliad ---
+% summary: >-
+%   How an idealized agent should predict. A Bayesian mixture over a countable
+%   class of computable hypotheses learns to predict any sequence, with total error
+%   bounded by the description length of the truth -- a formal Occam's razor.
+%--- end ---
+\documentclass[fontsize=11pt, parskip=half]{scrartcl}
+% Page geometry (compact screen page, 1cm margins) now comes from iliad.sty.
+\pagestyle{plain}
+
+\usepackage{amsmath, amssymb, amsthm, amsfonts}
+
+\usepackage[dvipsnames]{xcolor}
+
+
+% iliad.sty: local copy first (Overleaf), else the shared ../iliad.sty
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
+
+% sheet notation
+\renewcommand{\thesection}{\arabic{section}}
+\newcommand{\Msol}{\mathcal{M}_{sol}}
+\newcommand{\Mc}{\mathcal{M}}
+\newcommand{\KL}{D_{\text{KL}}}
+\newcommand{\Sn}[2]{S_{n}(#1 \parallel #2)}
+
+\usepackage{cancel}
+
+% 3. Define your theorem environments AFTER cleveref is loaded
+%===================================
+\begin{document}
+
+\title{Solomonoff Induction}
+\author{\authorname{David Quarel}\\ \affiliation{Australian National University}
+  \and \authorname{Leon Lang}\\ \affiliation{University of Amsterdam}}
+\date{\today}
+\maketitle
+
+\begin{learningoutcomes}
+  \begin{itemize}
+    \item Define the Bayesian mixture over a class of environments and prove it is a proper predictor whose posterior updates multiplicatively.
+    \item Prove the cumulative prediction-error bound and specialize it to the Solomonoff prior to recover the Occam bound.
+    \item Show the mixture makes boundedly many mistakes and is Pareto-optimal under KL and squared loss.
+    \item Bound the misspecified case when the truth lies outside the model class.
+  \end{itemize}
+\end{learningoutcomes}
+
+\medskip
+\noindent
+Much of this material is drawn from \cite[Chapter 3]{Hutter:24uaibook2}
+and the earlier \cite{Hutter:04uaibook}; both books provide fuller explanations, additional context, and proofs that we gloss over here.
+
+\medskip
+\noindent
+\textbf{Difficulty ratings.} Each problem is tagged with a rating in square brackets following Knuth's exercise rating scheme~\cite{Knuth:73a}: roughly, \textbf{[00]}~trivial, \textbf{[10]}~15--minute pencil-and-paper, \textbf{[20]}~1--2~hours, \textbf{[30]}~several hours to a day, \textbf{[40]}~a significant research result. Intermediate values are possible.
+
+%===================================
+
+\section*{Overview}
+
+Solomonoff induction is the \emph{prediction} half of \textbf{Universal AI}: what
+would an \emph{optimally intelligent} agent do if it only had to predict, given
+unlimited compute and the weakest possible assumptions? The answer is a single
+\textbf{Bayesian mixture} $\xi$ over a countable class $\mathcal{M}$ of candidate
+environments, weighted by a prior $w_\nu$. It (eventually) predicts as well as the
+true environment $\mu$, and under the \textbf{universal} choice --- $\mathcal{M}$ =
+all computable environments, prior $w_\nu = 2^{-K(\nu)}$ with $K$ the Kolmogorov
+complexity --- the assumption ``$\mu \in \mathcal{M}$'' becomes ``the universe is
+computable,'' and Occam's razor drops out of the mathematics.
+
+This module is a worksheet: you build the theory yourself, one problem at a time.
+The sequel module, \href{/agency/aixi}{AIXI}, lifts the same mixture to sequential
+decision-making (learning to \emph{act}).
+
+\section*{Prerequisites}
+
+\begin{itemize}
+    \item Comfort with discrete probability: conditional distributions, the chain
+    rule, expectations.
+    \item Kullback--Leibler divergence and basic information theory (helpful,
+    developed as needed).
+\end{itemize}
+
+\section*{Goal and Roadmap}
+
+\textbf{A recipe for prediction:} Solomonoff induction is an attempt to mathematically
+formalize the \href{https://en.wikipedia.org/wiki/Problem_of_induction}{\emph{problem of induction}}
+from philosophy: How to make predictions about the future based on past observations?
+
+We formalize this as sequence prediction: There is some true environment $\mu$ that generates
+a sequence $x_1, x_2, \dots$ of (binary) symbols. Each next symbol $x_t \sim \mu(\cdot \mid x_{<t})$ is sampled
+from $\mu$ conditioned on the past $x_{<t}$. A predictor $P$ takes the history $x_{<t}$ and gives a 
+distribution $P(\cdot \mid x_{<t})$ over the next symbol $x_t$. 
+
+We measure the quality of a predictor $P$ by the $\mu$-expected squared prediction error, summed over every timestep:
+\begin{align}
+S_\infty^\mu := \sum_{t=1}^{\infty} \sum_{x_{<t} \in \mathbb{B}^*} \mu(x_{<t}) \sum_{x_t \in \mathbb{B}} \big( P(x_t \mid x_{<t}) - \mu(x_t \mid x_{<t}) \big)^2.
+\end{align}
+
+How to construct a predictor $P$ such that $S^\mu_\infty$ is small (or at least finite)? Bayesian inference to the rescue: we choose as our predictor a \emph{Bayesian mixture} $\xi$ over a countable class $\Mc = \{\nu_1, \nu_2, \dots\}$ of candidate environments, weighted by prior beliefs $w_\nu$ (formalized in \cref{def:mixture}). The main results we build up to are:
+\begin{itemize}\itemsep=2pt
+  \item \textbf{Cumulative bound} (\cref{prob:bound}): Assuming $\mu \in \Mc$, $S^\mu_\infty \leq -\ln w_\mu$. The higher the prior
+  on $\mu$, the lower the prediction error.
+  \item \textbf{Explicit bound} (\cref{prob:bound_explicit_ex}): specialize to the Solomonoff prior $w_\nu = 2^{-K(\nu)}$ to get $S^\mu_\infty \leq K(\mu)\ln 2$, where $K$ is the \emph{Kolmogorov complexity}.
+  \item \textbf{Pareto optimality} (\cref{prob:kl_pareto,prob:sq_pareto}): no other predictor weakly dominates $\xi$ on every $\nu \in \Mc$, for either KL or squared loss.
+  \item \textbf{Misspecified version} (\cref{prob:misspec}): If $\mu \not\in \Mc$, the cumulative bound becomes $-\ln w_{\hat\mu} + D_n(\mu \parallel \hat\mu)$: the constant complexity term plus an approximation term $D_n(\mu \parallel \hat\mu) = \sum_{t=1}^n d_t(\mu \parallel \hat\mu)$ that in general grows linearly in $n$, so $S^\mu_\infty$ diverges. Here $\hat{\mu} \in \Mc$ is the ``closest'' environment to $\mu$.
+\end{itemize}
+
+%===================================
+\section*{Notation}
+
+For more background, see \href{https://www.lesswrong.com/posts/HSDumToH57nSRdLST/a-technical-introduction-to-solomonoff-induction-without-k}{the corresponding post on Solomonoff induction}.
+
+\begin{callout}[note]
+\textbf{Symbols used throughout.}
+\begin{itemize}\itemsep=2pt
+  \item $\mathbb{B} = \{\texttt{0}, \texttt{1}\}$: the binary alphabet; $\mathbb{B}^*$ all finite binary strings; $\mathbb{B}^n$ length-$n$ strings.
+  \item $\epsilon$: the empty string. $x_{1:n} := x_1 x_2 \cdots x_n$; $x_{<t} := x_1 x_2 \cdots x_{t-1}$.
+  \item $X_{1:n}, X_{<t}$: the corresponding random variables.
+  \item $\nu, \rho$: generic environments / predictors. $\mu$: the true (unknown) environment generating the data. $\xi$: a Bayesian mixture of environments.
+  \item $\Mc = \{\nu_1, \nu_2, \ldots\}$: a countable class of candidate environments.
+  \item $w_\nu > 0$ with $\sum_{\nu \in \Mc} w_\nu = 1$: the prior over $\Mc$. $w(\nu \mid x_{<t})$: the posterior after observing $x_{<t}$.
+  \item $\Delta \mathcal{X}$: the set of probability distributions over a finite set $\mathcal{X}$.
+\end{itemize}
+\end{callout}
+
+%===================================
+\section{The mixture is a predictor}\label{prob:one_step}
+
+\begin{definition}[Environment]\label{def:environment}
+An \textbf{environment} $\nu$ assigns to each history $x_{<t} \in \mathbb{B}^*$ a predictive distribution $\nu(\cdot \mid x_{<t}) \in \Delta \mathbb{B}$ over the next symbol. The joint probability of a string is defined by the chain rule
+\[
+\nu(x_{1:n}) ~:=~ \prod_{t=1}^{n} \nu(x_t \mid x_{<t}), \qquad \nu(\epsilon) := 1,
+\]
+so that $\nu(x_{1:t}) = \nu(x_{<t}) \cdot \nu(x_t \mid x_{<t})$ and $\nu(x) = \nu(x\texttt{0}) + \nu(x\texttt{1})$ for all $x \in \mathbb{B}^*$. The true (unknown) environment generating the data is denoted $\mu$.
+\end{definition}
+
+\begin{definition}[Bayesian mixture $\xi$]\label{def:mixture}
+Let $\Mc = \{\nu_1, \nu_2, \dots\}$ be a countable class of environments with prior weights $w_\nu > 0$ satisfying $\sum_{\nu \in \Mc} w_\nu = 1$. The \textbf{Bayesian mixture} is defined as a prior-weighted mixture over all environments $\nu$ in $\Mc$:
+\begin{equation}\label{eq:mixture_expression}
+  \xi(x_{1:t}) ~:=~ \sum_{\nu \in \Mc} w_\nu\, \nu(x_{1:t}).
+\end{equation}
+Its one-step predictive distribution is
+\[
+  \xi(x_t \mid x_{<t}) ~=~ \sum_{\nu \in \Mc} w(\nu \mid x_{<t})\, \nu(x_t \mid x_{<t}),
+\]
+with posterior weights 
+\[
+w(\nu \mid x_{<t}) ~:=~ w_\nu\, \frac{\nu(x_{<t})}{\xi(x_{<t})}
+\qquad w(\nu \mid \epsilon) := w_\nu.
+\]
+Here $w(\nu \mid x_{<t})$ is the \emph{posterior} belief in $\nu$ after observing $x_{<t}$.
+\end{definition}
+
+The mixture $\xi$ is defined as a sum of \emph{joint} probabilities. To use it as a predictor we need its one-step conditional $\xi(x_t \mid x_{<t})$, and we need to know it is a genuine probability distribution (so that, later, Pinsker's inequality applies to it).
+
+\begin{exercise}[Generalized chain rule]
+\label{prob:chain_rule_gen_ex}
+\difficulty{05}
+
+
+
+The two-term chain rule baked into \cref{def:environment} extends to arbitrary contiguous blocks. Show that for any $1 \leq p \leq q \leq r$ and any history $x_{<p}$ with $\nu(x_{<p}) > 0$,
+\[
+  \nu(x_{p:r} \mid x_{<p}) ~=~ \nu(x_{p:q} \mid x_{<p}) \cdot \nu(x_{q+1:r} \mid x_{<p}\, x_{p:q}).
+\]
+\end{exercise}
+
+
+\begin{exercise}[Mixture is a predictor]
+\label{prob:one_step_ex}
+\difficulty{10}
+
+
+
+Starting from $\xi(x_{1:t}) = \sum_{\nu \in \Mc} w_\nu\, \nu(x_{1:t})$, show that
+\[
+\xi(x_t \mid x_{<t}) ~=~ \sum_{\nu \in \Mc} w(\nu \mid x_{<t})\, \nu(x_t \mid x_{<t}),
+\qquad w(\nu \mid x_{<t}) := w_\nu\, \frac{\nu(x_{<t})}{\xi(x_{<t})},
+\]
+and conclude that $\sum_{x_t \in \mathbb{B}} \xi(x_t \mid x_{<t}) = 1$, i.e.\ $\xi(\cdot \mid x_{<t})$ is a probability distribution over $\mathbb{B}$.
+
+\begin{hint}
+Write $\xi(x_t \mid x_{<t}) = \xi(x_{1:t}) / \xi(x_{<t})$, expand the numerator, and use the chain rule $\nu(x_{1:t}) = \nu(x_{<t})\, \nu(x_t \mid x_{<t})$ (\cref{def:environment}). For the last part, note that the posterior weights sum to $1$.
+\end{hint}
+\end{exercise}
+
+
+\begin{exercise}[Posterior update]
+\label{prob:posterior_update_ex}
+\difficulty{10}
+
+
+
+Show that the posterior weight $w(\cdot \mid \cdot)$ updates \emph{multiplicatively} as new symbols arrive. For every $x_{1:t} \in \mathbb{B}^*$ with $\xi(x_{1:t}) > 0$,
+\[
+  w(\nu \mid x_{1:t}) ~=~ w(\nu \mid x_{<t}) \cdot \frac{\nu(x_t \mid x_{<t})}{\xi(x_t \mid x_{<t})}.
+\]
+That is: the new posterior equals the old posterior, scaled by the \textbf{likelihood ratio} of how well $\nu$ predicted the just-observed symbol relative to the mixture's own prediction.
+\end{exercise}
+
+
+\begin{exercise}[Multi-step posterior linearity]
+\label{prob:multi_step_xi_ex}
+\difficulty{10}
+
+
+
+\Cref{prob:one_step_ex} showed that $\xi$'s one-step prediction $\xi(x_t \mid x_{<t})$ is the posterior-weighted average of the per-model one-step predictions. The same identity extends to predictions over a \emph{whole future segment} $x_{t:m}$: for any $t \leq m$,
+\[
+  \xi(x_{t:m} \mid x_{<t}) ~=~ \sum_{\nu \in \Mc} w(\nu \mid x_{<t})\, \nu(x_{t:m} \mid x_{<t}).
+\]
+That is: the \emph{same} posterior $w(\nu \mid x_{<t})$ governs $\xi$'s predictions for arbitrarily many steps into the future, not just the next one. Show this.
+
+\begin{hint}
+Write $\xi(x_{t:m} \mid x_{<t}) = \xi(x_{1:m}) / \xi(x_{<t})$, expand the numerator using the mixture definition, and apply the generalized chain rule (\cref{prob:chain_rule_gen_ex} with $p=1$, $q=t-1$, $r=m$) to factor each $\nu(x_{1:m}) = \nu(x_{<t})\,\nu(x_{t:m} \mid x_{<t})$.
+\end{hint}
+\end{exercise}
+
+
+%===================================
+\section{KL divergence}\label{prob:chain_rule}
+
+% Formal KL definitions are commented out: the worksheet only ever uses the
+% cumulative/per-step forms D_n and d_t (\cref{def:Dn}) below, never these
+% raw single- and two-variable forms. The two-variable chain rule for KL --
+% formerly its own [10] exercise -- is now folded inline into the induction
+% step of \cref{prob:telescope_ex}.
+%
+% \begin{definition}[Kullback--Leibler divergence]\label{def:kl}
+% Let $P$ and $Q$ be probability distributions over a finite set $\mathcal{X}$. The \textbf{Kullback--Leibler (KL) divergence} from $P$ to $Q$ is
+% \[
+% D_{\text{KL}}(P \,\|\, Q) := \sum_{x \in \mathcal{X}} P(x) \ln \frac{P(x)}{Q(x)},
+% \]
+% where we define $0 \ln \frac{0}{q} := 0$ for any $q \geq 0$, and $p \ln \frac{p}{0} := \infty$ for $p > 0$.
+% \end{definition}
+%
+% \begin{definition}[Joint and conditional KL divergence]\label{def:joint_kl}
+% Let $P$ and $Q$ be joint probability distributions over random variables $X, Y$ taking values in $\mathcal{X}, \mathcal{Y}$. The \textbf{joint} and \textbf{conditional} KL divergences are
+% \[
+% D_{\text{KL}}(P(X,Y) \,\|\, Q(X,Y)) := \sum_{x, y} P(x,y) \ln \frac{P(x,y)}{Q(x,y)},
+% \qquad
+% D_{\text{KL}}(P(Y \mid X) \,\|\, Q(Y \mid X)) := \sum_{x} P(x) \sum_{y} P(y \mid x) \ln \frac{P(y \mid x)}{Q(y \mid x)},
+% \]
+% with the same conventions as \cref{def:kl}.
+% \end{definition}
+
+The KL divergence between two joint distributions over a length-$n$ history splits, by an inductive application of the chain rule for probabilities, into a sum of per-step conditional KLs. This telescoping identity lets us trade a single joint KL over an entire history for a sum of per-step KLs (and vice versa): exactly the bridge we will need in \cref{prob:bound}.
+
+We introduce two pieces of notation that will be used throughout the rest of the worksheet:
+
+\begin{definition}[Cumulative and per-step KL]\label{def:Dn}
+For environments / predictors $\nu, \rho$, horizon $n \geq 1$, and $1 \leq t \leq n$, the \textbf{cumulative joint KL} and the \textbf{expected per-step KL at step $t$} are
+\begin{align*}
+  D_n(\nu \parallel \rho) ~&:=~ \sum_{x_{1:n} \in \mathbb{B}^n}
+                       \nu(x_{1:n}) \,\ln \frac{\nu(x_{1:n})}{\rho(x_{1:n})}, \\[6pt]
+  d_t(\nu \parallel \rho) ~&:=~ \sum_{x_{<t} \in \mathbb{B}^{t-1}}
+                       \nu(x_{<t}) \sum_{x_t \in \mathbb{B}}
+                       \nu(x_t \mid x_{<t}) \,\ln \frac{\nu(x_t \mid x_{<t})}{\rho(x_t \mid x_{<t})},
+\end{align*}
+with the conventions $0 \ln \tfrac{0}{q} := 0$ for $q \geq 0$ and $p \ln \tfrac{p}{0} := \infty$ for $p > 0$. 
+%The first argument always names the distribution the expectation is taken over (we do \emph{not} adopt Hutter's convention of an implicit ``$\mathbb{E}$ always over $\mu$,'' since the Pareto sections need $\nu$ to vary across the model class). 
+%\Cref{prob:telescope_ex} below establishes that the two are related by $D_n(\nu \parallel \rho) = \sum_{t=1}^n d_t(\nu \parallel \rho)$.
+We write $D_\infty(\nu \parallel \rho) := \lim_{t \to \infty} D_t(\nu \parallel \rho)$
+and $D^\mu_\infty := D_\infty(\mu \parallel \xi)$.
+\end{definition}
+
+\begin{theorem}[KL divergence is non-negative]\label{thm:kl_nonneg}
+For any environments $\nu, \rho$ and any horizon $n \geq 1$ and step $1 \leq t \leq n$:
+\begin{description}\itemsep=2pt
+  \item[\textnormal{(a)}] $D_n(\nu \parallel \rho) \geq 0$, with equality iff $\nu(x_{1:n}) = \rho(x_{1:n})$ for every $x_{1:n} \in \mathbb{B}^n$ with $\nu(x_{1:n}) > 0$.
+  \item[\textnormal{(b)}] $d_t(\nu \parallel \rho) \geq 0$, with equality iff $\nu(x_t \mid x_{<t}) = \rho(x_t \mid x_{<t})$ for every $x_{<t}$ with $\nu(x_{<t}) > 0$ and every $x_t \in \mathbb{B}$.
+\end{description}
+Proof in \cref{app:kl_nonneg}.
+\end{theorem}
+
+\begin{exercise}[Telescoping KL]
+\label{prob:telescope_ex}
+\difficulty{10}
+
+
+
+Show by induction on $n$ that for all environments $\nu, \rho$,
+\[
+D_n(\nu \parallel \rho) ~=~ \sum_{t=1}^{n} d_t(\nu \parallel \rho),
+\]
+where on the right-hand side, the $t=1$ summand uses the conventions $\nu(x_1 \mid x_{<1}) := \nu(x_1)$, $\rho(x_1 \mid x_{<1}) := \rho(x_1)$.
+
+\begin{hint}
+For the induction step, factor $\nu(x_{1:n}) = \nu(x_{<n})\,\nu(x_n \mid x_{<n})$ (and likewise for $\rho$) inside the log; the log splits additively into two pieces matching $D_{n-1}(\nu \parallel \rho)$ and $d_n(\nu \parallel \rho)$.
+\end{hint}
+\end{exercise}
+
+
+%===================================
+
+
+% \[
+% \int_p^q \frac{p-x}{x(1-x)}\, dx \;\leq\; 4\int_p^q (p-x)\, dx
+% \;\;\Longrightarrow\;\;
+% \int_q^p \frac{p-x}{x(1-x)}\, dx \;\geq\; 4\int_q^p (p-x)\, dx \;=\; 2(p-q)^2.
+% \]
+% Either way, $f_p(p) - f_p(q) \geq 2(p-q)^2$. \qedhere
+
+% \medskip
+% \emph{Remark (one-shot version).} Equivalently, note $f_p'(x) - 4(p-x) = (p-x)\big[\tfrac{1}{x(1-x)} - 4\big]$ has the same sign as $p-x$, since the bracket is $\geq 0$ on $(0,1)$. Hence the integrand is $\geq 0$ on $[q,p]$ when $q \leq p$ and $\leq 0$ on $[p,q]$ when $q > p$, so $\int_q^p \big[f_p'(x) - 4(p-x)\big]\, dx \geq 0$ in both cases.
+
+% \medskip
+% \emph{Alternative (no case split).} The same FTC computation avoids the case analysis entirely via a linear change of variables along the segment from $q$ to $p$. Using $2(p-q)^2 = 4\int_q^p (p-x)\, dx$,
+% \[
+% f_p(p) - f_p(q) - 2(p-q)^2 = \int_q^p \big[\,f_p'(x) - 4(p-x)\,\big]\, dx.
+% \]
+% Substitute $x = q + t(p-q)$ for $t \in [0,1]$, so $dx = (p-q)\, dt$ and $p - x = (1-t)(p-q)$:
+% \[
+% \int_q^p \big[\,f_p'(x) - 4(p-x)\,\big]\, dx
+% = \int_0^1 (1-t)\,(p-q)^2 \Big[\tfrac{1}{x(1-x)} - 4\Big]\, dt
+% \;\geq\; 0,
+% \]
+% since $(1-t) \geq 0$, $(p-q)^2 \geq 0$, and $\tfrac{1}{x(1-x)} - 4 \geq 0$ because $x = q + t(p-q) \in [0,1]$ is a convex combination of $q, p \in [0,1]$, so $x(1-x) \leq \tfrac14$. The orientation issue disappears because the $(p-x)$ in the integrand and the $(p-q)$ from $dx$ combine into $(p-q)^2 \geq 0$.
+
+
+%===================================
+\section{Mixture dominance}\label{prob:dominance}
+
+The mixture $\xi$ never assigns much less probability than any single environment
+weighted by its prior. This single inequality is the engine behind the cumulative bound
+of \cref{prob:bound} below: dividing through gives $\mu(x)/\xi(x) \leq 1/w_\mu$, which
+is then fed into Pinsker and the chain rule in the proof of the main cumulative bound.
+
+\begin{exercise}[Mixture dominance]
+\label{prob:dominance_ex}
+\difficulty{05}
+
+
+
+Show that for every $\nu \in \Mc$ and every $x \in \mathbb{B}^*$,
+\[
+  \xi(x) ~\geq~ w_\nu \cdot \nu(x).
+\]
+\end{exercise}
+
+
+\begin{remark}[Solomonoff specialization]
+Under the Solomonoff prior, $w_\nu = 2^{-K(\nu)}$, so the bound becomes
+\[
+  \xi_U(x) ~\geq~ 2^{-K(\nu)} \cdot \nu(x) \qquad \text{for every computable }\nu.
+\]
+This is what makes $\xi_U$ \emph{universal}: a single predictor dominates the
+entire computable model class up to a factor that depends only on the model's
+description length.
+\end{remark}
+
+%===================================
+\section{Cumulative prediction error bound (main result)}\label{prob:bound}
+
+
+The next ingredient relates squared prediction error to KL divergence~\cite[Lemma~11.6.1]{Cover:06}. 
+We require the following inequality:
+
+\begin{theorem}[Pinsker's inequality]\label{thm:pinsker}
+Let $P$ and $Q$ be probability distributions over $\mathbb{B} = \{\texttt{0}, \texttt{1}\}$, i.e., $q_0, q_1 \geq 0$
+with $q_0 + q_1 = 1$. Write $p_x = P(x)$ and $q_x = Q(x)$. Then
+\[
+    \sum_{x \in \mathbb{B}} \big( q_x - p_x \big)^2 \;\leq\; \sum_{x \in \mathbb{B}} p_x \ln \frac{p_x}{q_x}.
+    \tag{$\star$}
+\]
+
+\end{theorem}
+The proof of this inequality is mostly tedious algebra but is included in \cref{app:pinsker}. 
+
+% Let $\mu$ be any environment, and assume it generates our actual universe.
+
+\begin{definition}[Cumulative expected and per step squared prediction error]\label{def:S_infty}
+For environments / predictors $\nu, \rho$ and horizon $n \geq 1$, the \textbf{cumulative expected squared error} and the \textbf{per-step squared error at step $t$} are
+\begin{align*}
+\Sn{\nu}{\rho} ~&:=~ \sum_{t=1}^n s_t(\nu \parallel \rho) \\
+s_t(\nu \parallel \rho) ~&:=~ \sum_{x_{<t} \in \mathbb{B}^{t-1}} \nu(x_{<t}) \sum_{x_t \in \mathbb{B}} \bigl(\nu(x_t \mid x_{<t}) - \rho(x_t \mid x_{<t})\bigr)^2
+\end{align*}
+Write $S_{\infty}(\nu \parallel \rho) := \lim_{n \to \infty} \Sn{\nu}{\rho}$
+and $S_\infty^\mu := S_{\infty}(\mu \parallel \xi)$.
+\end{definition}
+
+\begin{exercise}[Cumulative prediction bound]
+\label{prob:bound_ex}
+\difficulty{15}
+
+
+
+Show that
+\[
+S_{\infty}^{\mu} \leq - \ln w_\mu.
+\]
+
+\begin{hint}
+You need \cref{thm:pinsker}, \cref{prob:telescope_ex} and \cref{prob:dominance_ex}.
+\end{hint}
+\end{exercise}
+
+
+%===================================
+
+\begin{exercise}[Explicit complexity bound]
+\label{prob:bound_explicit_ex}
+\difficulty{05}
+
+
+
+Specialize \cref{prob:bound} to the \textbf{Solomonoff prior} $w_\nu = 2^{-K(\nu)}$ (where $K(\nu)$ is the length of the shortest program computing $\nu$) to show
+\[
+S_{\infty}^{\mu} \leq K(\mu) \ln 2.
+\]
+\end{exercise}
+
+
+\begin{exercise}[Per-step error]
+\label{prob:per-step_error}
+\difficulty{05}
+
+
+
+Hence prove that the per-step expected prediction error
+\[
+s_t := \sum_{x_{<t} \in \mathbb{B}^{t-1}} \mu(x_{<t}) \sum_{x_t \in \mathbb{B}} \big( \xi(x_t \mid x_{<t}) - \mu(x_t \mid x_{<t}) \big)^2
+\]
+converges to zero as $t \to \infty$.
+\end{exercise}
+
+
+% %===================================
+% \section{From cumulative bound to a step-count}\label{prob:error_count}
+
+% \Cref{prob:bound} gives an \emph{asymptotic} guarantee: the total
+% expected squared prediction error is finite. We can turn this directly into a
+% \emph{finite} statement: ``after at most this many steps, the mixture has
+% predicted to within $\varepsilon$ on average.''
+
+% \mysubsection{1}{[05] (Cumulative bound to step-count)\label{prob:error_count_ex}}
+
+% Define the per-step expected squared error
+% \[
+%   d_t ~:=~ \sum_{x_{<t} \in \mathbb{B}^*} \mu(x_{<t})
+%     \sum_{x_t \in \mathbb{B}} \big(\xi(x_t \mid x_{<t}) - \mu(x_t \mid x_{<t})\big)^2,
+%   \qquad \text{so } S^\mu_\infty = \sum_{t=1}^\infty d_t.
+% \]
+% Show that for every $\varepsilon > 0$,
+% \[
+%   \#\big\{\, t \geq 1 \;:\; d_t > \varepsilon \,\big\}
+%   ~<~ \frac{-\ln w_\mu}{\varepsilon}.
+% \]
+
+% \textit{Hint.} If $N$ such steps exist, what does that say about
+% $N\varepsilon$ compared to $\sum_t d_t$?
+
+% \begin{solution}
+% Let $N := \#\{t : d_t > \varepsilon\}$. Each bad step contributes more than
+% $\varepsilon$ to the cumulative sum, while all other steps contribute
+% non-negatively, so
+% \[
+%   N \cdot \varepsilon ~<~ \sum_{t \, : \, d_t > \varepsilon} d_t
+%   ~\leq~ \sum_{t=1}^\infty d_t ~=~ S^\mu_\infty ~\leq~ -\ln w_\mu,
+% \]
+% using \cref{prob:bound} at the last step. Dividing by $\varepsilon$ gives
+% $N < -\ln w_\mu / \varepsilon$. \qedhere
+% \end{solution}
+
+% \begin{remark}[Solomonoff specialization]
+% Under the Solomonoff prior $w_\mu = 2^{-K(\mu)}$, so $-\ln w_\mu = K(\mu)\ln 2$
+% and the bound becomes
+% \[
+%   \#\big\{\, t \geq 1 \;:\; d_t > \varepsilon \,\big\} ~<~ \frac{K(\mu)\ln 2}{\varepsilon}.
+% \]
+% \end{remark}
+
+% \begin{remark}
+% Strictly fewer than $-\ln w_\mu / \varepsilon$ steps can ever see per-step
+% expected error above $\varepsilon$; every other step is at most $\varepsilon$-bad
+% on average. The bound is independent of the time-step $t$ and of any structure of
+% the sequence beyond the prior weight of the true environment.
+% \end{remark}
+
+%===================================
+\section{Bounded number of prediction mistakes}\label{prob:mistakes}
+
+So far we have bounded \emph{squared error}. For a deterministic environment
+(i.e.\ a single infinite binary sequence $x_1^*, x_2^*, \dots$ in $\Mc$),
+one can ask the sharper $0/1$-loss question: how often does the mixture predict
+the \emph{wrong bit}? The cumulative bound is strong enough to give an answer.
+
+
+Let $\mu \in \Mc$ be a deterministic environment, so $\mu(x_t \mid x_{<t}) \in
+\{0,1\}$ on every history; write $x_t^*$ for the unique bit on which
+$\mu(\cdot \mid x^*_{<t})$ puts all its mass. Define the \textbf{threshold
+predictor} associated with $\xi$: at each step, predict the more-likely bit,
+\[
+  \hat{x}_t ~:=~ \arg\max_{x \in \mathbb{B}} \xi(x \mid x_{<t})
+  \qquad \text{(break ties arbitrarily).}
+\]
+We say the mixture makes a \textbf{mistake} at time $t$ if $\hat{x}_t \neq x_t^*$.
+
+\begin{exercise}[Bounded prediction mistakes]
+\label{prob:mistakes_ex}
+\difficulty{15}
+
+
+
+Show that the number of mistakes made by the threshold predictor on the
+$\mu$-trajectory is at most
+\[
+  \#\{\, t \geq 1 \;:\; \hat{x}_t \neq x_t^* \,\}
+  ~\leq~ -2 \ln w_\mu.
+\]
+
+\begin{hint}
+At a mistake step, $\xi(x_t^* \mid x_{<t}) \leq \tfrac12$ (why?).
+The per-step squared error along the deterministic $\mu$-trajectory
+simplifies dramatically; bound it from below, then sum.
+\end{hint}
+\end{exercise}
+
+
+\begin{remark}[Solomonoff specialization]
+Under the Solomonoff prior $w_\mu = 2^{-K(\mu)}$, so $-\ln w_\mu = K(\mu)\ln 2$
+and the bound becomes
+\[
+  \#\{\, t \geq 1 \;:\; \hat{x}_t \neq x_t^* \,\} ~\leq~ 2 K(\mu) \ln 2.
+\]
+With $\ln 2 \approx 0.693$ the constant is just under $1.4$, so if the true 
+environment $\mu$ is computable, and can be described by a program at most $k$ bits long, 
+then the predictor $\xi$ 
+will make at worst $\approx 1.4 k$ mistakes over predicting the entire sequence $x^*_{1:\infty}$.
+Note that the bound is purely existence-style: it does not say \emph{when}
+the mistakes happen. They could all occur at the start, or be arbitrarily far into the future.
+\end{remark}
+
+%===================================
+\section{Pareto optimality under KL loss}\label{prob:kl}
+
+The final two sections establish that the Bayesian mixture $\xi$ is
+\emph{uniquely Pareto-optimal} under both KL and squared prediction loss:
+no other predictor can do at least as well as $\xi$ on every environment
+$\nu \in \Mc$ without coinciding with $\xi$ entirely. 
+% Hutter~\cite[\S3.6]{Hutter:04uaibook} states a weaker (non-uniqueness) version of this result for several losses including the two we treat here; the Pythagorean-identity proofs we use give the stronger uniqueness statement essentially for free.
+
+% A \textbf{predictor} (in this part) is any function $\rho$ assigning to each
+% history $x_{<t}$ a distribution $\rho(\cdot \mid x_{<t}) \in \Delta\mathbb{B}$;
+% by chain rule, $\rho(x_{1:n}) := \prod_t \rho(x_t \mid x_{<t})$. The mixture
+% $\xi$ is one such predictor, and so is any $\nu \in \Mc$.
+
+\begin{definition}[Pareto domination]\label{def:pareto}
+For some measure of \textbf{loss} $\mathcal F(\nu, \rho)$ that takes an environment $\nu$ and a
+predictor $\rho$, a predictor $\rho$ \textbf{weakly Pareto-dominates} $\xi$  with respect to 
+loss $\mathcal{F}$ and class $\mathcal{M}$ if
+\[
+  \mathcal F(\nu, \rho) ~\leq~ \mathcal F(\nu, \xi)
+  \qquad \text{for every } \nu \in \Mc.
+\]
+$\xi$ is \textbf{Pareto-optimal} (w.r.t.\ $\mathcal F$) if the only predictor
+that weakly dominates it is $\xi$ itself.
+%\footnote{This is stronger than the
+%usual ``no strict domination'' formulation: weak domination already forces
+%$\rho = \xi$, so a fortiori there is no $\rho$ that is strictly better on some
+%$\nu$ without being worse on another.} 
+% The quantifier ranges over the whole
+% class --- there is no single ``true environment.'' Each $\nu$ takes its turn
+% as the candidate environment; Pareto-optimality says no $\rho$ beats $\xi$
+% uniformly across the class.
+
+We specialize $\mathcal F$ to $D_n(\nu \parallel \rho)$ in \cref{prob:kl} 
+and to $\Sn{\nu}{\rho}$ in \cref{prob:sq}.
+\end{definition}
+
+
+\begin{exercise}[KL Pythagorean identity]
+\label{prob:kl_pythag}
+\difficulty{10}
+
+
+
+For \emph{any} predictor $\rho$ with $\rho(x_{1:n}) > 0$ on every $x_{1:n} \in \mathbb{B}^n$, show that
+\[
+  D_n(\xi \parallel \rho) ~+~ \sum_{\nu \in \Mc} w_\nu \, D_n(\nu \parallel \xi)
+  ~=~ \sum_{\nu \in \Mc} w_\nu \, D_n(\nu \parallel \rho).
+\]
+
+
+\begin{hint}
+Take the difference between the two summation terms.
+\end{hint}
+\end{exercise}
+
+
+\begin{exercise}[KL Pareto-optimality]
+\label{prob:kl_pareto}
+\difficulty{05}
+
+
+
+Show that $\xi$ is Pareto-optimal under $D_n(\nu \parallel \rho)$ in the sense of \cref{def:pareto}: if $\rho$ is any predictor with
+\[
+  D_n(\nu \parallel \rho) ~\leq~ D_n(\nu \parallel \xi) \qquad \text{for every } \nu \in \Mc,
+\]
+then $\rho = \xi$.
+
+\begin{hint}
+Multiply the assumed inequality by $w_\nu \geq 0$ and sum over
+$\nu \in \Mc$; then apply the KL Pythagorean identity to recognize the extra
+non-negative term, which must vanish.
+\end{hint}
+\end{exercise}
+
+
+
+%===================================
+\section{Misspecified models: when $\mu \notin \Mc$}\label{prob:misspec}
+
+The cumulative bound \cref{prob:bound} assumed the true environment $\mu$ lives
+in the model class $\Mc$. What happens when it does not? We now show the
+bound \emph{degrades gracefully}: it splits cleanly into a complexity term
+(``cost of not knowing which model is best''), exactly as before, plus a
+linear-in-time approximation term (``cost of no model being right''). See \cite[\S3.2.8]{Hutter:04uaibook} for the original treatment.
+
+Throughout this section, we no longer assume $\mu \in \Mc$. 
+We will state the bound in terms of an arbitrary
+$\hat\mu \in \Mc$, so taking the infimum over $\hat\mu$ on the
+right-hand side gives the tightest version by using the ``closest''
+approximation of $\hat{\mu} \in \Mc$ to $\mu$.
+\begin{exercise}[Misspecified KL bound]
+\label{prob:misspec_ex}
+\difficulty{10}
+
+
+
+Show that for all $\hat\mu \in \Mc$,
+\[
+  D_n(\mu \parallel \xi) ~\leq~ -\ln w_{\hat\mu} ~+~ D_n(\mu \parallel \hat\mu).
+\]
+
+\begin{hint}
+Use \cref{prob:dominance_ex}.
+\end{hint}
+\end{exercise}
+
+
+\begin{remark}[Reading the two terms]
+The right-hand side splits into two qualitatively different terms:
+\begin{itemize}\itemsep=2pt
+\item $-\ln w_{\hat\mu}$ is \emph{constant in $n$}: under the Solomonoff
+prior, this is $K(\hat\mu)\ln 2$. The familiar ``complexity'' cost of search.
+\item The approximation term $D_n(\mu \parallel \hat\mu) = \sum_{t=1}^n d_t(\mu \parallel \hat\mu)$ (by \cref{prob:telescope_ex}) is a sum of $n$ per-step KLs; in general it grows with $n$. It vanishes identically iff $\hat\mu$ matches $\mu$ on every $\mu$-reachable history, in particular when $\mu \in \Mc$ and we pick $\hat\mu = \mu$, recovering \cref{prob:bound}.
+\end{itemize}
+Combining with Pinsker (\cref{thm:pinsker}) gives the corresponding bound on
+$S^\mu_\infty$, which is infinite in general but inherits the rate of $\hat\mu$.
+\end{remark}
+
+Details on how to define the best choice of $\hat{\mu}$ are in \cref{app:best_choice_mu}.
+
+%===================================
+\section{Pareto optimality under squared loss}\label{prob:sq}
+
+The squared specialization $\mathcal F(\nu, \rho) = \Sn{\nu}{\rho}$ (\cref{def:S_infty}) lives one level down from KL: at the conditional distributions
+$\nu(\cdot \mid x_{<t})$. The natural Pythagorean decomposition at a fixed
+history uses \emph{posterior} weights $w(\nu \mid x_{<t})$: those are the
+weights that make $\xi(x_t \mid x_{<t})$ the mean of the $\nu(x_t \mid x_{<t})$'s
+(via the posterior-predictive form, \cref{def:mixture}). The Pareto-optimality
+aggregation, however, uses prior weights $w_\nu$. Bridging the two takes one
+extra Bayes-rule step.
+
+\begin{exercise}[Squared Pythagorean identity]
+\label{prob:sq_pythag}
+\difficulty{10}
+
+
+
+Fix any $t \in \{1, \dots, n\}$ and any history $x_{<t} \in \mathbb{B}^{t-1}$:
+\emph{the history is arbitrary, not sampled from any environment}. For any
+$x_t \in \mathbb{B}$ and any predictor $\rho$, show
+\begin{align*}
+  &\bigl(\xi(x_t \mid x_{<t}) - \rho(x_t \mid x_{<t})\bigr)^{2}
+  ~+~
+  \sum_{\nu \in \Mc} w(\nu \mid x_{<t})\,\bigl(\nu(x_t \mid x_{<t}) - \xi(x_t \mid x_{<t})\bigr)^{2} \\
+  &=~
+  \sum_{\nu \in \Mc} w(\nu \mid x_{<t})\,\bigl(\nu(x_t \mid x_{<t}) - \rho(x_t \mid x_{<t})\bigr)^{2}.
+\end{align*}
+
+\begin{hint}
+Add and subtract $\xi(x_t \mid x_{<t})$ inside the squared term,
+then expand. Use $\sum_\nu w(\nu \mid x_{<t}) = 1$ and the posterior-predictive
+form of $\xi$ (\cref{def:mixture}), $\sum_\nu w(\nu \mid x_{<t})\,\nu(x_t \mid x_{<t})
+= \xi(x_t \mid x_{<t})$, to kill the cross-term. The weighting must be
+\emph{posterior} weights $w(\nu \mid x_{<t})$ (not prior weights $w_\nu$),
+because $\xi(x_t \mid x_{<t})$ is the posterior-weighted mean of the
+$\nu(x_t \mid x_{<t})$'s, not the prior one.
+\end{hint}
+\end{exercise}
+
+
+\begin{exercise}[Squared Pareto-optimality]
+\label{prob:sq_pareto}
+\difficulty{05}
+
+
+
+Show that $\xi$ is Pareto-optimal under $\Sn{\nu}{\rho}$ in the sense of \cref{def:pareto}: if $\rho$ is any predictor with
+\[
+  \Sn{\nu}{\rho} ~\leq~ \Sn{\nu}{\xi} \qquad \text{for every } \nu \in \Mc,
+\]
+then $\rho(x_t \mid x_{<t}) = \xi(x_t \mid x_{<t})$ at every history $x_{<t} \in
+\mathbb{B}^{t-1}$ \emph{with $\xi(x_{<t}) > 0$} (equivalently, $\xi$-almost
+surely) and every $x_t \in \mathbb{B}$. Histories that the mixture never reaches
+($\xi(x_{<t}) = 0$, i.e., reached by no $\nu \in \Mc$ either) are invisible
+to the loss and are not pinned down.
+
+\begin{hint}
+Multiply the assumed inequality by $w_\nu \geq 0$ and sum over
+$\nu$; then for each fixed history $x_{<t}$, multiply the per-history
+Pythagorean identity from above by $\xi(x_{<t})$ and use the Bayes identity
+$w(\nu \mid x_{<t})\,\xi(x_{<t}) = w_\nu \,\nu(x_{<t})$ to bridge from posterior
+weights (inside the identity) to prior weights (in the aggregated Pareto
+inequality).
+\end{hint}
+\end{exercise}
+
+
+%===================================
+\clearpage
+\appendix
+\renewcommand{\thesection}{\Alph{section}}
+\crefname{section}{Appendix}{Appendices}
+\Crefname{section}{Appendix}{Appendices}
+
+\section{Proof of Pinsker's inequality}\label{app:pinsker}
+
+We first prove the following Lemma:
+
+\begin{lemma}[Pinsker's binary inequality]\label{lem:pinsker_binary}
+    For $0 \leq p \leq 1$ and $0 < q < 1$ we have
+    \[
+        2(p-q)^2 ~\leq~ p \ln \frac{p}{q} + (1-p) \ln \frac{1-p}{1-q}.
+    \]
+    \end{lemma}
+    
+    % \mysubsection{1}{[15] (Pinsker binary inequality)\label{prob:pinsker_ex}}
+    
+    % Prove \cref{lem:pinsker_binary}.
+    
+    % \textit{Hint:} Define a function $f(x)$ such that the right-hand side can be written as $f(p) - f(q)$ (try separating the LHS into terms with and without $q$). Then use the fundamental theorem of calculus, $f(p) - f(q) = \int_q^p f'(x) \, dx$, together with the inequality $x(1-x) \leq 1/4$ for $0 \leq x \leq 1$, to obtain the result.
+    % Alternatively: Fix $0 \leq p \leq 1$ and let $\phi_p(q) := p \ln \frac{p}{q} + (1-p) \ln \frac{1-p}{1-q} - 2(p-q)$ and show for any 
+    % $0 \leq p \leq 1$, $\phi_p(q)$ has a global minimum at $q = p$. 
+    
+    Define $f(x) := p \ln x + (1-p) \ln (1-x)$, so that
+    \[
+    p \ln \frac{p}{q} + (1-p) \ln \frac{1-p}{1-q} = f(p) - f(q)
+    = \int_q^p f'(x)\, dx
+    = \int_q^p \frac{p-x}{x(1-x)}\, dx,
+    \]
+    using $f_p'(x) = \frac{p}{x} - \frac{1-p}{1-x} = \frac{p-x}{x(1-x)}$. Recall also that $x(1-x) \leq \tfrac14$ on $[0,1]$, so $\frac{1}{x(1-x)} \geq 4$.
+    
+    \textbf{Case $q \leq p$.} For every $x \in [q,p]$ we have $x \leq p$, hence $p - x \geq 0$.
+    \[
+    \frac{p-x}{x(1-x)} \;\geq\; 4(p-x) \qquad \text{for } x \in [q,p].
+    \]
+    Integrating over $[q,p]$,
+    \[
+    \int_q^p \frac{p-x}{x(1-x)}\, dx \;\geq\; 4 \int_q^p (p-x)\, dx \;=\; 2(p-q)^2.
+    \]
+    
+    \textbf{Case $q \geq p$.} For every $x \in [p,q]$ we have $x \geq p$, hence $x - p \geq 0$. 
+    \[
+    \frac{x-p}{x(1-x)} \;\geq\; 4(x-p) \qquad \text{for } x \in [p,q].
+    \]
+    Integrating over $[q,p]$,
+    \[
+    \int_q^p \frac{p-x}{x(1-x)}\, dx
+    = \int_p^q \frac{x-p}{x(1-x)}\, dx
+    \geq 4 \int_p^q (x-p)\, dx
+    = 4 \int_q^p (p-x)\, dx
+    = 2(p-q)^2
+    \]
+
+\begin{proof}[Proof of \cref{thm:pinsker}]
+    We now reduce \cref{thm:pinsker} to the binary inequality \cref{lem:pinsker_binary}.
+    Recall $p_0 + p_1 = 1$ and $q_0 + q_1 = 1$. We handle the boundary case
+$q_x = 0$ first, then reduce the interior case directly to
+\cref{lem:pinsker_binary}.
+
+\medskip
+\textbf{Case 1: $q_x = 0$ for some $x \in \mathbb{B}$.}
+If $p_x > 0$, then the right-hand side of $(\star)$ contains
+$p_x \ln \tfrac{p_x}{0} = +\infty$, so $(\star)$ holds trivially.
+If instead $p_x = 0$, that atom contributes $0$ to both sides
+(using the convention $0 \ln \tfrac{0}{0} = 0$). The other atom $x'$ then
+satisfies $p_{x'} = 1$ and $q_{x'} = 1 - q_x = 1$, so both sides vanish and
+$(\star)$ holds.
+
+\medskip
+\textbf{Case 2: $q_0, q_1 > 0$.}
+Since $q_1 = 1 - q_0$ and $p_1 = 1 - p_0$, the two sides of $(\star)$ become
+\[
+    \sum_{x \in \mathbb{B}} (q_x - p_x)^2
+    = (q_0 - p_0)^2 + \big((1-q_0) - (1-p_0)\big)^2
+    = 2(p_0 - q_0)^2,
+\]
+\[
+    \sum_{x \in \mathbb{B}} p_x \ln \tfrac{p_x}{q_x}
+    = p_0 \ln \tfrac{p_0}{q_0} + (1 - p_0) \ln \tfrac{1 - p_0}{1 - q_0}.
+\]
+So $(\star)$ is exactly
+$2(p_0 - q_0)^2 \leq p_0 \ln \tfrac{p_0}{q_0} + (1 - p_0) \ln \tfrac{1 - p_0}{1 - q_0}$,
+which is \cref{lem:pinsker_binary} with $p = p_0$ and $q = q_0$
+(here $0 < q_0 < 1$, since $q_0, q_1 > 0$).
+\end{proof}
+
+%===================================
+\section{Proof of KL non-negativity}\label{app:kl_nonneg}
+
+We prove \cref{thm:kl_nonneg}. The core is the elementary inequality
+\[
+  \ln x ~\leq~ x - 1 \qquad \text{for all } x > 0, \quad \text{equality iff } x = 1.
+\]
+(Let $f(x) := (x - 1) - \ln x$; then $f'(x) = 1 - 1/x$, vanishing only at $x = 1$, with $f''(x) = 1/x^2 > 0$, so $f$ is strictly convex and attains its unique minimum $f(1) = 0$ at $x = 1$.)
+
+\begin{lemma}[Gibbs' inequality]\label{lem:gibbs}
+Let $P, Q$ be probability distributions over a finite set $\mathcal{X}$, with the conventions $0 \ln \tfrac{0}{q} := 0$ and $p \ln \tfrac{p}{0} := \infty$. Then
+\[
+  \sum_{x \in \mathcal{X}} P(x) \ln \frac{P(x)}{Q(x)} ~\geq~ 0,
+\]
+with equality iff $P(x) = Q(x)$ for every $x$ with $P(x) > 0$.
+\end{lemma}
+
+\begin{proof}
+If $Q(x) = 0$ for some $x$ with $P(x) > 0$, the LHS is $+\infty$ and the inequality is strict. Otherwise restrict the sum to $\{x : P(x) > 0\}$ (terms with $P(x) = 0$ contribute $0$ by convention), where every ratio $Q(x)/P(x)$ is in $(0, \infty)$. Apply $\ln y \leq y - 1$ to $y = Q(x)/P(x)$:
+\begin{align*}
+  - \sum_x P(x) \ln \frac{P(x)}{Q(x)}
+  ~=~ \sum_x P(x) \ln \frac{Q(x)}{P(x)}
+  ~\leq~ \sum_x P(x) \left(\frac{Q(x)}{P(x)} - 1\right) \\
+  ~=~ \sum_x Q(x) - \sum_x P(x) ~\leq~ 0,
+\end{align*}
+where the last step uses $\sum_x Q(x) \leq 1 = \sum_x P(x)$ (the sum over $\{x : P(x) > 0\}$ may miss some $Q$-mass). Negating gives the claim. Equality in $\ln y \leq y - 1$ requires $y = 1$ for every $x$ with $P(x) > 0$, i.e.\ $Q(x) = P(x)$ there; equality in $\sum Q \leq \sum P$ then forces $Q$ to have no mass outside $\mathrm{supp}\,P$. Both together give $P = Q$ on all of $\mathcal{X}$.
+\end{proof}
+
+\begin{proof}[Proof of \cref{thm:kl_nonneg}]
+\textit{Part (a).} Apply \cref{lem:gibbs} with $\mathcal{X} = \mathbb{B}^n$, $P(x_{1:n}) = \nu(x_{1:n})$, $Q(x_{1:n}) = \rho(x_{1:n})$. Both are probability distributions on $\mathbb{B}^n$ since $\nu$ and $\rho$ are environments. The lemma gives $D_n(\nu \parallel \rho) \geq 0$ with the stated equality condition.
+
+\textit{Part (b).} For each fixed history $x_{<t}$ with $\nu(x_{<t}) > 0$, apply \cref{lem:gibbs} with $\mathcal{X} = \mathbb{B}$, $P = \nu(\cdot \mid x_{<t})$, $Q = \rho(\cdot \mid x_{<t})$ (both are probability distributions on $\mathbb{B}$):
+\[
+  \sum_{x_t \in \mathbb{B}} \nu(x_t \mid x_{<t}) \ln \frac{\nu(x_t \mid x_{<t})}{\rho(x_t \mid x_{<t})} ~\geq~ 0,
+\]
+with equality iff $\nu(\cdot \mid x_{<t}) = \rho(\cdot \mid x_{<t})$. Multiply by $\nu(x_{<t}) \geq 0$ and sum over $x_{<t}$: this gives $d_t(\nu \parallel \rho) \geq 0$, as a sum of non-negative terms. Equality forces every $x_{<t}$ with $\nu(x_{<t}) > 0$ to contribute a vanishing inner sum, which is exactly the stated condition.
+\end{proof}
+
+%===================================
+
+\section{Model Class $\Mc$}\label{app:model_class}
+
+All results in this sheet hold for any countable class $\Mc$ and prior $w_\nu$. The canonical \textbf{Solomonoff} choice takes $\Mc$ to be the class of all computable environments and the \textbf{Solomonoff prior}
+\[
+w_\nu ~:=~ 2^{-K(\nu)},
+\]
+where $K(\nu)$ is the \emph{Kolmogorov complexity} of $\nu$: the length of the shortest program that computes $\nu$. The Bayesian mixture $\xi$ under this particular prior is the \emph{universal mixture}, written $\xi_U$. With this class the assumption $\mu \in \Mc$ reduces to ``the universe is computable'': as weak an assumption as one can make. For technical details on Kolmogorov complexity, see \cite[\S2.7]{Hutter:24uaibook2}.
+
+The class of all computable measures is countable but not enumerable (by the halting problem, you can't decide which Turing machines define total functions), so one can't even formally write
+$\sum_{\nu \in \Mc} \ldots$ as the decision problem of determining if $\nu \overset{?}{\in} \Mc$ is undecidable. A faithful construction of $\xi_U$ requires expanding $\Mc$ to all \emph{lower-semicomputable semimeasures} (Levin), at which point $\xi_U$ becomes a semimeasure rather than a measure: $\sum_x \xi_U(x) \leq 1$ instead of $=1$, conditionals may not sum to $1$, and every other proof in this sheet gains a side-case. This also gives the nice benefit that $\xi \in \mathcal{M}$.
+
+We dodge all of this: $\Mc$ is just \emph{some} countable set of proper measures with $\mu \in \Mc$, and we assume $K(\nu)$ is defined for each $\nu \in \Mc$ when we need it. We never need $\xi$ itself to be in $\Mc$, nor do we need its computability, so we don't ask. See \cite[\S2.4.3]{Hutter:04uaibook} for the full Levin construction.
+
+%===================================
+
+\section{Best choice of $\hat{\mu} \in \Mc$.}\label{app:best_choice_mu}
+
+The bound is valid for every $\hat\mu \in \Mc$. A tempting question: which
+$\hat\mu$ gives the tightest bound? The answer is genuinely setting-dependent.
+
+\textit{Finite horizon $n$.} The minimizer of the RHS is
+\[
+    \hat\mu_n ~:=~ \arg\min_{\nu \in \Mc}\Bigl\{ -\ln w_\nu \;+\; D_n(\mu \parallel \nu) \Bigr\}.
+\]
+This is well-defined (finitely many terms, attained when $\Mc$ is finite),
+but the answer depends on $n$: for small $n$ the prior term dominates and a
+high-prior coarse model wins; for large $n$ the fit term dominates and the best
+per-step approximator wins. Both regimes are correct.
+
+\textit{Asymptotic rate.} A horizon-free analogue minimizes the per-step KL
+rate $$\lim_{n \to \infty} \frac{1}{n} \sum_{t \leq n} d_t(\mu \parallel \nu).$$ This is the right notion when one cares about the linear-growth slope of the bound. But it has two drawbacks: the limit need not exist for non-stationary $\mu$ (one can substitute $\liminf$ but at the cost of clarity), and it discards the prior $w_\nu$ entirely, so the minimizer is not the same as $\hat\mu_n$ at any finite $n$, but only of its slope.
+
+\textit{Stationary $\mu$.} The per-step KLs $d_t(\mu \parallel \nu)$ are constant in $t$, so all three notions essentially agree: $\hat\mu = \arg\min_{\nu \in \Mc} D_{\text{KL}}(\mu \,\|\, \nu)$, where the KL is taken under the (common) one-step conditional law. This is the case where ``$\hat\mu$ = projection of $\mu$ onto $\Mc$ in KL'' has unambiguous meaning.
+
+\textit{Upshot.} The bound holds for all $\hat\mu \in \Mc$, and one is free
+to take the infimum on the RHS over $\hat\mu$. Which $\hat\mu$ actually
+attains that infimum is a separate question whose answer depends on horizon,
+prior, and any structural assumptions on $\mu$.
+%===================================
+
+\bibliographystyle{alphaurl}
+\bibliography{biblo}
+
+\end{document}
