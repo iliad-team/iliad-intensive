@@ -136,7 +136,10 @@ where $J = \partial f_w/\partial w$ is the parameter-output Jacobian and $H_y$ i
 
 The fix proposed by \citet{bae2022if} is to replace the original training loss by a surrogate for which $w^*$ \emph{is} optimal by construction. Concretely, define the \emph{proximal Bregman objective} (PBO) as
 \begin{equation}
-  L_{\mathrm{PBO}}(w;\beta) \;=\; \sum_{i=1}^{n} D_{L_y}\!\bigl(f_w(x_i),\,f_{w^*}(x_i)\bigr) \;+\; \sum_{i=1}^{n}(\beta_i - 1)\,L(w,z_i) \;+\; \frac{\lambda}{2}\,\|w - w^*\|^2,
+  \begin{aligned}
+    L_{\mathrm{PBO}}(w;\beta) \;=\;& \sum_{i=1}^{n} D_{L_y}\!\bigl(f_w(x_i),\,f_{w^*}(x_i)\bigr) \;+\; \sum_{i=1}^{n}(\beta_i - 1)\,L(w,z_i) \\
+    &+ \frac{\lambda}{2}\,\|w - w^*\|^2,
+  \end{aligned}
   \label{eq:pbo}
 \end{equation}
 where $D_{L_y}(\hat y,\hat y^*)$ is the Bregman divergence of the output-space loss $L_y$ around $\hat y^*$. The first term penalizes any change in the network's predictions on the training set, with the current model $w^*$ as the reference; the second is the perturbation of interest; the third is the damping. By construction, $w^*$ is the minimizer of $L_{\mathrm{PBO}}(\,\cdot\,;\mathbf{1})$ regardless of whether it is a critical point of the original loss. The minimizer of $L_{\mathrm{PBO}}(\,\cdot\,;\beta)$ for nearby $\beta$ defines the \emph{proximal Bregman response function} (PBRF).
