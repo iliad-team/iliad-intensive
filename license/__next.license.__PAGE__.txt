@@ -1,0 +1,7 @@
+1:"$Sreact.fragment"
+2:I[22016,["/_next/static/chunks/13h-0fd.p-1ga.js","/_next/static/chunks/0d3shmwh5_nmn.js"],""]
+3:I[97367,["/_next/static/chunks/13h-0fd.p-1ga.js","/_next/static/chunks/0d3shmwh5_nmn.js"],"OutletBoundary"]
+4:"$Sreact.suspense"
+:HL["/_next/static/chunks/0tmg9vcbw.fm2.css","style"]
+0:{"rsc":["$","$1","c",{"children":[["$","main",null,{"className":"mx-auto w-full px-6 py-10","style":{"maxWidth":720},"children":[["$","$L2",null,{"href":"/","className":"font-sans text-xs uppercase tracking-[0.15em] text-zinc-500 hover:text-zinc-800","children":"← Curriculum"}],["$","article",null,{"className":"prose mt-6","children":[["$","h1",null,{"id":"licence","children":"Licence"}],"\n",["$","p",null,{"children":["Unless otherwise stated, material for the Iliad Intensive is licensed to Principles of Intelligence under the Creative Commons Attribution 4.0 International (CC BY 4.0). The full license text can be read ",["$","a",null,{"href":"https://github.com/iliad-team/iliad-intensive/blob/main/LICENSE","children":"here"}],".\nChanges may have been made to the material that are not necessarily endorsed by the authors. Authors are noted in their respective days of material."]}]]}]]}],[["$","link","0",{"rel":"stylesheet","href":"/_next/static/chunks/0tmg9vcbw.fm2.css","precedence":"next"}]],["$","$L3",null,{"children":["$","$4",null,{"name":"Next.MetadataOutlet","children":"$@5"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"PEGDQ5m91wEQxNEc3Kfm8"}
+5:null
