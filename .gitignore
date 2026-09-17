@@ -68,6 +68,9 @@ tex/*/.build-hash
 *.vrb
 comment.cut
 _minted*/
+# minted v3 caches per-listing highlight data in `_<md5>.data.minted` files
+# beside main.tex, rather than in the `_minted-<job>/` directory v2 used above.
+*.data.minted
 *.pyg
 *.pdf
 !tex/*/fig/*.pdf
@@ -98,3 +101,6 @@ credentials.json
 gdoc-auth-url.txt
 gdoc-auth-url.html
 token.json
+
+# Working notes carried in the Overleaf project, not part of the built chapter
+tex/qft/Claude_notes.tex
