@@ -8,6 +8,7 @@ import { ModulePageShell } from "@/components/ModulePageShell";
 import { SidebarNav } from "@/components/SidebarNav";
 import { DownloadsRow } from "@/components/DownloadsRow";
 import { BUILT_AT, COMMIT_SHA, CommitLink, LicenseLink } from "@/components/BuildStamp";
+import { LAZY_LAYOUT, LAZY_LAYOUT_CLASS } from "@/lib/perf-flags";
 
 // Static export: every .mdx in content/modules is prerendered at build time.
 // content/index.json only controls the homepage/sidebar listing, so a module
@@ -110,7 +111,9 @@ export default async function ModulePage({
             slides={fm.slides}
           />
         </header>
-        <div className="prose">
+        {/* LAZY_LAYOUT_CLASS switches on the content-visibility rules in
+            globals.css (see src/lib/perf-flags.ts to turn the feature off). */}
+        <div className={LAZY_LAYOUT ? `prose ${LAZY_LAYOUT_CLASS}` : "prose"}>
           <MdxBody source={mod.body} />
         </div>
         <footer className="not-prose mt-12 border-t border-zinc-200 pt-4 font-sans text-xs text-zinc-500">
