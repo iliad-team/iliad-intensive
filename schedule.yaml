@@ -358,3 +358,5 @@ clusters:
         sourceUrl: https://github.com/LouisYRYJ/Proof_based_approach_tutorial
         slides: https://drive.google.com/file/d/1CqJtSUFLZ_L-kSsSzvSJGXfuf1Lbq5Un/view
         note: a tutorial notebook exists in the repo; no worksheet source yet
+        worksheets:
+          - worst-case-interp

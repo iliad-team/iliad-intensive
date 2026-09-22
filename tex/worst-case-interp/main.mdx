@@ -1,0 +1,51 @@
+---
+title: Worst-Case Interpretability
+summary: TODO
+contributors:
+  - Louis Jaburi (EleutherAI)
+---
+
+## Prerequisites
+
+* Linear algebra (SVD, eigendecomposition, matrix norms, singular values)
+* C.2 Mechanistic Interpretability: Circuits, ablations, SAEs. More generally transformers
+* Basic information + probability theory
+
+<LearningOutcomes>
+
+* Students understand the difficulty of evaluating and validating interpretations
+* Students are able to formalize interpretations as lossy compressions with quantifiable faithfulness and compactness and its limitations through the three sources of exponential blowup (error along paths, number of paths, input space coverage)
+* Students are able to articulate why worst-case bounds become vacuous even on simple models, and why this motivates an intermediate approach between worst-case and average-case evaluation
+* Students on a high level understand ARC's heuristic arguments agenda as a response to these limitations
+
+</LearningOutcomes>
+
+## Reading guide
+
+### Fast-track
+
+* Read the intro [notebook](https://colab.research.google.com/github/iliad-team/iliad-intensive-E.3/blob/master/proof_public.ipynb) and the ARC blog [post](https://www.lesswrong.com/posts/SyeQjjBoEC48MvnQC/formal-verification-heuristic-explanations-and-surprise).
+* Read the [Lecture slides](https://drive.google.com/file/d/1CqJtSUFLZ_L-kSsSzvSJGXfuf1Lbq5Un/view?usp=drive_link).
+
+### Main content
+
+**1. Limitations of interpretability evaluation** Current interpretability methods are typically evaluated using faithfulness metrics based on ablations. These metrics turn out to be fragile.
+
+* Read ["Transformer Circuit Faithfulness Metrics Are Not Robust"](https://arxiv.org/abs/2407.08734)
+
+**2. Compact proofs framework** If average-case metrics are unreliable, can we do better? Proofs offer a rigorous alternative: formalize an interpretation as a compression of the model with quantifiable faithfulness and compactness, then prove guarantees. The compact proofs paper shows what happens when you try in a toy mode.
+
+* Read: [Compact proofs paper](https://arxiv.org/abs/2406.11779), the main paper
+* Work through the intro [notebook](https://colab.research.google.com/github/iliad-team/iliad-intensive-E.3/blob/master/proof_public.ipynb)
+
+**3. From proofs to heuristic arguments** The vacuousness of worst-case bounds suggests we need something between full proofs and mere average-case evaluation. ARC's heuristic arguments agenda proposes such an intermediate approach.
+
+* Read: above mentioned [blog post](https://www.lesswrong.com/posts/SyeQjjBoEC48MvnQC/formal-verification-heuristic-explanations-and-surprise)
+* [ARC’s general agenda](https://www.lesswrong.com/posts/ztokaf9harKTmRcn4/a-bird-s-eye-view-of-arc-s-research)
+* Recent progress: [no-coincidence principle](https://www.lesswrong.com/posts/Xt9r4SNNuYxW83tmo/a-computational-no-coincidence-principle)
+
+## Further reading
+
+* More examples of worst-case interp on toy models: [Learning group operations](https://arxiv.org/abs/2410.07476), [modular addition](https://arxiv.org/abs/2412.03773)
+* Deeper look into ARC’s work: [Low probability estimation](https://arxiv.org/abs/2410.13211)
+* Critiques of ARC work: This [series](https://www.lesswrong.com/s/uYMw689vDFmgPEHrS) for example
