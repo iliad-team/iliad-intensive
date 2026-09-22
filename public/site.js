@@ -23,6 +23,20 @@
     try { localStorage.setItem(KEY, open ? "1" : "0"); } catch (e) {}
   }
 
+  // Preview builds stack the PR banner above the navbar (#top-stack in
+  // layout.tsx). The stack's height feeds --top-h, which the anchor scroll
+  // offset, the sidebar's sticky offset and the diff view's headings are set
+  // from; the banner wraps on narrow screens, so it is measured, not assumed.
+  var stack = document.getElementById("top-stack");
+  if (stack) {
+    var setTop = function () {
+      root.style.setProperty("--top-h", stack.offsetHeight + "px");
+    };
+    setTop();
+    window.addEventListener("resize", setTop);
+    if (window.ResizeObserver) new ResizeObserver(setTop).observe(stack);
+  }
+
   var toggle = document.getElementById("nav-toggle");
   if (toggle) {
     // The markup ships aria-expanded="false"; sync it with the restored state.

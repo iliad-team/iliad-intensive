@@ -10,13 +10,14 @@ import remarkMath from "remark-math";
 import remarkGfm from "remark-gfm";
 import { remarkKatexHtml } from "./remark-katex-html";
 import rehypeSlug from "rehype-slug";
+import { siteHref } from "./preview";
 import "katex/dist/katex.min.css";
 import type { ComponentProps, ReactNode } from "react";
 
 // basePath is applied automatically to <Link>/CSS/fonts but NOT to raw
-// <img src> attributes, so Figure prefixes it explicitly. Inlined at build
-// time (NEXT_PUBLIC_), empty for local dev / root-domain hosting.
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+// <img src> or <a href> attributes, so Figure and `a` resolve theirs through
+// siteHref (src/lib/preview.ts): the base path in a full build, and on a
+// partial PR preview the live site for any worksheet the build left out.
 
 const components = {
   /**
@@ -27,10 +28,7 @@ const components = {
    * cross-worksheet link 404s on GitHub Pages.
    */
   a: ({ href, ...rest }: ComponentProps<"a">) => (
-    <a
-      href={href?.startsWith("/") && !href.startsWith("//") ? `${BASE_PATH}${href}` : href}
-      {...rest}
-    />
+    <a href={href === undefined ? href : siteHref(href)} {...rest} />
   ),
 
   /**
@@ -242,7 +240,7 @@ const components = {
           dimensions, which renders diagrams far smaller than they appear in
           the PDF. Stretch to the content column — SVG scales losslessly. */}
       <img
-        src={src.startsWith("/") ? `${BASE_PATH}${src}` : src}
+        src={siteHref(src)}
         alt={alt ?? caption ?? ""}
         loading="lazy"
         decoding="async"

@@ -547,8 +547,10 @@ $\Gobs(SLTT) = -5$ and $\Gobs(SILT) = -4$.
 For the colliding pairs, $\Gobs$ is the same for both members and equals the
 expected true return under the belief:
 \begin{align*}
-\Gobs(STTT) = \Gobs(SL_HTT) &= (1-p_H)\cdot 0 + p_H \cdot (-5-r) = -p_H(5+r), \\
-\Gobs(SITT) = \Gobs(SIL_HT) &= (1-p_H)\cdot 1 + p_H\cdot(-4-r) = 1 - p_H(5+r), \\
+\Gobs(STTT) = \Gobs(SL_HTT) &= (1-p_H)\cdot 0 + p_H \cdot (-5-r) \\
+&= -p_H(5+r), \\
+\Gobs(SITT) = \Gobs(SIL_HT) &= (1-p_H)\cdot 1 + p_H\cdot(-4-r) \\
+&= 1 - p_H(5+r), \\
 \Gobs(SIWT) = \Gobs(SIW_HT) &= p_W \cdot 11 + (1-p_W)\cdot 11 = 11.
 \end{align*}
 The last line shows $p_W$ drops out, as anticipated.
@@ -617,9 +619,9 @@ dominated.
 \begin{solution}[prob:rlhfopt]
 First, compare the two ``contested'' policies:
 \begin{align*}
-\Jobs([a_I a_H a_T]) - \Jobs([a_I a_C a_T])
-&= \bigl[11p + (1-p)(1 - p_H(5+r))\bigr] - \bigl[15p - 4\bigr] \\
-&= (1-p)\bigl(5 - p_H(5+r)\bigr).
+&\Jobs([a_I a_H a_T]) - \Jobs([a_I a_C a_T]) \\
+&\qquad= \bigl[11p + (1-p)(1 - p_H(5+r))\bigr] - \bigl[15p - 4\bigr] \\
+&\qquad= (1-p)\bigl(5 - p_H(5+r)\bigr).
 \end{align*}
 Since $p < 1$, this is positive iff $p_H(5+r) < 5$, i.e.\ $p_H < 5/(5+r)$.
 So under the assumed condition,

@@ -1,6 +1,7 @@
-import Link from "next/link";
 import type { IndexEntry } from "@/lib/content";
-import { clusterLabel, dayCode, pagePath, type Cluster } from "@/lib/clusters";
+import { clusterLabel, dayCode, type Cluster } from "@/lib/clusters";
+import { isChanged } from "@/lib/preview";
+import { ModuleLink } from "@/components/ModuleLink";
 
 const CLUSTER_ORDER = ["0", "A", "B", "C", "D", "E", "Other"];
 
@@ -48,7 +49,7 @@ export function SidebarNav({
     <nav
       id="module-sidebar"
       aria-label="Modules"
-      className="w-full max-w-xs shrink-0 self-start lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:max-h-[calc(100vh-var(--header-h)-2rem)] lg:overflow-y-auto pr-4"
+      className="w-full max-w-xs shrink-0 self-start lg:sticky lg:top-[calc(var(--top-h)+1rem)] lg:max-h-[calc(100vh-var(--top-h)-2rem)] lg:overflow-y-auto pr-4"
     >
       <div className="space-y-5 font-sans text-sm">
         {orderedClusters.map((cluster) => (
@@ -60,23 +61,24 @@ export function SidebarNav({
               {byCluster.get(cluster)!.map((p) => {
                 const active = p.slug === activeSlug;
                 const headings = active ? p.headings ?? [] : [];
+                // On a PR preview the worksheets the PR touched are tinted
+                // green, the same mark the homepage gives them; the active
+                // page's grey wins nothing over it — a changed page that is
+                // also the one you are on is greener still.
+                const changed = isChanged(p.slug);
+                const tone = active
+                  ? (changed ? "bg-emerald-200 text-black font-medium" : "bg-zinc-200 text-black font-medium")
+                  : changed
+                    ? "bg-emerald-100 text-zinc-800 hover:bg-emerald-200 hover:text-black"
+                    : "text-zinc-700 hover:bg-zinc-100 hover:text-black";
                 return (
                   <li key={p.slug}>
-                    <Link
-                      href={pagePath(p.cluster, p.slug, clusterList)}
-                      // This sidebar lists EVERY worksheet and renders on every
-                      // worksheet page, so the default prefetch would pull each
-                      // one's full RSC payload as its link enters the viewport.
-                      // Those payloads are the largest thing the site ships —
-                      // ~6 MB for singular-learning-theory, ~5.6 MB for aixi —
-                      // which is a lot of bandwidth for a link nobody clicked.
-                      prefetch={false}
-                      className={
-                        "block rounded px-2 py-1 leading-snug " +
-                        (active
-                          ? "bg-zinc-200 text-black font-medium"
-                          : "text-zinc-700 hover:bg-zinc-100 hover:text-black")
-                      }
+                    <ModuleLink
+                      cluster={p.cluster}
+                      slug={p.slug}
+                      clusters={clusterList}
+                      className={`block rounded px-2 py-1 leading-snug ${tone}`}
+                      title={changed ? "Changed in this pull request" : undefined}
                     >
                       {/* The part code as a chip rather than a nesting level:
                           this list already nests cluster → page → headings, and
@@ -88,7 +90,7 @@ export function SidebarNav({
                         </span>
                       )}
                       {p.title}
-                    </Link>
+                    </ModuleLink>
                     {headings.length > 0 && (
                       <ul
                         className="mt-1 mb-2 border-l border-zinc-200"

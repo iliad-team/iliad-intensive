@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { listIntensives, formatDay, formatRange } from "@/lib/intensives";
 import { listIndex } from "@/lib/content";
 import { listClusters, listDays } from "@/lib/cluster-store";
-import { pagePath } from "@/lib/clusters";
+import { ModuleLink } from "@/components/ModuleLink";
 
 /**
  * /intensives/<slug> — one programme's calendar: a row per day, and links to
@@ -130,16 +130,14 @@ export default async function IntensivePage({
                     <ul className="space-y-1">
                       {sheets.map((m) => (
                         <li key={m.slug}>
-                          <Link
-                            href={pagePath(m.cluster, m.slug, clusterList)}
-                            // Same reason as the homepage: prefetching every
-                            // linked worksheet's RSC payload is tens of MB for
-                            // pages the reader has not chosen yet.
-                            prefetch={false}
+                          <ModuleLink
+                            cluster={m.cluster}
+                            slug={m.slug}
+                            clusters={clusterList}
                             className="font-serif text-[1.05rem] leading-snug text-[var(--link)] underline decoration-1 underline-offset-2 hover:text-[var(--link-hover)]"
                           >
                             {m.title}
-                          </Link>
+                          </ModuleLink>
                         </li>
                       ))}
                     </ul>

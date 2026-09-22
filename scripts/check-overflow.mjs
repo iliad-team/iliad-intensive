@@ -81,7 +81,7 @@ if (opt.slugs.length) {
   for (const s of opt.slugs) if (!known.has(s)) fail(`no built worksheet "${s}" in content/index.json`);
   modules = modules.filter((m) => opt.slugs.includes(m.slug));
 }
-const pages = modules.map((m) => ({
+let pages = modules.map((m) => ({
   slug: m.slug,
   path: `/${clusterSlug.get(m.cluster)}/${m.slug}/`,
 }));
@@ -106,6 +106,14 @@ if (!origin) {
   const home = path.join(OUT_DIR, "index.html");
   if (!existsSync(home)) fail("out/ has no build — run `./run.sh build` (or use --base-url against a dev server)");
   basePath = readFileSync(home, "utf8").match(/["'](\/[^"']*?)?\/_next\//)?.[1] ?? "";
+  // A partial PR preview renders only the worksheets the PR touched
+  // (scripts/prune-preview.mjs); the rest have no page here to measure.
+  const absent = pages.filter((p) => !existsSync(path.join(OUT_DIR, p.path, "index.html")));
+  if (absent.length) {
+    console.log(`↷ not in this build, skipped: ${absent.map((p) => p.slug).join(", ")}`);
+    pages = pages.filter((p) => !absent.includes(p));
+    if (!pages.length) { console.log("✓ no worksheet pages in this build to check."); process.exit(0); }
+  }
   server = createServer((req, res) => {
     let p = decodeURIComponent(new URL(req.url, "http://x").pathname);
     if (basePath && p.startsWith(basePath)) p = p.slice(basePath.length) || "/";
