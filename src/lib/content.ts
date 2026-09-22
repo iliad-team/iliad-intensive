@@ -1,6 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import YAML from "yaml";
+import { PARTIAL, isPublished } from "./preview";
 
 /** Frontmatter of a *generated* module. `cluster`/`day` are stamped in by
  *  build-content.mjs from schedule.yaml (an author may not write either); the
@@ -153,7 +154,11 @@ export async function listSlugs(): Promise<string[]> {
     // just the section you edited instead of every module. Never set in a real
     // build, so production/deploy output is unaffected.
     const only = process.env.PREVIEW_ONLY;
-    return only ? slugs.filter((s) => s === only) : slugs;
+    if (only) return slugs.filter((s) => s === only);
+    // Partial PR preview (src/lib/preview.ts): only the worksheets the PR
+    // touched get a page; the rest are neither rendered nor published, and
+    // every link to them goes to the live site instead.
+    return PARTIAL ? slugs.filter(isPublished) : slugs;
   } catch {
     return [];
   }

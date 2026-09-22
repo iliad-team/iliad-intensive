@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
-import Link from "next/link";
 import { readStatus, type Day, type Deck, type SourceKind } from "@/lib/status";
 import { listClusters } from "@/lib/cluster-store";
-import { clusterLabel, pagePath } from "@/lib/clusters";
+import { clusterLabel } from "@/lib/clusters";
+import { siteHref } from "@/lib/preview";
+import { ModuleLink } from "@/components/ModuleLink";
 import { BUILT_AT, COMMIT_SHA, CommitLink, LicenseLink } from "@/components/BuildStamp";
 import {
   InFlightProvider, InFlightCell, InFlightCount, InFlightRest, InFlightTd, StatusFreshness,
@@ -111,7 +112,7 @@ const SOURCE_LABEL: Record<SourceKind, { text: string; tone: Tone }> = {
   never: { text: "n/a", tone: "none" },
 };
 
-function materialCell(day: Day, clusters: Cluster[], basePath: string): Cell {
+function materialCell(day: Day, clusters: Cluster[]): Cell {
   // Marked `port: never` in schedule.yaml: the day runs from the Doc (or
   // hosted PDFs) by design, so the missing worksheet is not a gap.
   if (day.port === "never") {
@@ -130,11 +131,13 @@ function materialCell(day: Day, clusters: Cluster[], basePath: string): Cell {
         {day.modules.map((m) => (
           <li key={m.slug} className="flex flex-wrap items-center gap-1.5">
             <State tone={m.unlisted ? "wait" : "good"}>
-              <Link href={pagePath(m.cluster, m.slug, clusters)} className="underline decoration-current/30 underline-offset-2 hover:decoration-current">
+              <ModuleLink cluster={m.cluster} slug={m.slug} clusters={clusters} className="underline decoration-current/30 underline-offset-2 hover:decoration-current">
                 {m.title}
-              </Link>
+              </ModuleLink>
             </State>
-            {m.pdf && <Chip tone={tone} href={`${basePath}/downloads/${m.slug}/${m.slug}.pdf`}>pdf</Chip>}
+            {/* siteHref, not a bare basePath prefix: on a partial PR preview a
+                download of an untouched worksheet lives on the live site. */}
+            {m.pdf && <Chip tone={tone} href={siteHref(`/downloads/${m.slug}/${m.slug}.pdf`)}>pdf</Chip>}
             {m.unlisted && <Muted>unlisted</Muted>}
           </li>
         ))}
@@ -143,14 +146,14 @@ function materialCell(day: Day, clusters: Cluster[], basePath: string): Cell {
   };
 }
 
-function DeckChips({ deck, basePath, tone, many }: { deck: Deck; basePath: string; tone: Tone; many: boolean }) {
+function DeckChips({ deck, tone, many }: { deck: Deck; tone: Tone; many: boolean }) {
   // With several decks on a day, each line says which deck it is (the deck's
   // own \title{}, or the `slides:` title); a lone deck needs no label.
   const label = many && deck.title ? <Muted>{deck.title}</Muted> : null;
   if (deck.kind === "built") {
     // The deck's source (LaTeX or Typst) is in the repo. `pdf` is false only
     // in a --check run, which compiles nothing.
-    const file = `${basePath}/downloads/${deck.slug}/${deck.slug}-${deck.stem}`;
+    const file = siteHref(`/downloads/${deck.slug}/${deck.slug}-${deck.stem}`);
     return (
       <span className="flex flex-wrap items-center gap-1.5">
         {label}
@@ -169,7 +172,7 @@ function DeckChips({ deck, basePath, tone, many }: { deck: Deck; basePath: strin
   );
 }
 
-function slidesCell(day: Day, basePath: string): Cell {
+function slidesCell(day: Day): Cell {
   // A `port: never` day plans no deck either, so its blank is neutral. Only
   // the blank: a hosted deck it does have still shows as one below.
   if (day.slides.kind === "none" && day.port === "never") {
@@ -188,7 +191,6 @@ function slidesCell(day: Day, basePath: string): Cell {
           <DeckChips
             key={deck.kind === "built" ? `${deck.slug}/${deck.stem}` : `${deck.slug ?? i}:${deck.url}`}
             deck={deck}
-            basePath={basePath}
             tone={tone}
             many={day.slides.decks.length > 1}
           />
@@ -218,7 +220,6 @@ function sourceCell(day: Day): Cell {
 
 export default async function StatusPage() {
   const [status, clusters] = await Promise.all([readStatus(), listClusters()]);
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
   if (!status) {
     return (
@@ -342,17 +343,19 @@ export default async function StatusPage() {
                 // The day itself links to its material when there is any.
                 const first = day.modules.find((m) => !m.unlisted) ?? day.modules[0];
                 const dayTitle = first ? (
-                  <Link
-                    href={pagePath(first.cluster, first.slug, clusters)}
+                  <ModuleLink
+                    cluster={first.cluster}
+                    slug={first.slug}
+                    clusters={clusters}
                     className="text-[var(--link)] hover:underline"
                   >
                     {day.title}
-                  </Link>
+                  </ModuleLink>
                 ) : (
                   <span className="text-zinc-500">{day.title}</span>
                 );
-                const material = materialCell(day, clusters, basePath);
-                const slides = slidesCell(day, basePath);
+                const material = materialCell(day, clusters);
+                const slides = slidesCell(day);
                 const source = sourceCell(day);
                 return (
                   <tr key={day.code} className="border-b border-zinc-200">
