@@ -109,9 +109,9 @@ export function PreviewBanner() {
           <input type="checkbox" id="diff-sync" defaultChecked />
           sync scroll
         </label>
-        {/* On by default: runs of unchanged blocks fold into one clickable
-            strip, one block of context kept either side of a change and
-            headings always shown, so a long sheet reads as its changes. */}
+        {/* On by default: unchanged sections and blocks fold into clickable
+            strips (one per section, named by its heading), one block of context
+            kept beside each change, so a long sheet reads as its changes. */}
         <label id="diff-hide-label" className="inline-flex cursor-pointer items-center gap-1">
           <input type="checkbox" id="diff-hide" defaultChecked />
           hide unchanged

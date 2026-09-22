@@ -178,10 +178,12 @@ scroll offset and the sidebar's sticky offset derive from). The second row:
 - **diff vs main** — the two-column view described above.
 - **sync scroll** — the columns share the page's scroll (on) or each get
   their own (off).
-- **hide unchanged** (on by default) — every run of blocks that match on both
-  sides folds into one strip saying how many, with one block of context kept
-  either side of a change and headings never hidden. Click a strip to unfold
-  that run; click it again to fold it back.
+- **hide unchanged** (on by default) — the article's top-level blocks
+  (paragraphs, headings, whole exercise and theorem boxes, lists) that match
+  on both sides fold away, one block of context kept beside each change. An
+  unchanged section collapses to one strip that names its heading and says
+  how many blocks it holds. Click a strip to unfold that run; click it again
+  to fold it back.
 - **allow stretched margins** (off by default) — off, each column is exactly
   the page's own reading width, so an equation that overflows the real page
   overflows its column here too, which is the point of reviewing a

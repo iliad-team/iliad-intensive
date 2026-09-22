@@ -41,12 +41,12 @@
  *   - "next change": steps through the removed / added / modified blocks in
  *     position order, scrolling each into view with an amber ring, and turns
  *     the diff on first if it is off.
- *   - "hide unchanged" (on): every run of blocks that match on both sides is
- *     folded into one strip saying how many, with one block of context kept
- *     either side of a change and headings never hidden. Clicking a strip
- *     unfolds that run; clicking it again folds it back. Folds go in both
- *     columns and are levelled like any matched pair, so the rows stay side
- *     by side.
+ *   - "hide unchanged" (on): the article's top-level blocks — paragraphs,
+ *     headings, whole exercise/theorem boxes, lists — that match on both sides
+ *     fold away, one block of context kept beside each change, one strip per
+ *     section naming its heading and saying how many blocks it holds. Clicking
+ *     a strip unfolds that run; clicking it again folds it back. Folds go in
+ *     both columns and are levelled like any matched pair.
  */
 (function () {
   "use strict";
@@ -328,21 +328,43 @@
   }
 
   // ------------------------------------------------------------ hide unchanged
-  var CONTEXT = 1;                                  // matched blocks kept around a change
+  var CONTEXT = 1;                     // unchanged top-level blocks kept beside a change
   function isHeading(el) { return /^H[1-6]$/.test(el.tagName); }
-  // Fold the matched runs in `ops`. Returns the number of blocks hidden;
-  // pushes each fold pair onto `pairs` so settle() keeps them level.
-  function foldUnchanged(ops, A, B, pairs, realign) {
-    var hidden = 0, run = [];
-    var flush = function () {
-      // Only the middle of a run folds; a run too short to leave anything
-      // worth folding stays as it is.
-      var inner = run.slice(CONTEXT, run.length - CONTEXT);
-      run = [];
-      if (inner.length < 2) return;
-      var as = inner.map(function (o) { return A[o[1]]; });
-      var bs = inner.map(function (o) { return B[o[2]]; });
-      var els = as.concat(bs);
+  function topOf(el, root) {
+    while (el && el.parentElement !== root) el = el.parentElement;
+    return el;
+  }
+  // Fold at the level of the article's TOP-LEVEL blocks — a paragraph, a
+  // heading, a whole exercise or theorem box, a list — not the leaves inside
+  // them, so an unchanged section vanishes with its chrome instead of leaving
+  // empty boxes and lone headings behind. A PR top corresponds to the base top
+  // that holds the other half of any matched leaf pair inside it; a top is
+  // foldable when nothing in it changed. Runs of foldable tops keep CONTEXT
+  // blocks beside each change and fold the rest, one strip per section (a
+  // heading starts a new strip and names it). Returns the number of tops
+  // hidden; the strips are pushed onto `pairs` so settle() keeps them level.
+  function foldUnchanged(ops, A, B, pairs, realign, rootA, rootB) {
+    var CHANGED = ".diff-removed, .diff-added, .diff-modified";
+    var changedIn = function (top) { return top.matches(CHANGED) || !!top.querySelector(CHANGED); };
+    var partner = new Map();           // PR top -> base top
+    ops.forEach(function (o) {
+      if (o[0] !== "=") return;
+      var ta = topOf(A[o[1]], rootA), tb = topOf(B[o[2]], rootB);
+      if (ta && tb && !partner.has(tb)) partner.set(tb, ta);
+    });
+    var tops = function (root) {
+      return Array.prototype.filter.call(root.children, function (t) { return !t.classList.contains("diff-spacer"); });
+    };
+    var idxA = new Map();
+    tops(rootA).forEach(function (t, i) { idxA.set(t, i); });
+    var hidden = 0, run = [], lastA = -1;
+
+    var foldSegment = function (seg) {                 // seg: [[prTop, baseTop], …]
+      var head = isHeading(seg[0][0]) ? seg[0][0].textContent.replace(/\s+/g, " ").trim() : null;
+      var n = seg.length - (head ? 1 : 0);             // blocks besides the heading
+      if (head ? n < 1 : n < 2) return;                // nothing worth a strip
+      var els = [];
+      seg.forEach(function (p) { els.push(p[0], p[1]); });
       var folded = true;
       var mk = function (before) {
         var f = document.createElement("div");
@@ -351,15 +373,15 @@
         before.parentNode.insertBefore(f, before);
         return f;
       };
-      var fa = mk(as[0]), fb = mk(bs[0]);
+      var fb = mk(seg[0][0]), fa = mk(seg[0][1]);
       // The strip stays either way and toggles the run: the same click that
-      // shows the blocks hides them again. The strips are a matched pair, so
-      // their row is re-levelled with the rest after each toggle.
+      // shows the blocks hides them again. Both columns' strips are a matched
+      // pair, so their row is re-levelled with the rest after each toggle.
       var apply = function () {
         els.forEach(function (el) { el.classList.toggle("diff-hidden", folded); });
-        var text = folded
-          ? "⋯ " + inner.length + " unchanged blocks — click to show"
-          : "⋯ " + inner.length + " unchanged blocks shown — click to hide";
+        var text = "⋯ " + (head ? "§ " + head + " — " : "") +
+          n + " unchanged block" + (n === 1 ? "" : "s") +
+          (folded ? " — click to show" : " shown — click to hide");
         fa.textContent = text; fb.textContent = text;
         fa.classList.toggle("diff-fold-open", !folded);
         fb.classList.toggle("diff-fold-open", !folded);
@@ -369,13 +391,30 @@
       fa.addEventListener("click", toggleRun);
       fb.addEventListener("click", toggleRun);
       pairs.push([fa, fb]);
-      hidden += inner.length;
+      hidden += seg.length;
     };
-    ops.forEach(function (o) {
-      // A heading breaks the run and is never hidden: it is what tells the
-      // reader where in the sheet the next change sits.
-      if (o[0] === "=" && !isHeading(A[o[1]])) { run.push(o); return; }
+    var flush = function () {
+      var inner = run.slice(CONTEXT, run.length - CONTEXT);
+      run = [];
+      if (!inner.length) return;
+      var seg = [];
+      inner.forEach(function (p) {
+        if (isHeading(p[0]) && seg.length) { foldSegment(seg); seg = []; }
+        seg.push(p);
+      });
+      foldSegment(seg);
+    };
+    tops(rootB).forEach(function (tb) {
+      var ta = partner.get(tb);
+      // Foldable: unchanged on both sides, and its partner follows the previous
+      // one in the base column, so the two columns fold the same stretch.
+      if (ta && !changedIn(tb) && !changedIn(ta) && idxA.get(ta) > lastA) {
+        run.push([tb, ta]);
+        lastA = idxA.get(ta);
+        return;
+      }
       flush();
+      if (ta && idxA.has(ta)) lastA = Math.max(lastA, idxA.get(ta));
     });
     flush();
     return hidden;
@@ -436,7 +475,7 @@
       settle(pairs, base, prose); // margins that stopped collapsing around new spacers
     };
     var hidden = hideBox && hideBox.checked
-      ? foldUnchanged(ops, A, B, pairs, function () { align(true); })
+      ? foldUnchanged(ops, A, B, pairs, function () { align(true); }, base, prose)
       : 0;
     summary = (removed + added + modified
       ? "−" + removed + " +" + added + " ~" + modified + " blocks"
