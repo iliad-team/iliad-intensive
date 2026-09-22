@@ -66,12 +66,14 @@ export function DownloadsRow({
   basePath,
   decks = [],
   slides,
+  withSolutionsToggle = true,
 }: {
   slug: string;
   files: string[];
   basePath: string;
   decks?: StagedDeck[];
   slides?: Frontmatter["slides"];
+  withSolutionsToggle?: boolean;
 }) {
   const href = (file: string) => `${basePath}/downloads/${slug}/${file}`;
   const exts = (["pdf", "tex", "mdx"] as const).filter((ext) => files.includes(`${slug}.${ext}`));
@@ -87,7 +89,7 @@ export function DownloadsRow({
 
   return (
     <div className="mt-4 font-sans text-xs">
-      {exts.length > 0 && (
+      {exts.length > 0 && withSolutionsToggle && (
         <label className="mb-2.5 flex w-fit cursor-pointer select-none items-center gap-1.5 text-zinc-500">
           <input
             type="checkbox"
@@ -103,16 +105,16 @@ export function DownloadsRow({
           const sol = href(`${slug}.${ext}`);
           const nosol = href(`${slug}-nosol.${ext}`);
           return (
-            <li key={ext} className="flex items-center gap-2">
+            <li key={ext} className="flex flex-wrap items-center gap-2">
               <span className={rowLabel}>{LABELS[ext]}</span>
-              {VIEWABLE.has(ext) && <Box href={sol} sol={sol} nosol={nosol}>view</Box>}
-              <Box href={sol} sol={sol} nosol={nosol} download>download</Box>
+              {VIEWABLE.has(ext) && <Box href={sol} sol={withSolutionsToggle ? sol : undefined} nosol={withSolutionsToggle ? nosol : undefined}>view</Box>}
+              <Box href={sol} sol={withSolutionsToggle ? sol : undefined} nosol={withSolutionsToggle ? nosol : undefined} download>download</Box>
             </li>
           );
         })}
 
         {external && (
-          <li className="flex items-center gap-2">
+          <li className="flex flex-wrap items-center gap-2">
             <span className={rowLabel}>Slides</span>
             <a
               href={external.url}
@@ -127,7 +129,7 @@ export function DownloadsRow({
         )}
 
         {decks.map((deck) => (
-          <li key={deck.stem} className="flex items-center gap-2">
+          <li key={deck.stem} className="flex flex-wrap items-center gap-2">
             <span className={rowLabel}>Slides</span>
             {deck.handout ? (
               <>

@@ -1,0 +1,252 @@
+%--- iliad ---
+% title: Lecture 1: latent models and their conditions
+%--- end ---
+% Lecture 1. Uses the companion clustering illustration.
+\documentclass[aspectratio=169,12pt]{beamer}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usetheme{default}
+\usefonttheme{professionalfonts}
+\setbeamercolor{normal text}{fg=black,bg=white}
+\setbeamercolor{structure}{fg=black}
+\setbeamercolor{frametitle}{fg=black,bg=white}
+\setbeamerfont{frametitle}{size=\Large,series=\bfseries}
+\setbeamertemplate{navigation symbols}{}
+% Default beamer sets the frame title flush to the top-left, outside the text
+% block: it started 3mm from the left edge while body text starts at 9mm. Align
+% it with the body and give it room to breathe above.
+\setbeamertemplate{frametitle}{%
+  \vskip5mm\hspace*{2mm}%
+  \usebeamerfont{frametitle}\usebeamercolor[fg]{frametitle}\insertframetitle%
+  \par\vskip3mm}
+\setbeamertemplate{footline}[frame number]
+\setbeamertemplate{itemize items}[circle]
+\setbeamersize{text margin left=9mm,text margin right=9mm}
+\newcommand{\PI}{\mathcal P^+(I)}
+\newcommand{\Up}{\mathord{\supseteq}}
+\title{Condensation}
+\subtitle{Models and conditions}
+\author{Satya Benson}
+\date{ILIAD, 21 September 2026}
+\begin{document}
+
+\begin{frame}{Condensation}
+In empirical work, people look for features in AI systems which correspond
+robustly to human concepts. In general, these can be hard to find.
+\medskip
+
+One ambitious approach to this problem is to think through from first
+principles how agents in general might organize information about the world
+into concepts.
+\medskip
+
+How should information be broken into reusable pieces? Is there one way to do
+this which many different kinds of agents will converge on?
+\medskip
+
+We will propose two conditions that we think are normative for agents in
+general: conditions an agent will want its own organization of information to
+satisfy. Under those conditions, corresponding latent collections in two models
+determine one another.
+\end{frame}
+
+\begin{frame}{Three overlapping observations}
+Let $S,P,Q$ be independent fair bits.
+\[
+X_1=(S,P),\qquad X_2=(S,Q),\qquad X_3=(P,Q).
+\]
+One latent model assigns
+\[
+Y_{\{1,2\}}=S,\qquad Y_{\{1,3\}}=P,\qquad Y_{\{2,3\}}=Q.
+\]
+Each observation uses two latents. Each latent is recoverable from either
+observation to which it is assigned.
+\end{frame}
+
+\begin{frame}{A latent model}
+Fix finite-valued observables $(X_i)_{i\in I}$, with $I=\{1,\ldots,n\}$, and
+write $\PI$ for the nonempty subsets of $I$.
+\medskip
+
+Each $A\in\PI$ is an \emph{address}, carrying a latent $Y_A$ assigned to the
+observations in $A$. For a family $\mathcal F\subseteq\PI$ of addresses, write
+$Y_{\mathcal F}=(Y_A)_{A\in\mathcal F}$ for the corresponding tuple of latents.
+\medskip
+
+The joint law of $(X,Y)$ must satisfy the \textbf{latent variable model
+condition (LVM)}: each observation is determined by the latents assigned to it,
+\[
+H\bigl(X_i\mid Y_{\{A\,:\,i\in A\}}\bigr)=0\qquad(i\in I).
+\]
+Unused slots are constant. This condition does not assert that an agent knows
+all the realized latent values.
+\end{frame}
+
+% Exactly two information-theory refresher frames follow.
+\begin{frame}{Refresher: entropy and recovery}
+All variables are finite-valued. Logarithms have base two.
+\[
+H(U)=-\sum_u p(u)\log p(u),\qquad
+H(U\mid V)=\sum_v p(v)H(U\mid V=v).
+\]
+\[
+H(U\mid V)=0
+\quad\Longleftrightarrow\quad
+U=f(V)\text{ almost surely, for some }f.
+\]
+The chain rule and conditioning inequality:
+\[
+\begin{aligned}
+H(U,V\mid W)&=H(U\mid W)+H(V\mid U,W),\\
+H(U\mid V,W)&\le H(U\mid W).
+\end{aligned}
+\]
+\end{frame}
+
+\begin{frame}{Refresher: dependence}
+\[
+I(U;V\mid W)=H(U\mid W)-H(U\mid V,W)\ge0.
+\]
+This is zero exactly when $U$ and $V$ are conditionally independent given $W$.
+Omitting $W$ gives $I(U;V)$.
+\medskip
+
+For laws $p,q$ on the same finite set,
+\[
+D_{\mathrm{KL}}(p\Vert q)=\sum_u p(u)\log\frac{p(u)}{q(u)}\ge0.
+\]
+KL divergence appears in the score interpretation. The correspondence proof
+uses the chain rule and nonnegativity.
+\end{frame}
+
+\begin{frame}{LVM and reconstruction}
+\textbf{LVM:} the assigned latents determine the answer.
+\[
+H\bigl(X_i\mid Y_{\{A\,:\,i\in A\}}\bigr)=0.
+\]
+\textbf{Reconstruction:} each contributing observation recovers the slot.
+\[
+H(Y_A\mid X_i)=0\qquad\text{whenever }i\in A.
+\]
+An address alone does not imply the second condition.
+\medskip
+
+In our example, $Y_{\{1,2\}}=S$ is recoverable from both $(S,P)$ and $(S,Q)$.
+\end{frame}
+
+\begin{frame}{Upward-closed families}
+A family $\mathcal F\subseteq\PI$ is \textbf{upward closed} if
+\[
+A\in\mathcal F,\quad A\subseteq B
+\quad\Longrightarrow\quad B\in\mathcal F.
+\]
+Write $\Up A=\{C\in\PI:A\subseteq C\}$ for the addresses containing $A$; every
+such family is upward closed. For $I=\{1,2,3\}$,
+\[
+\begin{aligned}
+\Up\{1\}&=\{\{1\},\{1,2\},\{1,3\},\{1,2,3\}\},\\
+\Up\{2\}&=\{\{2\},\{1,2\},\{2,3\},\{1,2,3\}\}.
+\end{aligned}
+\]
+Their intersection is $\{\{1,2\},\{1,2,3\}\}$.
+\medskip
+
+These are families of addresses. $Y_{\mathcal F}$ is a tuple of variables.
+\end{frame}
+
+\begin{frame}{The Markov condition}
+For every pair of upward-closed families $\mathcal F,\mathcal G\subseteq\PI$, require
+\[
+I\bigl(Y_{\mathcal F};Y_{\mathcal G}
+\mid Y_{\mathcal F\cap\mathcal G}\bigr)=0.
+\]
+Given the latents at the addresses in the intersection $\mathcal F\cap\mathcal G$,
+the two collections are conditionally independent.
+\medskip
+
+For approximate models, record the largest defect:
+\[
+\eta_Y=\max_{\mathcal F,\mathcal G\ \mathrm{upward\ closed}}
+I\bigl(Y_{\mathcal F};Y_{\mathcal G}
+\mid Y_{\mathcal F\cap\mathcal G}\bigr).
+\]
+\end{frame}
+
+\begin{frame}{A hierarchical model of 36 labelled points}
+\centering
+\IfFileExists{fig/hierarchical-points.pdf}{\includegraphics[width=0.98\linewidth,height=5.0cm,keepaspectratio]{fig/hierarchical-points.pdf}}{\includegraphics[width=0.98\linewidth,height=5.0cm,keepaspectratio]{../condensation-clustering/fig/hierarchical-points.pdf}}
+
+\end{frame}
+
+\begin{frame}{Why we ask for the conditions only approximately}
+The cluster center specifies a distribution for its points, not the points
+themselves, so a point does not determine the center it was drawn from:
+\[
+H(M_{gc}\mid X_i)>0.
+\]
+Every kernel here has full support: no finite set of points pins a parameter.
+\medskip
+
+LVM and the Markov condition hold exactly here. The reconstruction condition
+holds only approximately.
+\medskip
+
+So we ask for reconstruction up to a defect: for $i\in A$,
+\[
+H(Y_{\Up A}\mid X_i)\le\delta ,
+\]
+and prove a correspondence whose error grows with $\delta$ and $\eta$.
+\end{frame}
+
+\begin{frame}{Two ways the conditions can fail}
+Return to $X_1=(S,P), X_2=(S,Q), X_3=(P,Q)$ with independent fair bits.
+\medskip
+
+\textbf{Copy each observation into its singleton slot.}
+LVM and reconstruction both hold, but the common slots are constant:
+\[
+I(Y_{\Up\{1\}};Y_{\Up\{2\}}\mid Y_{\Up\{1,2\}})=1.
+\]
+\textbf{Put $(S,P,Q)$ only in the top slot.}
+The Markov condition holds, but
+\[
+H(Y_{\{1,2,3\}}\mid X_1)=H(S,P,Q\mid S,P)=1.
+\]
+The first model hides shared information below constant common slots.
+The second assigns information to a slot that one observation cannot recover.
+\end{frame}
+
+
+
+\begin{frame}{Perfect condensation}
+A latent model is a perfect condensation precisely when
+\begin{itemize}
+\item the Markov condition holds exactly,
+\item reconstruction holds: $H(Y_A\mid X_i)=0$ whenever $i\in A$.
+\end{itemize}
+\medskip
+LVM is already part of being a latent model.
+\medskip
+
+The combination constrains where information can be placed.
+Not every observable law admits a perfect condensation.
+\end{frame}
+
+\begin{frame}{The collections we will compare}
+The tuple $Y_{\Up A}$ contains the slot at $A$ and all its supersets.
+For example,
+\[
+Y_{\Up\{1,2\}}=(Y_{\{1,2\}},Y_{\{1,2,3\}}).
+\]
+Our theorem compares $Y_{\Up A}$ and $Z_{\Up A}$ in two models.
+Individual slots may contain different amounts of duplicated information.
+\medskip
+
+Note that if we are using the latent at $A$ to predict the observations in
+$A$, every latent at a $C\supseteq A$ is assigned to those observations too,
+so it is already part of what we would need. A family we would actually use to predict an observable is
+closed upward.
+\end{frame}
+
+\end{document}

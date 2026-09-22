@@ -213,6 +213,8 @@ export const KNOWN_FRONT_KEYS = new Set([
   // content/index.json (homepage/sidebar), and excused from the schedule.
   // Used by the template worksheet.
   "unlisted",
+  // Separate answer keys are distributed by the teacher; omit the download toggle.
+  "separateSolutions",
   // slides: <url> — a link to an externally hosted slide deck (e.g. a Drive
   // PDF). Rendered as an outbound "Slides ↗" link; nothing is served or
   // compiled our end. For a deck with LaTeX source, drop a slides.tex in the
