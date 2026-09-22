@@ -152,8 +152,6 @@ A complementary introduction to the physics of learning, taught at the August 20
 
 The review \cite{simon2026scientific} argues that a scientific theory of deep learning --- a ``mechanics of learning'' --- is already emerging, and it organizes the evidence into five converging strands: analytically solvable settings, insightful limits, simple empirical laws, disentangled hyperparameters, and universal phenomena. The body of the paper develops the first two strands in detail and samples the remaining three. These notes will do much the same, so it is worth keeping the five strands in mind as a map of everything that follows.
 
-The paper's starting observation deserves to be savored, because it sets the tone for the whole subject. A deep learning system is completely specified by four explicit ingredients: an architecture (a composition of simple linear and nonlinear maps), a dataset, an objective, and a learning rule (gradient-based updates from a random initialization). Nothing is hidden: every parameter, every gradient, every intermediate activation can be measured, at every step, to whatever precision we like. In the language of the reading, deep learning directly exposes its own equations of motion --- \emph{the central challenge is not opacity but complexity}. This places the field in very different territory from the genuinely opaque sciences: in neuroscience or cell biology the microscopic equations of motion are unknown and the state is largely unmeasurable, while in high-energy physics we must infer the microscopic laws indirectly, from scattering amplitudes. The better analogy is fluid dynamics: there, too, we possess the microscopic law --- for deep learning, the update equation is five lines of code --- and what is missing is the \emph{effective} description, the analogue of Navier--Stokes.
-
 Read \textbf{Section 2} (only) of \cite{simon2026scientific}, and think about the following:
 
 \begin{enumerate}
@@ -170,11 +168,17 @@ Read \textbf{Section 2} (only) of \cite{simon2026scientific}, and think about th
   
   \item \emph{What actually matters for alignment?} The reading wants falsifiable, quantitative, \emph{average-case}
   predictions rather than worst-case bounds --- physics rather than
-  classical learning theory. What is lost? E.g. for alignment, does one want worst-case guarantees or forecasting of typical capabilities?
+  classical learning theory. What is lost, and what is gained? E.g. for alignment, does one want worst-case guarantees or forecasting of typical capabilities?
   Which of the five lines of evidence is most relevant for alignment?
 \end{enumerate}
 
 \noindent You may want to revisit these questions at later stages as you go through these notes, and learn more about physics-inspired approaches in deep learning.
+
+\subsection{A note added by the demo pull request}
+
+This subsection has no counterpart on the live site. It exists only to show
+how the preview's diff view presents a newly added section: a heading and a
+paragraph that appear on the right with a blank on the left.
 
 %===============================================================================
 
@@ -250,10 +254,10 @@ Here $\xi$ is Gaussian noise with mean $0$ and covariance $I$, $\eta$ is the lea
 \smallskip
 \textbf{Remark:} SGD itself is more complicated than Langevin dynamics. The covariance $\Sigma(\theta)$ of its effective noise depends on the position in the loss landscape, and at late times SGD need not converge to any stationary distribution. Despite many qualitative and empirical similarities between Bayesian learning and SGD/Adam training, the precise relation between them remains an open problem. We will compare the two repeatedly: for wide networks in \cref{sec:train} (gradient flow) versus \cref{sec:Bayes-kernel} (Bayesian); for toy models of grokking in \cref{sec:MFT} \cite{rubin2024grokking}; and, for toy models of superposition \cite{elhage2022superposition} through the lens of singular learning theory, in \cite{chen2023dynamical}.
 
-\subsection{Why the exponential of a loss is a likelihood}
+\subsection{Why a loss is a negative log-likelihood}
 \label{sec:loss-likelihood}
 
-The Bayesian model treats $e^{-\beta\CL(\theta)}$ as the probability of the training data given the parameters. For the loss functions actually used in deep learning, this is not a metaphor: the losses were \emph{designed} as negative log-likelihoods, so that minimizing the loss is maximum-likelihood estimation. Two examples cover most of practice.
+The Bayesian model treats $e^{-\beta\CL(\theta)}$ as the probability of the training data given the parameters. For the loss functions actually used in deep learning, this is not a metaphor: the losses were \emph{designed} as negative log-likelihoods, so that minimizing the loss is maximum-likelihood estimation. Two examples cover almost all of practice.
 
 \emph{Mean squared error.} Suppose the labels are the network's output plus Gaussian noise, $y = f_\theta(x) + \epsilon$ with $\epsilon\sim\CN(0,\sigma^2)$. Then the probability density of a label given the input and the parameters is
 %
@@ -264,7 +268,7 @@ The Bayesian model treats $e^{-\beta\CL(\theta)}$ as the probability of the trai
 and for $n$ independent samples,
 %
 \begin{equation}
-    \prod_{\mu=1}^n p(y^\mu\,|\,x^\mu,\theta) \;\propto\; e^{-\beta\,\CL(\theta)}\,,\qquad \CL(\theta) = \frac{1}{2}\sum_{\mu=1}^n\big(f_\theta(x^\mu)-y^\mu\big)^2\,,\quad \beta = \frac{1}{\sigma^2}\,. \label{mse-likelihood}
+    \prod_{\mu=1}^n p(y^\mu\,|\,x^\mu,\theta) \;\propto\; e^{-\beta\,\CL(\theta)}\,,\qquad \CL(\theta) = \frac{1}{2}\sum_{\mu=1}^n\big(f_\theta(x^\mu)-y^\mu\big)^2\,,\quad \beta = \sigma^{-2}\,. \label{mse-likelihood}
 \end{equation}
 %
 The MSE loss is the negative log-likelihood of a Gaussian noise model, and the inverse temperature is the inverse noise variance. Noisier labels mean a hotter posterior, which constrains the parameters less.
@@ -353,7 +357,7 @@ Take a Boltzmann distribution $p_\beta(\theta)\propto e^{-\beta E(\theta)}$, an 
   \item Show that $\E(\CO) = -\pd_JF|_{J=0}$ and $\mathrm{Var}(\CO) = -\pd_J^2F|_{J=0}$.
   \item The third cumulant is defined by continuing the pattern, $\kappa_3(\CO) := -\pd_J^3F|_{J=0}$. Compute it in terms of the moments $\E(\CO^3)$, $\E(\CO^2)$, $\E(\CO)$, and show that it equals the third \emph{centered} moment $\E[(\CO-\E\CO)^3]$.
   \item Show that for a Gaussian $\CO$, $\log Z(J)$ is exactly quadratic in $J$, so that all cumulants with $p\geq 3$ vanish. Compute $\kappa_4$ in terms of centered moments and check that it is \emph{not} the fourth centered moment. (Moral: cumulants measure the failure of higher moments to be determined by lower ones in the Gaussian pattern.)
-  \item Verify \eqref{E-cumulants}.
+  \item Show that the second cumulant is unchanged when $\CO$ is shifted by a constant, $\CO \to \CO + c$.
 \end{enumerate}
 \end{exercise}
 
@@ -382,12 +386,12 @@ The analogy with thermal physics opens up a bag of well-developed approximation 
     E(s) = -J\!\!\sum_{\text{edges }\langle ij\rangle}\!\! s_i s_j \;-\; B\sum_{i=1}^N s_i\,. \label{ising-E}
 \end{equation}
 %
-The \emph{coupling} $J>0$ rewards neighboring spins for aligning with each other, and the \emph{external magnetic field} $B$ rewards spins for aligning with it. At inverse temperature $\beta$ the Boltzmann distribution is $p_\beta(s) = e^{-\beta E(s)}/Z$ with $Z(\beta,J,B) = \sum_{s\in\{\pm1\}^N} e^{-\beta E(s)}$. Dimensionally, only the combinations $\beta J$ and $\beta B$ matter.
+The \emph{coupling} $J>0$ rewards neighboring spins for aligning with each other, and the \emph{external magnetic field} $B$ rewards spins for aligning with it. At inverse temperature $\beta$ the Boltzmann distribution is $p_\beta(s) = e^{-\beta E(s)}/Z$ with $Z(\beta,J,B) = \sum_{s\in\{\pm1\}^N} e^{-\beta E(s)}$. Dimensionally, only the combinations $\beta J$ and $\beta B$ matter, so we will set $J = 1$ whenever the coupling plays no role.
 
 The simplest macroscopic quantity describing a state is its \emph{magnetization}, the average spin,
 %
 \begin{equation}
-    m(s) = \frac{1}{N}\sum_{i=1}^N s_i \;\in\; [-1,1]\,. \label{magnetization}
+    m(s) = \frac{1}{N}\sum_{i=1}^N s_i \;\in\; \{-1,\, -1 + \tfrac{2}{N},\, \dots,\, 1\}\,. \label{magnetization}
 \end{equation}
 %
 It is our first example of an \emph{order parameter}: a single number that summarizes an $N$-dimensional microscopic state for the purpose of the questions we want to ask. The question here is whether the spins align ($|m|$ close to $1$, an \emph{ordered} phase) or not ($m$ near $0$, a \emph{disordered} phase), and how this depends on $\beta$, $J$, and $B$.
@@ -3048,11 +3052,11 @@ Worked solutions to the exercises, in the order in which the exercises appear. (
 
 \begin{solution}[ex:cumulants]
 \begin{enumerate}
-    \item Differentiating under the integral, $\pd_J\log Z = \frac{1}{Z}\int d\theta\,\CO\,e^{-\beta E+J\CO} = \E_J(\CO)$, which at $J=0$ is $\E(\CO)$; since $F=-\log Z$, this is $-\pd_JF|_0$. Once more, $\pd_J^2\log Z = \E_J(\CO^2)-\E_J(\CO)^2 = \mathrm{Var}_J(\CO)$.
+    \item Differentiating under the integral sign, $\pd_J\log Z = \frac{1}{Z}\int d\theta\,\CO\,e^{-\beta E+J\CO} = \E_J(\CO)$, which at $J=0$ is $\E(\CO)$; since $F=-\log Z$, this is $-\pd_JF|_0$. Once more, $\pd_J^2\log Z = \E_J(\CO^2)-\E_J(\CO)^2 = \mathrm{Var}_J(\CO)$.
     \item Using $\pd_J\E_J(\CO^k) = \E_J(\CO^{k+1}) - \E_J(\CO^k)\E_J(\CO)$ on $\pd_J^2\log Z = \E_J(\CO^2)-\E_J(\CO)^2$ gives
     $\kappa_3 = \E(\CO^3) - 3\E(\CO^2)\E(\CO) + 2\E(\CO)^3$. Expanding $\E[(\CO-\E\CO)^3] = \E(\CO^3) - 3\E(\CO^2)\E(\CO) + 3\E(\CO)\E(\CO)^2 - \E(\CO)^3$ gives the same expression.
     \item For $\CO\sim\CN(\mu,\sigma^2)$ (or more generally when $\CO$ is Gaussian under $p_\beta$), $\E(e^{J\CO}) = e^{J\mu+J^2\sigma^2/2}$, so $\log Z(J) = \log Z(0) + J\mu + \frac{1}{2}J^2\sigma^2$ is quadratic and every derivative beyond the second vanishes. One more derivative of the pattern in (b), with $\bar\CO := \CO - \E\CO$, gives $\kappa_4 = \E(\bar\CO^4) - 3\,\E(\bar\CO^2)^2$; for a Gaussian $\E(\bar\CO^4) = 3\sigma^4$, so $\kappa_4 = 0$ while the fourth centered moment is not.
-    \item $\pd_\beta\log Z = -\frac{1}{Z}\int E\,e^{-\beta E} = -\E(E)$, so $\pd_\beta F = \E(E)$; $\pd_\beta^2\log Z = \E(E^2)-\E(E)^2$, so $-\pd_\beta^2F = \mathrm{Var}(E)$; and $\pd_\beta^3\log Z = -\kappa_3(E)$ by the same computation as (b) with $J\to-\beta$, so $\kappa_3(E) = \pd_\beta^3F$.
+    \item Shifting $\CO \to \CO + c$ multiplies $Z(J)$ by $e^{Jc}$, which adds the linear term $Jc$ to $\log Z$; the second derivative in $J$ does not see it.
 \end{enumerate}
 \end{solution}
 
