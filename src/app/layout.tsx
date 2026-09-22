@@ -16,15 +16,30 @@ const serif = Source_Serif_4({
   display: "swap",
 });
 
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+// Preview builds (and only they) also ship the diff view; see PreviewBanner.
+const IS_PREVIEW = !!process.env.NEXT_PUBLIC_PREVIEW_PR;
+
 export const metadata: Metadata = {
   title: "Iliad Intensive Curriculum",
   description:
     "April 2026 cohort — AI Safety theory of deep learning, agency, alignment.",
+  // A PR preview is a complete copy of the site at a public URL under the
+  // production domain (/pr-preview/pr-N/), built from a branch nobody has
+  // reviewed yet. Search engines must not index it: a stale or wrong draft
+  // would compete with the real page for the same query, and the domain's
+  // reputation would vouch for whatever the branch contains. So every preview
+  // page carries <meta name="robots" content="noindex, nofollow">.
+  //
+  // A robots.txt Disallow would be the wrong tool: a crawler it blocks never
+  // fetches the page, so it never sees a noindex either, and Google still
+  // lists the bare URL when something links to it (PR comments do). Blocking
+  // nothing and marking every page is what actually keeps previews out.
+  //
+  // Metadata merges shallowly by top-level key, and no page sets `robots` of
+  // its own, so this reaches every route. Production builds leave it out.
+  ...(IS_PREVIEW ? { robots: { index: false, follow: false } } : {}),
 };
-
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-// Preview builds (and only they) also ship the diff view; see PreviewBanner.
-const IS_PREVIEW = !!process.env.NEXT_PUBLIC_PREVIEW_PR;
 
 /**
  * Restores the sidebar state before first paint: the open/closed mode is a
