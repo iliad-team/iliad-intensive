@@ -349,10 +349,12 @@ We will meet these derivatives again shortly: discontinuities in them are how ph
 \label{ex:cumulants}
 \important
 Take a Boltzmann distribution $p_\beta(\theta)\propto e^{-\beta E(\theta)}$, an observable $\CO(\theta)$, and the sourced partition function $Z(\beta,J) = \int d\theta\, e^{-\beta E(\theta)+J\CO(\theta)}$, with $F = -\log Z$. All expectations are in $p_\beta$, that is, at $J=0$.
-(a) Show that $\E(\CO) = -\pd_JF|_{J=0}$ and $\mathrm{Var}(\CO) = -\pd_J^2F|_{J=0}$.
-(b) The third cumulant is defined by continuing the pattern, $\kappa_3(\CO) := -\pd_J^3F|_{J=0}$. Compute it in terms of the moments $\E(\CO^3)$, $\E(\CO^2)$, $\E(\CO)$, and show that it equals the third \emph{centered} moment $\E[(\CO-\E\CO)^3]$.
-(c) Show that for a Gaussian $\CO$, $\log Z(J)$ is exactly quadratic in $J$, so that all cumulants with $p\geq 3$ vanish. Compute $\kappa_4$ in terms of centered moments and check that it is \emph{not} the fourth centered moment. (Moral: cumulants measure the failure of higher moments to be determined by lower ones in the Gaussian pattern.)
-(d) Verify \eqref{E-cumulants}.
+\begin{enumerate}
+  \item Show that $\E(\CO) = -\pd_JF|_{J=0}$ and $\mathrm{Var}(\CO) = -\pd_J^2F|_{J=0}$.
+  \item The third cumulant is defined by continuing the pattern, $\kappa_3(\CO) := -\pd_J^3F|_{J=0}$. Compute it in terms of the moments $\E(\CO^3)$, $\E(\CO^2)$, $\E(\CO)$, and show that it equals the third \emph{centered} moment $\E[(\CO-\E\CO)^3]$.
+  \item Show that for a Gaussian $\CO$, $\log Z(J)$ is exactly quadratic in $J$, so that all cumulants with $p\geq 3$ vanish. Compute $\kappa_4$ in terms of centered moments and check that it is \emph{not} the fourth centered moment. (Moral: cumulants measure the failure of higher moments to be determined by lower ones in the Gaussian pattern.)
+  \item Verify \eqref{E-cumulants}.
+\end{enumerate}
 \end{exercise}
 
 \emph{Quenched averages.} In a learning problem there is a second source of randomness besides the posterior: the training set itself. Quantities like the free energy depend on which $n$ samples were drawn, and at large $n$ one expects them to concentrate around their average over draws. Physicists call randomness that is fixed before the system equilibrates \emph{quenched disorder}, by analogy with impurities frozen into an alloy when it is quenched in water; the training data are quenched disorder for the posterior. The \emph{quenched free energy} is
@@ -901,9 +903,11 @@ Iterating either formula through the layers gives the exact infinite-width kerne
 \begin{exercise}[The NNGP correspondence, empirically (lab)]
 \label{ex:nngp-lab}
 Fix two unit-norm inputs $x, x'\in\R^d$ with, say, $d=8$ and $x\cdot x' = 0.5$. For widths $N \in \{3, 30, 300\}$, sample $M = 10^4$ independent initializations of the one-hidden-layer erf network $f(x) = \frac{1}{\sqrt N}\sum_{i=1}^N c_i\, \mathrm{erf}\big(a_i\cdot x/\sqrt d\big)$ with $c_i, a_{ij}\sim\CN(0,1)$ (that is, $\sigma_w = 1$).
-(a) Make a histogram of the values $f(x)$ across the ensemble, and overlay the Gaussian density with the variance $\bar K^{(2)}(x,x)$ predicted by \eqref{erf-kernel}; watch the visibly non-Gaussian $N=3$ histogram converge.
-(b) Make a scatter plot of the pairs $\big(f(x), f(x')\big)$ and compare the sample $2\times2$ covariance with the predicted kernel matrix.
-(c) For each initialization, record the stochastic kernel $K^{(2)}$ of \eqref{K2-rec}, and verify that its variance across initializations decays like $1/N$ (that's the mechanism by which the kernel becomes deterministic).
+\begin{enumerate}
+  \item Make a histogram of the values $f(x)$ across the ensemble, and overlay the Gaussian density with the variance $\bar K^{(2)}(x,x)$ predicted by \eqref{erf-kernel}; watch the visibly non-Gaussian $N=3$ histogram converge.
+  \item Make a scatter plot of the pairs $\big(f(x), f(x')\big)$ and compare the sample $2\times2$ covariance with the predicted kernel matrix.
+  \item For each initialization, record the stochastic kernel $K^{(2)}$ of \eqref{K2-rec}, and verify that its variance across initializations decays like $1/N$ (that's the mechanism by which the kernel becomes deterministic).
+\end{enumerate}
 \end{exercise}
 
 
@@ -1693,9 +1697,11 @@ The network function $f$ is the mean field here!  We arrive at a dictionary:
 
 \begin{exercise}[Structure of the mean-field equations]
 \label{ex:mf-eom}
-(a) Derive \eqref{mf-VU}--\eqref{mf-VU-def} and \eqref{mf-eom}, and check that \eqref{mf-eom-Psi} reproduces them, using the symmetry of $U$.
-(b) (\emph{Balancedness.}) For a positively homogeneous activation such as ReLU, $\phi'(z)z = \phi(z)$. Show that in this case \eqref{mf-eom} conserves $c_i^2 - |a_i|^2$ for every neuron, exactly, along the flow. The two layers of a given neuron therefore remain coupled for all time. (On the other hand, distinct neurons will decouple from each other, as we'll see momentarily.)
-(c) Observe that for MSE loss $\dot c_i$ in \eqref{mf-eom} does not depend on $c_i$ (only on $a_i$ and the mean field). Where does the linearity of $f_\rho$ in $c$ enter?
+\begin{enumerate}
+  \item Derive \eqref{mf-VU}--\eqref{mf-VU-def} and \eqref{mf-eom}, and check that \eqref{mf-eom-Psi} reproduces them, using the symmetry of $U$.
+  \item (\emph{Balancedness.}) For a positively homogeneous activation such as ReLU, $\phi'(z)z = \phi(z)$. Show that in this case \eqref{mf-eom} conserves $c_i^2 - |a_i|^2$ for every neuron, exactly, along the flow. The two layers of a given neuron therefore remain coupled for all time. (On the other hand, distinct neurons will decouple from each other, as we'll see momentarily.)
+  \item Observe that for MSE loss $\dot c_i$ in \eqref{mf-eom} does not depend on $c_i$ (only on $a_i$ and the mean field). Where does the linearity of $f_\rho$ in $c$ enter?
+\end{enumerate}
 \end{exercise}
 
 \subsubsection{From particles to measures: the continuity equation}
@@ -1857,7 +1863,13 @@ Notably, every intermediate $\gamma$ collapses onto the kernel limit: the initia
 
 \begin{exercise}[Lazy vs.\ rich along the dial]
 \label{ex:gamma}
-For the family \eqref{gamma-f}: (a) show $\Theta = O(N^{1-2\gamma})$ and hence that $\eta = N^{2\gamma-1}\tilde\eta$ is the right co-scaling; (b) show the initialization output is $O(N^{1/2-\gamma})$ and per-neuron velocities are $O(N^{\gamma-1})$; (c) conclude that the (normalized) kernel drift over any fixed training horizon is $O(N^{\gamma-1})$, vanishing for every $\gamma<1$; (d) reconcile $\gamma=\frac{1}{2}$ with the bounds of Section \ref{sec:NTK-const}. Optional: relate $\gamma$ to the output-scale parameter $\alpha$ of \cite{chizat2019lazy}, where multiplying any model by $\alpha\to\infty$ produces lazy training.
+For the family \eqref{gamma-f}:
+\begin{enumerate}
+  \item show $\Theta = O(N^{1-2\gamma})$ and hence that $\eta = N^{2\gamma-1}\tilde\eta$ is the right co-scaling;
+  \item show the initialization output is $O(N^{1/2-\gamma})$ and per-neuron velocities are $O(N^{\gamma-1})$;
+  \item conclude that the (normalized) kernel drift over any fixed training horizon is $O(N^{\gamma-1})$, vanishing for every $\gamma<1$;
+  \item reconcile $\gamma=\frac{1}{2}$ with the bounds of Section \ref{sec:NTK-const}. Optional: relate $\gamma$ to the output-scale parameter $\alpha$ of \cite{chizat2019lazy}, where multiplying any model by $\alpha\to\infty$ produces lazy training.
+\end{enumerate}
 \end{exercise}
 
 \subsection{What is this framework good for?}
@@ -2031,11 +2043,13 @@ Four structural comments, each of which does real work later:
 
 \begin{exercise}[The Ornstein--Uhlenbeck process and the FDT]
 \label{ex:msrjd}
-(a) Fill in the noise average leading to \eqref{msrjd-action}.
-(b) For the linear drift $f(x) = -k x$ (the Ornstein--Uhlenbeck process), compute the stationary correlation and response functions, either by Fourier transforming the quadratic action or by solving the SDE directly:
+\begin{enumerate}
+  \item Fill in the noise average leading to \eqref{msrjd-action}.
+  \item For the linear drift $f(x) = -k x$ (the Ornstein--Uhlenbeck process), compute the stationary correlation and response functions, either by Fourier transforming the quadratic action or by solving the SDE directly:
 $C(\tau) = \frac{D}{2k} e^{-k|\tau|}$ and $R(\tau) = \theta(\tau)\, e^{-k\tau}$.
-(c) Verify the fluctuation--dissipation theorem $T R(\tau) = -\pd_\tau C(\tau)$ for $\tau>0$, with $T = D/2$.
-(d) Explain, from the discrete-time construction, why $\expval{\tilde x(t) \tilde x(t')} = 0$ and why $R$ is causal.
+  \item Verify the fluctuation--dissipation theorem $T R(\tau) = -\pd_\tau C(\tau)$ for $\tau>0$, with $T = D/2$.
+  \item Explain, from the discrete-time construction, why $\expval{\tilde x(t) \tilde x(t')} = 0$ and why $R$ is causal.
+\end{enumerate}
 \end{exercise}
 
 \subsection{Double descent as a dynamical phase transition}
@@ -2161,9 +2175,11 @@ Notably, the form of Eq.~\eqref{udc} implies a characteristic time scale, which 
 \begin{exercise}[Double descent in the lab]
 \label{ex:li-goldenfeld}
 Simulate the model of this subsection: teacher $w^* \sim \CN(0, r\, I_P)$, inputs $x^\mu \sim \CN(0, I_P)$, labels $y^\mu = w^*\cdot x^\mu/\sqrt P + \epsilon^\mu$ with noise variance $D$; student $\hat w$ trained by the update \eqref{eq2} with ridge $\lambda = 0$ and full batches ($\gamma = 1$), from $\hat w(0)\sim\CN(0,\sigma_0^2 I_P)$. Take $P = 200$ and $\nu = P/n \in \{0.5,\, 0.9,\, 1.1,\, 2\}$.
-(a) Plot training and generalization error against time, and verify the asymptotics \eqref{alpha<1ge} and \eqref{alpha>1ge} --- including the divergence of \emph{both} branches as $\nu\to1$: double descent, resolved in time.
-(b) Probe ergodicity breaking: run two clones from initializations differing by a small random $\delta\hat w(0)$, and track the normalized separation $|\Delta \hat w(t)|^2/|\Delta\hat w(0)|^2$. Verify that it decays to zero for $\nu<1$ but saturates for $\nu>1$ --- at the predicted plateau $(\nu-1)/\nu$, the paper's ergodicity-breaking degree, measured in twenty lines of code.
-(c) Near $\nu=1$, extract the relaxation time of $\varepsilon_g(t)$ and check for the critical slowing down $\tau \sim |1-\nu|^{-\phi}$ of Eq.~\eqref{udc}.
+\begin{enumerate}
+  \item Plot training and generalization error against time, and verify the asymptotics \eqref{alpha<1ge} and \eqref{alpha>1ge} --- including the divergence of \emph{both} branches as $\nu\to1$: double descent, resolved in time.
+  \item Probe ergodicity breaking: run two clones from initializations differing by a small random $\delta\hat w(0)$, and track the normalized separation $|\Delta \hat w(t)|^2/|\Delta\hat w(0)|^2$. Verify that it decays to zero for $\nu<1$ but saturates for $\nu>1$ --- at the predicted plateau $(\nu-1)/\nu$, the paper's ergodicity-breaking degree, measured in twenty lines of code.
+  \item Near $\nu=1$, extract the relaxation time of $\varepsilon_g(t)$ and check for the critical slowing down $\tau \sim |1-\nu|^{-\phi}$ of Eq.~\eqref{udc}.
+\end{enumerate}
 \end{exercise}
 %
 
@@ -2188,9 +2204,11 @@ which is \emph{inconsistent} with the value $x_0$ assumed for the mean when cons
 
 \begin{exercise}[Self-consistency in the smallest possible example]
 \label{ex:selfconsistency}
-(a) Derive the stationary variance $\expval{\delta x^2} = D/(-2f'(x_0))$ of the linearized dynamics (compare \cref{ex:msrjd}(b)).
-(b) Carrying the Taylor expansion of $f$ to second order, derive the quoted correction to the mean.
-(c) Propose the self-consistent repair: expand instead around a point $x_*$, chosen so that the \emph{effective} drift vanishes, $f(x_*) + \tfrac{1}{2} f''(x_*)\expval{\delta x^2}_* = 0$, with $\expval{\delta x^2}_* = D/(-2f'(x_*))$ determined simultaneously. Note the structure: two coupled equations, each an input to the other --- a miniature of the Curie--Weiss condition of Section \ref{sec:MFT-physics}, and of the DMFT equations to come.
+\begin{enumerate}
+  \item Derive the stationary variance $\expval{\delta x^2} = D/(-2f'(x_0))$ of the linearized dynamics (compare \cref{ex:msrjd}(b)).
+  \item Carrying the Taylor expansion of $f$ to second order, derive the quoted correction to the mean.
+  \item Propose the self-consistent repair: expand instead around a point $x_*$, chosen so that the \emph{effective} drift vanishes, $f(x_*) + \tfrac{1}{2} f''(x_*)\expval{\delta x^2}_* = 0$, with $\expval{\delta x^2}_* = D/(-2f'(x_*))$ determined simultaneously. Note the structure: two coupled equations, each an input to the other --- a miniature of the Curie--Weiss condition of Section \ref{sec:MFT-physics}, and of the DMFT equations to come.
+\end{enumerate}
 \end{exercise}
 
 A framework for resolving this, and also attempting to enforce that the small parameter we expand about is actually the expansion parameter involves using \textit{n-particle irreducible effective actions} (nPI).  A full discussion of this is well beyond the scope of this document, but is covered very well in a pedagogical introduction \cite{bergesIntroductionNonequilibriumQuantum2004}, where the main idea is enforcing self-consistency via increasingly multi-local sources that generate n-point correlation functions.  The first section emphasizes that performing standard perturbation theory with an anharmonic oscillator yields so-called \textit{secular} terms which are powers of time $t$ that appear next to the actual expansion parameter $\epsilon$, and using the nPI framework effectively resums these terms properly at each order in $\epsilon$.  The 1PI approach is directly related to a local approximation with mean field theory, while in the 2PI approach, the object determined self consistently is the 2-point function, which in the local approximation is related to the local propagator and is the basis of dynamical mean field theory. 
@@ -2448,7 +2466,12 @@ Exponents are small because data manifolds are high-dimensional. The formula is 
 
 \begin{exercise}[Exponents from the data manifold]
 \label{ex:manifold}
-(a) Fill in the derivation of \eqref{manifold-law}, stating precisely where smoothness of the target is used. (b) How does the answer change for mean-absolute-error loss? (c) Taking the measured $\alpha_P\approx0.076$ for language models at face value, estimate the effective dimension of the ``manifold of text.'' Discuss whether the input dimension, the embedding dimension, or something else is being measured. (d) What does this mechanism predict for the \emph{data} exponent $\alpha_n$, if $n$ samples are what limits the resolution of the tiling?
+\begin{enumerate}
+  \item Fill in the derivation of \eqref{manifold-law}, stating precisely where smoothness of the target is used.
+  \item How does the answer change for mean-absolute-error loss?
+  \item Taking the measured $\alpha_P\approx0.076$ for language models at face value, estimate the effective dimension of the ``manifold of text.'' Discuss whether the input dimension, the embedding dimension, or something else is being measured.
+  \item What does this mechanism predict for the \emph{data} exponent $\alpha_n$, if $n$ samples are what limits the resolution of the tiling?
+\end{enumerate}
 \end{exercise}
 
 
@@ -2472,9 +2495,11 @@ giving $L(n) \sim n^{-(b-1)/a}$: \emph{the scaling exponent is a ratio of spectr
 
 \begin{exercise}[Spectral scaling laws, and quanta as eigenmodes]
 \label{ex:spectra}
-(a) Derive \eqref{spectral-law} from the mode-filtering formula of Section \ref{sec:Bayes-kernel}, and check that the crossover modes $k\sim k_*$ do not change the exponent.
-(b) Show that the quantization model's data-scaling law is the special case $b=a$ of \eqref{spectral-law} under the dictionary: quanta $=$ eigenmodes, Zipf law $=$ spectrum, $a = \alpha+1$. (Hint: in the quanta model, $p_k$ plays \emph{both} roles, setting the learning threshold \emph{and} the contribution $\Delta\,p_k$ to the loss, so the two power laws coincide.)
-(c) In the quanta model, what would it mean for $b \neq a$? Invent a modification of QH3 that realizes it.
+\begin{enumerate}
+  \item Derive \eqref{spectral-law} from the mode-filtering formula of Section \ref{sec:Bayes-kernel}, and check that the crossover modes $k\sim k_*$ do not change the exponent.
+  \item Show that the quantization model's data-scaling law is the special case $b=a$ of \eqref{spectral-law} under the dictionary: quanta $=$ eigenmodes, Zipf law $=$ spectrum, $a = \alpha+1$. (Hint: in the quanta model, $p_k$ plays \emph{both} roles, setting the learning threshold \emph{and} the contribution $\Delta\,p_k$ to the loss, so the two power laws coincide.)
+  \item In the quanta model, what would it mean for $b \neq a$? Invent a modification of QH3 that realizes it.
+\end{enumerate}
 \end{exercise}
 
 
@@ -2658,10 +2683,12 @@ the same exponent, with a different constant. As in Section \ref{app:annealed-co
 
 \begin{exercise}[The annealed learning curve of the spherical perceptron]
 \label{ex:annealed}
-(a) Derive the slice entropy \eqref{coarea}, and assemble the annealed action \eqref{annealed-integral} by repeating the steps of \cref{ex:ising}(d).
-(b) Derive the saddle-point condition for \eqref{annealed-saddle}, and show that $R=1$ is never a minimum, in contrast with \cref{ex:ising}(f).
-(c) Verify the large-$\alpha$ learning curve \eqref{annealed-eps}, and show that at small $\alpha$ the annealed theory predicts $R\propto\alpha$. Sketch the full learning curve $\varepsilon(\alpha)$.
-(d) Which steps of \cref{ex:replica} change when the count of binary students is replaced by the volume \eqref{coarea}, and which do not?
+\begin{enumerate}
+  \item Derive the slice entropy \eqref{coarea}, and assemble the annealed action \eqref{annealed-integral} by repeating the steps of \cref{ex:ising}(d).
+  \item Derive the saddle-point condition for \eqref{annealed-saddle}, and show that $R=1$ is never a minimum, in contrast with \cref{ex:ising}(f).
+  \item Verify the large-$\alpha$ learning curve \eqref{annealed-eps}, and show that at small $\alpha$ the annealed theory predicts $R\propto\alpha$. Sketch the full learning curve $\varepsilon(\alpha)$.
+  \item Which steps of \cref{ex:replica} change when the count of binary students is replaced by the volume \eqref{coarea}, and which do not?
+\end{enumerate}
 \end{exercise}
 
 %===============================================================================
@@ -2737,16 +2764,18 @@ which is the $g$-orthogonal projection of $Y$ onto $\mathrm{col}(X)$ (``weighted
 
 \begin{exercise}[Least squares by hand]
 \label{ex:app-lsq}
-(a) Differentiate $\CL_\theta = \frac{1}{2}|X\theta-Y|^2$ with respect to a single coordinate $\theta^j$, assemble the components into \eqref{app-lsq-grad}, and derive the normal equations \eqref{app-normal}. Explain geometrically why they say that the residual is orthogonal to every column of $X$.
-(b) Show that if $X$ has full column rank then $X^TX$ is positive definite, so that \eqref{app-lsq} is the unique minimizer. Show that the normal equations are always consistent (\emph{i.e.} $X^TY\in\mathrm{col}(X^TX)$), and that if $P>n$ they have infinitely many solutions.
-(c) Fit the affine function $f(x) = \theta^1 + \theta^2 x$ to the three points $x\in\{-1,0,1\}$ with labels $y=x^2$; that is, take
+\begin{enumerate}
+  \item Differentiate $\CL_\theta = \frac{1}{2}|X\theta-Y|^2$ with respect to a single coordinate $\theta^j$, assemble the components into \eqref{app-lsq-grad}, and derive the normal equations \eqref{app-normal}. Explain geometrically why they say that the residual is orthogonal to every column of $X$.
+  \item Show that if $X$ has full column rank then $X^TX$ is positive definite, so that \eqref{app-lsq} is the unique minimizer. Show that the normal equations are always consistent (\emph{i.e.} $X^TY\in\mathrm{col}(X^TX)$), and that if $P>n$ they have infinitely many solutions.
+  \item Fit the affine function $f(x) = \theta^1 + \theta^2 x$ to the three points $x\in\{-1,0,1\}$ with labels $y=x^2$; that is, take
 %
 \begin{equation*}
     X = \begin{pmatrix} 1 & -1 \\ 1 & 0 \\ 1 & 1\end{pmatrix}\,,\qquad Y = \begin{pmatrix} 1 \\ 0 \\ 1\end{pmatrix}\,.
 \end{equation*}
 %
 Find $\theta_*$, the predictions, the residual, and the loss. Is the remaining error a failure of optimization or of representation?
-(d) Repeat (c) with the weighted loss \eqref{app-wls} for $g = \mathrm{diag}(1,4,1)$, which trusts the middle data point four times as much as the others. Check that the fitted function changes.
+  \item Repeat (c) with the weighted loss \eqref{app-wls} for $g = \mathrm{diag}(1,4,1)$, which trusts the middle data point four times as much as the others. Check that the fitted function changes.
+\end{enumerate}
 \end{exercise}
 
 \subsection{Linear regression with nonlinear features}
@@ -2795,10 +2824,12 @@ Why would one ever want a very large $P$? \Cref{fig:radial-lift} gives the class
 \begin{exercise}[A three-point feature calculation]
 \label{ex:app-features}
 Take the same three points $x\in\{-1,0,1\}$ with labels $y=x^2$ as in \cref{ex:app-lsq}(c), but now the feature map $\psi(x) = (1,\,\sqrt2\,x,\,x^2)$.
-(a) Form the feature matrix $\Psi$ and find coefficients $\theta$ that interpolate all three labels. The representational failure of \cref{ex:app-lsq}(c) is gone: what changed?
-(b) Explain precisely how the predictor can be nonlinear in $x$ while the regression problem remains linear.
-(c) If the last feature is replaced by $c\,x^2$ for some $c\neq 0$, what changes: the fitted function, its coefficient, or both?
-(d) Write the inner product $K(x,z) := \psi(x)\cdot\psi(z)$ in closed form, without vector notation. This is a preview of \cref{app:kernel}.
+\begin{enumerate}
+  \item Form the feature matrix $\Psi$ and find coefficients $\theta$ that interpolate all three labels. The representational failure of \cref{ex:app-lsq}(c) is gone: what changed?
+  \item Explain precisely how the predictor can be nonlinear in $x$ while the regression problem remains linear.
+  \item If the last feature is replaced by $c\,x^2$ for some $c\neq 0$, what changes: the fitted function, its coefficient, or both?
+  \item Write the inner product $K(x,z) := \psi(x)\cdot\psi(z)$ in closed form, without vector notation. This is a preview of \cref{app:kernel}.
+\end{enumerate}
 \end{exercise}
 
 \subsection{Kernel regression}
@@ -2845,10 +2876,12 @@ constant in time. Moreover, gradient flow finds the minimum-norm solution: $\dot
 
 \begin{exercise}[Minimum-norm interpolation and the kernel]
 \label{ex:app-kernel}
-(a) Carry out the Lagrange-multiplier computation leading to \eqref{app-representer}--\eqref{app-kernel-reg}. Alternatively, use the singular value decomposition $\Psi = USV^T$ of Section \ref{sec:features} to show that the minimum-norm interpolant is $\theta_* = \Psi^T(\Psi\Psi^T)^{-1}Y$, and write it in terms of $U,S,V$.
-(b) Show that $c^T\hat Kc = |\Psi^Tc|^2\geq 0$ for all $c\in\R^n$. Interpret a zero eigenvalue of $\hat K$ as a linear combination of training examples that vanishes in feature space. What does it take for $\hat K$ to be invertible?
-(c) Show that under gradient flow $\dot\theta = -\eta\,\Psi^T(\Psi\theta - Y)$ the displacement $\theta(t)-\theta_0$ stays in the row space of $\Psi$ for all $t$; derive $\Delta(t) = e^{-\eta t\hat K}\Delta(0)$; and conclude that, for invertible $\hat K$, the flow converges to the interpolant closest to $\theta_0$. Derive \eqref{NTK-learn} for this model, with $\Theta = \hat K$.
-(d) Verify that $\psi(x)\cdot\psi(z) = (x\cdot z)^2$ for $\psi(x) = (x_1^2,\sqrt2\,x_1x_2,x_2^2)$, and explain why the $\sqrt2$ is not decoration. Which feature map on $\R$ produces the kernel $(1+xz)^2$ of \cref{ex:app-features}(d)? How many features does $(x\cdot z)^m$ on $\R^d$ stand in for?
+\begin{enumerate}
+  \item Carry out the Lagrange-multiplier computation leading to \eqref{app-representer}--\eqref{app-kernel-reg}. Alternatively, use the singular value decomposition $\Psi = USV^T$ of Section \ref{sec:features} to show that the minimum-norm interpolant is $\theta_* = \Psi^T(\Psi\Psi^T)^{-1}Y$, and write it in terms of $U,S,V$.
+  \item Show that $c^T\hat Kc = |\Psi^Tc|^2\geq 0$ for all $c\in\R^n$. Interpret a zero eigenvalue of $\hat K$ as a linear combination of training examples that vanishes in feature space. What does it take for $\hat K$ to be invertible?
+  \item Show that under gradient flow $\dot\theta = -\eta\,\Psi^T(\Psi\theta - Y)$ the displacement $\theta(t)-\theta_0$ stays in the row space of $\Psi$ for all $t$; derive $\Delta(t) = e^{-\eta t\hat K}\Delta(0)$; and conclude that, for invertible $\hat K$, the flow converges to the interpolant closest to $\theta_0$. Derive \eqref{NTK-learn} for this model, with $\Theta = \hat K$.
+  \item Verify that $\psi(x)\cdot\psi(z) = (x\cdot z)^2$ for $\psi(x) = (x_1^2,\sqrt2\,x_1x_2,x_2^2)$, and explain why the $\sqrt2$ is not decoration. Which feature map on $\R$ produces the kernel $(1+xz)^2$ of \cref{ex:app-features}(d)? How many features does $(x\cdot z)^m$ on $\R^d$ stand in for?
+\end{enumerate}
 \end{exercise}
 
 \subsection{Kernel ridge regression}
@@ -2919,10 +2952,11 @@ This is also a spectral filter, with $1/\eta t$ playing the role of $\lambda$: \
 
 \begin{exercise}[Ridge regression, two ways]
 \label{ex:app-ridge}
-(a) Derive \eqref{app-ridge-normal} and \eqref{app-ridge-P}, and prove that $\Psi^T\Psi+\lambda I_P$ is invertible even when $\Psi$ is rank deficient.
-(b) Prove the push-through identity \eqref{app-pushthrough} and deduce \eqref{app-krr}. Explain why ``cancelling $\Psi^T$'' is not a valid step, and why the identity is nevertheless true. (It is a special case of $A(BA+I)^{-1} = (AB+I)^{-1}A$.)
-(c) What happens as $\lambda\to\infty$? Using the SVD, show that $\theta_\lambda$ applies the scalar filter $s/(s^2+\lambda)$ to each singular value $s$ of $\Psi$, and hence that as $\lambda\to 0$ it converges to the least-squares solution of minimum norm. When does this limit interpolate the labels exactly?
-(d) Return to $x\in\{-1,0,1\}$, $y=x^2$ and the kernel $K(x,z) = (1+xz)^2$ of \cref{ex:app-features}. With $\lambda = 1$, verify that
+\begin{enumerate}
+  \item Derive \eqref{app-ridge-normal} and \eqref{app-ridge-P}, and prove that $\Psi^T\Psi+\lambda I_P$ is invertible even when $\Psi$ is rank deficient.
+  \item Prove the push-through identity \eqref{app-pushthrough} and deduce \eqref{app-krr}. Explain why ``cancelling $\Psi^T$'' is not a valid step, and why the identity is nevertheless true. (It is a special case of $A(BA+I)^{-1} = (AB+I)^{-1}A$.)
+  \item What happens as $\lambda\to\infty$? Using the SVD, show that $\theta_\lambda$ applies the scalar filter $s/(s^2+\lambda)$ to each singular value $s$ of $\Psi$, and hence that as $\lambda\to 0$ it converges to the least-squares solution of minimum norm. When does this limit interpolate the labels exactly?
+  \item Return to $x\in\{-1,0,1\}$, $y=x^2$ and the kernel $K(x,z) = (1+xz)^2$ of \cref{ex:app-features}. With $\lambda = 1$, verify that
 %
 \begin{equation*}
     \hat K = \begin{pmatrix} 4 & 1 & 0 \\ 1 & 1 & 1 \\ 0 & 1 & 4 \end{pmatrix}\,,\qquad
@@ -2930,7 +2964,8 @@ This is also a spectral filter, with $1/\eta t$ playing the role of $\lambda$: \
 \end{equation*}
 %
 and predict at $z=2$ using only kernel evaluations. Compare with the interpolant of \cref{ex:app-features}(a), which predicts $z^2=4$ there, and explain the direction of the discrepancy.
-(e) The feature route solves a $P\times P$ system and the kernel route an $n\times n$ one. When is each attractive?
+  \item The feature route solves a $P\times P$ system and the kernel route an $n\times n$ one. When is each attractive?
+\end{enumerate}
 \end{exercise}
 
 \begin{exercise}[Early stopping vs.\ ridge, on two data points]
@@ -2942,10 +2977,12 @@ Take $n=2$ training points with Gram matrix and labels
 \end{equation*}
 %
 and initial predictions $f(0) = 0$.
-(a) Verify the eigenpairs $u_\pm = \frac{1}{\sqrt2}(1,\pm 1)^T$ with $s_\pm^2 = 3, 1$, and decompose $Y$ into these modes.
-(b) Using \eqref{app-flow-filter}, find the training predictions $f(t)$ under gradient flow, and evaluate them at $\eta t = \log 2$. Why do both the eigenvalue $s_a^2$ and the initial projection $u_a\cdot Y$ matter for what is visible during training?
-(c) Using \eqref{app-ridge-filter}, find the ridge predictions for $\lambda = 1$. The two filters agree on the mode with $s^2 = 1$; show that the ridge parameter matching gradient flow at time $t$ on a mode with eigenvalue $s^2$ is $\lambda_{\rm eff}(s^2,t) = s^2/(e^{\eta t s^2}-1)$, which depends on the mode --- so early stopping is not ridge regression.
-(d) State precisely what ``spectral bias'' means for this finite, fixed-kernel calculation. What additional structure would be needed to turn it into a claim about Fourier frequencies, about robustness to label noise, or about test error?
+\begin{enumerate}
+  \item Verify the eigenpairs $u_\pm = \frac{1}{\sqrt2}(1,\pm 1)^T$ with $s_\pm^2 = 3, 1$, and decompose $Y$ into these modes.
+  \item Using \eqref{app-flow-filter}, find the training predictions $f(t)$ under gradient flow, and evaluate them at $\eta t = \log 2$. Why do both the eigenvalue $s_a^2$ and the initial projection $u_a\cdot Y$ matter for what is visible during training?
+  \item Using \eqref{app-ridge-filter}, find the ridge predictions for $\lambda = 1$. The two filters agree on the mode with $s^2 = 1$; show that the ridge parameter matching gradient flow at time $t$ on a mode with eigenvalue $s^2$ is $\lambda_{\rm eff}(s^2,t) = s^2/(e^{\eta t s^2}-1)$, which depends on the mode --- so early stopping is not ridge regression.
+  \item State precisely what ``spectral bias'' means for this finite, fixed-kernel calculation. What additional structure would be needed to turn it into a claim about Fourier frequencies, about robustness to label noise, or about test error?
+\end{enumerate}
 \end{exercise}
 
 \subsection{Linearized networks are kernel ridge regressors}
@@ -2988,15 +3025,17 @@ Two remarks on what is and is not being claimed. First, for the linearized model
 \begin{exercise}[Tangent features of a one-hidden-layer network]
 \label{ex:app-tangent}
 Consider $f_\theta(x) = \sum_{i=1}^N c_i\,\phi(a_i\cdot x)$ with $\theta = (c_i, a_i)_{i=1}^N$, so that $P = N(d+1)$.
-(a) Compute the tangent features $\nabla_\theta f_{\theta_0}(x)$, and show that the tangent kernel is
+\begin{enumerate}
+  \item Compute the tangent features $\nabla_\theta f_{\theta_0}(x)$, and show that the tangent kernel is
 %
 \begin{equation*}
     \Theta(x,x') = \sum_{i=1}^N \phi(a_i\cdot x)\,\phi(a_i\cdot x') + \sum_{i=1}^N c_i^2\,\phi'(a_i\cdot x)\,\phi'(a_i\cdot x')\,(x\cdot x')\,.
 \end{equation*}
 %
-(b) Suppose only the output weights $c$ are trained, with the $a_i$ frozen at their random initial values. Show that this is exactly a fixed-feature model \eqref{app-featmodel} with random features, that its linearization is exact, and that its kernel is the first term above. Which term do you get by training only the $a_i$?
-(c) Show that gradient flow with weight decay toward the initialization, $\dot\theta = -\eta\big[\nabla_\theta \CL + \lambda(\theta-\theta_0)\big]$, applied to the linearized model $f^{\rm lin}$, converges to the ridge solution \eqref{app-lin-krr} for every $\lambda>0$ and from any starting point.
-(d) Check that \eqref{app-lin-krr} at $\lambda\to 0$ coincides with \eqref{NTK-learn} at $t\to\infty$.
+  \item Suppose only the output weights $c$ are trained, with the $a_i$ frozen at their random initial values. Show that this is exactly a fixed-feature model \eqref{app-featmodel} with random features, that its linearization is exact, and that its kernel is the first term above. Which term do you get by training only the $a_i$?
+  \item Show that gradient flow with weight decay toward the initialization, $\dot\theta = -\eta\big[\nabla_\theta \CL + \lambda(\theta-\theta_0)\big]$, applied to the linearized model $f^{\rm lin}$, converges to the ridge solution \eqref{app-lin-krr} for every $\lambda>0$ and from any starting point.
+  \item Check that \eqref{app-lin-krr} at $\lambda\to 0$ coincides with \eqref{NTK-learn} at $t\to\infty$.
+\end{enumerate}
 \end{exercise}
 
 
@@ -3063,7 +3102,12 @@ Complete the square: shifting $f \to f + K J$ (schematically, $f(x) \to f(x) + \
 \end{solution}
 
 \begin{solution}[ex:nngp-lab]
-Everything is closed-form thanks to the erf kernel \eqref{erf-kernel}, which is the point of choosing erf. Expected observations: (a) at $N=3$ the histogram has visibly heavy tails and excess kurtosis (the output is a sum of only three i.i.d.\ non-Gaussian terms); at $N=30$ deviations are still detectable; at $N=300$ the histogram is indistinguishable from the predicted Gaussian at this sample size. (b) The sample covariance matches the $2\times2$ kernel matrix built from \eqref{erf-kernel} to within the Monte Carlo error $O(M^{-1/2})$. (c) A log--log plot of $\mathrm{Var}(K^{(2)})$ against $N$ has slope $-1$, as in the variance computation of Section \ref{sec:NNGP}. The whole lab is $\sim$20 lines of NumPy; the one subtlety is to histogram over \emph{initializations} at fixed inputs, not over inputs.
+Everything is closed-form thanks to the erf kernel \eqref{erf-kernel}, which is the point of choosing erf. Expected observations:
+\begin{enumerate}
+  \item at $N=3$ the histogram has visibly heavy tails and excess kurtosis (the output is a sum of only three i.i.d.\ non-Gaussian terms); at $N=30$ deviations are still detectable; at $N=300$ the histogram is indistinguishable from the predicted Gaussian at this sample size.
+  \item The sample covariance matches the $2\times2$ kernel matrix built from \eqref{erf-kernel} to within the Monte Carlo error $O(M^{-1/2})$.
+  \item A log--log plot of $\mathrm{Var}(K^{(2)})$ against $N$ has slope $-1$, as in the variance computation of Section \ref{sec:NNGP}. The whole lab is $\sim$20 lines of NumPy; the one subtlety is to histogram over \emph{initializations} at fixed inputs, not over inputs.
+\end{enumerate}
 \end{solution}
 
 \begin{solution}[ex:LN-llms]
@@ -3097,7 +3141,14 @@ Contracting with $\nabla_\theta f(x)$ and recognizing $\Theta(x,x^\mu) = \nabla_
 \end{solution}
 
 \begin{solution}[ex:ntk-lab]
-Reference results for the setup as specified (single seeds; small-$N$ numbers fluctuate). (a) Final loss $\sim10^{-5}$--$10^{-4}$. Keep $\eta<2/s_{\max}^2(\Theta_0)$ for stability; here $s^2_{\max}\approx30$, so $\eta=0.02$ is safe. (b) At $x=1$, $f_0\sim\CN(0,O(1))$, and the sample covariance across two inputs matches the $\tanh$ GP kernel. (c) Measured $\|\Delta\Theta\|/\|\Theta_0\|\approx0.25,\,0.14,\,0.06$ at $N=100,300,1000$: decaying, with a log--log slope between $-1/2$ and $-1$; average a few seeds to clean up the trend. The relative parameter displacement decays like $N^{-1/2}$, since the total displacement is $O(1)$ by \eqref{theta-bound} while $|\theta_0|\sim\sqrt{P}\sim\sqrt N$. Compute $\Theta$ from per-example gradients (an $n\times P$ Jacobian contracted with itself), in float64. (d) The residual modes are straight lines on a semilog plot, with slopes $-\eta s_k^2$, until they hit the small nonlinear floor; the smallest-eigenvalue modes are visibly not yet learned at the end of training. This is spectral bias on display, and the dynamical twin of \cref{ex:kernel-ridge}(b). (e) At $N=300$ the trained function on test points agrees with \eqref{NTK-learn} to within a few percent; the agreement degrades as $N$ shrinks, which is feature learning beginning to stir. The continuation is \cref{ex:mf-lab}.
+Reference results for the setup as specified (single seeds; small-$N$ numbers fluctuate).
+\begin{enumerate}
+  \item Final loss $\sim10^{-5}$--$10^{-4}$. Keep $\eta<2/s_{\max}^2(\Theta_0)$ for stability; here $s^2_{\max}\approx30$, so $\eta=0.02$ is safe.
+  \item At $x=1$, $f_0\sim\CN(0,O(1))$, and the sample covariance across two inputs matches the $\tanh$ GP kernel.
+  \item Measured $\|\Delta\Theta\|/\|\Theta_0\|\approx0.25,\,0.14,\,0.06$ at $N=100,300,1000$: decaying, with a log--log slope between $-1/2$ and $-1$; average a few seeds to clean up the trend. The relative parameter displacement decays like $N^{-1/2}$, since the total displacement is $O(1)$ by \eqref{theta-bound} while $|\theta_0|\sim\sqrt{P}\sim\sqrt N$. Compute $\Theta$ from per-example gradients (an $n\times P$ Jacobian contracted with itself), in float64.
+  \item The residual modes are straight lines on a semilog plot, with slopes $-\eta s_k^2$, until they hit the small nonlinear floor; the smallest-eigenvalue modes are visibly not yet learned at the end of training. This is spectral bias on display, and the dynamical twin of \cref{ex:kernel-ridge}(b).
+  \item At $N=300$ the trained function on test points agrees with \eqref{NTK-learn} to within a few percent; the agreement degrades as $N$ shrinks, which is feature learning beginning to stir. The continuation is \cref{ex:mf-lab}.
+\end{enumerate}
 \end{solution}
 
 \begin{solution}[ex:kernel-ridge]
@@ -3114,20 +3165,31 @@ The iteration converges geometrically to a stable fixed point, at rate set by th
 \end{solution}
 
 \begin{solution}[ex:mf-eom]
-(a) Expanding the square in the loss and collecting single-sum and double-sum terms gives \eqref{mf-VU}--\eqref{mf-VU-def} directly. For the equations of motion, $\pd f_{\rho_N}(x^\mu)/\pd c_i = \frac{1}{N} \phi(a_i\cdot x^\mu)$ and $\pd f_{\rho_N}(x^\mu)/\pd a_i = \frac{1}{N} c_i \phi'(a_i\cdot x^\mu)x^\mu$; the chain rule plus $\eta = N\tilde\eta$ gives \eqref{mf-eom}. Writing the same gradient through $\Psi$, the symmetry $U(\theta,\theta')=U(\theta',\theta)$ ensures the double sum contributes twice the one-sided derivative, matching \eqref{mf-eom-Psi}.
-(b) From \eqref{mf-eom}: $c_i\dot c_i = -\tilde\eta\, c_i \sum_\mu \Delta^\mu \phi(a_i\cdot x^\mu)$ and $a_i\cdot \dot a_i = -\tilde\eta\, c_i \sum_\mu \Delta^\mu\, \phi'(a_i\cdot x^\mu)\,(a_i\cdot x^\mu)$. For positively homogeneous $\phi$, $\phi'(z)z = \phi(z)$, so the two right-hand sides coincide and $\frac{d}{dt}\big(c_i^2 - |a_i|^2\big) = 2(c_i\dot c_i - a_i\cdot\dot a_i) = 0$.
-(c) Because $f_\rho$ is \emph{linear} in the output weights, $\pd f/\pd c_i$ contains no $c_i$; the only route by which $c_i$ influences $\dot c_i$ is through the mean field $\Delta^\mu$ --- i.e.\ through the population average, weighted by $1/N$. This linearity is also what makes the loss a quadratic (rather than higher-order) polynomial in each particle, i.e.\ what limits the interaction to be pairwise.
+\begin{enumerate}
+  \item Expanding the square in the loss and collecting single-sum and double-sum terms gives \eqref{mf-VU}--\eqref{mf-VU-def} directly. For the equations of motion, $\pd f_{\rho_N}(x^\mu)/\pd c_i = \frac{1}{N} \phi(a_i\cdot x^\mu)$ and $\pd f_{\rho_N}(x^\mu)/\pd a_i = \frac{1}{N} c_i \phi'(a_i\cdot x^\mu)x^\mu$; the chain rule plus $\eta = N\tilde\eta$ gives \eqref{mf-eom}. Writing the same gradient through $\Psi$, the symmetry $U(\theta,\theta')=U(\theta',\theta)$ ensures the double sum contributes twice the one-sided derivative, matching \eqref{mf-eom-Psi}.
+  \item From \eqref{mf-eom}: $c_i\dot c_i = -\tilde\eta\, c_i \sum_\mu \Delta^\mu \phi(a_i\cdot x^\mu)$ and $a_i\cdot \dot a_i = -\tilde\eta\, c_i \sum_\mu \Delta^\mu\, \phi'(a_i\cdot x^\mu)\,(a_i\cdot x^\mu)$. For positively homogeneous $\phi$, $\phi'(z)z = \phi(z)$, so the two right-hand sides coincide and $\frac{d}{dt}\big(c_i^2 - |a_i|^2\big) = 2(c_i\dot c_i - a_i\cdot\dot a_i) = 0$.
+  \item Because $f_\rho$ is \emph{linear} in the output weights, $\pd f/\pd c_i$ contains no $c_i$; the only route by which $c_i$ influences $\dot c_i$ is through the mean field $\Delta^\mu$ --- i.e.\ through the population average, weighted by $1/N$. This linearity is also what makes the loss a quadratic (rather than higher-order) polynomial in each particle, i.e.\ what limits the interaction to be pairwise.
+\end{enumerate}
 \end{solution}
 
 \begin{solution}[ex:mf-lab]
-Reference results (single seeds). (a) Final loss $\sim5\times10^{-3}$ at $\tau=20$ and still slowly falling; the mean-field run is measured in rescaled time, so run longer to go lower. (b) At $x=1$, $f_0\sim\CN(0,O(1/N))$, with standard deviation falling like $1/\sqrt N$ across $N$: the Gaussian process of Section \ref{sec:init} survives only as the $O(1/\sqrt N)$ fluctuation around zero. (c) Measured $\|\Delta\Theta\|/\|\Theta_0\|\approx1.7,\,0.8,\,0.7,\,0.9$ at $N=30,100,300,1000$: order one, with no decay, against the decaying lazy curve. Use the same $\Theta$ formula with the appropriate $\gamma$ in both runs. (d) The mean-field cloud reproduces \cref{fig:mf-transport}: neurons stream along order-one trajectories and pile onto one-dimensional filaments through $(a,c)\approx$ (teacher directions, matched output weights), with the point symmetry $(a,c)\to(-a,-c)$ from the oddness of $\tanh$. The lazy cloud is visually identical at $\tau=0$ and $\tau=20$ (displacements $\sim1/\sqrt N$). (e) For $y=\sin(2x)$ or $|x|-1$ the loss still falls (more slowly), and the cloud condenses onto \emph{different}, task-shaped structures, with more filaments spread over a range of slopes $a$, since no finite set of teacher neurons exists to copy; the kernel still moves by $O(1)$. That is the cleaner demonstration that mean-field training \emph{builds} features rather than merely locating the teacher's. Mismatched activations behave similarly. The lazy runs, by contrast, change in only one way, the quality of the fit (the random features either happen to span the target well or do not); the kernel and the cloud never adapt.
+Reference results (single seeds).
+\begin{enumerate}
+  \item Final loss $\sim5\times10^{-3}$ at $\tau=20$ and still slowly falling; the mean-field run is measured in rescaled time, so run longer to go lower.
+  \item At $x=1$, $f_0\sim\CN(0,O(1/N))$, with standard deviation falling like $1/\sqrt N$ across $N$: the Gaussian process of Section \ref{sec:init} survives only as the $O(1/\sqrt N)$ fluctuation around zero.
+  \item Measured $\|\Delta\Theta\|/\|\Theta_0\|\approx1.7,\,0.8,\,0.7,\,0.9$ at $N=30,100,300,1000$: order one, with no decay, against the decaying lazy curve. Use the same $\Theta$ formula with the appropriate $\gamma$ in both runs.
+  \item The mean-field cloud reproduces \cref{fig:mf-transport}: neurons stream along order-one trajectories and pile onto one-dimensional filaments through $(a,c)\approx$ (teacher directions, matched output weights), with the point symmetry $(a,c)\to(-a,-c)$ from the oddness of $\tanh$. The lazy cloud is visually identical at $\tau=0$ and $\tau=20$ (displacements $\sim1/\sqrt N$).
+  \item For $y=\sin(2x)$ or $|x|-1$ the loss still falls (more slowly), and the cloud condenses onto \emph{different}, task-shaped structures, with more filaments spread over a range of slopes $a$, since no finite set of teacher neurons exists to copy; the kernel still moves by $O(1)$. That is the cleaner demonstration that mean-field training \emph{builds} features rather than merely locating the teacher's. Mismatched activations behave similarly. The lazy runs, by contrast, change in only one way, the quality of the fit (the random features either happen to span the target well or do not); the kernel and the cloud never adapt.
+\end{enumerate}
 \end{solution}
 
 \begin{solution}[ex:gamma]
-(a) $\pd f/\pd c_i = N^{-\gamma}\phi(a_i\cdot x)$ and similarly for $a_i$, so $\Theta = \sum_i N^{-2\gamma}\,k_{\theta_i} = N^{1-2\gamma}\cdot\frac{1}{N}\sum_i k_{\theta_i} = O(N^{1-2\gamma})$; demanding $\eta\,\Theta = O(1)$ forces $\eta = N^{2\gamma-1}\tilde\eta$.
-(b) At initialization $f = N^{-\gamma}\sum_i c_i\phi(a_i\cdot x)$ is $N^{-\gamma}$ times a sum of $N$ i.i.d.\ mean-zero terms $= O(\sqrt N)$, so $f_{\theta_0} = O(N^{1/2-\gamma})$. Per-neuron velocities: $\dot c_i = -\eta\,\pd\CL/\pd c_i = O(N^{2\gamma-1}\cdot N^{-\gamma}) = O(N^{\gamma-1})$, and likewise for $\dot a_i$.
-(c) The normalized kernel $N^{2\gamma-1}\Theta = \frac{1}{N}\sum_i k_{\theta_i}$ is an empirical average over particles, so over any fixed horizon its drift is of the order of the per-particle displacement, $O(N^{\gamma-1})$ --- vanishing for every $\gamma<1$, order one exactly at $\gamma=1$.
-(d) At $\gamma=\frac{1}{2}$: per-neuron motion $O(N^{-1/2})$, matching \eqref{theta-bound} (an $O(1)$ total displacement shared among $N$ neurons); initialization output $O(1)$, the GP of Section \ref{sec:init}. For the optional part: relative to the mean-field parametrization \eqref{mf-f}, $f_\gamma = \alpha\, f_{\rm MF}$ with $\alpha = N^{1-\gamma}$, so in the language of \cite{chizat2019lazy} every $\gamma<1$ sends the laziness $\alpha\to\infty$ with width --- lazy --- while $\gamma=1$ keeps $\alpha$ of order one.
+\begin{enumerate}
+  \item $\pd f/\pd c_i = N^{-\gamma}\phi(a_i\cdot x)$ and similarly for $a_i$, so $\Theta = \sum_i N^{-2\gamma}\,k_{\theta_i} = N^{1-2\gamma}\cdot\frac{1}{N}\sum_i k_{\theta_i} = O(N^{1-2\gamma})$; demanding $\eta\,\Theta = O(1)$ forces $\eta = N^{2\gamma-1}\tilde\eta$.
+  \item At initialization $f = N^{-\gamma}\sum_i c_i\phi(a_i\cdot x)$ is $N^{-\gamma}$ times a sum of $N$ i.i.d.\ mean-zero terms $= O(\sqrt N)$, so $f_{\theta_0} = O(N^{1/2-\gamma})$. Per-neuron velocities: $\dot c_i = -\eta\,\pd\CL/\pd c_i = O(N^{2\gamma-1}\cdot N^{-\gamma}) = O(N^{\gamma-1})$, and likewise for $\dot a_i$.
+  \item The normalized kernel $N^{2\gamma-1}\Theta = \frac{1}{N}\sum_i k_{\theta_i}$ is an empirical average over particles, so over any fixed horizon its drift is of the order of the per-particle displacement, $O(N^{\gamma-1})$ --- vanishing for every $\gamma<1$, order one exactly at $\gamma=1$.
+  \item At $\gamma=\frac{1}{2}$: per-neuron motion $O(N^{-1/2})$, matching \eqref{theta-bound} (an $O(1)$ total displacement shared among $N$ neurons); initialization output $O(1)$, the GP of Section \ref{sec:init}. For the optional part: relative to the mean-field parametrization \eqref{mf-f}, $f_\gamma = \alpha\, f_{\rm MF}$ with $\alpha = N^{1-\gamma}$, so in the language of \cite{chizat2019lazy} every $\gamma<1$ sends the laziness $\alpha\to\infty$ with width --- lazy --- while $\gamma=1$ keeps $\alpha$ of order one.
+\end{enumerate}
 \end{solution}
 
 \begin{solution}[ex:grok-lazy]
@@ -3137,7 +3199,12 @@ Reference results (single seeds). (a) Final loss $\sim5\times10^{-3}$ at $\tau=2
     \item (i) \emph{The top eigenvectors of the initial NTK are misaligned with the labels}: in the language of Section \ref{sec:Bayes-kernel}, the target's weight sits in modes with small eigenvalues, so the lazy (kernel-regression) solution fits the training points without generalizing --- memorization, in the precise mode-filtering sense. (ii) \emph{The dataset is in a Goldilocks window}: large enough that a generalizing solution exists (cf.\ the critical sample size of \cref{ex:grok}(d)), small enough that train and test loss do not simply track each other. (iii) \emph{Training starts lazy} (large $\alpha$, or large initialization scale): feature learning is initially suppressed, as in Section \ref{sec:NTK-const}, so the kernel fit happens \emph{first}.
     \item The laziness $\alpha$ (and the initialization scale, which acts similarly): increasing it stretches the delay between the lazy fit and feature learning, making grokking more dramatic; decreasing it makes the network rich from the start, so train and test fall together and grokking \emph{vanishes}. In the extreme $\alpha\to\infty$ the network is a pure kernel machine forever: by condition (i) it never generalizes, and the grokking time diverges. Contrast \cref{ex:grok}(d): there the knobs were sample size and temperature moving the system across a phase boundary; here the knob does not change \emph{where} the system ends up so much as \emph{how long} the misaligned detour lasts.
     \item From a separation of timescales built into the flow: fitting the train set within the frozen-kernel subspace is fast (the exponential convergence of Section \ref{sec:train}, eq.\ \eqref{exp-const}), while rotating the kernel is slow --- suppressed by the laziness, since feature motion is $O(1/\alpha)$-small per unit of function change. Train loss bottoms out on the fast clock; test loss must wait for the slow one. Nothing stochastic is needed: no noise, no weight decay, no barrier crossing --- and that is the force of the paper's counterexamples, since grokking with zero weight decay and \emph{growing} weight norm rules out explanations in which regularization-driven norm shrinkage causes the transition. The equilibrium mechanism of Section \ref{sec:grok}, by contrast, needs temperature: its delay is the escape from a metastable free-energy basin, which pure gradient flow would never make.
-    \item They live in different corners and need not compete: Rubin et al.\ describe noisy (Langevin/Bayesian) training near equilibrium, Kumar et al.\ deterministic training far from it; both say \emph{the cheap channel is used first --- kernel fit or metastable memorizing phase --- and features arrive late}. Distinguishing experiments: (a) \emph{noise dependence} --- an activated (metastable-escape) delay should shorten rapidly with increasing training noise, roughly Arrhenius-like, while a timescale-separation delay survives at zero noise and depends on it only weakly; measure grokking time vs.\ Langevin temperature at fixed $\alpha$, $n$. (b) \emph{Seed-to-seed statistics} --- nucleation out of a metastable state is a rare-event process with broad (roughly exponential) waiting-time distributions across seeds; a deterministic mechanism predicts narrow, initialization-scale-set delays. (c) \emph{The $\alpha$-dial itself} --- the lazy-to-rich account makes a sharp prediction that the delay is monotonically stretched by $\alpha$ with grokking eliminated at small $\alpha$; the equilibrium account ties the delay to the free-energy landscape at fixed ensemble, not to $\alpha$. Running these on modular addition is a very feasible project.
+    \item They live in different corners and need not compete: Rubin et al.\ describe noisy (Langevin/Bayesian) training near equilibrium, Kumar et al.\ deterministic training far from it; both say \emph{the cheap channel is used first --- kernel fit or metastable memorizing phase --- and features arrive late}. Distinguishing experiments:
+\begin{enumerate}
+  \item \emph{noise dependence} --- an activated (metastable-escape) delay should shorten rapidly with increasing training noise, roughly Arrhenius-like, while a timescale-separation delay survives at zero noise and depends on it only weakly; measure grokking time vs.\ Langevin temperature at fixed $\alpha$, $n$.
+  \item \emph{Seed-to-seed statistics} --- nucleation out of a metastable state is a rare-event process with broad (roughly exponential) waiting-time distributions across seeds; a deterministic mechanism predicts narrow, initialization-scale-set delays.
+  \item \emph{The $\alpha$-dial itself} --- the lazy-to-rich account makes a sharp prediction that the delay is monotonically stretched by $\alpha$ with grokking eliminated at small $\alpha$; the equilibrium account ties the delay to the free-energy landscape at fixed ensemble, not to $\alpha$. Running these on modular addition is a very feasible project.
+\end{enumerate}
 \end{enumerate}
 \end{solution}
 
@@ -3152,27 +3219,33 @@ Reference results (single seeds). (a) Final loss $\sim5\times10^{-3}$ at $\tau=2
 \end{solution}
 
 \begin{solution}[ex:msrjd]
-(a) The white-noise measure is Gaussian with $\langle \xi(t)\xi(t')\rangle = D\,\delta(t-t')$, so $\big\langle e^{-i\int \tilde x\, \xi}\big\rangle = e^{-\frac{D}{2}\int \tilde x^2}$, and collecting terms in the exponent gives \eqref{msrjd-action}.
-(b) The linear SDE is solved by $x(t) = \int_{-\infty}^{t} ds\; e^{-k(t-s)}\,\xi(s)$ (stationary state). Then
+\begin{enumerate}
+  \item The white-noise measure is Gaussian with $\langle \xi(t)\xi(t')\rangle = D\,\delta(t-t')$, so $\big\langle e^{-i\int \tilde x\, \xi}\big\rangle = e^{-\frac{D}{2}\int \tilde x^2}$, and collecting terms in the exponent gives \eqref{msrjd-action}.
+  \item The linear SDE is solved by $x(t) = \int_{-\infty}^{t} ds\; e^{-k(t-s)}\,\xi(s)$ (stationary state). Then
 $C(\tau) = \int_{-\infty}^{t}ds\int_{-\infty}^{t'}ds'\, e^{-k(t-s)-k(t'-s')} D\,\delta(s-s') = \frac{D}{2k}e^{-k|\tau|}$ with $\tau = t-t'$.
 Adding a perturbation $h$ to the drift shifts the solution by $\int_{-\infty}^t ds\, e^{-k(t-s)}h(s)$, so $R(\tau) = \theta(\tau)\, e^{-k\tau}$.
-(c) For $\tau>0$: $-\pd_\tau C = \frac{D}{2}e^{-k\tau} = \frac{D}{2}\,R(\tau)$, i.e.\ $T R = -\pd_\tau C$ with $T = D/2$.
-(d) In the discrete construction each delta function propagates information strictly forward in time (It\^o: the noise at step $i-1$ affects $x_i$, never earlier variables). Diagrammatically, $\langle x \tilde x\rangle$ is a retarded propagator; $\langle \tilde x\tilde x\rangle$ would be a closed loop of retarded propagators, which vanishes --- equivalently, ``a response to no perturbation is not an observable.'' Causality of $R$ is the same statement.
+  \item For $\tau>0$: $-\pd_\tau C = \frac{D}{2}e^{-k\tau} = \frac{D}{2}\,R(\tau)$, i.e.\ $T R = -\pd_\tau C$ with $T = D/2$.
+  \item In the discrete construction each delta function propagates information strictly forward in time (It\^o: the noise at step $i-1$ affects $x_i$, never earlier variables). Diagrammatically, $\langle x \tilde x\rangle$ is a retarded propagator; $\langle \tilde x\tilde x\rangle$ would be a closed loop of retarded propagators, which vanishes --- equivalently, ``a response to no perturbation is not an observable.'' Causality of $R$ is the same statement.
+\end{enumerate}
 \end{solution}
 
 \begin{solution}[ex:li-goldenfeld]
-(a) With full batches and $\lambda=0$, gradient descent converges for $\eta < 2/\lambda_{\max}(X^TX/P)$; keep $\eta$ a safe factor below. The late-time errors match \eqref{alpha<1ge} and \eqref{alpha>1ge}, and plotting $\varepsilon_g(t\to\infty)$ against $\nu$ traces the double-descent peak at $\nu=1$ from both sides.
-(b) The clone separation obeys the \emph{linear} dynamics $\Delta\hat w(t+1) = \big(I - \eta\, X^TX/P\big)\,\Delta\hat w(t)$: it decays iff the sampled covariance $X^TX$ has full rank, i.e.\ iff $n \ge P$ ($\nu\le1$). For $\nu>1$ the covariance has a null space of dimension $P-n$, and the projection of $\Delta\hat w(0)$ onto it survives forever; for an isotropic perturbation the expected surviving fraction is $(P-n)/P = (\nu-1)/\nu$ --- precisely the paper's ergodicity-breaking degree $R(\tau\to\infty)$.
-(c) The relaxation time is set by the smallest nonzero eigenvalue of $X^TX/P$, which by Marchenko--Pastur closes like $(1-\sqrt{1/\nu}\,)^2 \sim |1-\nu|^2/4$ near threshold, so one expects $\phi \approx 2$; compare with the paper's measured exponent and with the collapse ansatz Eq.~\eqref{udc}.
+\begin{enumerate}
+  \item With full batches and $\lambda=0$, gradient descent converges for $\eta < 2/\lambda_{\max}(X^TX/P)$; keep $\eta$ a safe factor below. The late-time errors match \eqref{alpha<1ge} and \eqref{alpha>1ge}, and plotting $\varepsilon_g(t\to\infty)$ against $\nu$ traces the double-descent peak at $\nu=1$ from both sides.
+  \item The clone separation obeys the \emph{linear} dynamics $\Delta\hat w(t+1) = \big(I - \eta\, X^TX/P\big)\,\Delta\hat w(t)$: it decays iff the sampled covariance $X^TX$ has full rank, i.e.\ iff $n \ge P$ ($\nu\le1$). For $\nu>1$ the covariance has a null space of dimension $P-n$, and the projection of $\Delta\hat w(0)$ onto it survives forever; for an isotropic perturbation the expected surviving fraction is $(P-n)/P = (\nu-1)/\nu$ --- precisely the paper's ergodicity-breaking degree $R(\tau\to\infty)$.
+  \item The relaxation time is set by the smallest nonzero eigenvalue of $X^TX/P$, which by Marchenko--Pastur closes like $(1-\sqrt{1/\nu}\,)^2 \sim |1-\nu|^2/4$ near threshold, so one expects $\phi \approx 2$; compare with the paper's measured exponent and with the collapse ansatz Eq.~\eqref{udc}.
+\end{enumerate}
 \end{solution}
 
 \begin{solution}[ex:selfconsistency]
-(a) The linearized equation $\dot{\delta x} = f'(x_0)\,\delta x + \xi$ is an Ornstein--Uhlenbeck process with $k = -f'(x_0) > 0$; by \cref{ex:msrjd}(b) its stationary variance is $D/(2k) = D/(-2f'(x_0))$.
-(b) Taking the stationary average of $\dot x = f(x) + \xi$ with $f$ expanded to second order about $x_0$:
+\begin{enumerate}
+  \item The linearized equation $\dot{\delta x} = f'(x_0)\,\delta x + \xi$ is an Ornstein--Uhlenbeck process with $k = -f'(x_0) > 0$; by \cref{ex:msrjd}(b) its stationary variance is $D/(2k) = D/(-2f'(x_0))$.
+  \item Taking the stationary average of $\dot x = f(x) + \xi$ with $f$ expanded to second order about $x_0$:
 $0 = f(x_0) + f'(x_0)\langle\delta x\rangle + \tfrac{1}{2} f''(x_0)\langle \delta x^2\rangle$, and using $f(x_0)=0$,
 $\langle x\rangle = x_0 - \frac{f''(x_0)}{2f'(x_0)}\,\langle\delta x^2\rangle = x_0 + \frac{1}{2}\frac{f''(x_0)}{f'(x_0)}\cdot\frac{D}{2 f'(x_0)}$,
 the quoted shift --- nonzero, contradicting the assumption $\langle x\rangle = x_0$.
-(c) Demand instead that the expansion point $x_*$ satisfy the \emph{effective} stationarity condition $f(x_*) + \tfrac{1}{2} f''(x_*)\,\langle\delta x^2\rangle_* = 0$ together with $\langle\delta x^2\rangle_* = D/(-2f'(x_*))$. These are two equations determining $(x_*, \langle\delta x^2\rangle_*)$ jointly: the fluctuations shape the effective potential, and the effective potential shapes the fluctuations. Structurally this is $m = \tanh(\beta(m+h))$ again --- and DMFT is the same fixed-point demand imposed on entire two-time functions $C(t,t')$, $R(t,t')$ instead of scalars.
+  \item Demand instead that the expansion point $x_*$ satisfy the \emph{effective} stationarity condition $f(x_*) + \tfrac{1}{2} f''(x_*)\,\langle\delta x^2\rangle_* = 0$ together with $\langle\delta x^2\rangle_* = D/(-2f'(x_*))$. These are two equations determining $(x_*, \langle\delta x^2\rangle_*)$ jointly: the fluctuations shape the effective potential, and the effective potential shapes the fluctuations. Structurally this is $m = \tanh(\beta(m+h))$ again --- and DMFT is the same fixed-point demand imposed on entire two-time functions $C(t,t')$, $R(t,t')$ instead of scalars.
+\end{enumerate}
 \end{solution}
 
 \begin{solution}[ex:quanta]
@@ -3186,13 +3259,20 @@ the quoted shift --- nonzero, contradicting the assumption $\langle x\rangle = x
 \end{solution}
 
 \begin{solution}[ex:manifold]
-(a) As in the text; smoothness (bounded second derivatives) enters in the per-patch error $\sim s^2$. (b) Mean-absolute error is the error itself, not its square: $L\sim s^2 \sim P^{-2/d}$. (c) $d \approx 4/0.076 \approx 50$: an effective, intrinsic dimension of the distribution of text as seen by the model --- vastly smaller than the nominal input dimension (vocabulary $\times$ context), which is the whole point. (d) If data limits the tiling, $n$ samples resolve spacing $s\sim n^{-1/d}$ and $\alpha_n \approx 4/d \approx \alpha_P$: this mechanism predicts \emph{equal} exponents --- closer to what is observed than the quanta prediction, and the same conclusion the field theory of Section \ref{sec:MRS} reaches from spectra.
+\begin{enumerate}
+  \item As in the text; smoothness (bounded second derivatives) enters in the per-patch error $\sim s^2$.
+  \item Mean-absolute error is the error itself, not its square: $L\sim s^2 \sim P^{-2/d}$.
+  \item $d \approx 4/0.076 \approx 50$: an effective, intrinsic dimension of the distribution of text as seen by the model --- vastly smaller than the nominal input dimension (vocabulary $\times$ context), which is the whole point.
+  \item If data limits the tiling, $n$ samples resolve spacing $s\sim n^{-1/d}$ and $\alpha_n \approx 4/d \approx \alpha_P$: this mechanism predicts \emph{equal} exponents --- closer to what is observed than the quanta prediction, and the same conclusion the field theory of Section \ref{sec:MRS} reaches from spectra.
+\end{enumerate}
 \end{solution}
 
 \begin{solution}[ex:spectra]
-(a) The learned modes contribute $\big((n\beta)^{-1}/(\lambda_k + (n\beta)^{-1})\big)^2 y_k^2 \approx 0$ for $k\ll k_*$; the unlearned ones contribute $y_k^2$; the crossover window contributes $O(k_*^{1-b})$ as well, so the exponent is unchanged. Hence $L \sim n^{-(b-1)/a}$.
-(b) With $b=a=\alpha+1$: $L\sim n^{-\alpha/(\alpha+1)}$, i.e.\ the exponent $\alpha_n$ of \cref{ex:quanta}(c). The threshold $\lambda_k \gtrsim (n\beta)^{-1}$ is the threshold $n\, p_k \gtrsim \tau$; the tail sum of $y_k^2$ is the tail sum of $\Delta p_k$. Kernel regression \emph{is} a quantization model whose quanta are eigenmodes.
-(c) $b\neq a$ decouples how often a skill is \emph{tested} (its loss weight) from how easy it is to \emph{learn} (its threshold) --- e.g.\ let quantum $k$ require $\tau_k \propto k^{\theta}$ occurrences. Any monotone relation between frequency and difficulty generates a two-exponent family, and \eqref{spectral-law} is its universal form.
+\begin{enumerate}
+  \item The learned modes contribute $\big((n\beta)^{-1}/(\lambda_k + (n\beta)^{-1})\big)^2 y_k^2 \approx 0$ for $k\ll k_*$; the unlearned ones contribute $y_k^2$; the crossover window contributes $O(k_*^{1-b})$ as well, so the exponent is unchanged. Hence $L \sim n^{-(b-1)/a}$.
+  \item With $b=a=\alpha+1$: $L\sim n^{-\alpha/(\alpha+1)}$, i.e.\ the exponent $\alpha_n$ of \cref{ex:quanta}(c). The threshold $\lambda_k \gtrsim (n\beta)^{-1}$ is the threshold $n\, p_k \gtrsim \tau$; the tail sum of $y_k^2$ is the tail sum of $\Delta p_k$. Kernel regression \emph{is} a quantization model whose quanta are eigenmodes.
+  \item $b\neq a$ decouples how often a skill is \emph{tested} (its loss weight) from how easy it is to \emph{learn} (its threshold) --- e.g.\ let quantum $k$ require $\tau_k \propto k^{\theta}$ occurrences. Any monotone relation between frequency and difficulty generates a two-exponent family, and \eqref{spectral-law} is its universal form.
+\end{enumerate}
 \end{solution}
 
 \begin{solution}[ex:replica]
@@ -3200,9 +3280,10 @@ The six steps are their own outline; we record only the checkpoints. (Step 2) Co
 \end{solution}
 
 \begin{solution}[ex:annealed]
-(a) Decompose $\theta = R\,\theta^* + \theta_\perp$. The spherical constraint $|\theta|^2 = N$ forces $|\theta_\perp|^2 = N(1-R^2)$, so the slice at fixed $R$ is a sphere of radius $\sqrt{N(1-R^2)}$ in the $(N-1)$-dimensional orthogonal complement, of volume $\propto\big(N(1-R^2)\big)^{(N-2)/2} = e^{\frac{N}{2}\log(1-R^2)+O(\log N)}$, giving $h(R) = \frac{1}{2}\log(1-R^2)$ up to constants. The data factor $(1-\varepsilon(R))^n = e^{N\alpha\log(1-\varepsilon)}$ is as in \cref{ex:ising}(d), and collecting exponents gives \eqref{annealed-integral}.
+\begin{enumerate}
+  \item Decompose $\theta = R\,\theta^* + \theta_\perp$. The spherical constraint $|\theta|^2 = N$ forces $|\theta_\perp|^2 = N(1-R^2)$, so the slice at fixed $R$ is a sphere of radius $\sqrt{N(1-R^2)}$ in the $(N-1)$-dimensional orthogonal complement, of volume $\propto\big(N(1-R^2)\big)^{(N-2)/2} = e^{\frac{N}{2}\log(1-R^2)+O(\log N)}$, giving $h(R) = \frac{1}{2}\log(1-R^2)$ up to constants. The data factor $(1-\varepsilon(R))^n = e^{N\alpha\log(1-\varepsilon)}$ is as in \cref{ex:ising}(d), and collecting exponents gives \eqref{annealed-integral}.
 
-(b) Setting $S_{\rm ann}'(R) = 0$ with $\varepsilon(R) = \arccos(R)/\pi$ gives
+  \item Setting $S_{\rm ann}'(R) = 0$ with $\varepsilon(R) = \arccos(R)/\pi$ gives
 %
 \begin{equation*}
     \frac{R}{1-R^2} = \frac{\alpha}{\pi\sqrt{1-R^2}\,\big(1-\varepsilon(R)\big)}
@@ -3212,9 +3293,10 @@ The six steps are their own outline; we record only the checkpoints. (Step 2) Co
 %
 As $R\to1$ the entropy term $-\frac{1}{2}\log(1-R^2)\to+\infty$ while the energy term stays finite, so $S_{\rm ann}\to+\infty$ and $R=1$ is never a minimum; the minimizer is always interior.
 
-(c) With $R = \cos(\pi\varepsilon)$ and $\varepsilon\to0$: $1-R^2 = \sin^2(\pi\varepsilon)\approx(\pi\varepsilon)^2$, so $S_{\rm ann}\approx-\log(\pi\varepsilon)+\alpha\varepsilon+\text{const}$, minimized at $\varepsilon = 1/\alpha$. For small $R$ the entropic part is $\approx R^2/2$ and $\varepsilon(R)\approx\frac{1}{2}-R/\pi$, so $-\alpha\log(1-\varepsilon)\approx-\alpha\log\frac{1}{2}-\frac{2\alpha}{\pi}R$, and minimizing $R^2/2-\frac{2\alpha}{\pi}R$ gives $R^* = 2\alpha/\pi\propto\alpha$. The learning curve rises linearly from $R=0$, bends over, and approaches $R=1$ with the power-law tail $\varepsilon\simeq1/\alpha$.
+  \item With $R = \cos(\pi\varepsilon)$ and $\varepsilon\to0$: $1-R^2 = \sin^2(\pi\varepsilon)\approx(\pi\varepsilon)^2$, so $S_{\rm ann}\approx-\log(\pi\varepsilon)+\alpha\varepsilon+\text{const}$, minimized at $\varepsilon = 1/\alpha$. For small $R$ the entropic part is $\approx R^2/2$ and $\varepsilon(R)\approx\frac{1}{2}-R/\pi$, so $-\alpha\log(1-\varepsilon)\approx-\alpha\log\frac{1}{2}-\frac{2\alpha}{\pi}R$, and minimizing $R^2/2-\frac{2\alpha}{\pi}R$ gives $R^* = 2\alpha/\pi\propto\alpha$. The learning curve rises linearly from $R=0$, bends over, and approaches $R=1$ with the power-law tail $\varepsilon\simeq1/\alpha$.
 
-(d) Steps 1, 2, 5, and 6 are unchanged: the data average sees only the overlaps, and the Gibbs-symmetry argument holds for any prior invariant under the symmetries of the problem. Step 3 changes: the sum over binary vectors becomes an integral over $Q$ points of the sphere, and the count $h(q,R)$ becomes the log-volume of the set of $Q$-tuples with prescribed overlaps, a Gaussian integral with a $\log\det$ of the overlap matrix; under replica symmetry it is $\frac{1}{2}\big[(Q-1)\log(1-q) + \log(1-q+Qq-QR^2)\big]$ up to constants, whose $Q\to0$ derivative reproduces \eqref{coarea} at $q=R$. Step 4 is then the same $H$-function integral. The outcome differs because this entropy diverges at $R\to1$: no competing basin, no transition, and a learning curve $\varepsilon\simeq0.625/\alpha$ \cite{seung1992statistical}.
+  \item Steps 1, 2, 5, and 6 are unchanged: the data average sees only the overlaps, and the Gibbs-symmetry argument holds for any prior invariant under the symmetries of the problem. Step 3 changes: the sum over binary vectors becomes an integral over $Q$ points of the sphere, and the count $h(q,R)$ becomes the log-volume of the set of $Q$-tuples with prescribed overlaps, a Gaussian integral with a $\log\det$ of the overlap matrix; under replica symmetry it is $\frac{1}{2}\big[(Q-1)\log(1-q) + \log(1-q+Qq-QR^2)\big]$ up to constants, whose $Q\to0$ derivative reproduces \eqref{coarea} at $q=R$. Step 4 is then the same $H$-function integral. The outcome differs because this entropy diverges at $R\to1$: no competing basin, no transition, and a learning curve $\varepsilon\simeq0.625/\alpha$ \cite{seung1992statistical}.
+\end{enumerate}
 \end{solution}
 
 \begin{solution}[ex:app-lsq]
