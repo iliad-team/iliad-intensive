@@ -41,9 +41,11 @@ Evaluating at $\beta = \mathbf{1}$ and solving,
 \]
 
 \textit{(c)} For a differentiable observable $\phi:W\to\mathbb{R}$, the chain rule applied to $\beta\mapsto\phi(w^*(\beta))$ gives
-\[
-  \mathcal{I}(z_i,\phi) \;=\; \frac{\partial\,\phi(w^*(\beta))}{\partial \beta_i}\bigg\rvert_{\beta=\mathbf{1}} \;=\; \nabla_w\phi(w^*(\beta))^\top\,\frac{\partial w^*(\beta)}{\partial \beta_i}\bigg\rvert_{\beta=\mathbf{1}} \;=\; -\,\nabla_w\phi(w^*)^\top\,H^{-1}\,\nabla_w L(w^*,z_i),
-\]
+\begin{align*}
+  \mathcal{I}(z_i,\phi) &\;=\; \frac{\partial\,\phi(w^*(\beta))}{\partial \beta_i}\bigg\rvert_{\beta=\mathbf{1}} \\
+  &\;=\; \nabla_w\phi(w^*(\beta))^\top\,\frac{\partial w^*(\beta)}{\partial \beta_i}\bigg\rvert_{\beta=\mathbf{1}} \\
+  &\;=\; -\,\nabla_w\phi(w^*)^\top\,H^{-1}\,\nabla_w L(w^*,z_i),
+\end{align*}
 where in the last step both factors are evaluated at $\beta = \mathbf{1}$, i.e.\ at $w^*$.
 
 \end{solution}
@@ -69,17 +71,20 @@ or equivalently $\bigl(A - (1-\beta_j)\,x_j x_j^\top\bigr)\,w = \sum_i x_i y_i -
 where we write $p_j := A^{-1} x_j$ and $h_j := x_j^\top p_j$. Multiplying through and using the identities $A^{-1}\sum_i x_i y_i = w^*$ and $p_j^\top\sum_i x_i y_i = x_j^\top w^*$,
 \begin{align*}
   w^*(\beta_j)
-  &\;=\; w^* \;-\; (1-\beta_j)\,p_j\,y_j \;+\; \frac{(1-\beta_j)\,p_j\bigl(x_j^\top w^* \;-\; (1-\beta_j)\,h_j\,y_j\bigr)}{1 - (1-\beta_j)\,h_j} \\[3pt]
-  &\;=\; w^* \;+\; p_j\cdot\frac{-(1-\beta_j)\,y_j\bigl(1-(1-\beta_j)h_j\bigr) \;+\; (1-\beta_j)\,x_j^\top w^* \;-\; (1-\beta_j)^2\,h_j\,y_j}{1 - (1-\beta_j)\,h_j} \\[3pt]
+  &\;=\; w^* \;-\; (1-\beta_j)\,p_j\,y_j \\
+  &\qquad\;+\; \frac{(1-\beta_j)\,p_j\bigl(x_j^\top w^* \;-\; (1-\beta_j)\,h_j\,y_j\bigr)}{1 - (1-\beta_j)\,h_j} \\[3pt]
+  &\;=\; w^* \;+\; \frac{p_j}{1 - (1-\beta_j)\,h_j}\Bigl[-(1-\beta_j)\,y_j\bigl(1-(1-\beta_j)h_j\bigr) \\
+  &\qquad\qquad\qquad\qquad\;+\; (1-\beta_j)\,x_j^\top w^* \;-\; (1-\beta_j)^2\,h_j\,y_j\Bigr] \\[3pt]
   &\;=\; w^* \;+\; p_j\cdot\frac{(1-\beta_j)\bigl(x_j^\top w^* - y_j\bigr)}{1 - (1-\beta_j)\,h_j} \\[3pt]
   &\;=\; w^* \;-\; \frac{(1-\beta_j)\,p_j\,r_j}{1 - (1-\beta_j)\,h_j},
 \end{align*}
 the claimed expression. The result is rational in $\beta_j$ because the matrix being inverted is linear in $\beta_j$.
 
 \textit{(d)} Expanding $1/(1-(1-\beta_j) h_j)$ as a geometric series in $(1-\beta_j) h_j$ (valid for $|(1-\beta_j) h_j| < 1$),
-\[
-  w^*(\beta_j) - w^* \;=\; -\,(1-\beta_j)\,A^{-1} x_j\,r_j\,\sum_{k=0}^{\infty}\,(1-\beta_j)^{k}\,h_j^{k} \;=\; -\,A^{-1} x_j\,r_j\,\sum_{k=1}^{\infty}\,(1-\beta_j)^{k}\,h_j^{\,k-1}.
-\]
+\begin{align*}
+  w^*(\beta_j) - w^* &\;=\; -\,(1-\beta_j)\,A^{-1} x_j\,r_j\,\sum_{k=0}^{\infty}\,(1-\beta_j)^{k}\,h_j^{k} \\
+  &\;=\; -\,A^{-1} x_j\,r_j\,\sum_{k=1}^{\infty}\,(1-\beta_j)^{k}\,h_j^{\,k-1}.
+\end{align*}
 Reading off term by term:
 \begin{itemize}
   \item The $k=1$ term is $-A^{-1} x_j\,r_j\,(1-\beta_j) = \mathcal{I}(z_j,w^*)\cdot(\beta_j - 1)$, exactly the influence-function prediction --- as it must be, since the IF \emph{is} the linear coefficient of $w^*(\beta_j)$ at $\beta_j = 1$.
@@ -183,7 +188,8 @@ Write $Z(\beta) = \int \exp(-\sum_j \beta_j L(w,z_j))\,\varphi(w)\,dw$ for the n
 \]
 Differentiating with respect to $\beta_i$ and applying the quotient rule:
 \begin{align*}
-  \frac{\partial}{\partial\beta_i}\,\E_{p_\beta}[\phi] &\;=\; \frac{1}{Z}\int \phi(w)\bigl(-L(w,z_i)\bigr)\,e^{-\sum_j\beta_j L_j}\,\varphi\,dw \;-\; \frac{1}{Z^2}\cdot\frac{\partial Z}{\partial\beta_i}\int \phi\,e^{-\sum_j\beta_j L_j}\,\varphi\,dw.
+  \frac{\partial}{\partial\beta_i}\,\E_{p_\beta}[\phi] &\;=\; \frac{1}{Z}\int \phi(w)\bigl(-L(w,z_i)\bigr)\,e^{-\sum_j\beta_j L_j}\,\varphi\,dw \\
+  &\qquad\;-\; \frac{1}{Z^2}\cdot\frac{\partial Z}{\partial\beta_i}\int \phi\,e^{-\sum_j\beta_j L_j}\,\varphi\,dw.
 \end{align*}
 The first term is $-\E_{p_\beta}[\phi(w)\,L(w,z_i)]$. For the second, $\partial_{\beta_i}Z = -Z\,\E_{p_\beta}[L(w,z_i)]$, so it equals $+\E_{p_\beta}[L(w,z_i)]\,\E_{p_\beta}[\phi(w)]$. Evaluating at $\beta=\mathbf{1}$:
 \[
@@ -254,9 +260,10 @@ which is the damped IF of \Cref{eq:if-pbrf} with $\gamma$ in the role of $\lambd
 Dividing by $\beta$ and rearranging gives the claimed expression. As $\beta\to\infty$: (i) $\frac{1}{\beta}\log|\det(I+\varepsilon\nabla r)| \to 0$ since the log-determinant is $O(1)$ (bounded for smooth $r$ and small $\varepsilon$); (ii) by Laplace's method, $\frac{1}{\beta}\log Z(\beta,\varepsilon) \to -\inf_w[L(w)-\varepsilon L_k(w)]$, so $\frac{1}{\beta}\log\frac{Z(\beta,\varepsilon)}{Z(\beta,0)} \to \inf L - \inf(L-\varepsilon L_k)$, which is a constant independent of $r$; (iii) the expectation concentrates on $w^*$.
 
 \textit{(b)} At $w^*$, $\nabla L(w^*)=0$, so the Taylor expansion of $L(w^*+\varepsilon r)$ starts at the quadratic term: $L(w^*) + \frac{\varepsilon^2}{2}r^\top Hr + O(\varepsilon^3)$. For $\varepsilon L_k$: $\varepsilon L_k(w^*+\varepsilon r) = \varepsilon L_k(w^*) + \varepsilon^2\nabla L_k^\top r + O(\varepsilon^3)$. Combined:
-\[
-  L(w^*+\varepsilon r) - \varepsilon L_k(w^*+\varepsilon r) - L(w^*) = -\varepsilon L_k(w^*) + \frac{\varepsilon^2}{2}r^\top Hr - \varepsilon^2\nabla L_k^\top r + O(\varepsilon^3).
-\]
+\begin{align*}
+  &L(w^*+\varepsilon r) - \varepsilon L_k(w^*+\varepsilon r) - L(w^*) \\
+  &\qquad= -\varepsilon L_k(w^*) + \frac{\varepsilon^2}{2}r^\top Hr - \varepsilon^2\nabla L_k^\top r + O(\varepsilon^3).
+\end{align*}
 For the infimum: expanding $L(w^*+\delta)-\varepsilon L_k(w^*+\delta)$ to second order in $\delta$ and minimizing, the optimal perturbation is $\delta^* = \varepsilon H^{-1}\nabla L_k$, giving
 \[
   \inf_w[L-\varepsilon L_k] = L(w^*) - \varepsilon L_k(w^*) - \frac{\varepsilon^2}{2}\nabla L_k^\top H^{-1}\nabla L_k + O(\varepsilon^3).
@@ -308,7 +315,8 @@ The initial condition is $\partial w_0/\partial \beta_i = 0$ since $w_0$ does no
 \textit{(b)} Substituting the recursion repeatedly:
 \begin{align*}
   \frac{\partial w_T}{\partial \beta_i} &= J_{T-1}\frac{\partial w_{T-1}}{\partial \beta_i} - \frac{\eta_{T-1}}{b}\,\mathbf{1}[i\in B_{T-1}]\,\nabla_w L(w_{T-1},z_i) \\
-  &= J_{T-1}\Bigl(J_{T-2}\frac{\partial w_{T-2}}{\partial \beta_i} - \frac{\eta_{T-2}}{b}\,\mathbf{1}[i\in B_{T-2}]\,\nabla_w L(w_{T-2},z_i)\Bigr) - \frac{\eta_{T-1}}{b}\,\mathbf{1}[i\in B_{T-1}]\,\nabla_w L(w_{T-1},z_i) \\
+  &= J_{T-1}\Bigl(J_{T-2}\frac{\partial w_{T-2}}{\partial \beta_i} - \frac{\eta_{T-2}}{b}\,\mathbf{1}[i\in B_{T-2}]\,\nabla_w L(w_{T-2},z_i)\Bigr) \\
+  &\qquad - \frac{\eta_{T-1}}{b}\,\mathbf{1}[i\in B_{T-1}]\,\nabla_w L(w_{T-1},z_i) \\
   &= \cdots = -\sum_{t=0}^{T-1}\frac{\eta_t}{b}\,\mathbf{1}[i\in B_t]\,J_{(t+1):T}\,\nabla_w L(w_t,z_i),
 \end{align*}
 where the last step follows from $\partial w_0/\partial \beta_i = 0$ killing the $J_{0:T}$ term. This is \eqref{eq:unroll-formula}.

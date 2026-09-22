@@ -57,9 +57,9 @@ where $\mathrm{Cov}_\gamma$ denotes covariance under $p_\gamma$. We will see in 
 
 \paragraph{Practical computation via SGLD.} The local BIF requires estimating a covariance under $p_\gamma$. This is done by drawing samples from $p_\gamma$ using stochastic gradient Langevin dynamics (SGLD), which adds calibrated Gaussian noise to SGD updates:
 \[
-  w_{t+1} \;=\; w_t - \frac{\epsilon}{2}\Bigl(\frac{n}{m}\sum_{k\in B_t}\nabla_w L(w_t,z_k) + \gamma(w_t - w^*)\Bigr) + \eta_t, \qquad \eta_t\sim\mathcal{N}(0,\epsilon\, I),
+  w_{t+1} \;=\; w_t - \frac{\epsilon}{2}\Bigl(\frac{n}{m}\sum_{k\in B_t}\nabla_w L(w_t,z_k) + \gamma(w_t - w^*)\Bigr) + \eta_t,
 \]
-where $B_t$ is a mini-batch of size $m$ and $\epsilon$ is the step size. After a burn-in period, the iterates $\{w_t\}$ are approximately distributed according to $p_\gamma$, and the covariance in \eqref{eq:local-bif} is estimated by the sample covariance of $(L(w_t,z_i),\phi(w_t))$ across draws. Running multiple independent chains from $w^*$ improves coverage.
+where $\eta_t\sim\mathcal{N}(0,\epsilon\, I)$, $B_t$ is a mini-batch of size $m$ and $\epsilon$ is the step size. After a burn-in period, the iterates $\{w_t\}$ are approximately distributed according to $p_\gamma$, and the covariance in \eqref{eq:local-bif} is estimated by the sample covariance of $(L(w_t,z_i),\phi(w_t))$ across draws. Running multiple independent chains from $w^*$ improves coverage.
 
 \begin{example}[Bayesian linear regression]\label{ex:bayesian-ols}
 Take the linear regression setup of \Cref{ex:ols-if} with a Gaussian prior $w\sim\mathcal{N}(0,\tau^2I)$ added. The posterior is conjugate: $w\mid\mathcal{D}\sim\mathcal{N}(\mu,V)$ with $V = (\tau^{-2}I + \sigma^{-2}A)^{-1}$ and $\mu = \sigma^{-2}V\sum_i x_i y_i$. A direct Gaussian-moment computation applied to \eqref{eq:bif-covariance} with the observable $\phi(w) = w$ gives
@@ -136,7 +136,10 @@ To make this precise, we need to know the density of the shifted parameters. If 
 \end{equation}
 where $\nabla r$ is the $d\times d$ Jacobian matrix of $r$ and the denominator is the usual volume-change factor.\footnote{For small $\varepsilon$ the map $w\mapsto w+\varepsilon r(w)$ is a diffeomorphism, so the inverse is well-defined. The exact formula requires evaluating $r$ at the pre-image; the expression above is correct to the order we need.} We measure how well $q_\varepsilon$ approximates $p_\varepsilon^\beta$ by the KL divergence $D_{\mathrm{KL}}(q_\varepsilon\|p_\varepsilon^\beta)$. Rather than computing this directly, it is cleaner to write it as an expectation over the \emph{original} distribution $p_0^\beta$:
 \begin{equation}\label{eq:kl-expectation}
-  D_{\mathrm{KL}}(q_\varepsilon\|p_\varepsilon^\beta) \;=\; \E_{w\sim p_0^\beta}\!\Bigl[\log p_0^\beta(w) - \log p_\varepsilon^\beta\bigl(w + \varepsilon r(w)\bigr) - \log\bigl|\det\bigl(I + \varepsilon\nabla r(w)\bigr)\bigr|\Bigr].
+  \begin{aligned}
+    D_{\mathrm{KL}}(q_\varepsilon\|p_\varepsilon^\beta) \;=\; \E_{w\sim p_0^\beta}\!\Bigl[&\log p_0^\beta(w) - \log p_\varepsilon^\beta\bigl(w + \varepsilon r(w)\bigr) \\
+    &- \log\bigl|\det\bigl(I + \varepsilon\nabla r(w)\bigr)\bigr|\Bigr].
+  \end{aligned}
 \end{equation}
 This identity follows by substituting \eqref{eq:shifted-density} into the definition of KL and changing variables back to $w$. We define the \emph{asymptotic KL cost}
 \begin{equation}\label{eq:ot-cost}
