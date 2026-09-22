@@ -1,0 +1,107 @@
+% arena_beamer.sty - shared preamble for all ARENA talk decks.
+%
+% Loaded BEFORE \documentclass (via plain \input, not \usepackage) so that
+% it can decide whether to pass `handout` to beamer based on the \HANDOUT
+% toggle. The deck pattern is:
+%
+%   \providecommand{\HANDOUT}{1}              % 1 = handout, 0 = presentation
+%   \input{../../arena_beamer.sty}
+%   ... deck-local macros ...
+%   \begin{document} ... \end{document}
+%
+% CI overrides the deck's local toggle via latexmk's -usepretex flag, which
+% \def's \HANDOUT before main.tex starts. The \providecommand below is a
+% safety default if neither the deck nor CI set anything.
+
+% ILIAD convention: \HANDOUT *defined* (e.g. via the CI wrapper `\def\HANDOUT{}`)
+% => collapse \pause overlays into a handout. Undefined => presentation (pauses on).
+\ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
+\documentclass[10pt,aspectratio=169]{beamer}
+
+\RequirePackage[utf8]{inputenc}
+\RequirePackage{amsmath}
+\RequirePackage{amsfonts}
+\RequirePackage{amssymb}
+\RequirePackage{graphicx}
+% ILIAD site build: ulem (texlive-plain-generic), algpseudocode and stmaryrd
+% (texlive-science) and diffcoeff are NOT in the CI apt set (.github/apt-packages.txt)
+% and neither D.2 deck uses them, so they are not loaded here. \llbracket /
+% \rrbracket, the one thing stmaryrd supplied, are built from kernel pieces
+% below, the same swap tex/iliad-slides.sty makes.
+\RequirePackage{xcolor}
+\RequirePackage{tikz}
+\RequirePackage{cancel}
+\RequirePackage{pgfplots}
+\RequirePackage{background}
+\RequirePackage{subcaption}
+\RequirePackage{ifthen}
+\RequirePackage{listings}
+\RequirePackage{hyperref}
+
+\usetheme{Madrid}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=white,
+    filecolor=magenta,
+    urlcolor=cyan,
+}
+\urlstyle{same}
+
+\newcommand{\llbracket}{\mathopen{[\![}}
+\newcommand{\rrbracket}{\mathclose{]\!]}}
+
+\DeclareMathOperator*{\argmin}{\arg\!\min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+\usetikzlibrary{calc, fadings, decorations.pathreplacing, automata, positioning, arrows, shapes.geometric, arrows.meta, positioning, fit, backgrounds}
+
+% Generic math/style macros used across decks.
+% Anything chapter-specific (state space, reward set, etc.) lives in the
+% deck's own main.tex, not here.
+\newcommand{\Ex}{\mathbb{E}}
+\newcommand{\red}[1]{\textcolor{red}{#1}}
+\newcommand{\bth}{{\boldsymbol{\theta}}}
+
+% PyTorch code listing style.
+\definecolor{codegreen}{rgb}{0,0.5,0}
+\definecolor{codegray}{rgb}{0.4,0.4,0.4}
+\definecolor{codepurple}{rgb}{0.55,0.0,0.55}
+\definecolor{codeblue}{rgb}{0.0,0.0,0.6}
+
+\lstdefinestyle{pystyle}{
+    basicstyle=\ttfamily\scriptsize,
+    keywordstyle=\color{codeblue}\bfseries,
+    commentstyle=\color{codegreen}\itshape,
+    stringstyle=\color{codepurple},
+    numberstyle=\tiny\color{codegray},
+    breaklines=true,
+    showstringspaces=false,
+    language=Python,
+    morekeywords={self, nn, torch, Tensor},
+    columns=fullflexible,
+    keepspaces=true,
+}
+\lstset{style=pystyle}
+
+% Decks set their own \graphicspath after \usepackage{arena_beamer}, but
+% default to fig/ (the ILIAD repo's LFS-tracked image dir) so plain
+% \includegraphics works without ceremony.
+\graphicspath{{fig/}}
+
+% Falls back to a labeled placeholder box if the image file isn't present.
+% Usage: \imgorplaceholder{0.6\linewidth}{filename-no-ext}{Caption shown if missing}
+\newcommand{\imgorplaceholder}[3]{%
+    \IfFileExists{fig/#2.png}{\includegraphics[width=#1]{#2}}{%
+    \IfFileExists{fig/#2.jpg}{\includegraphics[width=#1]{#2}}{%
+    \IfFileExists{fig/#2.pdf}{\includegraphics[width=#1]{#2}}{%
+    \IfFileExists{fig/#2.svg}{\includegraphics[width=#1]{#2}}{%
+        \fbox{\parbox[c][0.45\textheight][c]{#1}{\centering \textit{[image: #3]}\\\scriptsize drop \texttt{\detokenize{fig/#2.(png|jpg|pdf)}}}}%
+    }}}}%
+}
+
+% Visible citations on Madrid's dark nav bars (linkcolor is white for body links).
+\newcommand{\citev}[1]{\begingroup\hypersetup{linkcolor=cyan}\cite{#1}\endgroup}
+\setbeamertemplate{bibliography item}[text]
+
+\endinput

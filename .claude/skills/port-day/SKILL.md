@@ -210,8 +210,26 @@ For a large LaTeX day the mechanical assembly suits a `general-purpose`
 subagent scoped to `<worktree>/tex/<slug>/`. Set up the worktree and branch
 **first**, so the subagent can never touch `main`. Give it the verbatim mandate,
 the framework contract above (or point it at `docs/commands.md`,
-`docs/iliad-sty.md`, `tex/example/main.tex`), the build-until-clean loop, and an
-instruction to delete its `_src/` scratch before committing.
+`docs/iliad-sty.md`, `tex/example/main.tex`), the build-until-clean loop, and the
+location of the source clone (`_src_repo/` at the worktree root, put there by
+`new-worktree.sh --src`). It is gitignored, so it needs no cleanup — but it must
+never be staged.
+
+## More than one deck on a day
+
+A worksheet folder holds every deck the day is taught from: `slides.tex`, plus
+`slides-<label>.tex` for each further lecture (a guest lecture, an afternoon
+session). A deck the author wrote in Typst keeps the same stem as `.typ`
+(`slides.typ`) and is built and listed the same way — port it verbatim, its
+images into `fig/`, and repoint only the `#image()` paths (see
+`docs/commands.md` §Slides). Each compiles and gets its own Slides row,
+`slides.tex` first and the rest in filename order. A hosted `slides:` URL is a row too — listed first,
+never superseded — so a day whose main lecture is a Google Slides deck and whose
+guest lecture has LaTeX source keeps one page: `slides:` for the former,
+`slides-<label>.tex` for the latter. Give `slides:` a `title:` (write it as
+`url:` + `title:`) when the page has several rows, so the hosted one is named
+like the compiled ones are (from their `\title{}`). Don't split a day into two
+worksheets just to host two decks. See `docs/commands.md` §Slides.
 
 ## Slides that exist only as a raw PDF
 
@@ -249,7 +267,7 @@ slides matter, open the folder and look.
 ## Build and preview
 
     node scripts/build-content.mjs --check <slug>    # converter + KaTeX gate, no PDFs
-    node scripts/build-content.mjs <slug>            # full: PDFs + downloads
+    node scripts/build-content.mjs <slug>            # full: PDFs + downloads (+ every deck, .tex or .typ)
 
 Must exit 0, with no WARN and a green KaTeX render gate. Iterate on failures by
 adjusting scaffolding/preamble only.
@@ -261,11 +279,12 @@ static build and *does* auto-reload via an injected SSE snippet. Edit sources in
 
 ## Commit + PR
 
-Stage only sources: `main.tex` + `biblo.bib` + `fig/*`, or `main.mdx` (+ `fig/`),
-plus the `schedule.yaml` line. Everything else — `main-nosol.*`, `.aux`, `.pdf`,
-`rendergate.log`, `content/`, `public/`, the `_src/` scratch, the `node_modules`
-symlink — is gitignored or must not be staged.
+Stage only sources: `main.tex` + `biblo.bib` + `fig/*` + any `slides*.tex`, or
+`main.mdx` (+ `fig/`), plus the `schedule.yaml` line. Everything else — `main-nosol.*`, `.aux`, `.pdf`,
+`rendergate.log`, `content/`, `public/`, the `_src_repo/` source clone, the
+`node_modules` symlink — is gitignored or must not be staged.
 
+    git lfs push origin port-<x.y>-claude               # --no-verify below skips the hook that uploads LFS objects
     git push -u origin port-<x.y>-claude --no-verify   # see the symlink note above
     gh pr create --base main --title "[X.Y] <Title>"
 
@@ -274,7 +293,7 @@ Every PR body points at **both** (see `docs/PR-PREVIEWS.md`):
 - the **issue** it addresses — `Closes #<n>`; find it with `gh issue list`, day
   issues are titled `[X.Y] <Title>`;
 - the **live preview** — CI deploys the rendered site to
-  `https://iliad-team.github.io/iliad-intensive/pr-preview/pr-<PR#>/` and a bot
+  `https://iliad-intensive.org/pr-preview/pr-<PR#>/` and a bot
   comments the URL once checks pass. That link is what a reviewing author opens.
 
 Watch CI with `gh pr checks <n> --watch`. Leave the worktree in place until the

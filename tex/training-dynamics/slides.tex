@@ -41,29 +41,24 @@
 \begin{frame}{Big questions}
 \begin{itemize}
     \item How do models generalize?
-    \item How does internal structure form during training?
-    \item Emergent capabilities
-    \item Control levers for the training process
-    \item How do the loss, architecture, data, and optimizer determine which internal structures are learned throughout training?
+    \item How does internal structure (e.g. goals) form during training?
+    \item How can we intervene on the data, training objective, architecture, and optimizer to shape which internal structures are learned throughout training?
 \end{itemize}
 \end{frame}
 \begin{frame}{How: making mathematical models of learning}
     \begin{itemize}
-        \item Tractable toy models: deep linear networks, shallow nonlinear networks, tensor networks, polynomial activations
+        \item Tractable toy models: deep linear networks, shallow nonlinear networks, tensor networks, polynomial neural networks
         \item Take limits in depth, width, data, and training time
         \item Exploit symmetries: quotient them out and find conserved quantities
-        \item Identify useful observables: singular values of weights, learning coefficient, correlation functions
-        \item Work in specific regimes: lazy versus rich
+        \item Identify useful observables: learning coefficient, correlation functions, sufficient statistics...
         \item Validate with tight feedback loops: experiments, symbolic derivations, and mathematical proofs
     \end{itemize}
 \end{frame}
 \begin{frame}{Safety motivations}
     \begin{itemize}
-        \item A central question in AI safety is whether the training process selects a harmful model, such as a scheming, sycophantic, or spiteful model
-        \item Predict whether a model will be harmful in high-stakes, out-of-distribution environments when behavioural or average-case interpretability evaluations cannot be trusted
+        \item A central question in AI safety is how can we shape the training process to select an aligned instead of a harmful model (scheming, spiteful...)
         \item Develop stronger interpretability methods by decomposing models throughout training
-        \item We want a mathematical model that can outperform average-case methods at predicting harmful behaviour
-        \item More ambitiously, we would like to find control levers in the training process that make us confident training will select a safe model
+        \item Our approach is to develop better models of training to find control levers in the training process that make us confident training will select a safe model
     \end{itemize}
 \end{frame}
 \begin{frame}{Emergent misalignment}
@@ -115,6 +110,7 @@ Define the product map:
 \]
 where $W$ is the student matrix.
 \end{frame}
+\begin{comment}
 \begin{frame}{Stochastic gradient descent}
 \small
 Learn a function $g$ from observations $y = g(x)$. Initialize neural weights at $\theta_0 \sim \mathcal{N}(0,\sigma I)$, with initialization scale $\gamma$ and $\sigma=d_L^{-\gamma}$.
@@ -143,6 +139,7 @@ with gradient noise
 \end{block}
 The loss $\mathcal{L}$ can be, for example, mean squared error or cross-entropy loss.
 \end{frame}
+\end{comment}
 \begin{frame}{Data, loss function, gradient flow}
 \begin{block}{Quadratic population loss and gradient flow}
 Let $M$ be the teacher matrix, with $y=Mx$ and $x\sim \mathcal{N}(0,I_{d_0})$.
@@ -458,7 +455,13 @@ $\gamma = 1$: intermediate regime
     t \approx -K_0^{-1}\log\left(\frac{s - w_f}{s - w_0}\right)
   \]
 
-  This behaves like a shallow linear network.
+  This behaves like a shallow linear network: student interpolates between $M$ and a random matrix $W_0$.
+\end{frame}
+\begin{frame}{Alignment happens at the same time as learning singular values}
+  \begin{figure}
+        \centering
+        \includegraphics[width=\linewidth,height=0.75\textheight,keepaspectratio]{alignment_lazy.png}
+    \end{figure}
 \end{frame}
 \begin{frame}{Rich regime}
   \small
@@ -477,13 +480,26 @@ $\gamma = 1$: intermediate regime
     t=\frac{1}{2s}\,\ln\!\left(\frac{w_f\,(s-w_0)}{w_0\,(s-w_f)}\right), \qquad s\neq 0.
   \]
 \end{frame}
+\begin{frame}{Alignment happens before learning singular values}
+  \begin{figure}
+        \centering
+        \includegraphics[width=\linewidth,height=0.75\textheight,keepaspectratio]{alignment_rich.png}
+    \end{figure}
+\end{frame}
+\begin{frame}{Rich vs Lazy}
+  \begin{figure}
+        \centering
+        \includegraphics[width=\linewidth,height=0.75\textheight,keepaspectratio]{comparison_rich_vs_lazy.png}
+    \end{figure}
+\end{frame}
 \begin{frame}{Takeaways}
   \begin{block}{Key points}
     \begin{itemize}
-      \item Depth and specific initialization induce saddle-to-saddle dynamics
+      \item Depth and specific initialization induce different learning regimes
+      \item Large initialization and large width give the NTK regime: no feature learning, and the NTK is frozen: linear regression.
+      \item In the saddle to saddle regime, learning happens in two phases: task alignment and amplification.
+      \item In the saddle to saddle regime, the timescale of learning is set by the target singular values
       \item Gradient flow has a simplicity bias toward learning low hanging fruit directions
-      \item Large initialization and large width give the NTK regime: no feature learning, and the NTK is frozen
-      \item In the saddle-to-saddle regime, the timescale of learning is set by the target singular values
     \end{itemize}
   \end{block}
 \end{frame}
@@ -497,6 +513,50 @@ $\gamma = 1$: intermediate regime
 in linear networks: Unifying the lazy and active regimes. \textit{Advances in Neural
 Information Processing Systems}, 37:106059–106104, 2024.
     \end{itemize}
+\end{frame}
+\sectionframe{Towards nonlinearity}
+
+\begin{frame}{Neural race reduction in gated DLNs}
+  \centering
+  \includegraphics[height=0.68\textheight]{neural_race.png}
+
+  \vspace{0.2cm}
+  \footnotesize
+  \emph{The Neural Race Reduction: Dynamics of Abstraction in Gated Networks, Andrew M. Saxe et al.}
+\end{frame}
+
+\begin{frame}{MLP and linear transformers}
+  \small
+  \emph{Saddle-to-Saddle Dynamics Explains A Simplicity Bias Across Neural Network Architectures, Saxe et al.}
+
+  \vspace{0.2cm}
+  \centering
+  \includegraphics[height=0.58\textheight]{simplicity_bias_transformers_mlp.png}
+\end{frame}
+\begin{frame}{Alternating Gradient Flows}
+  \small
+  \emph{Alternating Gradient Flows: A Theory of
+Feature Learning in Two-layer Neural Networks}
+  \vspace{0.2cm}
+  \centering
+  \includegraphics[height=0.58\textheight]{AF_architectures.png}
+\end{frame}
+\begin{frame}
+  \small
+  \emph{Alternating Gradient Flows: A Theory of
+Feature Learning in Two-layer Neural Networks}
+  \vspace{0.2cm}
+  \centering
+  \includegraphics[height=0.58\textheight]{AF_conceptual.png}
+\end{frame}
+\begin{frame}
+\begin{block}{Key points}
+  \begin{itemize}
+      \item Nonlinearity modeled with gated DLNs: neural race reduction
+      \item MLPs and linear transformers also have saddle-to-saddle dynamics
+      \item Alternating gradient flow on quadratic networks: towards a more general theory of the saddle-to-saddle regime
+  \end{itemize}
+\end{block}
 \end{frame}
 \sectionframe{Stochasticity}
 
@@ -582,50 +642,12 @@ Information Processing Systems}, 37:106059–106104, 2024.
   \footnotesize
   \emph{Beyond Implicit Bias: The Insignificance of SGD Noise in Online Learning}
 \end{frame}
-\sectionframe{Towards nonlinearity}
-
-\begin{frame}{Neural race reduction in gated DLNs}
-  \centering
-  \includegraphics[height=0.68\textheight]{neural_race.png}
-
-  \vspace{0.2cm}
-  \footnotesize
-  \emph{The Neural Race Reduction: Dynamics of Abstraction in Gated Networks, Andrew M. Saxe et al.}
-\end{frame}
-
-\begin{frame}{MLP and linear transformers}
-  \small
-  \emph{Saddle-to-Saddle Dynamics Explains A Simplicity Bias Across Neural Network Architectures, Saxe et al.}
-
-  \vspace{0.2cm}
-  \centering
-  \includegraphics[height=0.58\textheight]{simplicity_bias_transformers_mlp.png}
-\end{frame}
-\begin{frame}{Alternating Gradient Flows}
-  \small
-  \emph{Alternating Gradient Flows: A Theory of
-Feature Learning in Two-layer Neural Networks}
-  \vspace{0.2cm}
-  \centering
-  \includegraphics[height=0.58\textheight]{AF_architectures.png}
-\end{frame}
-\begin{frame}
-  \small
-  \emph{Alternating Gradient Flows: A Theory of
-Feature Learning in Two-layer Neural Networks}
-  \vspace{0.2cm}
-  \centering
-  \includegraphics[height=0.58\textheight]{AF_conceptual.png}
-\end{frame}
 \begin{frame}{Takeaways}
   \begin{block}{Key points}
     \begin{itemize}
       \item SGD can be modeled by an SDE with state-dependent noise
       \item If the noise is white and the system is at thermal equilibrium, the stationary distribution of the SDE is Boltzmann
       \item The implicit bias of stochasticity is not fully understood (flatness?), but it is more of a second-order effect
-      \item Nonlinearity can be modeled with gated DLNs: neural race reduction
-      \item MLPs and linear transformers also have saddle-to-saddle dynamics
-      \item Alternating gradient flow: towards a general theory of the rich regime
     \end{itemize}
   \end{block}
 \end{frame}

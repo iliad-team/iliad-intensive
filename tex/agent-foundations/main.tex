@@ -50,14 +50,6 @@
 \begin{document}
 \maketitle
 
-\begin{learningoutcomes}
-\textbf{(What.)} By the end of the day, students can explain \emph{embedded agency}: why an agent built into the world it acts on (made of the same stuff, smaller than its environment, with no clean input/output boundary, able to model and modify itself) breaks the standard dualistic picture. For each of the day's core research directions (called 'strands') they can state the central problem and a plain-language description of a main result: the complete class theorem (consequentialist foundations), Löb's theorem and the tiling obstacle (self-modification), the logical-induction criterion (logical uncertainty), optimization as local entropy reduction (optimization and thermodynamics), and selection theorems (descriptive agent foundations). They can describe at last one strand in mathematical detail. They can explain how each strand is an offshoot of the central threads \emph{reflective stability} and \emph{embedded agency}.
-
-\textbf{(Why.)} Aligning a superintelligence is a problem we may have to get right on the first critical try, reasoning about a system more capable than anything we have observed, before it exists. That rules out pure trial and error and demands concepts that stay meaningful under extreme optimization pressure and self-modification. Agent foundations supplies (or tries to supply) those concepts, and this day gives students a map of some main research directions and how they fit together.
-
-\textbf{(How.)} Each student goes deep on one pre-reading track beforehand. A one-hour morning lecture lays out the main threads (reflective stability and embedded agency) and previews every strand. Students then read the shared fundamental readings and, in small groups mixing different tracks, run \emph{cross-pollination} discussions that connect their topics to embedded agency. The afternoon makes a few results rigorous through exercises.
-\end{learningoutcomes}
-
 \section{Prerequisites}
 \begin{itemize}
 \item
@@ -71,6 +63,14 @@
 \item
   Provided refresher notes cover the gaps: a \emph{probability theory} refresher, a \emph{formal logic} refresher, a \emph{computability theory} refresher, and an \emph{information theory, causality, and statistical mechanics} refresher. Point students at the one matching their weakest area before the day.
 \end{itemize}
+
+\begin{learningoutcomes}
+\textbf{(What.)} By the end of the day, students can explain \emph{embedded agency}: why an agent built into the world it acts on (made of the same stuff, smaller than its environment, with no clean input/output boundary, able to model and modify itself) breaks the standard dualistic picture. For each of the day's core research directions (called 'strands') they can state the central problem and a plain-language description of a main result: the complete class theorem (consequentialist foundations), Löb's theorem and the tiling obstacle (self-modification), the logical-induction criterion (logical uncertainty), optimization as local entropy reduction (optimization and thermodynamics), and selection theorems (descriptive agent foundations). They can describe at last one strand in mathematical detail. They can explain how each strand is an offshoot of the central threads \emph{reflective stability} and \emph{embedded agency}.
+
+\textbf{(Why.)} Aligning a superintelligence is a problem we may have to get right on the first critical try, reasoning about a system more capable than anything we have observed, before it exists. That rules out pure trial and error and demands concepts that stay meaningful under extreme optimization pressure and self-modification. Agent foundations supplies (or tries to supply) those concepts, and this day gives students a map of some main research directions and how they fit together.
+
+\textbf{(How.)} Each student goes deep on one pre-reading track beforehand. A one-hour morning lecture lays out the main threads (reflective stability and embedded agency) and previews every strand. Students then read the shared fundamental readings and, in small groups mixing different tracks, run \emph{cross-pollination} discussions that connect their topics to embedded agency. The afternoon makes a few results rigorous through exercises.
+\end{learningoutcomes}
 
 \section{Content}
 Exercise sheet: \cref{sec:exercises} below, with worked solutions. The lecture deck is built from this module's own \texttt{slides.tex} and linked at the top of the page.
@@ -1075,9 +1075,11 @@ The summand depends only on $a,o$; marginalizing $x$ and using $\Pr[a\mid o]/\Pr
   =\sum_{a,o}\Pr[a,o]\log\frac{\Pr[a,o]}{\Pr[a]\Pr[o]}=\MI(A;O).
 \]
 Marginalizing the two joints down to $X$ sends them to $\Pr[X]$ and $\Pr[X\mid\doo{A}]=\sum_{a,o}\Pr[X\mid a,o]\Pr[a]\Pr[o]$ respectively, so monotonicity of KL under marginalization gives
-\[
-  \DKL\!\big(\Pr[X]\,\big\|\,\Pr[X\mid\doo{A}]\big)\le\DKL\!\big(\Pr[X,A,O]\,\big\|\,\Pr[X,A,O\mid\doo{A}]\big)=\MI(A;O). \qedhere
-\]
+\begin{align*}
+  \DKL\!\big(\Pr[X]\,\big\|\,\Pr[X\mid\doo{A}]\big)
+  &\le\DKL\!\big(\Pr[X,A,O]\,\big\|\,\Pr[X,A,O\mid\doo{A}]\big)\\
+  &=\MI(A;O). \qedhere
+\end{align*}
 \end{solution}
 
 \begin{exercise}[Channel Additivity]
@@ -1153,10 +1155,10 @@ The three terms on the right are, respectively,
   \MI(Y_1;Y_2)=\sum P[x,y]\log\tfrac{P[y_1,y_2]}{P[y_1]P[y_2]},
 \]
 each written over the full joint (the first depends only on $x_1,y_1$, etc.). Then
-\[
-  \MI(X_1;Y_1)+\MI(X_2;Y_2)-\MI(Y_1;Y_2)
-  =\sum_{x,y}P[x,y]\log\frac{P[y_1\mid x_1]P[y_2\mid x_2]}{P[y_1,y_2]}=\MI(X;Y). \qed
-\]
+\begin{align*}
+  \MI(X_1;Y_1)&+\MI(X_2;Y_2)-\MI(Y_1;Y_2)\\
+  &=\sum_{x,y}P[x,y]\log\frac{P[y_1\mid x_1]P[y_2\mid x_2]}{P[y_1,y_2]} =\MI(X;Y). \qed
+\end{align*}
 
 \paragraph{Part 5(b).} For $Q[X_1,X_2]:=P[X_1]P[X_2]$, $\MI_Q(X;Y)\ge\MI_P(X;Y)$.
 
@@ -1165,10 +1167,10 @@ each written over the full joint (the first depends only on $x_1,y_1$, etc.). Th
   Q[y_1,y_2]=\sum_{x_1,x_2}Q[x_1]Q[x_2]P[y_1\mid x_1]P[y_2\mid x_2]=Q[y_1]\,Q[y_2],
 \]
 hence $\MI_Q(Y_1;Y_2)=0$. Applying 5(a) under each distribution,
-\[
-  \MI_Q(X;Y)=\MI_P(X_1;Y_1)+\MI_P(X_2;Y_2)
-  =\MI_P(X;Y)+\MI_P(Y_1;Y_2)\ge\MI_P(X;Y),
-\]
+\begin{align*}
+  \MI_Q(X;Y)&=\MI_P(X_1;Y_1)+\MI_P(X_2;Y_2)\\
+  &=\MI_P(X;Y)+\MI_P(Y_1;Y_2)\ge\MI_P(X;Y),
+\end{align*}
 the last step using $\MI_P(Y_1;Y_2)\ge0$. \qed
 
 \paragraph{Part 5(c).} A throughput-maximizing input with $X_1\perp X_2$ always exists.

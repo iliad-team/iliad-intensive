@@ -13,7 +13,7 @@ import { printRaw } from "@unified-latex/unified-latex-util-print-raw";
 import { listNewcommands } from "@unified-latex/unified-latex-util-macros";
 import { warn, advise, snippetOf, warnings, advisories } from "./state.mjs";
 import { isAutoLabel } from "./autolabel.mjs";
-import { applyMathShims } from "./shims.mjs";
+import { applyMathShims, braceMathArgs } from "./shims.mjs";
 import { slug, ghSlug, readGroup, readOpt, readArg, NEST, CHILD } from "./util.mjs";
 import { registerTikz } from "./tikz.mjs";
 
@@ -44,7 +44,7 @@ const TEXT_MACROS = {
 };
 // macros dropped with NO arguments consumed
 const NOOP_MACROS = new Set([
-  "maketitle", "tableofcontents", "centering", "solutionstrue", "solutionsfalse",
+  "maketitle", "centering", "solutionstrue", "solutionsfalse",
   "allowdisplaybreaks", "phantomsection", "sloppy", "AND", "And", "name",
   "height", "width", "depth", "centerline", "noindent", "medskip", "smallskip",
   "bigskip", "hfill", "hfil", "vfill", "vfil", "null", "clearpage", "newpage",
@@ -69,7 +69,7 @@ const DROP_WITH_ARGS = {
 // contract + structural environment signatures for the parser
 const ENV_SIGNATURES = {
   exercise: { signature: "o" }, solution: { signature: "o" },
-  callout: { signature: "o" }, proof: { signature: "o" },
+  callout: { signature: "o o" }, proof: { signature: "o" },   // callout: [type][Title]
   theorem: { signature: "o" }, lemma: { signature: "o" },
   proposition: { signature: "o" }, corollary: { signature: "o" },
   definition: { signature: "o" }, fact: { signature: "o" },
@@ -101,6 +101,14 @@ const CONTRACT_MACROS = {
   // all the converter has to do
   crefalias: { signature: "m m" },
 };
+// A body that OPENS with a display-math fence must not be glued onto the bold
+// label line. `**Theorem 1.** $$` makes micromark read that `$$` as an inline
+// math delimiter rather than a fence, which throws every later `$$` in the file
+// out of phase and ends with acorn trying to parse a `{` in some unrelated
+// equation as JSX. `\begin{theorem}\[ ... \]\end{theorem}` is idiomatic
+// LaTeX, so break the line instead of gluing.
+const thmBody = (label, body) => (body.startsWith("$$") ? `${label}\n\n${body}` : `${label} ${body}`);
+
 const THM_COUNTED = new Set(["theorem", "lemma", "proposition", "corollary", "fact", "definition", "example"]);
 
 // ------------------------------------------------------------- run state ---
@@ -214,15 +222,31 @@ function citeLink(key) {
   return `[${e.disp}](#bib-${slug(key)})`;
 }
 
-function crefLinks(csv, keepFirstNameOnly) {
+// cleveref prints ONE plural type name for a multi-label \cref of a single type
+// — "Sections 4 and 7", not "Section 4 and 7" — and the same for \crefrange. A
+// plain +"s" gets "Appendixs"/"Corollarys" wrong, so -y and the one irregular in
+// the contract's vocabulary are handled here.
+const IRREGULAR_PLURAL = { Appendix: "Appendices" };
+const pluralType = (w) =>
+  IRREGULAR_PLURAL[w] ?? (/[^aeiou]y$/.test(w) ? `${w.slice(0, -1)}ies` : `${w}s`);
+const typeOf = (text) => (/\s/.test(text) ? text.replace(/\s.*$/, "") : null);
+
+function crefLinks(csv) {
   const labels = csv.split(",").map((x) => x.trim()).filter(Boolean);
   if (labels.length === 0) { warn("empty \\cref{} with no labels — dropped", "\\cref{}"); return ""; }
   const rr = labels.map(resolveRef);
   if (rr.length === 1) return `[${rr[0].text}](#${rr[0].anchor})`;
   const name0 = rr[0].text.replace(/\s.*$/, "");
+  // All one type: the name is printed once, pluralised, and the rest are bare
+  // numbers. Mixed types keep their own singular names, as cleveref does.
+  const oneType = typeOf(rr[0].text) !== null
+    && rr.every((r) => typeOf(r.text) === name0);
   const parts = rr.map((r, k) => {
     const sameType = r.text.replace(/\s.*$/, "") === name0;
-    return `[${k === 0 || !sameType ? r.text : r.text.replace(/^\w+\s/, "")}](#${r.anchor})`;
+    const text = k === 0
+      ? (oneType ? r.text.replace(/^(\w+)(\s)/, (_, w, sp) => pluralType(w) + sp) : r.text)
+      : (sameType ? r.text.replace(/^\w+\s/, "") : r.text);
+    return `[${text}](#${r.anchor})`;
   });
   // Prose list, like cleveref's own: "A and B", "A, B and C".
   return parts.length === 2
@@ -576,25 +600,28 @@ function emitEnv(n) {
     // Definition/theorem family render axiom-style: a bold markdown lead
     // inside the coloured box (math in titles renders; no header chrome).
     case "definition":
-      mdx = `<Definition${id}>\n\n**Definition${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Definition>`;
+      mdx = `<Definition${id}>\n\n${thmBody(`**Definition${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.**`, walk(n.content).trim())}\n\n</Definition>`;
       break;
     case "theorem": case "lemma": case "proposition": case "corollary": {
       const kindName = env.charAt(0).toUpperCase() + env.slice(1);
-      mdx = `<Theorem${id}>\n\n**${kindName}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Theorem>`;
+      mdx = `<Theorem${id}>\n\n${thmBody(`**${kindName}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.**`, walk(n.content).trim())}\n\n</Theorem>`;
       break;
     }
     case "fact":
-      mdx = `<Callout type="note">\n\n**Fact${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="note">\n\n${thmBody(`**Fact${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.**`, walk(n.content).trim())}\n\n</Callout>`;
       break;
     case "remark":
-      mdx = `<Callout type="note">\n\n**Remark${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="note">\n\n${thmBody(`**Remark${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.**`, walk(n.content).trim())}\n\n</Callout>`;
       break;
     case "example":
-      mdx = `<Callout type="tip">\n\n**Example${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="tip">\n\n${thmBody(`**Example${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.**`, walk(n.content).trim())}\n\n</Callout>`;
       break;
     case "callout": {
       const type = ["note", "tip", "warning"].includes((opt ?? "").trim()) ? opt.trim() : "note";
-      mdx = `<Callout type="${type}"${id}>\n\n${walk(n.content).trim()}\n\n</Callout>`;
+      // \begin{callout}[tip][Title] — the title heads the box, as it does in
+      // the PDF where it replaces the "Tip"/"Note"/"Warning" frame label.
+      const title = argRaw(n, 1);
+      mdx = `<Callout type="${type}"${title ? ` title="${attr(title)}"` : ""}${id}>\n\n${walk(n.content).trim()}\n\n</Callout>`;
       break;
     }
     case "proof":
@@ -615,7 +642,7 @@ function emitEnv(n) {
       break;
     default: {
       if (declared) {
-        mdx = `<Callout type="note">\n\n**${declared}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+        mdx = `<Callout type="note">\n\n${thmBody(`**${declared}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.**`, walk(n.content).trim())}\n\n</Callout>`;
       } else {
         warn(`unknown environment "${env}" — wrapper dropped, contents converted as plain prose`, `\\begin{${env}}`);
         mdx = `{/* TODO(tex2mdx): env ${env} */}\n${walk(n.content)}`;
@@ -739,7 +766,7 @@ function emitMacro(n) {
     case "nameref": { const r = resolveRef((lastArgRaw(n) ?? "").trim()); return `[${r.text}](#${r.anchor})`; }
     case "crefrange": case "Crefrange": {
       const ra = resolveRef((argRaw(n, 0) ?? "").trim()); const rb = resolveRef((argRaw(n, 1) ?? "").trim());
-      const plural = ra.text.replace(/^(\w+)\s.*/, "$1") + "s";
+      const plural = pluralType(ra.text.replace(/^(\w+)\s.*/, "$1"));
       return `[${plural} ${ra.num ?? ""}–${rb.text.replace(/^\w+\s/, "")}](#${ra.anchor})`;
     }
     case "hyperref": {
@@ -805,6 +832,9 @@ function emitMacro(n) {
     }
     case "item": return "";   // stray \item outside a list
     case "section": case "subsection": case "subsubsection": return emitHeading(n);
+    // \tableofcontents: emit a placeholder; the real ToC is built from the
+    // surviving headings once emission + pruning are done (see emitDocument).
+    case "tableofcontents": return "\n\n<!--ILIAD_TOC-->\n\n";
     // \ensuremath{X} in prose: X typeset as math. This is how a macro is made
     // usable in both modes (amsthm's \qed is \ensuremath{\square}), so a ported
     // document reaches for it whenever one macro has to work in a sentence and
@@ -1038,7 +1068,31 @@ function relocateSolutions(md) {
   //    An authored solutions appendix belongs in pdfonly — that is how a sheet
   //    keeps the emptied heading off the web (see docs/iliad-sty.md).
   out = out.replace(/\n*<!--iliad:moved:[^>]*-->\n*/g, "\n\n");
+
+  // 4. the \tableofcontents placeholder is filled by the caller AFTER tidy(),
+  //    because tidy() dedents every line and would flatten the nested list.
   return out;
+}
+
+// -------------------------------------------------------------- contents ---
+// \tableofcontents becomes an in-page ToC on the web, built from every heading
+// the page emits — the same set LaTeX lists, since headings are never dropped.
+// The converter already numbers headings ("1", "1.1", "4.2.1") identically to
+// LaTeX, so the numbers are read straight off the heading text and the anchors
+// are the same ghSlug the site (rehype-slug) and build-content's index use —
+// guaranteeing the links resolve. References is converter-added (not a source
+// section) and is left out.
+export function buildToc(out) {
+  const items = [];
+  for (const line of out.split("\n")) {
+    const h = /^(#{2,4}) +(.+?)\s*$/.exec(line);
+    if (!h) continue;
+    const text = h[2].replace(/\*\*|\*/g, "").trim();
+    if (!text || text === "References") continue;
+    const indent = "  ".repeat(h[1].length - 2);
+    items.push(`${indent}- [${text}](#${ghSlug(text)})`);
+  }
+  return items.length ? `**Contents**\n\n${items.join("\n")}` : "";
 }
 
 
@@ -1102,6 +1156,9 @@ function emitFootnotes() {
 
 export function emitDocument(bodyTex, context) {
   ctx = context;
+  // Brace-less mandatory args (\frac12) before ANY parse — see shims.mjs.
+  bodyTex = braceMathArgs(bodyTex);
+  const preambleTex = braceMathArgs(context.preamble ?? "");
   anchorMap = {};
   droppedLabels = new Set();
   authorMacros = {};
@@ -1112,7 +1169,7 @@ export function emitDocument(bodyTex, context) {
 
   // phase A: default parse of preamble+body to harvest author macro definitions
   const p0 = getParser({ environments: ENV_SIGNATURES, macros: CONTRACT_MACROS });
-  const fullAst = p0.parse(context.preamble + "\n" + bodyTex);
+  const fullAst = p0.parse(preambleTex + "\n" + bodyTex);
   const macroSigs = { ...CONTRACT_MACROS };
   const silencedWarn = console.warn, silencedLog = console.log;
   console.warn = () => {}; console.log = () => {};
@@ -1129,8 +1186,8 @@ export function emitDocument(bodyTex, context) {
     authorMacros[nc.name] = { signature: nc.signature || "", body: printRaw(nc.body) };
   }
   // simple \def\name{...} (parameterless)
-  for (const m of (context.preamble + bodyTex).matchAll(/\\def\s*\\([a-zA-Z]+)\s*\{/g)) {
-    const g = readGroup(context.preamble + bodyTex, m.index + m[0].length - 1);
+  for (const m of (preambleTex + bodyTex).matchAll(/\\def\s*\\([a-zA-Z]+)\s*\{/g)) {
+    const g = readGroup(preambleTex + bodyTex, m.index + m[0].length - 1);
     if (g && !(m[1] in authorMacros)) { authorMacros[m[1]] = { signature: "", body: g.content }; macroSigs[m[1]] ??= { signature: "" }; }
   }
 

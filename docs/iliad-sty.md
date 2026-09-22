@@ -51,7 +51,7 @@ around it (CI also rejects redefinitions of contract names).
 | `proof` | env | amsthm; collapsible on the web |
 | `hint` | env | unnumbered block hint, rendered in place; collapsible on the web |
 | `teachingnote` | env | `[Title]` optional (default "Teaching note"); teacher-facing aside — dashed box in the PDF, collapsed drop-down on the web; unnumbered, kept in both variants |
-| `callout` | env | `[note\|tip\|warning]` coloured aside |
+| `callout` | env | `[note\|tip\|warning][Title]` coloured aside; the optional title replaces the type word on the box (PDF) and heads it (web) |
 | `remark` | env | aside in the theorem register; note-style callout on the web. Optional title: `\begin{remark}[Title]` → "Remark (Title)" |
 | `\important` | mark | ★ after an exercise's label: one of the sheet's key exercises |
 | `\authorname{}` `\affiliation{}` | cmds | structured `\author{}` entries (byline extraction) |
@@ -111,11 +111,22 @@ to forget. An MDX-authored sheet gets the same warning from
 
 `\label` anything you want to reference — exercises, theorems, callouts,
 remarks all take labels, and `\cref` resolves to the exact text LaTeX
-prints, on paper and on the web alike. Any placement LaTeX binds correctly
-is valid (top level of the environment); right after `\begin{...}` is
-clearest. Callouts and remarks carry discreet per-section counters: no
-number shows in the box, but `\cref` prints "Callout 2.1" / "Remark 2.3"
-and links to it.
+prints, on paper and on the web alike. Use `\cref`, not `\ref`: it prints
+and links the type word, so you never hand-type "Section" next to it (the build
+warns about a plain `\ref`, and about a hand-written "Section~\cref{...}").
+
+Every sectioning level reads as **Section**, and every appendix level as
+**Appendix** — the package renames cleveref's `subsection` / `subsubsection` /
+`subappendix` so a `\cref` at a subsection prints "Section 2.3" rather than
+"Subsection 2.3". Heading depth is document structure, not something a
+cross-reference should announce. Set once here so no two sheets disagree; the
+converter reads these same declarations out of this file, so the web and the
+PDF always agree on what a reference is called.
+
+Any placement LaTeX binds correctly is valid (top level of the environment);
+right after `\begin{...}` is clearest. Callouts and remarks carry discreet
+per-section counters: no number shows in the box, but `\cref` prints
+"Callout 2.1" / "Remark 2.3" and links to it.
 
 ## Solutions and the two PDF variants
 

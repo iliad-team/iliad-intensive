@@ -42,3 +42,7 @@ lmodern
 # decks (C.1's). The slides ladder runs pdflatex -shell-escape, scoped to decks
 # only — see scripts/build-content.mjs; worksheets keep the sandbox.
 python3-pygments
+
+# NOT here: Typst (slides*.typ decks). Ubuntu 24.04 has no typst package, so it
+# is a pinned, checksum-verified release binary from scripts/install-typst.sh,
+# with its own cache step in site.yml.

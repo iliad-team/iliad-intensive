@@ -1,0 +1,33 @@
+\begin{tikzpicture}[
+  x=1cm,y=1cm,
+  every node/.style={text=iliadInk,font=\small},
+  token/.style={draw=iliadInk,line width=0.6pt,minimum width=9mm,
+    minimum height=7mm,fill=white},
+  output/.style={draw=iliadInk,line width=0.6pt,minimum width=9mm,
+    minimum height=7mm,fill=white},
+  block/.style={draw=iliadAccent,line width=0.8pt,fill=iliadAccent!16,
+    minimum width=62mm,minimum height=6mm},
+  vflow/.style={-{Stealth[length=1.8mm]},draw=iliadInk,line width=0.6pt},
+  hflow/.style={-{Stealth[length=2mm]},draw=iliadAccent,line width=0.8pt}
+]
+  \foreach \yy in {1.15,2.55,3.95}{
+    \node[block] at (3,\yy) {};
+    \draw[hflow] (0.35,\yy) -- (5.65,\yy);
+  }
+
+  \foreach \xx/\lab/\id in {0.65/$x_1$/one,2.05/$x_2$/two,
+      3.95/$x_n$/n,5.35/$x_{n+1}$/new}{
+    \node[token] (barein\id) at (\xx,0) {\lab};
+    \draw[vflow] (barein\id.north) -- (\xx,0.82);
+    \draw[vflow] (\xx,1.48) -- (\xx,2.22);
+    \draw[vflow] (\xx,2.88) -- (\xx,3.62);
+    \draw[vflow] (\xx,4.28) -- (\xx,4.82);
+  }
+  \node at (3,0) {$\cdots$};
+
+  \foreach \xx/\lab/\id in {0.65/$y_1$/one,2.05/$y_2$/two,
+      3.95/$y_n$/n,5.35/$y_{n+1}$/new}{
+    \node[output] (bareout\id) at (\xx,5.17) {\lab};
+  }
+  \node at (3,5.17) {$\cdots$};
+\end{tikzpicture}

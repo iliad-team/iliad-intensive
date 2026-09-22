@@ -1,0 +1,21 @@
+% A sufficient but non-minimal summary of predictively equivalent histories.
+% Same visual language as causal-state-bottleneck.tex on the following slide.
+\begin{tikzpicture}[
+  x=1mm,y=1mm,
+  every node/.style={font=\small,text=iliadInk,align=center},
+  summary/.style={draw=iliadAccent,line width=0.6pt,inner sep=2mm,
+    minimum width=27mm},
+  flow/.style={-{Stealth[length=2mm]},draw=iliadAccent,line width=0.6pt}
+]
+  \node (pastA) at (10,10) {Past A};
+  \node (pastB) at (10,0) {Past B};
+  \node (pastC) at (10,-10) {Past C};
+  \node[summary] (summaryOne) at (57,10) {Summary $r_1$};
+  \node[summary] (summaryTwo) at (57,-5) {Summary $r_2$};
+  \node (future) at (112,2) {Same distribution\\over futures};
+  \draw[flow] (pastA.east) -- node[midway,fill=white,inner sep=1pt] {$R$} (summaryOne.west);
+  \draw[flow] (pastB.east) -- node[midway,fill=white,inner sep=1pt] {$R$} (summaryTwo.west);
+  \draw[flow] (pastC.east) -- node[midway,fill=white,inner sep=1pt] {$R$} (summaryTwo.west);
+  \draw[flow] (summaryOne.east) -- (future.west);
+  \draw[flow] (summaryTwo.east) -- (future.west);
+\end{tikzpicture}

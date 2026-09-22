@@ -13,7 +13,7 @@
 #   publish script) and gh-pages. Keep it that way: one `npm ci` of the PR's
 #   tree in this file hands a write token to the internet.
 # - Publishing still means serving PR-author-controlled HTML from
-#   iliad-team.github.io — the production site's origin. So it is gated on
+#   iliad-intensive.org — the production site's own origin. So it is gated on
 #   WHO, not just on green checks: org members, collaborators, and anyone
 #   with a previously MERGED PR here (per David, 2026-08-28: no manual
 #   allowlist — contributor status IS the approval). A stranger's first PR
@@ -150,7 +150,7 @@ jobs:
             const pr = Number(process.env.PR_NUMBER);
             const marker = '<!-- pr-preview-url -->';
             const headSha = context.payload.workflow_run.head_sha;
-            const url = `https://iliad-team.github.io/iliad-intensive/pr-preview/pr-${pr}/`;
+            const url = `https://iliad-intensive.org/pr-preview/pr-${pr}/`;
             const body = process.env.TRUSTED === 'true'
               ? `${marker}\n🔎 **Live preview:** ${url}\n\nUpdated for \`${headSha.slice(0, 7)}\`. Removed automatically when this PR closes.`
               : `${marker}\n🔒 No live preview: fork PRs publish previews only once their author has a merged PR in this repo. @${process.env.PR_LOGIN} becomes trusted — permanently, for all future PRs — when any PR of theirs is merged.`;

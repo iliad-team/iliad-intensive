@@ -278,3 +278,96 @@ html.nav-open #nav-toggle .icon-open {
 html.nav-open #nav-toggle .icon-close {
   display: inline;
 }
+
+/* ---- PR-preview diff view (public/diff.js) ------------------------------
+   Two columns — the live site's article on the left, this PR's on the right —
+   with matched blocks padded into shared rows. Only preview builds load the
+   script; on production none of this markup exists. */
+body:not(:has(main article .prose)) #diff-controls {
+  display: none;
+}
+#diff-sync-label {
+  display: none;
+}
+html.diff-open #diff-sync-label {
+  display: inline-flex;
+}
+html.diff-open #page-shell,
+html.diff-open #page-shell main {
+  max-width: none;
+}
+.diff-view {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+}
+.diff-col {
+  min-width: 0;
+}
+.diff-col > .prose {
+  max-width: none;
+}
+.diff-col-head {
+  position: sticky;
+  top: var(--header-h);
+  z-index: 5;
+  background: var(--background);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #71717a;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e4e4e7;
+  margin-bottom: 1rem;
+}
+.diff-col-base .diff-col-head { color: #b91c1c; }
+.diff-col-pr .diff-col-head { color: #15803d; }
+
+/* Whole blocks: removed (left) / added (right) / edited (both, tinted, with
+   the changed words marked inside). The box-shadow bleeds the tint a few px
+   past the block so equations and list items read as one strip. */
+.diff-removed { background: #fee2e2; box-shadow: 0 0 0 4px #fee2e2; }
+.diff-added   { background: #dcfce7; box-shadow: 0 0 0 4px #dcfce7; }
+.diff-col-base .diff-modified { background: #fff1f2; box-shadow: 0 0 0 4px #fff1f2; }
+.diff-col-pr   .diff-modified { background: #f0fdf4; box-shadow: 0 0 0 4px #f0fdf4; }
+.diff-removed, .diff-added, .diff-modified { border-radius: 2px; }
+/* Blocks that are whole equations get an outline instead of a fill, so the
+   tint does not sit under KaTeX's own strut boxes. */
+.katex-display.diff-removed, .katex-display.diff-added, .katex-display.diff-modified {
+  background: transparent; box-shadow: none;
+  outline: 3px solid; outline-offset: 4px;
+}
+.katex-display.diff-removed { outline-color: #fca5a5; }
+.katex-display.diff-added   { outline-color: #86efac; }
+.diff-col-base .katex-display.diff-modified { outline-color: #fca5a5; }
+.diff-col-pr   .katex-display.diff-modified { outline-color: #86efac; }
+
+/* Word-level marks inside an edited block; inline maths is one token. */
+mark.diff-del { background: #fca5a5; color: inherit; text-decoration: line-through; text-decoration-color: #991b1b; }
+mark.diff-ins { background: #86efac; color: inherit; }
+.katex.diff-del { outline: 2px solid #f87171; outline-offset: 2px; border-radius: 2px; }
+.katex.diff-ins { outline: 2px solid #4ade80; outline-offset: 2px; border-radius: 2px; }
+
+/* The blanks that keep matched rows level across the two columns. */
+.diff-spacer {
+  height: 0;
+  margin: 0;
+}
+.diff-spacer.diff-gap {
+  background: repeating-linear-gradient(-45deg, transparent 0 6px, #f4f4f5 6px 12px);
+}
+
+/* Sync off: each column scrolls on its own inside a viewport-high frame. */
+html.diff-unsync .diff-view {
+  height: calc(100vh - 6rem);
+  position: sticky;
+  top: 1rem;
+}
+html.diff-unsync .diff-col {
+  height: 100%;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
