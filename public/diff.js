@@ -394,7 +394,12 @@
       hidden += seg.length;
     };
     var flush = function () {
-      var inner = run.slice(CONTEXT, run.length - CONTEXT);
+      // Context after a change is worth keeping when it is prose; a heading
+      // there only names the next section, which its strip does already, so
+      // it folds with its section. Context BEFORE a change stays whatever it
+      // is — a heading there says which section the change sits in.
+      var lead = run.length && isHeading(run[0][0]) ? 0 : CONTEXT;
+      var inner = run.slice(lead, run.length - CONTEXT);
       run = [];
       if (!inner.length) return;
       var seg = [];
