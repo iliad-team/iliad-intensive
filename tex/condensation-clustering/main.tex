@@ -1,0 +1,184 @@
+%--- iliad ---
+% separateSolutions: true
+% title: A hierarchical clustering example
+% summary: >-
+%   Thirty-six labelled observations, shared location and shape parameters,
+%   and three ways to organize the same observable law. A finite example of
+%   residual uncertainty and the conditioned score.
+%--- end ---
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\IfFileExists{iliad.sty}{\usepackage[nogeometry]{iliad}}{\usepackage[nogeometry]{../iliad}}
+\usepackage[a4paper,margin=22mm]{geometry}
+\usepackage{microtype}
+\title{A hierarchical clustering example}
+\author{Satya Benson}
+\date{September 21, 2026}
+\begin{document}
+\maketitle
+
+\section{Prerequisites}
+This supplementary example uses the latent-model definition and conditional
+entropy from the main worksheet. All variables are finite-valued and all logs
+have base two. The example adapts the hierarchy in Jeremy Gillen and Daniel
+Chiang's \emph{A summary of Condensation and its relation to Natural Latents},
+\S1.1.1. The construction and figure here are new; we do not use their numerical
+entropy estimates.
+
+\begin{learningoutcomes}
+\begin{itemize}
+\item Distinguish LVM, where the latents assigned to an observation determine
+it, from reconstruction, where an observation recovers those latents.
+\item Compare the information charged by different latent models for the same query.
+\end{itemize}
+\end{learningoutcomes}
+
+\section{Thirty-six observations}
+There are two groups, each containing two clusters, each with nine observations.
+Write $X_{gcj}$ for the $j$th two-dimensional point in cluster $c$ of group $g$.
+The labels $(g,c,j)$ and memberships are fixed. We are comparing models of this
+labelled family, not inferring an unknown partition of an unlabelled cloud.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{fig/hierarchical-points.pdf}
+\caption{One draw from the finite model. The left panel shows the 36 points;
+the right panel shows which set of observations receives each parameter, and is
+not a graph inferred from the points. The global shape $S$ is available to every
+observation.}
+\label{fig:hierarchy}
+\end{figure}
+
+The parameters are a global shape $S$, group centers $G_1,G_2$, and cluster
+centers $M_{gc}$. Given these parameters, the 36 observations are independent.
+Marginalizing over shared parameters generally makes observations dependent.
+The plotted cloud is one realization; the random variables and their entropies
+refer to the joint law across realizations.
+
+\newpage
+\section{An explicit finite law}
+Let $D=\{0,\ldots,200\}^2$. Draw $S$ uniformly from three shape labels, and
+draw $G_1,G_2$ independently and uniformly from $\{60,\ldots,140\}^2$,
+independently of $S$. Conditional on $G_g$, draw its two centers independently:
+\[
+ P(M_{gc}=m\mid G_g=a)\ \propto\
+ \exp\!\left(-\frac{\|m-a\|^2}{128}\right),\qquad m\in D.
+\]
+Given $S$ and all centers, draw the observations independently, using
+\[
+ P(X_{gcj}=x\mid M_{gc}=m,S=s)\ \propto\
+ \exp\!\left(-\tfrac12(x-m)^\mathsf{T}Q_s^{-1}(x-m)\right),\quad x\in D,
+\]
+where
+\[
+ Q_{\mathrm{round}}=\begin{pmatrix}5&0\\0&5\end{pmatrix},\quad
+ Q_{\mathrm{right}}=\begin{pmatrix}25&20\\20&25\end{pmatrix},\quad
+ Q_{\mathrm{left}}=\begin{pmatrix}25&-20\\-20&25\end{pmatrix}.
+\]
+Each proportionality means normalization by the sum over $D$. These are
+probability mass functions on a finite grid. The matrices control shape; they
+are not the exact covariances after discretization and boundary truncation.
+Every grid point has positive probability. Cluster centers tend to lie near
+their group center, but the four components need not be visually separated in
+every realization.
+
+\section{A structured latent model}
+Let $I$ contain all 36 indices. Let $A_g$ be the 18 indices of group $g$, and
+$A_{gc}$ the nine indices of cluster $(g,c)$. Assign
+\[
+ Y_I=S,\qquad Y_{A_g}=G_g,\qquad Y_{A_{gc}}=M_{gc},\qquad
+ Y_{\{i\}}=X_i,
+\]
+and make every other slot constant. The joint law factorizes in the address
+inclusion order, so its ordered Markov defect is zero.
+
+The singleton slot supplies the sampled point itself. Thus
+$H\bigl(X_i\mid Y_{\{A\,:\,i\in A\}}\bigr)=0$ exactly. The cluster center and shape alone
+specify a conditional distribution for the point; they do not determine its
+realized coordinates. The residual conditional entropy is
+$H(X_i\mid M_{gc},S)$.
+
+Reconstruction is different. All the kernels have full support, so any
+finite observation block leaves several parameter configurations with positive
+posterior probability. For example, $H(M_{gc}\mid X_i)>0$. The model's joint
+law satisfies the Markov condition exactly, but it is not a perfect condensation.
+
+For a nonempty block $B$, let $\mathcal J_B=\{A:A\cap B\ne\varnothing\}$.
+The general score-gap identity is
+\[
+ \chi(B)-H(X_B)
+ =\bigl[\chi(B)-H(Y_{\mathcal J_B})\bigr]
+   +H(Y_{\mathcal J_B}\mid X_B).
+\]
+Here the bracketed Markov term is zero. The gap is the latent information
+remaining uncertain after observing the queried block.
+
+\newpage
+\section{Three organizations of the same observable law}
+For a nonempty queried \emph{observation block} $B$, the conditioned score
+sums the charges of all slots whose addresses meet $B$.
+
+\paragraph{One global tuple.}
+Put $Z_I=X_I$ and make every other slot constant. The global slot determines
+each observation. For every nonempty $B$,
+\[
+ \chi_{\mathrm{global}}(B)=H(X_I),\qquad
+ \chi_{\mathrm{global}}(B)-H(X_B)=H(X_I\mid X_B).
+\]
+This attains the entropy bound when querying the whole tuple. Even a singleton
+query incurs the entire tuple's entropy in this score.
+
+\paragraph{An ordered chain.}
+Choose an ordering $X_1,\ldots,X_{36}$. Set
+$Z_{\{j,j+1,\ldots,36\}}=X_j$ and make other slots constant. The contributing
+slots for $X_i$ contain $X_1,\ldots,X_i$. The charge for slot $j$ is
+$H(X_j\mid X_1,\ldots,X_{j-1})$, hence
+\[
+ \chi_{\mathrm{chain}}(B)=H(X_1,\ldots,X_{\max B}).
+\]
+This attains the entropy bound for prefix queries. Querying only $X_{36}$ costs
+$H(X_I)$. These statements concern this particular address assignment, not
+every autoregressive architecture.
+
+\paragraph{The structured model.}
+The score charges the shape once, the group and cluster parameters needed by
+$B$, and the residual uncertainty of each requested observation:
+\[
+\begin{aligned}
+ \chi_{\mathrm{structured}}(B)={}&H(S)
+ +\sum_{g:B\cap A_g\ne\varnothing}H(G_g)\\
+ &+\sum_{g,c:B\cap A_{gc}\ne\varnothing}H(M_{gc}\mid G_g)
+ +\sum_{i\in B}H(X_i\mid M_{g(i)c(i)},S).
+\end{aligned}
+\]
+This expression avoids charging for unrelated observations. It need not be
+smaller than the other scores for every block. In particular, for $B=I$ it
+exceeds $H(X_I)$ by the remaining parameter uncertainty, whereas both baseline
+constructions attain $H(X_I)$. Fitting the observable law does not by itself
+settle which organization is preferable across queries.
+
+\section{Why blocks help recover parameters}
+For nonempty $B$ inside a fixed cluster $(g,c)$, set $\Theta=(S,G_g,M_{gc})$. The
+nonconstant contributing tuple is $(\Theta,X_B)$, so
+\[
+ \chi_{\mathrm{structured}}(B)-H(X_B)=H(\Theta\mid X_B).
+\]
+For nonempty $B\subseteq B'\subseteq A_{gc}$, the reduction in this gap is
+\[
+ H(\Theta\mid X_B)-H(\Theta\mid X_{B'})
+ =I(\Theta;X_{B'\setminus B}\mid X_B)\ge0.
+\]
+More points can inform the shared parameters. Exact recovery still fails for
+finite blocks. Even knowing one cluster center need not determine its parent
+group center. When $B$ extends to another cluster, its contributing parameter
+family changes, so the displayed monotonicity argument no longer applies as
+written. This example motivates block witnesses and nonzero recovery errors;
+it does not establish a chosen uniform error bound.
+
+\paragraph{Source.}
+The motivating hierarchy is from Gillen and Chiang,
+\href{https://www.alignmentforum.org/posts/agw7HhW4cWjADpBgo}{\emph{A summary of
+Condensation and its relation to Natural Latents}}, \S1.1.1. The finite law,
+illustration, and exact score comparisons above are this course's adaptation.
+\end{document}

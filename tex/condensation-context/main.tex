@@ -1,0 +1,255 @@
+%--- iliad ---
+% separateSolutions: true
+% title: Condensation in context
+% summary: >-
+%   How condensation relates to earlier work in statistics, what its correspondence
+%   theorem establishes, and what remains between that theorem and useful
+%   translation between the latents of human and AI models.
+%--- end ---
+\documentclass[10pt]{article}
+\IfFileExists{iliad.sty}{\usepackage{iliad}}{\usepackage{../iliad}}
+\title{Condensation in context}
+\author{Satya Benson}
+\date{September 21, 2026}
+\begin{document}
+\maketitle
+
+\section{Prerequisites}
+This reading follows the condensation worksheet. It uses conditional entropy,
+conditional independence, and the distinction between an individual latent and
+a collection of latents. All variables in the examples have finite alphabets;
+logarithms are base two.
+
+\begin{learningoutcomes}
+\begin{itemize}
+\item Relate condensation to sufficient statistics, common information,
+computational mechanics, and graphical models.
+\item Separate informational correspondence from finding and using a translation.
+\item Identify which additional claims would connect correspondence to AI safety.
+\end{itemize}
+\end{learningoutcomes}
+
+\section{What is being characterized?}
+Fix jointly distributed observables $X_1,\ldots,X_n$. We organize information
+into latents $Y_A$, indexed by nonempty subsets $A$ of the observable indices.
+The address specifies which observations the latent is assigned to. Each $X_i$
+is determined by its contributing collection $(Y_A:i\in A)$.
+
+LVM alone leaves considerable freedom. The additional reconstruction
+and Markov conditions constrain where shared information can reside. The
+correspondence theorem compares two models satisfying these conditions: their
+collections above the same address determine one another, exactly or with a
+controlled conditional-entropy error.
+
+This provides a conditional sense of objectivity. Once the observables and the
+conditions are fixed, agreement in information content need not come from a
+shared vocabulary. It follows from each model's relationship to the observations.
+The theorem does not choose the observables. Changing the questions changes the
+problem, and may change the information that must correspond.
+
+Nor is each latent automatically a human concept. A model includes residual
+information needed to determine observations. The interpretation of its parts
+as concepts is an additional connection between the mathematics and the uses of
+a latent model.
+
+\section{Connections to prior work}
+\subsection{Sufficient statistics}
+For a fixed joint law of $(X,V)$, a statistic $T=f(X)$ is sufficient for predicting
+$V$ when
+\[
+ I(X;V\mid T)=0.
+\]
+Knowing $X$ then gives no predictive information about $V$ beyond $T$.
+For finite alphabets, grouping values $x$ with the same conditional distribution
+$P(V\mid X=x)$ gives a minimal such statistic, on the support of $X$.
+This differs from parametric sufficiency, where the conditional law of
+the sample given a statistic must be independent of the unknown parameter.
+Both formulations ask which distinctions must be retained for an inference task.
+
+Predictive sufficiency does not say that $T$ determines the realized value of
+$V$. Condensation's LVM condition does demand determination, using the whole
+contributing collection, including residual variables. A sufficient
+statistic can itself be a vector or another structured object.
+
+A sufficient statistic is by construction a function of $X$. A latent need not
+be, because reconstruction is asked for only up to a defect: that leaves room
+for latents which are parameters of a law rather than functions of the
+observations. The additional
+question here is how to organize a family of latent parts across many specified
+observables. See \href{https://www.stats.org.uk/statistical-inference/Fisher1922.pdf}{Fisher (1922)}
+and \href{https://www.stat.cmu.edu/~cshalizi/dm/19/lectures/17/lecture-17.html}{Shalizi's account of predictive sufficiency}.
+
+\subsection{Common information}
+Two older questions distinguish requirements that appear together in the
+perfect case. The maximal deterministic common part of $X_1,X_2$ is a variable
+$K$ recoverable from either observation, through which every other common
+function factors. Its entropy is the G\'acs--K\"orner common information.
+Wyner's common information instead minimizes $I(X_1,X_2;W)$ over extensions
+satisfying $X_1\perp X_2\mid W$. Such a $W$ need not be separately recoverable
+from the observations.
+
+If $W$ is both separately recoverable and screens off dependence, then
+\[
+ I(X_1;X_2)=H(W)+I(X_1;X_2\mid W)=H(W).
+\]
+Moreover, every common function $K$ is determined by $W$: the two-witness lemma,
+with witnesses $X_1,X_2$ and common part $W$, gives $H(K\mid W)=0$.
+Thus this special case is closely connected to common information in the sense
+of G\'acs and K\"orner.
+
+It is restrictive. If $X$ is a fair bit and $V=X\mathbin{\oplus}N$ for independent
+$N\sim\operatorname{Bernoulli}(p)$, $0<p<1/2$, all four pairs have positive
+probability. Any common function must therefore be constant, although
+$I(X;V)=1-h_2(p)>0$, where
+$h_2(p)=-p\log_2 p-(1-p)\log_2(1-p)$. Recoverable common information and
+mutual information differ.
+
+Common/private source coding already studies structured organization
+of information. Condensation's particular focus is a family of subset-addressed
+latents and correspondence under conditions on that family.
+See \href{https://cs-web.bu.edu/faculty/gacs/papers/commoninf.pdf}{G\'acs and K\"orner (1973)}
+and \href{https://arxiv.org/pdf/1010.3613}{Liu, Xu and Chen's extension of Wyner's common information}.
+
+\subsection{Computational mechanics}
+Computational mechanics groups past histories according to their conditional
+distributions over futures. Its causal states have predictive optimality,
+minimality, and uniqueness properties. This is an important precedent for
+characterizing such a construction through informational requirements.
+
+The present setup starts from a family of jointly distributed questions rather
+than a distinguished past/future split. It characterizes latent collections
+associated with different observable subsets.
+See \href{https://arxiv.org/abs/cond-mat/9907176}{Shalizi and Crutchfield (2001)}.
+
+\subsection{Graphical models and the information bottleneck}
+The ordered Markov condition in condensation is a graphical-model condition.
+A subset-ordered directed graph places larger addresses above smaller ones.
+Under the corresponding factorization, the latent joint law is
+\[
+ P(y)=\prod_{A\ne\varnothing}P(y_A\mid y_{\supsetneq A}).
+\]
+A factorization alone does not ensure that observations recover the latents,
+or that different latent models correspond. Those are additional requirements.
+Graphical language also does not make the result a causal-identification theorem.
+Eisenstat discusses this connection explicitly in Definition 5.8 and Example 6.3
+of \href{https://openreview.net/pdf?id=HwKFJ3odui}{the condensation paper}.
+
+The information bottleneck compresses an input $X$ into $T$ while retaining
+information about a specified relevance variable $V$. A standard objective is
+\[
+ I(X;T)-\beta I(T;V), \qquad T\perp V\mid X.
+\]
+It provides an established distribution-based approach to useful summaries of
+the data.
+Our condensation problem instead involves many addressed latents, LVM, and
+conditions across observable sets. An optimum of a generic
+bottleneck objective does not automatically satisfy these conditions.
+See \href{https://arxiv.org/abs/physics/0004057}{Tishby, Pereira and Bialek (1999)}.
+
+\section{What information theory leaves out}
+\subsection{An encoding and access to its inverse}
+Let $X$ be uniform on $\{1,\ldots,N\}$ and let $Y=\pi(X)$ for a fixed
+permutation $\pi$. Then
+\[
+ H(X\mid Y)=H(Y\mid X)=0.
+\]
+This is exact correspondence whether $\pi$ is the identity or a large
+unstructured lookup table. The entropies do not charge for describing the table,
+learning it, storing it, or using it. For a finite table an inverse exists and is
+computable; that does not make it available to a particular learner.
+
+For a concrete learning distinction, draw $\pi$ uniformly from all permutations
+and reveal $m<N$ distinct input--output pairs. Conditional on those pairs, the
+image of a previously unseen input is uniform over the $N-m$ unused outputs. The best success
+probability without further information is $1/(N-m)$. For every fixed permutation
+the correspondence entropy is zero, yet a learner with few examples cannot
+predict an unseen pairing. These are different probability models: one fixes
+the permutation; the other describes uncertainty about it.
+
+A separate question concerns computation even when a transformation has a short
+known description. Entropic bounds alone give no running-time bound for an
+inverse. Establishing computational difficulty requires an additional argument
+or assumption; it does not follow from this permutation example.
+
+\subsection{Rare events and average error}
+Let $E\sim\operatorname{Bernoulli}(p)$. Define $R=0$ when $E=0$ and, when
+$E=1$, let $R$ be uniform over $M$ other values. Since $R$ reveals $E$,
+\[
+ H(R)=h_2(p)+p\log_2 M.
+\]
+For $p=10^{-6}$ and $M=2^{10^6}$, the rare branch contributes one full bit.
+An independent sample of size $m$ misses that branch with probability
+$(1-p)^m$. Large informational contributions can be absent from a small
+dataset.
+
+Conversely, suppose a variable $T$ records $E$, and records the value of a fair
+bit $B$, independent of $E$, only when $E=0$. Then
+\[
+ H(B\mid T)=p.
+\]
+The average uncertainty is small, but conditional on the rare event $E=1$, the
+bit is entirely unknown. If that event is a critical decision, its importance
+is not measured by its probability alone. Entropy is an average informational
+quantity, not a measure of the consequences of errors.
+
+These examples distinguish informational equivalence, statistical access, and
+performance on important cases. A useful translation may need guarantees about
+all three.
+
+\section{The connection to AI safety}
+\begin{enumerate}
+\item \textbf{Corresponding information.} Under the reconstruction and Markov
+conditions, the theorem gives correspondence between specified collections in
+two models of the same observables.
+\item \textbf{Concepts of actual agents.} To apply that result, we need to
+identify suitable variables in actual agents and establish the relevant
+conditions, including how their observables relate. The theorem does not show
+that learning procedures produce such models.
+\item \textbf{A usable translation.} Informational correspondence could support
+identifying which of an AI's latents carries something humans care about. We
+must still find
+the correspondence with available data and computation, and connect it to the
+particular human distinction of interest.
+\item \textbf{Interpretation and specification.} A usable translation could help
+interpret predictions or express objectives in an AI's world model. This requires
+preserving relevant distinctions when circumstances or models change.
+\item \textbf{Safer systems.} Better interpretation and specification could improve
+oversight and alignment. Sharing concepts does not entail sharing values,
+reporting faithfully, or following an intended objective.
+\end{enumerate}
+The first step is the mathematical result of this lesson. The subsequent steps
+state a research programme and the additional work required to connect it to
+safety.
+
+\section{Discussion}
+\begin{enumerate}
+\item \textbf{Choosing the questions.} Consider two agents describing the same
+physical system, one using local measurements and another using a different
+collection of measurements. What would have to be established before applying
+a theorem that assumes the same observables? Distinguish changing value labels
+from changing which distinctions an observable makes. Identify one restriction
+on observable choice that seems justified for a concrete application.
+\item \textbf{What would count as a useful translation?} Suppose two latent tuples $U,V$
+satisfy $H(U\mid V)=H(V\mid U)=0$. Specify an additional test
+that would make this correspondence useful for interpreting a learned model.
+State what access the test requires: paired samples, interventions, model
+internals, or a known decoder. Which part of the permutation example would
+that access resolve?
+\item \textbf{From correspondence to oversight.} Choose one human distinction
+that matters for evaluating an AI's behavior. Trace the steps from a
+correspondence theorem to an oversight procedure that uses that distinction.
+Name a failure that could occur despite exact informational correspondence,
+and state what additional evidence would address it.
+\end{enumerate}
+
+\section{Further reading}
+The linked sources above support different parts
+of the discussion. For the mathematical development, start with
+\href{https://openreview.net/pdf?id=HwKFJ3odui}{Eisenstat's \emph{Condensation: A Theory of Concepts}},
+particularly the exact and quantitative correspondence results.
+For the score connection, see
+\href{https://satyabenson.com/writing/condensation-conditions-conditioned-score}{\emph{Relating Almost Perfect Condensation Conditions and the Conditioned Score}}.
+The score decomposition connects excess conditioned code length to dependence
+and recoverability defects; the converse requires attention to which observation
+sets the reconstruction assumptions cover.
+\end{document}

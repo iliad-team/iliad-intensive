@@ -127,6 +127,8 @@ nav,
 }
 
 .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
   margin: 0.9em 0 !important;
 }
 

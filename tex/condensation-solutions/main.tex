@@ -1,0 +1,423 @@
+%--- iliad ---
+% separateSolutions: true
+% title: Condensation — solutions
+% summary: >-
+%   Complete solutions to exercises E1–E10 and the correspondence proof.
+% unlisted: true
+%--- end ---
+\documentclass[11pt]{article}
+\IfFileExists{iliad.sty}{\usepackage{iliad}}{\usepackage{../iliad}}
+\geometry{a4paper,margin=25mm}
+\usepackage{microtype}
+\newcommand{\PI}{\mathcal{P}^{+}(I)}
+\newcommand{\Up}{\mathord{\supseteq}}
+\title{Condensation: Solutions}
+\author{Satya Benson}
+\date{21 September 2026}
+\begin{document}
+\maketitle
+
+\section{Prerequisites}
+This is the separate answer key for \emph{Condensation}. Exercise identifiers
+E1--E10 match the student worksheet. All variables have finite ranges, all logs
+have base two, and unused latent slots are constant. Write
+$\Up A=\{C:A\subseteq C\}$,
+and $\mathcal{J}_B=\{C:C\cap B\ne\varnothing\}$.
+A tuple indexed by a family $\mathcal{F}$ is written $Y_{\mathcal{F}}$.
+
+\begin{learningoutcomes}
+\begin{itemize}
+\item Check all example calculations and identify exactly where a condition fails.
+\item Follow a complete proof of the exact and quantitative correspondence result.
+\item Extend the argument to observation blocks and verify the conditioned-score identity.
+\end{itemize}
+\end{learningoutcomes}
+
+\section{E1: Overlapping bits}
+\label{sec:e1}
+The independent fair bits are $S,P,Q$, and
+$X_1=(S,P)$, $X_2=(S,Q)$, $X_3=(P,Q)$.
+\begin{enumerate}[label=(\alph*)]
+\item $H(X_1)=2$. The tuple of all observations determines $(S,P,Q)$ and is
+determined by it, so $H(X_1,X_2,X_3)=3$.
+The pair $(X_1,X_2)$ already determines all three bits, hence
+\[
+ I(X_1;X_2)=H(X_1)+H(X_2)-H(X_1,X_2)=2+2-3=1.
+\]
+Its shared bit is $S$.
+\item The families, including constant slots, are
+\[
+\begin{split}
+ \Up\{1\}&=\{\{1\},\{1,2\},\{1,3\},\{1,2,3\}\},\\
+ \Up\{2\}&=\{\{2\},\{1,2\},\{2,3\},\{1,2,3\}\},\\
+ \Up\{1,2\}&=\{\{1,2\},\{1,2,3\}\}.
+\end{split}
+\]
+The first tuple has nonconstant entries $S,P$, so determines $X_1$.
+Intersecting the first two families leaves $\{\{1,2\},\{1,2,3\}\}=\Up\{1,2\}$,
+the third family listed, whose only nonconstant content is $S$.
+\item Recover $X_1$ by taking the ordered pair
+$(Y_{\{1,2\}},Y_{\{1,3\}})$. Recover $Y_{\{1,2\}}$ from $X_1$ by
+projecting onto its first coordinate.
+\item Addresses $\{1,2\}$ and $\{1,3\}$ overlap but neither contains the
+other. Thus the contribution pattern need not form a nested tree.
+\end{enumerate}
+The original model also satisfies the Markov condition. All nonconstant slots
+are mutually independent, so disjoint subcollections are independent, including
+after conditioning on the remaining common subcollection. Reconstruction follows from the indicated coordinate projections.
+
+\section{E2: Two failed models}
+\label{sec:e2}
+\begin{enumerate}[label=(\alph*)]
+\item In the singleton-copy model $Y_{\{i\}}=X_i$, the contributing family
+for $i$ includes $X_i$ itself. Thus LVM holds. Each
+nonconstant latent has just one contributing observation, from which it is
+recovered identically, so reconstruction holds too.
+
+For $\mathcal{F}=\Up\{1\}$ and $\mathcal{G}=\Up\{2\}$, all entries
+of $Y_{\mathcal{F}\cap\mathcal{G}}$ are constant. The only nonconstant entries
+of the two larger tuples are $X_1$ and $X_2$. Consequently
+\[
+ I(Y_{\mathcal{F}};Y_{\mathcal{G}}\mid Y_{\mathcal{F}\cap\mathcal{G}})
+ =I(X_1;X_2)=1.
+\]
+Both singleton slots determine $S$, while their common ancestor slots are
+constant. This violates the Markov condition. It is enough to
+exhibit this one pair of upward-closed families; finding the maximum defect
+is unnecessary.
+\item With only $Y_{\{1,2,3\}}=(S,P,Q)$ nonconstant, each observation is
+obtained by projection, so LVM holds. Every nonempty
+upward-closed family contains the top address. If both families are nonempty,
+their intersection contains that top slot and determines all latent variables;
+the conditional mutual information is zero. If either is empty it is zero as
+well. Thus the Markov condition holds.
+
+But $X_1=(S,P)$ leaves the independent fair bit $Q$ unknown, so
+\[
+ H(Y_{\{1,2,3\}}\mid X_1)=H(Q\mid S,P)=1.
+\]
+Reconstruction fails.
+\item LVM requires enough latent information to determine
+each observation. Reconstruction excludes information placed at a shared
+address that an individual contributing observation cannot recover. The Markov
+condition excludes dependence between address collections not accounted for
+by their common slots. The singleton model satisfies the second requirement but
+fails the third; the top-slot model satisfies the third but fails the second.
+\end{enumerate}
+
+\subsection{Check on the existence example}
+The existence subsection in the student sheet is a proved example, not an
+additional exercise. For a binary pair with full support, a top slot determined
+by each observable must be constant: writing it as $f(X_1)=g(X_2)$, each of the
+four pairs imposes an equality between the corresponding function values.
+With a constant top, LVM makes $X_1$ a function of
+$Y_{\{1\}}$ and $X_2$ a function of $Y_{\{2\}}$. Thus data processing yields
+\[
+ I(X_1;X_2)\le I(Y_{\{1\}};Y_{\{2\}})=\eta_Y.
+\]
+The equality holds because, on the two-observable address poset, the only
+pair of incomparable nonempty upward-closed families consists of the two
+singleton towers. Every other Markov term is zero. For the noisy fair-bit
+pair, $H(X_2)=1$ and $H(X_2\mid X_1)=h_2(q)$, proving the stated lower bound.
+It is attained by the singleton-copy model $Y_{\{i\}}=X_i$, with constant top.
+This model has both exact reconstruction directions but a positive Markov
+defect. Setting that defect to zero is impossible. The argument does not bound
+the tradeoff when reconstruction is allowed to be inexact.
+
+\section{E3: Collections, not individual slots}
+\label{sec:e3}
+Here $C,R,T$ are independent fair bits. In model $Y$ the three slots are
+$C,R,T$; in model $Z$ they are $C,(C,R),(C,T)$.
+\begin{enumerate}[label=(\alph*)]
+\item Both contributing families determine their observations. All slots are
+recoverable from each observation to which they contribute. For example,
+$C$ is the first coordinate of either $X_1$ or $X_2$, and $Z_{\{1\}}=X_1$.
+For two observables the only nontrivial Markov requirement is independence of
+the two singleton slots given the top slot. For $Y$ this is
+$I(R;T\mid C)=0$. For $Z$ it is
+\[
+ I((C,R);(C,T)\mid C)=I(R;T\mid C)=0.
+\]
+Both are therefore perfect condensations.
+\item $H(Z_{\{1\}}\mid Y_{\{1\}})=H(C,R\mid R)=H(C)=1$.
+\item The $Y$ tower at $\{1\}$ consists of $(R,C)$, and the $Z$ tower
+consists of $((C,R),C)$. Each is a deterministic function of the other. A copy
+of the higher-address information can appear in a lower slot without changing
+the tower's total information. Thus the individual slots need not correspond
+even when the relevant towers do.
+\end{enumerate}
+
+\section{E4: The two-witness lemma}
+\label{sec:e4}
+For arbitrary finite $U,M,P,Q$, the exact identity is
+\begin{align*}
+ &H(U\mid M,P)+H(U\mid M,Q)+I(P;Q\mid M)-H(U\mid M)\\
+ &\hspace{15mm}=I(P;Q\mid U,M)+H(U\mid M,P,Q).
+\end{align*}
+For a direct verification, first subtract the two conditional mutual
+informations using their entropy definitions:
+\begin{align*}
+ I(P;Q\mid M)-I(P;Q\mid U,M)
+ &=H(P\mid M)+H(Q\mid M)-H(P,Q\mid M)\\
+ &\quad-H(P\mid U,M)-H(Q\mid U,M)+H(P,Q\mid U,M)\\
+ &=I(U;P\mid M)+I(U;Q\mid M)-I(U;P,Q\mid M)\\
+ &=H(U\mid M)-H(U\mid P,M)-H(U\mid Q,M)\\
+ &\quad+H(U\mid P,Q,M).
+\end{align*}
+Rearrangement gives the displayed slack identity. Its right side is
+nonnegative, proving the lemma.
+
+If $H(U\mid M,P)=H(U\mid M,Q)=I(P;Q\mid M)=0$, the inequality and
+nonnegativity imply $H(U\mid M)=0$. Thus a target recoverable from each
+witness is recoverable from their designated common part when the witnesses
+are conditionally independent given that part.
+
+The first two terms measure what each witness, together with $M$, still fails
+to determine about $U$. The third measures dependence between $P,Q$ not
+accounted for by $M$. No independence assumption is needed for the inequality
+itself; exact independence is the case where the third error is zero.
+
+\section{E5: The dependence term is needed}
+\label{sec:e5}
+With $U=P=Q$ a fair bit and $M$ constant,
+\[
+ H(U\mid M)=1,\quad H(U\mid M,P)=H(U\mid M,Q)=0,
+ \quad I(P;Q\mid M)=1.
+\]
+The inequality is the equality $1\le0+0+1$. Without its mutual-information
+term it would assert $1\le0$. The two witnesses each determine the same bit while
+the designated common variable is constant, as in the singleton-copy model
+of E2.
+
+\section{E6: Transfer through an observable}
+\label{sec:e6}
+If $X_i$ is a function of $Z_{\Up\{i\}}$ almost surely, adding $X_i$ to
+that conditioning tuple changes no information. Hence
+\[
+ H(U\mid Z_{\Up\{i\}})
+ =H(U\mid Z_{\Up\{i\}},X_i)
+ \le H(U\mid X_i).
+\]
+The inequality is conditioning monotonicity. It does not assume that $U$ and
+the receiver tuple are conditionally independent given $X_i$. They can share
+additional information beyond $X_i$.
+
+\section{E7: Intersections of address families}
+\label{sec:e7}
+\begin{enumerate}[label=(\alph*)]
+\item The first two families are listed in E1, and
+\[
+ \Up\{3\}=\{\{3\},\{1,3\},\{2,3\},\{1,2,3\}\}.
+\]
+Thus $\Up\{1\}\cap\Up\{2\}=\{\{1,2\},\{1,2,3\}\}$,
+and intersecting with $\Up\{3\}$ leaves only $\{1,2,3\}$.
+\item If $C$ belongs to every family in an intersection and $D\supseteq C$,
+upward closure places $D$ in each such family, hence in the intersection.
+\item For an address $C$,
+\[
+ C\in\bigcap_{i\in A}\Up\{i\}
+ \quad\Longleftrightarrow\quad
+ (\forall i\in A)\ i\in C
+ \quad\Longleftrightarrow\quad A\subseteq C
+ \quad\Longleftrightarrow\quad C\in\Up A.
+\]
+\item Put $M=Z_{\mathcal{F}\cap\mathcal{G}}$,
+$P=Z_{\mathcal{F}}$, $Q=Z_{\mathcal{G}}$. The tuple $M$ is a subtuple of
+both $P$ and $Q$. Thus $H(U\mid M,P)=H(U\mid P)$ and similarly for $Q$.
+By the definition of $\eta_Z$, the lemma gives
+\[
+ H(U\mid Z_{\mathcal{F}\cap\mathcal{G}})
+ \le H(U\mid Z_{\mathcal{F}})+H(U\mid Z_{\mathcal{G}})+\eta_Z.
+\]
+Upward closure is needed to invoke the bound $\eta_Z$.
+\end{enumerate}
+
+\section{E8: Complete correspondence proof}
+\label{sec:e8}
+Fix a nonempty $A=\{i_1,\ldots,i_k\}$, put
+$\mathcal{G}_j=\bigcap_{\ell=1}^{j}\Up\{i_\ell\}$.
+Every $\Up\{i\}$ is upward closed, as is every $\mathcal{G}_j$ by E7.
+We prove
+\begin{equation}
+ H(Y_{\Up A}\mid Z_{\mathcal{G}_j})\le
+ \sum_{\ell=1}^{j}H(Y_{\Up A}\mid X_{i_\ell})+(j-1)\eta_Z
+ \label{eq:induction-sol}
+\end{equation}
+for $1\le j\le k$.
+
+For $j=1$, $\mathcal{G}_1=\Up\{i_1\}$, and E6 gives
+$H(Y_{\Up A}\mid Z_{\mathcal{G}_1})\le H(Y_{\Up A}\mid X_{i_1})$. This is the claimed
+bound with zero intersection terms.
+
+Suppose \eqref{eq:induction-sol} holds for $j-1$, where $2\le j\le k$.
+Apply E7 to the upward-closed families $\mathcal{G}_{j-1}$ and
+$\Up\{i_j\}$. Their intersection is $\mathcal{G}_j$, so
+\begin{align*}
+ H(Y_{\Up A}\mid Z_{\mathcal{G}_j})
+ &\le H(Y_{\Up A}\mid Z_{\mathcal{G}_{j-1}})
+       +H(Y_{\Up A}\mid Z_{\Up\{i_j\}})+\eta_Z\\
+ &\le \sum_{\ell=1}^{j-1}H(Y_{\Up A}\mid X_{i_\ell})+(j-2)\eta_Z
+       +H(Y_{\Up A}\mid X_{i_j})+\eta_Z\\
+ &=\sum_{\ell=1}^{j}H(Y_{\Up A}\mid X_{i_\ell})+(j-1)\eta_Z.
+\end{align*}
+The second line uses the induction hypothesis and E6. This completes the
+induction. At $j=k$, E7 gives $\mathcal{G}_k=\Up A$, hence
+\[
+ H(Y_{\Up A}\mid Z_{\Up A})
+ \le\sum_{i\in A}H(Y_{\Up A}\mid X_i)+(|A|-1)\eta_Z.
+\]
+For $|A|=1$ this is exactly the observable-transfer inequality, so no intersection
+or Markov error is required. There are $k$ reconstruction errors and $k-1$
+Markov defects.
+Bounding each reconstruction error by $\delta$ and each Markov defect by
+$\eta$ gives
+$k\delta+(k-1)\eta$, or $(2k-1)\varepsilon$ for a common budget.
+
+If $Y,Z$ are perfect condensations, each reconstruction error is zero: for every
+$C\supseteq A$ and $i\in A$, reconstruction says $Y_C$ is a function
+of $X_i$. The finite tuple of such variables is consequently a function of
+$X_i$. Also $\eta_Z=0$. The inequality gives zero conditional entropy in the
+forward direction. Interchanging $Y,Z$, using reconstruction in $Z$
+and $\eta_Y=0$, proves the reverse direction. Zero conditional entropy is
+almost-sure deterministic recoverability in our finite setting.
+
+The proof uses LVM in $Z$ for E6, the sender's reconstruction to bound those errors, and the receiver's Markov condition
+at intersections. It needs no cross-model independence, and its finite
+coupling preserves all marginal conditions used.
+
+Finally, approximate slotwise errors do not directly give the same error for
+a tuple. For example, if two independent fair bits $R,T$ remain unknown given
+a constant observation, each conditional entropy is one bit but the tuple's
+is two bits. Conditional subadditivity gives a sum of the slot budgets, not a
+single budget. The theorem states its hypothesis in terms of tower errors to
+avoid this ambiguity.
+
+\section{E9: Larger observation blocks}
+\label{sec:e9}
+\begin{enumerate}[label=(\alph*)]
+\item A nonempty address $C\subseteq\{1,2,3\}$ meets each of
+$\{1,2\},\{1,3\},\{2,3\}$ precisely when $|C|\ge2$.
+A singleton misses the complementary pair; every address with at least two
+elements meets every pair. Thus the surviving tuple consists of the three
+pair slots and the top slot. Applying the two-witness lemma twice, after
+observable transfer for each block, gives
+\[
+ H(U\mid Z_{\{C:|C|\ge2\}})\le3\delta+2\eta_Z.
+\]
+It does not isolate the top slot alone.
+\item For each block $B$, the collection $Z_{\mathcal{J}_B}$ determines
+$X_B$: for every $i\in B$ it contains $Z_{\Up\{i\}}$. E6 therefore
+extends to $H(U\mid Z_{\mathcal{J}_B})\le H(U\mid X_B)$.
+Each $\mathcal{J}_B$ is upward closed. Enumerate
+$\mathcal{W}=\{B_1,\ldots,B_N\}$ and intersect the first $j$ contributing
+families. Exactly the induction in E8, now with these families as leaves,
+gives
+\[
+ H(U\mid Z_{\mathcal{R}})\le
+ \sum_{B\in\mathcal{W}}H(U\mid X_B)+(N-1)\eta_Z,
+ \quad \mathcal{R}=\bigcap_{B\in\mathcal{W}}\mathcal{J}_B.
+\]
+For $N=1$ this is just the transfer inequality. We required a nonempty family
+so the induction and the intersection count apply.
+\item An address $C$ fails to meet some $(r+1)$-subset of $A$ exactly when
+$A\setminus C$ contains at least $r+1$ elements. Thus it meets every such
+subset exactly when $|A\setminus C|\le r$. For $r=0$ this says
+$A\subseteq C$, recovering the tower. For $r>0$ an address can survive even
+if it misses some elements of $A$; the receiver is a larger tuple.
+If every witness error is at most $\delta$, write
+$N=\binom{|A|}{r+1}$ to obtain the explicit bound
+$N\delta+(N-1)\eta_Z$. The restriction $r<|A|$ ensures witnesses exist.
+\end{enumerate}
+
+\section{E10: The conditioned score}
+\label{sec:e10}
+\begin{enumerate}[label=(\alph*)]
+\item List $\mathcal{J}_B$ as $A_1,\ldots,A_q$ with strict supersets appearing
+before subsets. Such an order exists because strict inclusion has no cycles.
+Every strict superset of an active address also meets $B$, so is in this list.
+Therefore
+\[
+ H(Y_{A_t}\mid Y_{\Up A_t\setminus\{A_t\}})
+ \ge H(Y_{A_t}\mid Y_{A_1},\ldots,Y_{A_{t-1}}).
+\]
+Summing and applying the chain rule gives
+$\chi(B)\ge H(Y_{\mathcal{J}_B})$, hence $V_B\ge0$.
+\item Since $Y_{\mathcal{J}_B}$ determines $X_B$, the joint entropy can be
+expanded in two ways:
+\[
+ H(X_B,Y_{\mathcal{J}_B})=H(Y_{\mathcal{J}_B})
+ =H(X_B)+H(Y_{\mathcal{J}_B}\mid X_B).
+\]
+Subtracting $H(X_B)$ and adding $V_B$ proves
+\[
+ \chi(B)-H(X_B)=V_B+H(Y_{\mathcal{J}_B}\mid X_B).
+\]
+\item In E3, the independent model $Y$ has simple score $1+1+1=3$ and
+conditioned score $1+1+1=3$. In model $Z$, the simple score is $1+2+2=5$,
+while the conditioned score is
+\[
+ H(C)+H(C,R\mid C)+H(C,T\mid C)=1+1+1=3.
+\]
+Both models determine $X_1,X_2$, whose joint entropy is three. The conditioned
+score charges only the extra information below $C$; its copies add zero
+conditional entropy. The simple score charges those copies again.
+\item If $A\cap B\ne\varnothing$, every $C\supseteq A$ meets $B$.
+Thus $Y_{\Up A}$ is a subtuple of $Y_{\mathcal{J}_B}$ and
+\[
+ H(Y_{\Up A}\mid X_B)
+ \le H(Y_{\mathcal{J}_B}\mid X_B)
+ \le\chi(B)-H(X_B),
+\]
+where the last inequality uses the nonnegative score decomposition.
+\end{enumerate}
+
+\subsection{Additional check: equivalence of the perfect definitions}
+This argument is available for students who want to connect the two definitions
+completely; it is not an extra required exercise.
+
+Let $V_I=\chi(I)-H(Y_{\PI})$. For upward-closed $\mathcal{F},\mathcal{G}$,
+partition $\PI$ into
+\[
+ \mathcal{C}=\mathcal{F}\cap\mathcal{G},\quad
+ \mathcal{P}=\mathcal{F}\setminus\mathcal{G},\quad
+ \mathcal{Q}=\mathcal{G}\setminus\mathcal{F},\quad
+ \mathcal{R}=\PI\setminus(\mathcal{F}\cup\mathcal{G}).
+\]
+Order these blocks $\mathcal{C},\mathcal{P},\mathcal{Q},\mathcal{R}$, internally
+by reverse inclusion. Upward closure ensures this order is valid and no slot
+in $\mathcal{Q}$ has a strict superset in $\mathcal{P}$, or conversely.
+Conditioning inequalities and chain rules within each block imply
+\begin{align*}
+ \chi(I)&\ge H(Y_{\mathcal{C}})+H(Y_{\mathcal{P}}\mid Y_{\mathcal{C}})
+ +H(Y_{\mathcal{Q}}\mid Y_{\mathcal{C}})
+ +H(Y_{\mathcal{R}}\mid Y_{\mathcal{C}},Y_{\mathcal{P}},Y_{\mathcal{Q}})\\
+ &=H(Y_{\PI})+I(Y_{\mathcal{P}};Y_{\mathcal{Q}}\mid Y_{\mathcal{C}}).
+\end{align*}
+The latter mutual information equals
+$I(Y_{\mathcal{F}};Y_{\mathcal{G}}\mid Y_{\mathcal{F}\cap\mathcal{G}})$.
+Hence $\eta_Y\le V_I$.
+
+If all score gaps vanish, the decomposition forces $V_I=0$, giving the Markov
+condition. The singleton gap at $B=\{i\}$ forces the contributing tuple,
+and therefore each slot at an address containing $i$, to be determined by
+$X_i$. This gives reconstruction.
+
+Conversely, suppose reconstruction and the Markov condition hold.
+For every $B$, each active slot $Y_A$ is determined by some $X_i$ with
+$i\in A\cap B$, and hence by $X_B$. Therefore
+$H(Y_{\mathcal{J}_B}\mid X_B)=0$.
+In a reverse-inclusion order, the earlier slots consist of all strict
+supersets of the current slot and some incomparable slots. The global
+Markov condition implies that conditioning on these extra earlier slots does
+not reduce its entropy beyond conditioning on strict supersets: apply the
+condition to the upward cone of the current address and the upward-closed
+family of earlier addresses. Their intersection is the strict-superset
+family. Thus the score's chain-rule inequality is an equality, $V_B=0$.
+The decomposition gives $\chi(B)=H(X_B)$ for all $B$.
+
+\section{Further reading}
+The correspondence proof specializes Sam Eisenstat's \emph{Condensation: A
+Theory of Concepts}, Lemma 6.4 and Theorem 6.8; the exact characterization is
+Theorem 5.10. The tower presentation and score decomposition follow the exposition linked in
+the student sheet's further reading.
+\end{document}
