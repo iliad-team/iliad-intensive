@@ -14,9 +14,11 @@ import path from "node:path";
 
 /** How a worksheet's deck reaches the reader. */
 export type Deck =
-  /** tex/<slug>/<stem>.tex (slides, slides-<label>) compiled and hosted here
-   *  (`pdf`/`tex` = staged). `title` is the deck's own \title{}, if any. */
-  | { kind: "built"; slug: string; stem: string; title: string | null; pdf: boolean; tex: boolean }
+  /** tex/<slug>/<stem>.tex or .typ (slides, slides-<label>) compiled and hosted
+   *  here. `source` is the deck's format; `pdf`/`sourceStaged` say whether this
+   *  build staged the PDF / the source download. `title` is the deck's own
+   *  \title{} (LaTeX) or `#set document(title:)` (Typst), if any. */
+  | { kind: "built"; slug: string; stem: string; title: string | null; pdf: boolean; source: "tex" | "typ"; sourceStaged: boolean }
   /** A prebuilt deck hosted elsewhere — linked out, never served by us. */
   | { kind: "external"; slug?: string; url: string; title: string | null };
 

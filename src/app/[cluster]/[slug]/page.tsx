@@ -7,7 +7,7 @@ import { MdxBody } from "@/lib/mdx";
 import { ModulePageShell } from "@/components/ModulePageShell";
 import { SidebarNav } from "@/components/SidebarNav";
 import { DownloadsRow } from "@/components/DownloadsRow";
-import { BUILT_AT, COMMIT_SHA, CommitLink } from "@/components/BuildStamp";
+import { BUILT_AT, COMMIT_SHA, CommitLink, LicenseLink } from "@/components/BuildStamp";
 
 // Static export: every .mdx in content/modules is prerendered at build time.
 // content/index.json only controls the homepage/sidebar listing, so a module
@@ -142,7 +142,7 @@ export default async function ModulePage({
               </>
             ) : null;
           })()}
-          {COMMIT_SHA ? <> · <CommitLink /></> : null}.
+          {COMMIT_SHA ? <> · <CommitLink /></> : null} · <LicenseLink />.
         </footer>
       </article>
     </ModulePageShell>

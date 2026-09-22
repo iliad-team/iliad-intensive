@@ -131,8 +131,9 @@ clusters:
         title: Alignment in Practice 2
         lead: Garrett
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.g73qz582zioy
-        port: never
-        note: reading + discussion day, run from the Doc — the two discussion worksheets live there
+        source: ready
+        worksheets:
+          - alignment-in-practice-ii
 
       - code: A.4
         title: Reward Learning Theory
@@ -229,14 +230,16 @@ clusters:
         lead: Xavier
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.649vumndszu5
         source: ready
-        sourceUrl: https://github.com/14xp/iliad-comp-mech-materials
+        sourceUrl: https://github.com/iliad-team/iliad-intensive-C.3
+        worksheets:
+          - computational-mechanics
 
       - code: C.4
         title: Abstractions and Latents
         lead: Satya + Daniel Chiang
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.lzn2w9mlavru
-        port: never
-        note: taught from the compiled PDFs; the code lives on sourcehut
+        source: missing
+        note: to be ported; only compiled PDFs so far — Satya's sourcehut code is related but not the module
 
   - id: D
     label: D — Agency
@@ -327,8 +330,14 @@ clusters:
         title: Debate
         lead: Stephan
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.2q3bv3luklh0
-        source: missing
-        note: only compiled PDFs so far
+        source: ready
+        worksheets:
+          - debate
+        note: >-
+          Stephan handed the source over as a zip, not a repo. It held five
+          overlapping drafts of one document (plus a shared abbrv.tex); one
+          worksheet merges them, ordered as the Doc tab's teaching guide links
+          them. No solutions exist upstream for any of the 17 exercises.
 
       - code: E.2
         title: Steganography & Backdoors

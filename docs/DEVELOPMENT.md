@@ -41,7 +41,10 @@ together define the authoring contract.
   render gate only (fast). `--jobs N` sets parallel worksheet builds
   (default 4; worksheets are independent, logs are buffered per sheet).
   Non-zero exit on any failure, with the converter's `file:line` messages.
-  Converter ERRORs fail the build; warnings don't. A worksheet that builds
+  Converter ERRORs fail the build; warnings don't. An overfull line in the
+  compiled PDF — an equation or word wider than the page — is a warning too,
+  named by source `file:line`; break the line in the source rather than
+  leaving it, since the web column is no wider and it escapes there as well. A worksheet that builds
   cleanly prints nothing — the run ends in one summary line, and warnings and
   failures are the only per-sheet output. `--quiet` drops even that summary
   (the watch loop passes it, having its own line to print).
@@ -100,8 +103,20 @@ together define the authoring contract.
   then `slides-<label>` by filename; rows are labelled from each deck's own
   `\title{}` when there is more than one (`src/lib/content.ts` `listDecks`,
   mirrored by `build-status.mjs` for `/admin/status`). Every worksheet with no
-  `slides*.tex` draws a non-fatal warning (full build / `./run.sh ci` only, not
-  `--check`).
+  `slides*.tex`/`slides*.typ` draws a non-fatal warning (full build /
+  `./run.sh ci` only, not `--check`).
+- **Typst decks.** The same stems as `.typ` (`slides.typ`, `slides-<label>.typ`)
+  compile with one `typst compile --ignore-system-fonts` (plus `--font-path
+  tex/<slug>/fonts/` when that folder exists) and stage as
+  `<slug>-<stem>.pdf`/`.typ`. No handout variant, no bibliography pass. A stem
+  present as both `.tex` and `.typ` fails the build. Row labels come from
+  `#set document(title: "…")`. The binary is a pinned, checksum-verified
+  release installed by `scripts/install-typst.sh` — the one definition CI's
+  "Typst" step (cached on that file's hash) and `./setup.sh` both run;
+  `TYPST=/path/to/typst` overrides the binary the build calls. Ignoring system
+  fonts is what makes CI and a laptop produce the same PDF: Typst embeds its
+  own Libertinus / New Computer Modern / DejaVu Sans Mono, and anything else
+  ships with the deck under `fonts/`.
 - Generated MDX is host-agnostic (`/uploads/…` URLs); the site's `Figure`
   component and download links apply `NEXT_PUBLIC_BASE_PATH` at render time.
   Never bake the base path into generated content — it double-prefixes.

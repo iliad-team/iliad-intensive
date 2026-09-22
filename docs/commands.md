@@ -334,6 +334,7 @@ A worksheet folder may carry optional slide decks:
 ```
 tex/<slug>/slides.tex          # any self-contained LaTeX (usually beamer)
 tex/<slug>/slides-<label>.tex  # further decks — a day with more than one lecture
+tex/<slug>/slides.typ          # …or a deck written in Typst (same stems, .typ)
 ```
 
 - If `slides.tex` is present, the build compiles it to `slides.pdf` and hosts
@@ -350,6 +351,17 @@ tex/<slug>/slides-<label>.tex  # further decks — a day with more than one lect
   than one row, each is labelled from the deck's own `\title{}` (beamer's
   `\title[short]{long}` included); a lone deck stays unlabelled. A folder can
   also hold only `slides-<label>.tex` files and no `slides.tex`.
+- **Naming a deck's row.** When the decks share a `\title{}` and differ only
+  in `\subtitle{}`, the rows would all read the same. Open the deck with the
+  same comment block a worksheet uses and the row takes that title instead:
+  ```latex
+  %--- iliad ---
+  % title: 2. Predicting the future
+  %--- end ---
+  \documentclass[aspectratio=169]{beamer}
+  ```
+  `title:` is the only key a deck's block carries; the deck's `\title{}` is
+  still what beamer prints. Without the block the row falls back to `\title{}`.
 - **Handout variant.** A deck that mentions `\HANDOUT` opts into a second,
   collapsed build. Guard the reveals with it in the preamble:
   ```latex
@@ -382,6 +394,20 @@ tex/<slug>/slides-<label>.tex  # further decks — a day with more than one lect
   contract, no build step checks for it, and `tex/training-dynamics/slides.tex`
   uses the moloch theme with its own preamble instead. The example, AIXI and
   Solomonoff decks load it.
+- **Typst decks.** A deck written in [Typst](https://typst.app) uses the same
+  stems with a `.typ` extension — `slides.typ`, `slides-<label>.typ` — and is
+  built with one `typst compile`, no pdflatex ladder. Its row offers the PDF
+  and the `.typ` (labelled *Typst* where a LaTeX deck's says *LaTeX*); with
+  several decks on the page, its label is the deck's
+  `#set document(title: "…")`. No handout variant (Typst has no `\pause` to
+  collapse). One stem is one deck: `slides.tex` and `slides.typ` side by side
+  fail the build. Images live in `fig/` like everything else and are
+  referenced relatively (`#image("fig/diagram.svg")`). The build compiles with
+  `--ignore-system-fonts`, so a deck renders identically on CI and on your
+  laptop from the fonts Typst ships (Libertinus, New Computer Modern, DejaVu
+  Sans Mono); a deck that needs another face puts the `.ttf`/`.otf` in
+  `tex/<slug>/fonts/`, which the build passes as `--font-path`.
+  `./setup.sh` installs the pinned Typst binary (`scripts/install-typst.sh`).
 - Slides are **never** converted to MDX and have **no** `-nosol` variant (a
   deck is a download, not a web page).
 - No source, only a PDF deck? Don't commit the binary. Host it (e.g. Drive)
@@ -404,8 +430,8 @@ tex/<slug>/slides-<label>.tex  # further decks — a day with more than one lect
   %--- end ---
   ```
 - The build emits a non-fatal **warning** for any worksheet with no
-  `slides*.tex` (whether or not a `slides:` URL is set), in the full build and
-  `./run.sh ci` — not in the `--check` watch/pre-push loop.
+  `slides*.tex`/`slides*.typ` (whether or not a `slides:` URL is set), in the
+  full build and `./run.sh ci` — not in the `--check` watch/pre-push loop.
 - For a day with **no worksheet yet**, there is no frontmatter to hold a
   `slides:` URL — put it on the day itself in [`schedule.yaml`](../schedule.yaml)
   instead. It is a fallback only: once any of the day's worksheets offers a

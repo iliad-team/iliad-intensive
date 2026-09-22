@@ -108,7 +108,7 @@ name-of-my-material/
 ├── fig
 │   └── ... # figures
 ├── biblo.bib
-├── slides.tex   # optional slide deck — compiled to a hosted PDF
+├── slides.tex   # optional slide deck — compiled to a hosted PDF (or slides.typ, in Typst)
 ├── slides-<label>.tex   # further decks, for a day with more than one lecture
 └── main.[tex|mdx]
 ```
@@ -121,17 +121,20 @@ no PDF is produced for it.
 Slides are optional. Drop a `slides.tex` (any self-contained LaTeX — beamer is
 the usual choice; `iliad.sty` is *not* loaded for slides) in the folder and the
 build compiles it to a PDF hosted next to the worksheet — the page grows a
-**Slides** row (view / download the PDF, download the `.tex`). A day with more
-than one lecture adds `slides-<label>.tex` files beside it — each builds and
-gets its own row, `slides.tex` first and the rest in filename order. Slides are
-never converted to Markdown (a deck is a download, not a web page). If you'd
-rather not write a beamer preamble, `tex/iliad-slides.sty` is a ready-made one
-you can load — optional, nothing checks for it (see `docs/commands.md`). If a
-deck only exists as a PDF with no source, don't commit the binary — host it
-(Drive, etc.) and add a `slides:` line to the `%--- iliad ---` block (see
-below); it renders as an outbound link, in a row of its own alongside any
-compiled decks. The build prints a (non-fatal) warning for any worksheet with
-no `slides*.tex`.
+**Slides** row (view / download the PDF, download the `.tex`). A deck written in
+[Typst](https://typst.app) works the same way as `slides.typ`: one
+`typst compile`, the `.typ` offered for download in place of the `.tex`
+(`./setup.sh` installs the pinned Typst binary). A day with more
+than one lecture adds `slides-<label>.tex` (or `.typ`) files beside it — each
+builds and gets its own row, `slides.tex` first and the rest in filename order.
+Slides are never converted to Markdown (a deck is a download, not a web page).
+If you'd rather not write a beamer preamble, `tex/iliad-slides.sty` is a
+ready-made one you can load — optional, nothing checks for it (see
+`docs/commands.md`). If a deck only exists as a PDF with no source, don't commit
+the binary — host it (Drive, etc.) and add a `slides:` line to the
+`%--- iliad ---` block (see below); it renders as an outbound link, in a row of
+its own alongside any compiled decks. The build prints a (non-fatal) warning for
+any worksheet with no `slides*.tex`/`slides*.typ`.
 
 ## Start a worksheet
 

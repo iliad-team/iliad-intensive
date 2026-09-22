@@ -1,0 +1,19 @@
+% Editable conceptual diagram. The three histories have identical predictions.
+% This illustrates one causal state, not a claim that all pasts share a state.
+\begin{tikzpicture}[
+  x=1mm,y=1mm,
+  every node/.style={font=\small,text=iliadInk,align=center},
+  flow/.style={-{Stealth[length=2mm]},draw=iliadAccent,line width=0.6pt}
+]
+  \node (pastA) at (10,8) {Past A};
+  \node (pastB) at (10,0) {Past B};
+  \node (pastC) at (10,-8) {Past C};
+  \node[draw=iliadAccent,line width=0.6pt,inner sep=3mm,
+    minimum width=27mm,minimum height=13mm] (state) at (57,0)
+    {Same\\causal state};
+  \node (future) at (112,0) {Same distribution\\over futures};
+  \draw[flow] (pastA.east) -- node[midway,fill=white,inner sep=1pt] {$R_{\min}$} (state.west);
+  \draw[flow] (pastB.east) -- node[midway,fill=white,inner sep=1pt] {$R_{\min}$} (state.west);
+  \draw[flow] (pastC.east) -- node[midway,fill=white,inner sep=1pt] {$R_{\min}$} (state.west);
+  \draw[flow] (state.east) -- (future.west);
+\end{tikzpicture}

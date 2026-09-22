@@ -114,8 +114,12 @@ For more background, see \href{https://www.lesswrong.com/posts/HSDumToH57nSRdLST
 \textbf{Symbols used throughout.}
 \begin{itemize}\itemsep=2pt
   \item $\mathbb{B} = \{\texttt{0}, \texttt{1}\}$: the binary alphabet; $\mathbb{B}^*$ all finite binary strings; $\mathbb{B}^n$ length-$n$ strings.
-  \item $\epsilon$: the empty string. $x_{1:n} := x_1 x_2 \cdots x_n$; $x_{<t} := x_1 x_2 \cdots x_{t-1}$.
-  \item $X_{1:n}, X_{<t}$: the corresponding random variables.
+  \item $\epsilon$: the empty string. 
+  \item $xy$: string concatenation. if $x := x_{1:n}$ and $y := y_{1:m}$ then
+  $xy = x_1 \ldots x_n y_1 \ldots y_m$. 
+  \item $x_{i:j} := x_i x_{i+1} \ldots x_j$.
+  \item $x_{<t} := x_1 x_2 \cdots x_{t-1}$.
+  %\item $X_{1:n}, X_{<t}$: the corresponding random variables.
   \item $\nu, \rho$: generic environments / predictors. $\mu$: the true (unknown) environment generating the data. $\xi$: a Bayesian mixture of environments.
   \item $\Mc = \{\nu_1, \nu_2, \ldots\}$: a countable class of candidate environments.
   \item $w_\nu > 0$ with $\sum_{\nu \in \Mc} w_\nu = 1$: the prior over $\Mc$. $w(\nu \mid x_{<t})$: the posterior after observing $x_{<t}$.
@@ -127,12 +131,17 @@ For more background, see \href{https://www.lesswrong.com/posts/HSDumToH57nSRdLST
 \section{The mixture is a predictor}\label{prob:one_step}
 
 \begin{definition}[Environment]\label{def:environment}
-An \textbf{environment} $\nu$ assigns to each history $x_{<t} \in \mathbb{B}^*$ a predictive distribution $\nu(\cdot \mid x_{<t}) \in \Delta \mathbb{B}$ over the next symbol. The joint probability of a string is defined by the chain rule
+An \textbf{environment} $\nu$ assigns to each history $x_{<t} \in \mathbb{B}^*$ a predictive distribution $\nu(\cdot \mid x_{<t}) \in \Delta \mathbb{B}$ over the next symbol. The conditional joint probability of a string $x \in \mathbb{B}^*$, conditioned on $y \in \mathbb{B}^*$, is defined as
 \[
-\nu(x_{1:n}) ~:=~ \prod_{t=1}^{n} \nu(x_t \mid x_{<t}), \qquad \nu(\epsilon) := 1,
+\nu(x_{1:n} | y) ~:=~ \prod_{t=1}^{n} \nu(x_t \mid y x_{<t}), \qquad \nu(\epsilon) := 1.
 \]
-so that $\nu(x_{1:t}) = \nu(x_{<t}) \cdot \nu(x_t \mid x_{<t})$ and $\nu(x) = \nu(x\texttt{0}) + \nu(x\texttt{1})$ for all $x \in \mathbb{B}^*$. The true (unknown) environment generating the data is denoted $\mu$.
+The unconditional joint is defined as $\nu(x_{1:n}) := \nu(x_{1:n} \mid \epsilon)$.
+The true (unknown) environment generating the data is denoted $\mu$.
 \end{definition}
+
+\begin{remark}
+One can show that $\nu(x_{1:t}) = \nu(x_{<t}) \cdot \nu(x_t \mid x_{<t})$ and $\nu(x) = \nu(x\texttt{0}) + \nu(x\texttt{1})$ for all $x \in \mathbb{B}^*$. 
+\end{remark}
 
 \begin{definition}[Bayesian mixture $\xi$]\label{def:mixture}
 Let $\Mc = \{\nu_1, \nu_2, \dots\}$ be a countable class of environments with prior weights $w_\nu > 0$ satisfying $\sum_{\nu \in \Mc} w_\nu = 1$. The \textbf{Bayesian mixture} is defined as a prior-weighted mixture over all environments $\nu$ in $\Mc$:
@@ -286,7 +295,7 @@ The generalized chain rule (\cref{prob:chain_rule_gen_ex} with $p=1$, $q=t-1$, $
 \end{solution}
 
 %===================================
-\section{KL divergence}\label{prob:chain_rule}
+\section{KL divergence}\label{prob:kl_div}
 
 % Formal KL definitions are commented out: the worksheet only ever uses the
 % cumulative/per-step forms D_n and d_t (\cref{def:Dn}) below, never these
@@ -464,8 +473,8 @@ The next ingredient relates squared prediction error to KL divergence~\cite[Lemm
 We require the following inequality:
 
 \begin{theorem}[Pinsker's inequality]\label{thm:pinsker}
-Let $P$ and $Q$ be probability distributions over $\mathbb{B} = \{\texttt{0}, \texttt{1}\}$, i.e., $q_0, q_1 \geq 0$
-with $q_0 + q_1 = 1$. Write $p_x = P(x)$ and $q_x = Q(x)$. Then
+Let $P$ and $Q$ be probability distributions over $\mathbb{B} = \{\texttt{0}, \texttt{1}\}$, i.e., $p_0, p_1, q_0, q_1 \geq 0$
+with $p_0 + p_1 = 1$ and $q_0 + q_1 = 1$. Write $p_x = P(x)$ and $q_x = Q(x)$. Then
 \[
     \sum_{x \in \mathbb{B}} \big( q_x - p_x \big)^2 \;\leq\; \sum_{x \in \mathbb{B}} p_x \ln \frac{p_x}{q_x}.
     \tag{$\star$}
@@ -516,7 +525,7 @@ The proof is a three-step chain:
 
 \medskip
 \textit{Step (1): Pinsker, pointwise.}
-For each $t$ and $x_{<t}$, both $\mu(\cdot \mid x_{<t})$ and $\xi(\cdot \mid x_{<t})$ are probability distributions on $\mathbb{B}$ ($\xi$ by \cref{prob:one_step}), so \cref{thm:pinsker} gives
+For each $t$ and $x_{<t}$, both $\mu(\cdot \mid x_{<t})$ and $\xi(\cdot \mid x_{<t})$ are probability distributions on $\mathbb{B}$ ($\xi$ by \cref{prob:one_step_ex}), so \cref{thm:pinsker} gives
 \[
 \sum_{x_t} \bigl(\xi(x_t \mid x_{<t}) - \mu(x_t \mid x_{<t})\bigr)^2 \leq \sum_{x_t} \mu(x_t \mid x_{<t}) \,\ln \tfrac{\mu(x_t \mid x_{<t})}{\xi(x_t \mid x_{<t})}.
 \]
@@ -668,7 +677,7 @@ simplifies dramatically; bound it from below, then sum.
 
 \begin{solution}[prob:mistakes_ex]
 \textbf{Step 1: per-step squared error along the $\mu$-trajectory.}
-Because $\mu$ is deterministic, the outer sum over $x_{<t}$ in $d_t$ collapses
+Because $\mu$ is deterministic, the outer sum over $x_{<t}$ in $s_t$ collapses
 onto the unique trajectory $x_{<t}^* := x_1^* \cdots x_{t-1}^*$, with weight
 $\mu(x_{<t}^*) = 1$. Write $\xi_t := \xi(x_t^* \mid x_{<t}^*) \in [0,1]$ for the
 mass the mixture places on the \emph{correct} bit. Since $\mu$ assigns mass $1$
@@ -688,7 +697,7 @@ $1 - \xi_t \geq \xi_t$, i.e.\ $\xi_t \leq \tfrac12$. So at every mistake step,
 \]
 
 \textbf{Step 3: sum and apply the cumulative bound.}
-Let $N$ be the total number of mistakes. Summing $d_t$ over mistake steps
+Let $N$ be the total number of mistakes. Summing $s_t$ over mistake steps
 (non-negative contributions from non-mistake steps only help):
 \[
   \tfrac12 \cdot N
@@ -717,7 +726,7 @@ the mistakes happen. They could all occur at the start, or be arbitrarily far in
 %===================================
 \section{Pareto optimality under KL loss}\label{prob:kl}
 
-The final two sections establish that the Bayesian mixture $\xi$ is
+In \Cref{prob:kl} and \cref{prob:sq} we establish that the Bayesian mixture $\xi$ is
 \emph{uniquely Pareto-optimal} under both KL and squared prediction loss:
 no other predictor can do at least as well as $\xi$ on every environment
 $\nu \in \Mc$ without coinciding with $\xi$ entirely. 
@@ -1069,7 +1078,7 @@ We first prove the following lemma:
     = \int_q^p f'(x)\, dx
     = \int_q^p \frac{p-x}{x(1-x)}\, dx,
     \]
-    using $f_p'(x) = \frac{p}{x} - \frac{1-p}{1-x} = \frac{p-x}{x(1-x)}$. Recall also that $x(1-x) \leq \tfrac14$ on $[0,1]$, so $\frac{1}{x(1-x)} \geq 4$.
+    using $f'(x) = \frac{p}{x} - \frac{1-p}{1-x} = \frac{p-x}{x(1-x)}$. Recall also that $x(1-x) \leq \tfrac14$ on $[0,1]$, so $\frac{1}{x(1-x)} \geq 4$.
     
     \textbf{Case $q \leq p$.} For every $x \in [q,p]$ we have $x \leq p$, hence $p - x \geq 0$.
     \[
@@ -1084,7 +1093,7 @@ We first prove the following lemma:
     \[
     \frac{x-p}{x(1-x)} \;\geq\; 4(x-p) \qquad \text{for } x \in [p,q].
     \]
-    Integrating over $[q,p]$,
+    Integrating over $[p,q]$,
     \begin{align*}
     \int_q^p \frac{p-x}{x(1-x)}\, dx
     &= \int_p^q \frac{x-p}{x(1-x)}\, dx \\

@@ -5,7 +5,7 @@
  *
  * Stage contract: everything here is pure (no state, no I/O).
  */
-import { readOpt, readArg } from "./util.mjs";
+import { readOpt, readArg, readGroup } from "./util.mjs";
 
 // ---------------------------------------------------------------- macros ---
 // Author macros KaTeX can't take verbatim (optional args / \mathchoice / text
@@ -106,6 +106,79 @@ export const MATH_TRANSFORMS = [
     (m0, pre, spec) => `${pre}{${spec.replace(/@\{[^{}]*\}/g, "")}}`),
 ];
 export const applyMathShims = (m) => MATH_TRANSFORMS.reduce((acc, f) => f(acc), m);
+
+// ------------------------------------------------ brace-less math args ---
+// TeX lets a mandatory argument be a single token, so `\frac12` IS `\frac{1}{2}`
+// and `\sqrt23` is `\sqrt{2}3`. Authors write it constantly.
+//
+// unified-latex only splits a digit run into separate tokens where it parses in
+// MATH mode, and it does not count `aligned`, `gathered`, `cases`, `array` or
+// the `matrix` family as math environments. Inside those the run "12" stays ONE
+// string node, so the argument grabber swallows it whole and prints
+// `\frac{12}{&}` or `\frac{12}{\right}` — which then fails the KaTeX gate,
+// usually pointing at an equation nowhere near the real one. Top-level
+// `\[ … \]` and `split` happen to be fine, which is why this stayed hidden.
+//
+// Depending on which environments the parser happens to know is the fragile
+// part, so normalise the SOURCE instead: rewrite every brace-less mandatory
+// argument of these math macros into an explicit group, exactly as TeX reads
+// it. Idempotent — an already-braced argument is re-emitted unchanged — and
+// applied to the converter's in-memory copy only, never back to tex/.
+export const BRACELESS_ARG_MACROS = {
+  frac: 2, dfrac: 2, tfrac: 2, cfrac: 2,
+  binom: 2, dbinom: 2, tbinom: 2,
+  sqrt: 1,
+};
+
+// Regions that SHOW TeX rather than execute it: a \frac12 there is the point.
+const VERBATIM_RE =
+  /\\begin\{(verbatim\*?|lstlisting|alltt|minted)\}[\s\S]*?\\end\{\1\}|\\verb\*?(.)[\s\S]*?\2/g;
+
+function braceMathArgsSegment(s) {
+  let out = "", i = 0;
+  while (i < s.length) {
+    if (s[i] !== "\\") { out += s[i]; i++; continue; }
+    const m = /^\\([a-zA-Z]+)/.exec(s.slice(i));
+    const arity = m && BRACELESS_ARG_MACROS[m[1]];
+    if (arity) {
+      let j = i + m[0].length, opt = "", ok = true;
+      const o = readOpt(s, j);                 // \sqrt[3]{x}
+      if (o) { opt = `[${o.content}]`; j = o.end; }
+      const args = [];
+      for (let k = 0; k < arity; k++) {
+        let t = j; while (t < s.length && /\s/.test(s[t])) t++;
+        if (s[t] === "{") {                    // already a group — keep verbatim
+          const g = readGroup(s, t);
+          if (!g) { ok = false; break; }
+          args.push(g.content); j = g.end;
+        } else if (s[t] === "\\") {            // a control sequence is one token
+          const cs = /^\\([a-zA-Z]+\*?|.)/.exec(s.slice(t));
+          if (!cs || cs[0] === "\\\\") { ok = false; break; }
+          args.push(cs[0]); j = t + cs[0].length;
+        } else if (t < s.length && !"}]&$%^_~".includes(s[t])) {
+          args.push(s[t]); j = t + 1;          // exactly one character, as TeX
+        } else { ok = false; break; }          // no argument there to take
+      }
+      if (ok && args.length === arity) {
+        out += `\\${m[1]}${opt}${args.map((a) => `{${a}}`).join("")}`;
+        i = j; continue;
+      }
+    }
+    // not ours (or malformed): copy the escape through untouched
+    out += s[i] + (s[i + 1] ?? ""); i += 2;
+  }
+  return out;
+}
+
+export function braceMathArgs(src) {
+  let out = "", last = 0;
+  for (const m of src.matchAll(VERBATIM_RE)) {
+    out += braceMathArgsSegment(src.slice(last, m.index)) + m[0];
+    last = m.index + m[0].length;
+  }
+  return out + braceMathArgsSegment(src.slice(last));
+}
+
 
 // ------------------------------------------------------------ cross-refs ---
 // Printed name per cref type. Defaults are the capitalised type; a sheet's

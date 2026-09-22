@@ -219,8 +219,11 @@ never be staged.
 
 A worksheet folder holds every deck the day is taught from: `slides.tex`, plus
 `slides-<label>.tex` for each further lecture (a guest lecture, an afternoon
-session). Each compiles and gets its own Slides row, `slides.tex` first and the
-rest in filename order. A hosted `slides:` URL is a row too — listed first,
+session). A deck the author wrote in Typst keeps the same stem as `.typ`
+(`slides.typ`) and is built and listed the same way — port it verbatim, its
+images into `fig/`, and repoint only the `#image()` paths (see
+`docs/commands.md` §Slides). Each compiles and gets its own Slides row,
+`slides.tex` first and the rest in filename order. A hosted `slides:` URL is a row too — listed first,
 never superseded — so a day whose main lecture is a Google Slides deck and whose
 guest lecture has LaTeX source keeps one page: `slides:` for the former,
 `slides-<label>.tex` for the latter. Give `slides:` a `title:` (write it as
@@ -264,7 +267,7 @@ slides matter, open the folder and look.
 ## Build and preview
 
     node scripts/build-content.mjs --check <slug>    # converter + KaTeX gate, no PDFs
-    node scripts/build-content.mjs <slug>            # full: PDFs + downloads
+    node scripts/build-content.mjs <slug>            # full: PDFs + downloads (+ every deck, .tex or .typ)
 
 Must exit 0, with no WARN and a green KaTeX render gate. Iterate on failures by
 adjusting scaffolding/preamble only.

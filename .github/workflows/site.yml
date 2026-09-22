@@ -289,6 +289,21 @@ jobs:
           # (scripts/build-content.mjs).
           # contributor LaTeX is untrusted: never enable shell-escape
 
+      # Typst, for decks written as tex/<slug>/slides*.typ. One pinned static
+      # binary, checksum-verified by scripts/install-typst.sh (the same script
+      # ./setup.sh runs). Cached on that script's hash: bumping the version
+      # there re-keys the cache by itself. Not apt — Ubuntu 24.04 has no
+      # typst package.
+      - name: Restore Typst
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/bin/typst
+          key: typst-${{ runner.os }}-${{ hashFiles('scripts/install-typst.sh') }}
+      - name: Typst
+        run: |
+          scripts/install-typst.sh "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22

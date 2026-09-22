@@ -84,7 +84,7 @@ The book provides fuller explanations, additional context, and proofs omitted he
 
 \medskip
 \noindent
-\textbf{Difficulty ratings.} Each subproblem is tagged with a rating in square brackets using Knuth's scale \cite{Knuth:73a}: roughly, \textbf{[00]}~trivial, \textbf{[10]}~15--minute pencil-and-paper, \textbf{[20]}~1--2~hours, \textbf{[30]}~several hours to a day, \textbf{[40]}~a significant research result. Intermediate values are possible. See \cref{sec:appendix_difficulty} for the full scale. 
+\textbf{Difficulty ratings.} Each subproblem is tagged with a rating in square brackets using Knuth's scale \cite{Knuth:73a}: roughly, \textbf{[00]}~trivial, \textbf{[10]}~15-minute pencil-and-paper, \textbf{[20]}~1--2~hours, \textbf{[30]}~several hours to a day, \textbf{[40]}~a significant research result. Intermediate values are possible. See \cref{sec:appendix_difficulty} for the full scale. 
 
 Problems marked \textbf{($\ast$)} are less interesting/insightful, and while the result may be used later, I would recommend skipping them on a first pass.
 
@@ -195,6 +195,7 @@ An \textbf{agent} interacts with an \textbf{environment} in discrete time steps 
     \item $\cE := \cO \times \cR$: set of \textbf{percepts}; $e_t = (o_t, r_t) \equiv o_tr_t$
     \item $\cH^t := (\cA \times \cE)^t$: set of all histories of length $t$
     \item $\cH^* := \cup_{t=0}^\infty \cH^t$: set of all finite \textbf{histories}
+    \item $\cH \equiv \cH^*$: set of all finite histories
     \item $\cH^\infty := (\cA \times \cE)^\infty$: set of all infinite histories
     \item $\Delta S$: set of all probability distributions over set $S$
     \item $\llbracket \cdot \rrbracket$: \textbf{Iverson bracket}: $\llbracket P \rrbracket = 1$ if $P$ is true, $0$ if false
@@ -1165,7 +1166,7 @@ Probabilities of such events are uniquely determined by two properties:
 From these, all standard rules of probability can be derived (e.g.\ $\nu^\pi(A \cup B) = \nu^\pi(A) + \nu^\pi(B) - \nu^\pi(A \cap B)$, etc.), though we will not prove them here. Two derived properties we use explicitly:
 \begin{itemize}\itemsep=2pt
     \item \textbf{Complement:} $\nu^\pi(A^c) = 1 - \nu^\pi(A)$.
-    \item \textbf{Monotone limits:} if $A_1 \subseteq A_2 \subseteq \cdots$, then $\nu^\pi\!\big(\bigcup_{n=1}^\infty A_n\big) = \lim_{n \to \infty} \nu^\pi(A_n)$.
+    \item \textbf{Monotone limits:} if $A_1 \supseteq A_2 \supseteq \cdots$, then $\nu^\pi\!\big(\bigcap_{n=1}^\infty A_n\big) = \lim_{n \to \infty} \nu^\pi(A_n)$.
 \end{itemize}
 Further useful notions:
 \begin{itemize}\itemsep=2pt
@@ -1252,7 +1253,7 @@ For any $\mu \in \cM$ and any policy $\pi$:
 $V_\xi^\pi(\aes_{<t}) - V_\mu^\pi(\aes_{<t}) \to 0$ as $t \to \infty$, $\mu^\pi$-almost surely.
 That is, the set of infinite histories along which the value difference does not vanish has $\mu^\pi$-probability zero:
 \[
-    \mu^\pi\!\Big(\Big\{\aes_{1:\infty} : \lim_{t \to \infty} \big(V_\xi^\pi(\aes_{<t}) - V_\mu^\pi(\aes_{<t})\big) \neq 0\Big\}\Big) = 0.
+    \mu^\pi\!\Big(\Big\{\aes_{1:\infty} : V_\xi^\pi(\aes_{<t}) - V_\mu^\pi(\aes_{<t}) \not\to 0\Big\}\Big) = 0.
 \]
 \end{theorem}
 
@@ -1894,8 +1895,6 @@ Each subproblem carries a difficulty rating in square brackets, following Knuth'
     \item[\textbf{[40]}] \emph{Quite difficult or lengthy.} Often a significant research result.
     \item[\textbf{[50]}] \emph{Open research problem.} An obtained solution should be published.
 \end{itemize}
-
-Problems marked \textbf{($\ast$)} are enrichment: they are off the critical path to the three main results (\cref{thm:on_policy}, \cref{thm:cant_be_fooled}, \cref{thm:selfopt}) and can be skipped on a first pass without loss of continuity.
 
 
 \clearpage

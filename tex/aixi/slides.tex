@@ -5,11 +5,11 @@
 %
 % Build: pdflatex -> bibtex -> pdflatex -> pdflatex (bibtex needed for the
 %        References frame; CI's latexmk runs this automatically).
-%        pdflatex -interaction=nonstopmode -halt-on-error si_and_aixi_slides.tex
+%        pdflatex -interaction=nonstopmode -halt-on-error slides.tex
 %
 % Pause behaviour: the default build keeps the \pause reveals (presentation).
 % Define \HANDOUT to collapse them into a static handout, e.g.
-%   pdflatex "\def\HANDOUT{}\input{si_and_aixi_slides}"
+%   pdflatex "\def\HANDOUT{}\input{slides}"
 %   latexmk  ... -usepretex=\def\HANDOUT{}        (used by CI)
 
 \ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
@@ -43,7 +43,7 @@
 %===============================================================================
 \begin{document}
 
-\title[AIXI: a speedrun]{Universal AI: AIXI}
+\title[AIXI: a speedrun]{[D.3.2] Universal AI: AIXI}
 \author[David Quarel]{David Quarel}
 \institute[Iliad Intensive]{Iliad Intensive}
 \date{June 2026}
@@ -164,10 +164,10 @@ The \textbf{optimal value} is $V_\nu^{*,m}(\aes_{<t}) := \sup_\pi V_\nu^{\pi,m}(
 
 \begin{frame}{AIXI}
 \begin{block}{AIXI}
-$\pi_\xi^*$ with $\cM=$ all lower-semicomputable environments and prior $w_\nu = 2^{-K(\nu)}$.
+$\pi_\xi^*$ with $\cM=$ all $\approx$computable environments\footnote{lower-semicomputable semi-measures} and prior $w_\nu = 2^{-K(\nu)}$.
 Write $\xi_U$ for $\xi$ with this choice of $\cM$ and $w_\nu$, so \text{AIXI} = $\pi_{\xi_U}^*$.
 \end{block}
-\textbf{Intuition:} \emph{The Bayes-optimal agent with prior according to Occam's razor: Act optimally according
+\textbf{Intuition:} \emph{Act optimally according
 to environments that you believe to be in, assuming the simplest environments consistent with
 observations are more likely to be true.}
 \pause
@@ -201,27 +201,27 @@ $}
 % \textbf{Caveat:} $V_\xi^*$ (optimal value) is only \emph{convex}, not linear --- one policy must do well across all $\nu$ at once. (E.g.\ predicting a two-headed vs.\ two-tailed coin: each is trivial alone, the mixture is a fair coin.)
 % \end{frame}
 
-\begin{frame}{The three main AIXI results}
-\begin{center}
-\begin{tikzpicture}[
-    node distance=3mm and 28mm,
-    box/.style={draw, rounded corners, align=center, font=\normalsize, inner sep=7pt, minimum height=14mm, minimum width=34mm},
-    main/.style={box, thick, double, fill=blue!5},
-    arr/.style={-{Stealth}, line width=0.8pt}
-]
-\node[box] (f) {\textbf{Foundations} \\ measures, mixture,\\ optimal policies,\\ dominance, linearity};
-\node[main, above right=3mm and 28mm of f] (r1) {\textbf{On-policy convergence}\\ $V_\xi^\pi - V_\mu^\pi \to 0$};
-\node[main, right=28mm of f] (r2) {\textbf{Can't be fooled}\\ good env $\Rightarrow$ good value};
-\node[main, below right=3mm and 28mm of f] (r3) {\textbf{Self-optimizing}\\ $\pi_\xi^*$ acts as well\\ as if it knew $\mu$};
-\draw[arr] (f) -- (r1);
-\draw[arr] (f) -- (r2);
-\draw[arr] (f) -- (r3);
-\end{tikzpicture}
-\end{center}
-\begin{itemize}
-    \item All three: the Bayesian agent inherits the guarantees it would have if it knew the truth.
-\end{itemize}
-\end{frame}
+% \begin{frame}{The three main AIXI results}
+% \begin{center}
+% \begin{tikzpicture}[
+%     node distance=3mm and 28mm,
+%     box/.style={draw, rounded corners, align=center, font=\normalsize, inner sep=7pt, minimum height=14mm, minimum width=34mm},
+%     main/.style={box, thick, double, fill=blue!5},
+%     arr/.style={-{Stealth}, line width=0.8pt}
+% ]
+% \node[box] (f) {\textbf{Foundations} \\ measures, mixture,\\ optimal policies,\\ dominance, linearity};
+% \node[main, above right=3mm and 28mm of f] (r1) {\textbf{On-policy convergence}\\ $V_\xi^\pi - V_\mu^\pi \to 0$};
+% \node[main, right=28mm of f] (r2) {\textbf{Can't be fooled}\\ good env $\Rightarrow$ good value};
+% \node[main, below right=3mm and 28mm of f] (r3) {\textbf{Self-optimizing}\\ $\pi_\xi^*$ acts as well\\ as if it knew $\mu$};
+% \draw[arr] (f) -- (r1);
+% \draw[arr] (f) -- (r2);
+% \draw[arr] (f) -- (r3);
+% \end{tikzpicture}
+% \end{center}
+% \begin{itemize}
+%     \item All three: the Bayesian agent inherits the guarantees it would have if it knew the truth.
+% \end{itemize}
+% \end{frame}
 
 \begin{frame}{Result 1: On-policy value convergence}
 \begin{block}{Theorem}
@@ -230,13 +230,13 @@ For any $\mu\in\cM$ and any policy $\pi$,
 V_\xi^\pi(\aes_{<t}) - V_\mu^\pi(\aes_{<t}) \;\to\; 0 \qquad \mu^\pi\text{-almost surely}.
 \]
 \end{block}
-\textbf{Intuition:} \emph{A policy that acts, pretending the environment is $\xi$, 
-will eventually act as well as if it were in the true environment $\mu$.}
+\textbf{Intuition:} \emph{Following policy $\pi$, pretending the environment is $\xi$, 
+eventually will act as if we knew the true environment $\mu$}.
 \end{frame}
 
 \begin{frame}{Result 2: AIXI can't be fooled}
 \begin{block}{Theorem (deterministic $\mu$)}
-If the truth is reachable-good, $V_\mu^*(\aes_{<t}) > \varepsilon$ along the played history, then
+If $V_\mu^*(\aes_{<t}) > \varepsilon$ along history $\aes_{<t}$, then
 \[
 V_\xi^*(\aes_{<t}) \;\geq\; w_\mu\,\varepsilon \;>\; 0 .
 \]
@@ -272,8 +272,7 @@ V_\mu^*(\aes_{<t}) - V_\mu^{\pi_\xi^*}(\aes_{<t}) \to 0 \quad \mu^\pi\text{-a.s.
 %     \item \textbf{Change of measure} (Markov inequality) transfers convergence between $\nu$ and $\mu$.
 % \end{itemize}
 % \pause
-\textbf{Intuition:} \emph{The Bayes-optimal agent that is unaware of which environment it is in learns to act
-just as well as the best possible policy that already knows which environment it is in ($\mu$).}
+\textbf{Intuition:} \emph{AIXI learns to play as well as the optimal agent that knows the true environment $\mu$.}
 \end{frame}
 
 %========================= WRAP-UP ============================================
@@ -306,13 +305,15 @@ just as well as the best possible policy that already knows which environment it
     \item \textbf{AIXI} lifts this to action: the Bayes-optimal policy over the same universal mixture.
     It learns to predict \emph{and} to act as well as if it knew the world.
     \pause
-    \item \textbf{The catch:} both are \emph{incomputable} ($K$ is incomputable; $\cM$ is intractable to enumerate).
+    \item \textbf{The catch:} both are \emph{incomputable} ($K$ is incomputable; $\cM$ is intractable to enumerate, the expectimax is intractable).
     They are gold standards, not computable algorithms, and the prior's $2^{-K(\nu)}$ hides a dependency
     on the choice of universal Turing machine.
     \pause
     \item \textbf{Why care for safety:} a precise, assumption-light model of idealized 
     intelligence providing a lens on what optimal agents do. For example, we
     can show under what circumstances AIXI would \href{https://people.idsia.ch/~ring/AGI-2011/Paper-B.pdf}{wirehead}~\citev{Ring:11delusion},
+    \item \textbf{Approximations:} \href{https://arxiv.org/abs/0909.0801}{MC-AIXI-CTW}~\citev{Veness:11mcaixi} gives an approximation using Context Tree Weighting to
+    replace $\xi$ and Monte-Carlo-Tree-Search to replace the expectimax. 
     \href{https://arxiv.org/pdf/2006.03357}{safely rather than recklessly explore}~\citev{Cohen:20curiosity}, or
     \href{https://link.springer.com/chapter/10.1007/978-3-642-22887-2_1}{self-modify}~\citev{Orseau:11selfmod}
     as a model of what superintelligent agents would do.

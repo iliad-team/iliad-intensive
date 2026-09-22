@@ -112,6 +112,46 @@ is gone on the next deploy, taking the domain with it. `public/` is copied to th
 root of `out/`, so keeping it in the repo re-stages it every time. **Don't delete
 `public/CNAME`.**
 
+## The diff view
+
+Every preview page's banner has a **diff vs main** checkbox. Ticked, the
+article splits into two columns — the live site's version on the left, the
+PR's on the right — with differences marked like a git diff: removed blocks
+red, added blocks green, edited blocks tinted with the changed words marked
+inside (an inline formula counts as one word). Matched blocks are padded into
+shared rows, so a removed paragraph faces a hatched blank on the other side and
+the two columns scroll together by construction; **sync scroll** off gives each
+column its own scrollbar instead. Solutions that contain a change are opened.
+
+It is `public/diff.js` (vanilla, like `site.js`) plus the controls in
+`PreviewBanner.tsx`, and only preview builds load it. The base version is
+simply fetched from the same path at the site root — production and every
+preview share one origin — so no build step and no extra deploy artifact are
+involved. If the page does not exist on main yet the fetch 404s and the
+checkbox disables itself with a note. The comparison is against what is
+**deployed**, not main's HEAD: they differ only between a merge and its deploy.
+
+Blocks are matched by content (a display equation by its TeX source), so a
+renumbered exercise counts as an edit to its heading line — that is what the
+merge would change on the page, so it is shown.
+
+### Trying it locally
+
+A local build can diff against production, which sends
+`access-control-allow-origin: *`:
+
+```sh
+node scripts/build-content.mjs <slug>
+NEXT_PUBLIC_PREVIEW_PR=local NEXT_PUBLIC_DIFF_BASE=https://iliad-intensive.org \
+  PREVIEW_ONLY=<slug> npx next build && node scripts/strip-hydration.mjs
+python3 -m http.server 4499 --directory out     # then open /<cluster>/<slug>/
+```
+
+`NEXT_PUBLIC_PREVIEW_PR=local` (anything non-numeric) shows the banner as
+"Local preview build" with no PR link; `NEXT_PUBLIC_DIFF_BASE` is where the
+base pages are fetched from, empty (the default, and what CI uses) meaning this
+origin's root.
+
 ## Fork PRs
 
 On a `pull_request` event from a fork, `GITHUB_TOKEN` is read-only no matter
