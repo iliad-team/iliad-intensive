@@ -1,0 +1,17 @@
+% Edge-emitting Zero--One--Random generator with Bernoulli(p) random phase.
+% Editable diagram; labels have the form emitted symbol : edge probability.
+\begin{tikzpicture}[
+  every node/.style={text=iliadInk,font=\normalsize},
+  state/.style={circle,draw=iliadAccent,line width=0.9pt,
+    fill=iliadAccent!7,minimum size=9mm,inner sep=1pt},
+  flow/.style={-{Stealth[length=2.2mm]},draw=iliadAccent,line width=0.9pt}
+]
+  \node[state] (zero) at (0,0) {$0$};
+  \node[state] (one) at (3.3,0) {$1$};
+  \node[state] (random) at (6.6,0) {$R$};
+  \draw[flow] (zero) -- node[above] {$0:1$} (one);
+  \draw[flow] (one) -- node[above] {$1:1$} (random);
+  \draw[flow] (random.north)
+    .. controls +(0,0.8) and +(0,0.8) ..
+    node[above] {$0:1-p,\quad 1:p$} (zero.north);
+\end{tikzpicture}

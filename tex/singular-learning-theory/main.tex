@@ -264,7 +264,7 @@ somewhat comfortable with deep learning and Bayesian inference, skip
         To understand parameter--function map versus loss landscape degeneracy:
         Read \cref{sec:degeneracy:definition} and complete
         \cref{ex:univariate-degeneracy,ex:cubic-degeneracy}.
-        Complete either \cref{ex:dln-degeneracy} or \ref{ex:mlp-degeneracy}.
+        Complete either \cref{ex:dln-degeneracy} or \cref{ex:mlp-degeneracy}.
         Read \cref{sec:degeneracy:hessian} and complete your choice of
             \cref{ex:loss-landscape-degeneracy} and/or \cref{ex:fim-hessian}.
     \item
@@ -423,7 +423,7 @@ tutorial, include the following:
         The \textbf{hyperbolic tangent} function
             $\displaystyle \tanh(z) = \frac{e^z-e^{-z}}{e^z + e^{-z}}$.
     \item
-        The \textbf{rectified linear unit (ReLU)} function $\relu(z) = \max\{0, z\}$.
+        The \textbf{rectified linear unit (ReLU)} function $\relu(z) = \max(z, 0)$.
 \end{enumerate}
 This results in the following non-linear neural network architecture.
 

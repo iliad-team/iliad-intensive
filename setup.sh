@@ -43,6 +43,14 @@ else
 fi
 
 echo
+echo "== Typst (slide decks written as slides*.typ) =="
+# One pinned, checksum-verified static binary — scripts/install-typst.sh is
+# the single definition CI uses too. Not apt: Ubuntu 24.04 has no typst
+# package. Into /usr/local/bin so it is on PATH for every shell and for the
+# build without any profile edits.
+sudo scripts/install-typst.sh /usr/local/bin
+
+echo
 echo "== Node >= 20.9 via nvm =="
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 if [ ! -s "$NVM_DIR/nvm.sh" ]; then

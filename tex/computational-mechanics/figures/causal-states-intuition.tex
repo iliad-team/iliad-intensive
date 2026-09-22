@@ -1,0 +1,62 @@
+% Different histories with the same predictive distribution form one causal state.
+\begingroup
+\definecolor{tokenBlue}{HTML}{6E9ECC}
+\definecolor{tokenGold}{HTML}{E2B857}
+\definecolor{tokenCoral}{HTML}{D97D68}
+\definecolor{tokenTeal}{HTML}{5DA7A0}
+\definecolor{tokenPurple}{HTML}{9B83B5}
+\begin{tikzpicture}[
+  x=0.92cm,y=0.92cm,
+  every node/.style={font=\small,text=iliadInk,align=center},
+  flow/.style={-{Stealth[length=2.2mm]},draw=iliadAccent,line width=0.9pt},
+  token/.style={draw=white,line width=0.7pt},
+  law/.style={draw=iliadInk,line width=0.65pt}
+]
+  \node[font=\small\bfseries] at (1.55,5.0) {Past (sequences)};
+  \node[font=\small\bfseries] at (6.5,5.0) {Future (distribution)};
+  \node[font=\small\bfseries] at (11.9,5.0) {Causal state};
+
+  % Four histories: each is a single colour, with width indicating length.
+  \node[anchor=east] at (0,4.00) {$x$};
+  \filldraw[law,fill=tokenCoral] (0.15,3.76) rectangle (3.30,4.24);
+
+  \node[anchor=east] at (0,3.00) {$x'$};
+  \filldraw[law,fill=tokenTeal] (0.85,2.76) rectangle (3.30,3.24);
+
+  \node[anchor=east] at (0,2.00) {$x''$};
+  \filldraw[law,fill=tokenPurple] (0.45,1.76) rectangle (3.30,2.24);
+
+  \node[anchor=east] at (0,1.00) {$x'''$};
+  \filldraw[law,fill=tokenGold] (1.15,0.76) rectangle (3.30,1.24);
+
+  \draw[dashed,draw=iliadMuted,line width=0.7pt] (3.58,0.52) -- (3.58,4.48);
+  \node[font=\scriptsize,text=iliadMuted,rotate=90] at (3.78,2.50) {now};
+
+  % Identical blocks represent the same full predictive distribution.
+  \foreach \yy in {4.00,3.00,2.00,1.00} {
+    \draw[flow] (3.92,\yy) -- (4.42,\yy);
+    \filldraw[law,fill=tokenBlue] (4.55,\yy-0.24) rectangle (8.35,\yy+0.24);
+  }
+
+  % The common future law identifies the histories as members of one class.
+  \draw[iliadAccent,line width=0.9pt] (8.65,0.76) -- (8.65,4.24);
+  \draw[iliadAccent,line width=0.9pt] (8.45,0.76) -- (8.65,0.76);
+  \draw[iliadAccent,line width=0.9pt] (8.45,4.24) -- (8.65,4.24);
+  \draw[flow] (8.65,2.50) -- (9.55,2.50);
+
+  \path[fill=iliadAccent!7,draw=iliadAccent,line width=1pt]
+    (9.72,2.50)
+      .. controls (9.55,3.72) and (10.25,4.48) .. (11.35,4.42)
+      .. controls (12.50,4.62) and (13.72,3.90) .. (13.72,2.50)
+      .. controls (13.92,1.10) and (12.92,0.18) .. (11.72,0.30)
+      .. controls (10.52,0.10) and (9.58,1.08) .. (9.72,2.50) -- cycle;
+
+  % Copies of the histories collected inside the causal-state boundary.
+  \filldraw[law,fill=tokenCoral]  (10.42,3.48) rectangle (12.53,3.82);
+  \filldraw[law,fill=tokenTeal]   (10.85,2.63) rectangle (12.49,2.97);
+  \filldraw[law,fill=tokenPurple] (10.61,1.78) rectangle (12.52,2.12);
+  \filldraw[law,fill=tokenGold]   (11.05,0.93) rectangle (12.50,1.27);
+  \node[font=\footnotesize\bfseries] at (11.72,-0.18)
+    {$\epsilon(x)=\epsilon(x')=\epsilon(x'')=\epsilon(x''')$};
+\end{tikzpicture}
+\endgroup

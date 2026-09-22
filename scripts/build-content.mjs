@@ -40,7 +40,8 @@ import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, copyFi
 import YAML from "yaml";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { injectAutoLabels } from "./tex2mdx/autolabel.mjs";
+import { injectAutoLabelsTree } from "./tex2mdx/autolabel.mjs";
+import { transformInputTree } from "./tex2mdx/texinput.mjs";
 import { frontMatterOrderIssues } from "./tex2mdx/util.mjs";
 import { buildStatus } from "./build-status.mjs";
 import { loadSchedule, ScheduleError } from "./schedule.mjs";
@@ -54,7 +55,7 @@ const CONVERTER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx.mjs");
 const CHECKER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx-check.mjs");
 // Generated MDX is host-agnostic: figure URLs are plain /uploads/… paths.
 // The site's Figure component applies NEXT_PUBLIC_BASE_PATH at render time —
-// prefixing here too would double it (…/iliad-intensive/iliad-intensive/…).
+// prefixing here too would double it (…/pr-preview/pr-N/pr-preview/pr-N/…).
 
 const args = process.argv.slice(2);
 const CHECK_ONLY = args.includes("--check");
@@ -76,9 +77,9 @@ const JOBS = Math.max(1, parseInt(args.includes("--jobs") ? args[args.indexOf("-
 // positional args are worksheet slugs; none = build everything
 const wanted = [];
 for (let i = 0; i < args.length; i++) {
-  if (args[i] === "--check" || args[i] === "--no-gate" || args[i] === "--no-cache") continue;
+  if (args[i] === "--check" || args[i] === "--no-gate" || args[i] === "--no-cache" || args[i] === "--quiet") continue;
   if (args[i] === "--jobs") { i++; continue; }
-  if (args[i].startsWith("-")) { console.error(`unknown flag ${args[i]} — usage: build-content.mjs [--check] [--no-gate] [--no-cache] [--jobs N] [slug ...]`); process.exit(1); }
+  if (args[i].startsWith("-")) { console.error(`unknown flag ${args[i]} — usage: build-content.mjs [--check] [--no-gate] [--no-cache] [--quiet] [--jobs N] [slug ...]`); process.exit(1); }
   wanted.push(args[i]);
 }
 
@@ -220,12 +221,19 @@ const stripMdxSolutions = (mdx) => {
 // build-status.mjs) reads the generated MDX, so it sees the schedule's answer
 // and cannot disagree with it. An unscheduled sheet — the unlisted format demo
 // — keeps whatever its own frontmatter says.
+// Both values are QUOTED. Cluster "0" (Foundations) and its day "0" are
+// numbers to YAML otherwise, and the site reads these back as strings: a
+// numeric 0 is falsy, so clusterUrlSlug() fell through to its "no cluster"
+// branch and generated the page at /page/<slug>/ while every link to it pointed
+// at /foundations/<slug>/ — a 404 on a statically exported site.
+const stampLines = (sc) => `---\ncluster: "${sc.cluster}"\nday: "${sc.day}"\n`;
+
 const stampSchedule = (mdxOut, slug) => {
   const sc = SCHEDULE.bySlug.get(slug);
   if (!sc) return;
   const raw = readFileSync(mdxOut, "utf8");
   if (!raw.startsWith("---\n")) return;   // no frontmatter: the render gate's problem
-  writeFileSync(mdxOut, `---\ncluster: ${sc.cluster}\nday: ${sc.day}\n${raw.slice(4)}`);
+  writeFileSync(mdxOut, stampLines(sc) + raw.slice(4));
 };
 
 // ---------------------- per-worksheet build cache ---------------------------
@@ -240,12 +248,67 @@ const stampSchedule = (mdxOut, slug) => {
 // whole scripts/ tree counts, not just the converter, and schedule.yaml counts
 // because it is stamped into the MDX. `--no-cache` forces a full rebuild.
 const NO_CACHE = args.includes("--no-cache");
+// CLAUDE: --quiet suppresses the one-line success summary. The watch loop passes
+//   it, because it prints its own "refresh the browser" line straight after and
+//   two summaries for one rebuild is one too many.
+const QUIET = args.includes("--quiet");
 
 // Artifacts share tex/<slug>/ with sources, so top-level generated files are
 // excluded by extension (fig/ is all source, including its .pdf figures, and is
 // hashed whole). Anything not listed here counts as an input by default.
 const ARTIFACT_EXT = /\.(pdf|aux|log|out|toc|nav|snm|bbl|blg|fls|fdb_latexmk|synctex\.gz)$/i;
+// Overfull \hbox reports in a worksheet's main.log, attributed to source
+// file:line. TeX names only the line; the file comes from the log's
+// parenthesised open/close trail, walked with a stack after re-joining the
+// log at its 79-column wraps. Every "(" pushes (most are files, some are
+// prose — they balance) and every ")" pops; the report names the innermost
+// .tex on the stack, with an autolabel copy mapped back to its source. Both
+// TeX phrasings are caught: "detected at line N" (a display, a box) and
+// "in paragraph at lines A--B" (running text, reported at A).
+function overfullBoxes(logPath) {
+  const raw = readFileSync(logPath, "latin1");
+  const text = raw.split("\n").reduce((acc, l) => acc + l + (l.length === 79 ? "" : "\n"), "");
+  const stack = [];
+  const out = [];
+  const re = /Overfull \\hbox \(([\d.]+)pt too wide\) (?:in paragraph|detected) at lines? (\d+)|\(([^\s()]*)|(\))/g;
+  for (let m; (m = re.exec(text)); ) {
+    if (m[1]) {
+      const file = [...stack].reverse().find((f) => /\.tex$/.test(f)) ?? "main.tex";
+      out.push({ file: file.replace(/^\.\//, "").replace(/\.autolabel\.tex$/, ".tex"), line: Number(m[2]), pt: Number(m[1]) });
+    } else if (m[4]) stack.pop();
+    else stack.push(m[3]);
+  }
+  return out;
+}
+
 const ARTIFACT_NAME = new Set(["main.autolabel.tex", "main-nosol.tex", "main-nosol.mdx", ".build-hash"]);
+
+// The decks a worksheet folder ships. `slides.tex` is the deck every folder has
+// had so far; a day with more than one lecture adds `slides-<label>.tex` beside
+// it (label: lowercase letters, digits, hyphens). Each compiles and is staged on
+// its own as <slug>-<stem>.pdf + its source, and the page shows one Slides row
+// per deck: slides.tex first, then the rest in filename order — that order is
+// the only sequencing there is, so name a second deck with it in mind. A stem
+// may not end in -handout: that suffix belongs to the collapsed build, and
+// slides-foo-handout.pdf has to mean "the handout of slides-foo".
+//
+// A deck is LaTeX (.tex, the pdflatex ladder below) or Typst (.typ, one
+// `typst compile`); the stem is what names it, so slides.tex and slides.typ in
+// one folder is a clash the build refuses rather than picks between.
+const DECK_RE = /^(slides(?:-[a-z0-9][a-z0-9-]*)?)\.(tex|typ)$/;
+const deckSources = (dir) => {
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir)
+    .map((f) => DECK_RE.exec(f))
+    .filter((m) => m && !m[1].endsWith("-handout"))
+    .map((m) => ({ file: m[0], stem: m[1], ext: m[2] }))
+    .sort((a, b) => (a.stem === "slides" ? -1 : b.stem === "slides" ? 1 : a.stem.localeCompare(b.stem)));
+};
+
+// Typst: a single static binary, pinned + checksum-verified by
+// scripts/install-typst.sh (CI runs it; so does ./setup.sh). Override the
+// binary with TYPST=/path/to/typst.
+const TYPST = process.env.TYPST ?? "typst";
 
 const hashPath = (h, p) => {
   if (!existsSync(p)) return;
@@ -312,9 +375,11 @@ const restampIfMoved = (slug) => {
   const raw = readFileSync(mdxOut, "utf8");
   const m = STAMP_RE.exec(raw);
   if (!m) return false;                        // never stamped; not ours to fix
-  if (m[1] === String(sc.cluster) && m[2] === String(sc.day)) return false;
+  // Compare the rendered block, not the captures, so a stamp left unquoted by
+  // an older build is brought into line as well as one naming the wrong day.
+  if (m[0] === stampLines(sc)) return false;
 
-  const updated = `---\ncluster: ${sc.cluster}\nday: ${sc.day}\n` + raw.slice(m[0].length);
+  const updated = stampLines(sc) + raw.slice(m[0].length);
   writeFileSync(mdxOut, updated);
   const dl = path.join(DOWNLOADS, slug);
   if (existsSync(dl)) {
@@ -339,7 +404,7 @@ const outputsPresent = (slug) => {
     need.push(path.join(dl, `${slug}.pdf`), path.join(dl, `${slug}-nosol.pdf`),
               path.join(dl, `${slug}.tex`), path.join(dl, `${slug}-nosol.tex`));
   }
-  if (existsSync(path.join(TEX, slug, "slides.tex"))) need.push(path.join(dl, `${slug}-slides.pdf`));
+  for (const d of deckSources(path.join(TEX, slug))) need.push(path.join(dl, `${slug}-${d.stem}.pdf`));
   if (!need.every(existsSync)) return false;
   // Anchored on the slug, because this build only ever writes figures to
   // public/uploads/<slug>/. A bare /uploads/ match would also hit external URLs
@@ -366,8 +431,11 @@ async function buildSlug(slug) {
     if (ok && !CHECK_ONLY) { try { writeFileSync(stamp, inputHash); } catch { /* non-fatal */ } }
     return {
       ok,
+      // CLAUDE: a worksheet that built cleanly prints nothing — the run's closing
+      //   summary line covers it. The `▸ slug` header is kept only when there are
+      //   notes, so a warning still says which sheet it came from.
       text: (ok
-        ? `▸ ${slug} ✓ (${((Date.now() - t0) / 1000).toFixed(1)}s)\n`
+        ? (notes.length ? `▸ ${slug} (${((Date.now() - t0) / 1000).toFixed(1)}s)\n` : "")
         : `✗ ${slug}: ${headline}\n`) + notes.map((n) => n.replace(/\s*$/, "") + "\n").join(""),
     };
   };
@@ -383,7 +451,8 @@ async function buildSlug(slug) {
     const moved = restampIfMoved(slug);
     return {
       ok: true,
-      text: `↷ ${slug} cached (inputs unchanged)${moved ? " — re-stamped for schedule" : ""}\n`,
+      cached: true,
+      text: moved ? `↷ ${slug} cached — re-stamped for schedule\n` : "",
     };
   }
   // Every TeX tool runs with the worksheet folder as cwd. BSTINPUTS adds the
@@ -442,10 +511,15 @@ async function buildSlug(slug) {
     }
   };
   const isTex = existsSync(path.join(dir, "main.tex"));
-  // A worksheet MAY ship a slide deck as slides.tex (any dialect — usually
-  // beamer). It is compiled to slides.pdf and hosted alongside the downloads;
-  // it is never converted to MDX (slides aren't a web page, only a download).
-  const hasSlidesTex = existsSync(path.join(dir, "slides.tex"));
+  // A worksheet MAY ship slide decks — slides.tex, plus slides-<label>.tex for
+  // a day with more than one lecture (any dialect — usually beamer), or the
+  // same stems as .typ for a Typst deck. Each is compiled to <stem>.pdf and
+  // hosted alongside the downloads; none is ever converted to MDX (slides
+  // aren't a web page, only a download).
+  const decks = deckSources(dir);
+  const clash = decks.find((d, i) => decks.slice(0, i).some((e) => e.stem === d.stem));
+  if (clash) return done(false, `slides: ${clash.stem}.tex and ${clash.stem}.typ are both present — one stem is one deck; rename one of them`);
+  const hasSlidesTex = decks.length > 0;
 
   // Guardrail: main.tex loads iliad.sty local-first (for standalone use of a
   // copied folder), so a stray per-folder copy in the repo tree would shadow
@@ -470,13 +544,21 @@ async function buildSlug(slug) {
     };
     // The web shows every displayed number (headings, theorems, exercises)
     // straight out of the .aux, keyed by injected auto-labels (autolabel.mjs).
-    // So the compiled copy is main.tex + those labels — written to
+    // So the compiled copy is the source + those labels — written to
     // main.autolabel.tex and compiled under -jobname=main, keeping
     // main.pdf/main.aux their names. Injection is same-line, so main.log
     // line numbers still match main.tex. \label emits nothing visible: the
-    // PDF is unchanged. Downloads still copy the pristine main.tex.
-    const writeAutolabel = () => writeFileSync(path.join(dir, "main.autolabel.tex"),
-      injectAutoLabels(readFileSync(path.join(dir, "main.tex"), "utf8")).text);
+    // PDF is unchanged. Downloads still ship the pristine source.
+    //
+    // The walk follows \input, so a multi-file worksheet gets a labelled copy
+    // of each section file too (sections/foo.autolabel.tex), with main's
+    // \input repointed at them. Keeping the files split rather than inlining
+    // them is what preserves main.log's file:line diagnostics.
+    const writeAutolabel = () => {
+      for (const f of injectAutoLabelsTree(path.join(dir, "main.tex")).files)
+        writeFileSync(f.path === path.join(dir, "main.tex")
+          ? path.join(dir, "main.autolabel.tex") : f.path, f.text);
+    };
     if (!CHECK_ONLY) {
       writeAutolabel();
       try {
@@ -489,11 +571,26 @@ async function buildSlug(slug) {
           : "pdflatex failed";
         return done(false, `PDF build failed: ${errLine.trim()} (see ${path.relative(ROOT, log)})`);
       }
+      // A line TeX could not fit — a display equation, an unbreakable word —
+      // hangs past the text width in the PDF, and the web column is no wider,
+      // so it escapes there too. Non-fatal, but named by file:line: the fix is
+      // to break the line in the source, not to let it scroll.
+      for (const b of overfullBoxes(path.join(dir, "main.log")))
+        notes.push(`⚠ warning: tex/${slug}/${b.file}:${b.line}  overfull line, ${b.pt.toFixed(1)}pt past the text width — ` +
+          "break the equation (or the word) so it fits the page; it overflows the web column too");
       // no-solutions PDF: compile a solution-stripped copy of the source.
       // Stripping (rather than \solutionsfalse) works for both dialects and
       // doubles as the spoiler-free .tex download.
+      //
+      // Strip across \input, or a multi-file worksheet keeps every solution
+      // that lives in a section file — main.tex has none of its own, so the
+      // "spoiler-free" handout was identical to the full one. Unlike the
+      // auto-label copy this one is INLINED into a single file: it is a
+      // download, and a reader who gets main-nosol.tex alone must be able to
+      // compile it without the section files it would otherwise \input.
       writeFileSync(path.join(dir, "main-nosol.tex"),
-        stripTexSolutions(readFileSync(path.join(dir, "main.tex"), "utf8")));
+        transformInputTree(path.join(dir, "main.tex"),
+          { visit: (_f, raw) => stripTexSolutions(raw) }).flat);
       try {
         await compile("main-nosol");
       } catch (e) {
@@ -573,13 +670,17 @@ async function buildSlug(slug) {
     // match) so offsets convert straight to file lines.
     {
       const lineAt = (at) => `${relMdx}:${raw.slice(0, at).split("\n").length}  `;
-      const pos = { overview: null, video: null, prereqs: null, outcomes: null, content: null };
+      const pos = { video: null, prereqs: null, outcomes: null, content: null };
       const headRe = /^##\s+(.+)$/gm;
       for (let m; (m = headRe.exec(raw)); ) {
         const t = m[1].trim().toLowerCase();
         const item = { at: m.index };
         if (/^prerequisites?\b/.test(t)) pos.prereqs ??= item;
-        else if (/^overview\b/.test(t)) pos.overview ??= item;
+        // An "Overview" section is the author's call and warns about nothing (see
+        // docs/commands.md), but it is orientation, not content — so it must not
+        // count as the first content SECTION either, or the front matter legitimately
+        // sitting above it would be reported as out of order.
+        else if (/^overview\b/.test(t)) continue;
         else pos.content ??= item;
       }
       const lo = raw.search(/<LearningOutcomes[\s>]/);
@@ -605,42 +706,70 @@ async function buildSlug(slug) {
   //     before anything reads or ships it (render gate, downloads, index).
   stampSchedule(mdxOut, slug);
 
-  // 2.5 slides: compile slides.tex → slides.pdf (same 3× pdflatex + bibtex
-  //     ladder as the worksheet). No -nosol variant, no MDX conversion.
-  //     --check skips it (it produces no page, only a download).
+  // 2.5 slides: compile every deck — slides.tex, slides-<label>.tex — to
+  //     <stem>.pdf (same 3× pdflatex + bibtex ladder as the worksheet). No
+  //     -nosol variant, no MDX conversion. --check skips it (a deck produces
+  //     no page, only a download).
   //
   //     A deck that mentions \HANDOUT opts in to a second, collapsed build:
   //     the macro is \def-ed on the command line so the deck can pass
   //     `handout` to the beamer class and drop its \pause reveals. That lands
   //     as slides-handout.pdf next to the presentation build. Decks with no
   //     reveals never mention \HANDOUT and so build once, as before.
-  const slidesSrc = hasSlidesTex ? readFileSync(path.join(dir, "slides.tex"), "utf8") : "";
-  const hasHandout = /\\HANDOUT\b/.test(slidesSrc);
-  // Which bibliography pass this deck needs. The house decks use bibtex +
-  // alphaurl; a deck that loads biblatex (C.2's, carried over as its author
-  // wrote it) needs biber instead. Detected from the source so a deck never has
-  // to declare its toolchain, and so importing an upstream deck verbatim does
-  // not mean rewriting its citation machinery to match ours.
-  const bibPass = /\\usepackage(\[[^\]]*\])?\{biblatex\}|\\addbibresource/.test(slidesSrc)
-    ? biber : bibtex;
-  if (!CHECK_ONLY && hasSlidesTex) {
-    // exec() passes argv straight through (no shell), so the \def wrapper needs
-    // no quoting beyond JS's own backslash escapes.
-    const variants = [["slides", "slides.tex"]];
-    if (hasHandout) variants.push(["slides-handout", "\\def\\HANDOUT{}\\input{slides}"]);
-    for (const [job, src] of variants) {
-      try {
-        await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
-        await bibPass(job);
-        await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
-        await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
-      } catch (e) {
-        if (e?.bibtex) return done(false, e.message);
-        const log = path.join(dir, `${job}.log`);
-        const errLine = existsSync(log)
-          ? (readFileSync(log, "utf8").split("\n").find((l) => l.startsWith("!")) ?? "pdflatex failed")
-          : "pdflatex failed";
-        return done(false, `slides build failed (${job}): ${errLine.trim()} (see ${path.relative(ROOT, log)})`);
+  for (const deck of decks) {
+    // A Typst deck has no \pause to collapse and no bibtex/biber pass: it is
+    // one `typst compile`, so none of the LaTeX-ladder detection below applies.
+    if (deck.ext === "typ") { deck.handout = false; continue; }
+    const src = readFileSync(path.join(dir, deck.file), "utf8");
+    deck.handout = /\\HANDOUT\b/.test(src);
+    // Which bibliography pass this deck needs. The house decks use bibtex +
+    // alphaurl; a deck that loads biblatex (C.2's, carried over as its author
+    // wrote it) needs biber instead. Detected from the source so a deck never has
+    // to declare its toolchain, and so importing an upstream deck verbatim does
+    // not mean rewriting its citation machinery to match ours.
+    deck.bibPass = /\\usepackage(\[[^\]]*\])?\{biblatex\}|\\addbibresource/.test(src)
+      ? biber : bibtex;
+  }
+  if (!CHECK_ONLY) {
+    for (const deck of decks) {
+      if (deck.ext === "typ") {
+        // --ignore-system-fonts: CI and every laptop then embed the same fonts
+        // (Typst ships Libertinus, New Computer Modern, DejaVu Sans Mono), so a
+        // deck renders identically everywhere. A deck that needs another face
+        // drops the .ttf/.otf files in tex/<slug>/fonts/ and they are picked up.
+        const fonts = path.join(dir, "fonts");
+        const argv = ["compile", "--ignore-system-fonts",
+          ...(existsSync(fonts) ? ["--font-path", fonts] : []),
+          deck.file, `${deck.stem}.pdf`];
+        try {
+          await exec(TYPST, argv, { cwd: dir });
+        } catch (e) {
+          const out = `${e.stderr ?? ""}${e.stdout ?? ""}`;
+          const errLine = e.code === "ENOENT"
+            ? `typst not found — run scripts/install-typst.sh (see docs/DEVELOPMENT.md)`
+            : (out.split("\n").find((l) => /^error/.test(l.trim())) ?? out.trim().split("\n")[0] ?? "typst failed");
+          return done(false, `slides build failed (${deck.stem}): ${errLine.trim()}`);
+        }
+        continue;
+      }
+      // exec() passes argv straight through (no shell), so the \def wrapper needs
+      // no quoting beyond JS's own backslash escapes.
+      const variants = [[deck.stem, deck.file]];
+      if (deck.handout) variants.push([`${deck.stem}-handout`, `\\def\\HANDOUT{}\\input{${deck.stem}}`]);
+      for (const [job, src] of variants) {
+        try {
+          await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
+          await deck.bibPass(job);
+          await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
+          await tex(...PDFLATEX_SLIDES, `-jobname=${job}`, src);
+        } catch (e) {
+          if (e?.bibtex) return done(false, e.message);
+          const log = path.join(dir, `${job}.log`);
+          const errLine = existsSync(log)
+            ? (readFileSync(log, "utf8").split("\n").find((l) => l.startsWith("!")) ?? "pdflatex failed")
+            : "pdflatex failed";
+          return done(false, `slides build failed (${job}): ${errLine.trim()} (see ${path.relative(ROOT, log)})`);
+        }
       }
     }
   }
@@ -653,11 +782,13 @@ async function buildSlug(slug) {
     let slidesUrl = null;
     try {
       const fm = readFileSync(mdxOut, "utf8").match(/^---\n([\s\S]*?)\n---/);
-      if (fm) slidesUrl = (YAML.parse(fm[1]) ?? {}).slides ?? null;
+      // `slides:` is a URL, or `{url, title}` when the row wants a label.
+      const ext = fm ? (YAML.parse(fm[1]) ?? {}).slides : null;
+      if (ext) slidesUrl = typeof ext === "string" ? ext : ext.url ?? null;
     } catch { /* frontmatter validity is the render gate's problem */ }
     notes.push(slidesUrl
-      ? "⚠ warning: slides only in PDF form (external `slides:` link, no LaTeX source to build)"
-      : "⚠ warning: no slides for this worksheet (add slides.tex to build a deck, or a `slides:` frontmatter URL to link one)");
+      ? "⚠ warning: slides only in PDF form (external `slides:` link, no LaTeX/Typst source to build)"
+      : "⚠ warning: no slides for this worksheet (add slides.tex or slides.typ to build a deck, or a `slides:` frontmatter URL to link one)");
   }
 
   // 3. author figures: fig/*.pdf → public/uploads/<slug>/*.svg; web-native
@@ -706,18 +837,22 @@ async function buildSlug(slug) {
     if (isTex) {
       copyFileSync(path.join(dir, "main.pdf"), path.join(dl, `${slug}.pdf`));
       copyFileSync(path.join(dir, "main-nosol.pdf"), path.join(dl, `${slug}-nosol.pdf`));
-      copyFileSync(path.join(dir, "main.tex"), path.join(dl, `${slug}.tex`));
+      // Ship the document inlined, not just main.tex: a multi-file worksheet's
+      // main.tex \inputs section files that are not part of the download, so
+      // on its own it does not compile. (main-nosol.tex is already inlined.)
+      writeFileSync(path.join(dl, `${slug}.tex`),
+        transformInputTree(path.join(dir, "main.tex"), { visit: (_f, raw) => raw }).flat);
       copyFileSync(path.join(dir, "main-nosol.tex"), path.join(dl, `${slug}-nosol.tex`));
     }
-    // slides deck (no solutions variant): ship the PDF to view/download and
-    // the .tex to download. Named <slug>-slides.* so listDownloads finds them.
-    // The collapsed build, when the deck opted into one, rides along as
-    // <slug>-slides-handout.pdf.
-    if (hasSlidesTex) {
-      copyFileSync(path.join(dir, "slides.pdf"), path.join(dl, `${slug}-slides.pdf`));
-      copyFileSync(path.join(dir, "slides.tex"), path.join(dl, `${slug}-slides.tex`));
-      if (hasHandout) {
-        copyFileSync(path.join(dir, "slides-handout.pdf"), path.join(dl, `${slug}-slides-handout.pdf`));
+    // slide decks (no solutions variant): ship each PDF to view/download and
+    // its source (.tex or .typ) to download. Named <slug>-<stem>.* (slides,
+    // slides-<label>) so listDecks finds them. The collapsed build, when a deck
+    // opted into one, rides along as <slug>-<stem>-handout.pdf.
+    for (const deck of decks) {
+      copyFileSync(path.join(dir, `${deck.stem}.pdf`), path.join(dl, `${slug}-${deck.stem}.pdf`));
+      copyFileSync(path.join(dir, deck.file), path.join(dl, `${slug}-${deck.stem}.${deck.ext}`));
+      if (deck.handout) {
+        copyFileSync(path.join(dir, `${deck.stem}-handout.pdf`), path.join(dl, `${slug}-${deck.stem}-handout.pdf`));
       }
     }
   }
@@ -737,11 +872,15 @@ async function worker() {
       r = { ok: false, text: `✗ ${slug}: unexpected error: ${e.message}\n` };
     }
     if (!r.ok) failed = true;
+    tally.total++;
+    if (r.cached) tally.cached++;
     process.stdout.write(r.text);
   }
 }
+const tally = { total: 0, cached: 0 };
 await Promise.all(Array.from({ length: Math.min(JOBS, slugs.length) }, worker));
 
+let moduleCount = null;
 // ---------------------------- index.json -----------------------------------
 if (!failed) {
   const ghSlug = (t) => t.toLowerCase().trim().replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
@@ -779,7 +918,7 @@ if (!failed) {
   // backwards, and nothing about the two files could say so.
   entries.sort((a, b) => a.position - b.position);
   writeFileSync(path.join(ROOT, "content", "index.json"), JSON.stringify(entries, null, 2) + "\n");
-  console.log(`index.json: ${entries.length} modules`);
+  moduleCount = entries.length;
 }
 
 // ---------------------------- status.json ----------------------------------
@@ -790,8 +929,20 @@ if (!failed) {
 try {
   const s = buildStatus({ check: CHECK_ONLY, schedule: SCHEDULE });
   const n = s.counts.decksBuilt;
-  console.log(`status.json: ${s.counts.live}/${s.counts.days - s.counts.neverPort} days live, ` +
-    `${n} deck${n === 1 ? "" : "s"} built → /admin/status`);
+  // CLAUDE: one closing line for the whole run, instead of a per-worksheet tick
+  //   plus an index.json line plus a status.json line. Warnings and failures are
+  //   what a build should spend the reader's attention on; success is a fact, and
+  //   one line is enough to state it.
+  if (!QUIET && !failed) {
+    const built = tally.total - tally.cached;
+    const parts = [
+      `${built} built${tally.cached ? ` · ${tally.cached} cached` : ""}`,
+      moduleCount !== null ? `${moduleCount} modules` : null,
+      `${s.counts.live}/${s.counts.days - s.counts.neverPort} days live`,
+      `${n} deck${n === 1 ? "" : "s"}`,
+    ].filter(Boolean);
+    console.log(`✓ ${parts.join(" · ")}`);
+  }
 } catch (e) {
   console.error(`✗ ${e.message}`);
   failed = true;

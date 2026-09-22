@@ -23,6 +23,8 @@ export const metadata: Metadata = {
 };
 
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+// Preview builds (and only they) also ship the diff view; see PreviewBanner.
+const IS_PREVIEW = !!process.env.NEXT_PUBLIC_PREVIEW_PR;
 
 /**
  * Restores the sidebar state before first paint: the open/closed mode is a
@@ -58,6 +60,7 @@ export default function RootLayout({
             this and nothing else — scripts/strip-hydration.mjs removes the
             framework bundles after the build. */}
         <script defer src={`${BASE_PATH}/site.js`} />
+        {IS_PREVIEW && <script defer src={`${BASE_PATH}/diff.js`} />}
       </body>
     </html>
   );

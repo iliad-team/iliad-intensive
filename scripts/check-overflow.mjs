@@ -89,7 +89,7 @@ if (!pages.length) fail("nothing to check");
 
 // ------------------------------------------------- static server over out/
 // Only used without --base-url. A `run.sh ci` build prefixes every URL with
-// the basePath (/iliad-intensive); detect it from the homepage's asset URLs
+// the basePath (empty in production, /pr-preview/pr-N for a preview); detect
 // and strip it from requests so both build flavours are servable.
 let server = null;
 let origin = opt.baseUrl?.replace(/\/$/, "");

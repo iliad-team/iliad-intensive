@@ -10,8 +10,9 @@ out/
 next-env.d.ts
 .env*
 _src/
-scratch/
+# original source repo copied into a port worktree root (see new-worktree.sh --src)
 _src_repo/
+scratch/
 _src_repos/
 # generated content — build artifacts, never committed.
 # Modules (.mdx) and the index are produced upstream (tex -> mdx converter /
@@ -35,7 +36,8 @@ tex/*/iliad-slides.sty
 # LaTeX build artifacts (compiled PDFs are downstream artifacts too —
 # figure PDFs under tex/*/fig/ are the one committed exception)
 tex/*/main-nosol.*
-tex/*/main.autolabel.tex
+# auto-labelled copies: main's, plus one per \input'ed section file
+*.autolabel.tex
 # Per-worksheet input hash — lets a build skip a sheet whose inputs are
 # unchanged (scripts/build-content.mjs). Purely a local/CI-cache artifact.
 tex/*/.build-hash

@@ -2,7 +2,7 @@
 
 The worksheets for [ILIAD](https://iliad.ac)'s intensive course.
 
-**Live site: [iliad-team.github.io/iliad-intensive](https://iliad-team.github.io/iliad-intensive/)**
+**Live site: [iliad-intensive.org](https://iliad-intensive.org/)**
 
 Feedback welcome! I want friction for you as the writer to be as low as possible. If something is frustrating, [open an issue](https://github.com/iliad-team/iliad-intensive/issues) and let me know!
 
@@ -52,12 +52,18 @@ Works on Linux (apt) and macOS — on a Mac, `setup.sh` hands off to
 
 Edit `main.tex`/`main.mdx`, save, refresh, see http://localhost:3000
 
+Don't know a worksheet's slug? `./run.sh slugs` lists them all, and `-i` in
+place of a slug picks one with [fzf](https://github.com/junegunn/fzf) if you
+have it (`./run.sh watch -i`).
+
 See `./run.sh --help` for details.
-`./run.sh ci` runs the CI action as if you had pushed to the repo.
+`./run.sh ci` runs the CI action as if you had pushed to the repo; with a slug
+(`./run.sh ci my-slug`) only that worksheet's content is rebuilt first, which is
+the quick way to check one sheet.
 
 ## Material status
 
-**[iliad-team.github.io/iliad-intensive/admin/status](https://iliad-team.github.io/iliad-intensive/admin/status/)**
+**[iliad-intensive.org/admin/status](https://iliad-intensive.org/admin/status/)**
 — one row per teaching day: is the worksheet live, is there a deck, the day's
 Google-Doc tab, and where its source is. Every push rebuilds it, so it always
 describes the site as deployed.
@@ -102,7 +108,8 @@ name-of-my-material/
 ├── fig
 │   └── ... # figures
 ├── biblo.bib
-├── slides.tex   # optional slide deck — compiled to a hosted PDF
+├── slides.tex   # optional slide deck — compiled to a hosted PDF (or slides.typ, in Typst)
+├── slides-<label>.tex   # further decks, for a day with more than one lecture
 └── main.[tex|mdx]
 ```
 
@@ -114,14 +121,20 @@ no PDF is produced for it.
 Slides are optional. Drop a `slides.tex` (any self-contained LaTeX — beamer is
 the usual choice; `iliad.sty` is *not* loaded for slides) in the folder and the
 build compiles it to a PDF hosted next to the worksheet — the page grows a
-**Slides** row (view / download the PDF, download the `.tex`). Slides are never
-converted to Markdown (a deck is a download, not a web page). If you'd rather
-not write a beamer preamble, `tex/iliad-slides.sty` is a ready-made one you can
-load — optional, nothing checks for it (see `docs/commands.md`). If your deck only
-exists as a PDF with no source, don't commit the binary — host it (Drive, etc.)
-and add a `slides:` line to the `%--- iliad ---` block (see below); it renders
-as an outbound link instead. The build prints a (non-fatal) warning for any
-worksheet with no `slides.tex`.
+**Slides** row (view / download the PDF, download the `.tex`). A deck written in
+[Typst](https://typst.app) works the same way as `slides.typ`: one
+`typst compile`, the `.typ` offered for download in place of the `.tex`
+(`./setup.sh` installs the pinned Typst binary). A day with more
+than one lecture adds `slides-<label>.tex` (or `.typ`) files beside it — each
+builds and gets its own row, `slides.tex` first and the rest in filename order.
+Slides are never converted to Markdown (a deck is a download, not a web page).
+If you'd rather not write a beamer preamble, `tex/iliad-slides.sty` is a
+ready-made one you can load — optional, nothing checks for it (see
+`docs/commands.md`). If a deck only exists as a PDF with no source, don't commit
+the binary — host it (Drive, etc.) and add a `slides:` line to the
+`%--- iliad ---` block (see below); it renders as an outbound link, in a row of
+its own alongside any compiled decks. The build prints a (non-fatal) warning for
+any worksheet with no `slides*.tex`/`slides*.typ`.
 
 ## Start a worksheet
 
@@ -185,7 +198,9 @@ that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
       `title:`, `summary:`, and `contributors:` keys are accepted there
       and override whatever is extracted from the LaTeX. A `slides:` key holds
       the URL of an externally hosted deck (for a PDF-only deck with no source);
-      it renders as an outbound link and is superseded by a compiled `slides.tex`.
+      it renders as an outbound link in its own Slides row, next to the rows for
+      any compiled `slides*.tex`. Write it as `url:` + `title:` when the page
+      has several decks and the row needs a name.
       Its cluster and teaching day are **not** keys here — list the slug under
       its day in [`schedule.yaml`](schedule.yaml) and the build stamps both in
       (see [status page](#material-status)).
@@ -197,7 +212,7 @@ that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
   - Label is mandatory to pair with the exercise.
 * Other semantic blocks: `definition`, `theorem`, `lemma`,
   `proposition`, `corollary`, `fact`, `example`, `proof`, `remark`,
-  `callout[note|tip|warning]`. All of them can be `\label`ed and `\cref`ed. 
+  `callout[note|tip|warning][Title]`. All of them can be `\label`ed and `\cref`ed. 
 * Figures: export to PDF into your `fig/`, then a normal `figure` +
   `\includegraphics{fig/name.pdf}` + `\caption` + `\label`. 
 * Citations: entries in `biblo.bib`, cite normally.

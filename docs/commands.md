@@ -22,8 +22,9 @@ Let $p$ be a distribution on a finite set $\mathcal{X}$.
 - Numbered per section ("Exercise 2.1"); the optional argument is the title.
 - Label the exercise if a solution or `\cref` points at it; unlabeled
   exercises are allowed but draw a CI warning (no stable web anchor).
-- Subparts are a plain `enumerate`; label an `\item` to reference it
-  ("Exercise 1.2(a)").
+- Subparts are a plain `enumerate`; label an `\item` to reference it: `\cref`
+  prints "Exercise 1.2(a)" and, on the web, links to that part. Never
+  hand-write the letter (`\cref{ex:warmup}(a)`) — the build flags it.
 - MDX: `<Exercise id="ex-warmup">**Exercise 1.1.** …</Exercise>`
 
 ## Solutions
@@ -166,16 +167,35 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
   **warning** on both paths (LaTeX and MDX) — it is the one metadata field that
   shows up twice, so an unfinished one is worth naming out loud.
 
+## Table of contents
+
+```latex
+\tableofcontents   % usually right after \maketitle
+```
+
+- Optional. In the PDF, `\tableofcontents` produces LaTeX's usual ToC.
+- On the web, the converter emits an in-page **Contents** list at the same
+  spot — a nested list of links to every `section`/`subsection`/`subsubsection`,
+  numbered exactly as the headings are (`1`, `1.1`, `4.2.1`).
+- It is built from the headings that survive conversion, so links never
+  dangle: a section whose body relocated away (e.g. a `Solutions` appendix,
+  whose solutions move under their exercises on the web) is left out
+  automatically. The auto-generated References list is not included.
+- No `.toc` file or CI change is involved — writing `\tableofcontents` in the
+  source is all it takes.
+- MDX-authored sheets (`main.mdx`) have no `\tableofcontents`; write the page
+  with headings and rely on the sidebar nav.
+  
 ## Front matter opens the sheet
 
 Different authors ordered their openings differently; the site does not.
 Every sheet opens the same way:
 
-1. **Overview** — not a section: it is the `summary:` in the metadata
-   block, and the page header shows it under the title (it doubles as the
-   index blurb, so keep it one tight paragraph). A body
-   `\section{Overview}` / `## Overview` draws a warning: fold the text
-   into `summary:` and drop the section.
+1. **Overview** — the `summary:` in the metadata block, which the page header
+   shows under the title (it doubles as the index blurb, so keep it one tight
+   paragraph). A body `\section{Overview}` / `## Overview` is the author's
+   call and draws no warning — it simply reads as the sheet's first content
+   section, after the front matter below.
 2. **Video embeds** (optional) — `\youtube` / `<YouTube />`, see "Videos"
    below.
 3. **Prerequisites** — an ordinary section.
@@ -183,8 +203,8 @@ Every sheet opens the same way:
 
 Then the content. Orientation opens a sheet; pointers *out* of it close it
 (the mirror rule is "Further reading goes last", just below). The build
-checks the opening on both paths (LaTeX and MDX) and prints a non-fatal
-**warning** when a sheet strays. Only the opening run is checked — a video
+checks the ordering of items 2-4 on both paths (LaTeX and MDX) and prints a
+non-fatal **warning** when a sheet strays. Only the opening run is checked — a video
 embedded mid-content to illustrate a point is fine and exempt.
 
 ## Further reading goes last
@@ -219,6 +239,10 @@ MDX: `<Definition id="def-entropy">**Definition 2.1 (entropy).** …</Definition
 Don't confuse $\log$ bases here.
 \end{callout}
 
+\begin{callout}[tip][Observation return]
+$$ G_{\mathrm{obs}}(\vec s) = \mathbb{E}_{\vec s' \sim \mathcal{B}(\cdot \mid \vec O(\vec s))}[G(\vec s')] $$
+\end{callout}
+
 \begin{remark}[optional title]
 An aside in the mathematical register.
 \end{remark}
@@ -226,11 +250,19 @@ An aside in the mathematical register.
 
 - Types: `note` (default), `tip`, `warning` — coloured boxes on web + PDF
   (`[boxes]`).
+- A second optional argument is the callout's **title**: in the PDF it replaces
+  the "Note"/"Tip"/"Warning" label on the box frame, on the web it heads the
+  box. Use it for a highlighted key equation or a named aside; leave it off
+  for a plain aside (the PDF then shows the type word, the web just the
+  colour). The title travels as a plain-text attribute on the web, so keep
+  maths out of it — a box whose heading needs maths keeps the heading as a
+  bold first line in the body instead.
 - `remark` takes an optional title, appended in parentheses:
   `\begin{remark}[Encodings]` renders as "Remark (Encodings)".
 - Both may be labelled: no number shows in the box, but
   `\cref{co:pitfall}` prints "Callout 2.1" and links to it.
-- MDX: `<Callout type="warning" id="co-pitfall">…</Callout>`
+- MDX: `<Callout type="warning" id="co-pitfall">…</Callout>`,
+  `<Callout type="tip" title="Observation return">…</Callout>`
 
 ## Math, macros, cross-references
 
@@ -297,16 +329,39 @@ An aside in the mathematical register.
 
 ## Slides
 
-A worksheet folder may carry an optional slide deck:
+A worksheet folder may carry optional slide decks:
 
 ```
-tex/<slug>/slides.tex        # any self-contained LaTeX (usually beamer)
+tex/<slug>/slides.tex          # any self-contained LaTeX (usually beamer)
+tex/<slug>/slides-<label>.tex  # further decks — a day with more than one lecture
+tex/<slug>/slides.typ          # …or a deck written in Typst (same stems, .typ)
 ```
 
 - If `slides.tex` is present, the build compiles it to `slides.pdf` and hosts
   it beside the other downloads — the page gains a **Slides** row (view PDF,
   download PDF, download the `.tex`). Same 3× `pdflatex` + `bibtex` ladder as
   the worksheet; a compile error fails the build with `file.tex:line`.
+- **Several decks.** A day taught as more than one lecture keeps every deck in
+  the same folder: `slides.tex` plus `slides-<label>.tex` (label: lowercase
+  letters, digits, hyphens; it may not end in `-handout`, which is the collapsed
+  build's suffix). Each compiles and stages on its own as
+  `<slug>-slides-<label>.pdf/.tex`, and the page shows **one Slides row per
+  deck**: `slides.tex` first, then the rest in filename order — that order is the
+  only sequencing there is, so name a second deck with it in mind. With more
+  than one row, each is labelled from the deck's own `\title{}` (beamer's
+  `\title[short]{long}` included); a lone deck stays unlabelled. A folder can
+  also hold only `slides-<label>.tex` files and no `slides.tex`.
+- **Naming a deck's row.** When the decks share a `\title{}` and differ only
+  in `\subtitle{}`, the rows would all read the same. Open the deck with the
+  same comment block a worksheet uses and the row takes that title instead:
+  ```latex
+  %--- iliad ---
+  % title: 2. Predicting the future
+  %--- end ---
+  \documentclass[aspectratio=169]{beamer}
+  ```
+  `title:` is the only key a deck's block carries; the deck's `\title{}` is
+  still what beamer prints. Without the block the row falls back to `\title{}`.
 - **Handout variant.** A deck that mentions `\HANDOUT` opts into a second,
   collapsed build. Guard the reveals with it in the preamble:
   ```latex
@@ -314,9 +369,10 @@ tex/<slug>/slides.tex        # any self-contained LaTeX (usually beamer)
   \documentclass[10pt,aspectratio=169]{beamer}
   ```
   The build then also produces `slides-handout.pdf` by `\def`-ing the macro on
-  the command line, and the **Slides** row reads *present · handout · LaTeX*
-  instead of *view · download · LaTeX*. A deck with no `\pause` reveals simply
-  never mentions `\HANDOUT` and builds once. To reproduce either build by hand:
+  the command line (`slides-<label>-handout.pdf` for a labelled deck), and that
+  deck's **Slides** row reads *present · handout · LaTeX* instead of
+  *view · download · LaTeX*. A deck with no `\pause` reveals simply never
+  mentions `\HANDOUT` and builds once. To reproduce either build by hand:
   ```
   pdflatex slides.tex                                  # presentation
   pdflatex -jobname=slides-handout "\def\HANDOUT{}\input{slides}"   # handout
@@ -338,6 +394,20 @@ tex/<slug>/slides.tex        # any self-contained LaTeX (usually beamer)
   contract, no build step checks for it, and `tex/training-dynamics/slides.tex`
   uses the moloch theme with its own preamble instead. The example, AIXI and
   Solomonoff decks load it.
+- **Typst decks.** A deck written in [Typst](https://typst.app) uses the same
+  stems with a `.typ` extension — `slides.typ`, `slides-<label>.typ` — and is
+  built with one `typst compile`, no pdflatex ladder. Its row offers the PDF
+  and the `.typ` (labelled *Typst* where a LaTeX deck's says *LaTeX*); with
+  several decks on the page, its label is the deck's
+  `#set document(title: "…")`. No handout variant (Typst has no `\pause` to
+  collapse). One stem is one deck: `slides.tex` and `slides.typ` side by side
+  fail the build. Images live in `fig/` like everything else and are
+  referenced relatively (`#image("fig/diagram.svg")`). The build compiles with
+  `--ignore-system-fonts`, so a deck renders identically on CI and on your
+  laptop from the fonts Typst ships (Libertinus, New Computer Modern, DejaVu
+  Sans Mono); a deck that needs another face puts the `.ttf`/`.otf` in
+  `tex/<slug>/fonts/`, which the build passes as `--font-path`.
+  `./setup.sh` installs the pinned Typst binary (`scripts/install-typst.sh`).
 - Slides are **never** converted to MDX and have **no** `-nosol` variant (a
   deck is a download, not a web page).
 - No source, only a PDF deck? Don't commit the binary. Host it (e.g. Drive)
@@ -347,15 +417,25 @@ tex/<slug>/slides.tex        # any self-contained LaTeX (usually beamer)
   % slides: https://drive.google.com/…
   %--- end ---
   ```
-  It renders as an outbound **Slides ↗** link. A compiled `slides.tex` takes
-  precedence over the URL.
+  It renders as an outbound **Slides ↗** link — in a row of its own, listed
+  first, alongside the rows for any compiled `slides*.tex`; nothing supersedes
+  anything. That is how a day whose main lecture exists only as a hosted deck
+  and whose guest lecture compiles from source shows both. When the page has
+  several rows, name the hosted one:
+  ```
+  %--- iliad ---
+  % slides:
+  %   url: https://drive.google.com/…
+  %   title: Intro to Reward Learning Theory
+  %--- end ---
+  ```
 - The build emits a non-fatal **warning** for any worksheet with no
-  `slides.tex` (whether or not a `slides:` URL is set), in the full build and
-  `./run.sh ci` — not in the `--check` watch/pre-push loop.
+  `slides*.tex`/`slides*.typ` (whether or not a `slides:` URL is set), in the
+  full build and `./run.sh ci` — not in the `--check` watch/pre-push loop.
 - For a day with **no worksheet yet**, there is no frontmatter to hold a
   `slides:` URL — put it on the day itself in [`schedule.yaml`](../schedule.yaml)
-  instead. Deck precedence, highest first: a compiled `slides.tex` → a
-  worksheet's `slides:` URL → the day's `slides:` URL → no deck.
+  instead. It is a fallback only: once any of the day's worksheets offers a
+  deck (compiled or `slides:`), the day-level URL is not shown.
 
 ## Which teaching day is this? (not your file's business)
 
@@ -373,7 +453,7 @@ reading order:
 ```
 
 - Add your slug under its day and you're done: the homepage, the sidebar and
-  [`/admin/status`](https://iliad-team.github.io/iliad-intensive/admin/status/)
+  [`/admin/status`](https://iliad-intensive.org/admin/status/)
   all follow, and the build stamps `cluster:`/`day:` into your page for you.
 - Several worksheets per day is normal — D.3 is Solomonoff Induction then AIXI,
   and that order is a fact about teaching, which no sort of the titles could

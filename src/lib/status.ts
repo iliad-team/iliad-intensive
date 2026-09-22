@@ -14,11 +14,13 @@ import path from "node:path";
 
 /** How a worksheet's deck reaches the reader. */
 export type Deck =
-  /** tex/<slug>/slides.tex compiled and hosted here (`pdf`/`tex` = staged). */
-  | { kind: "built"; slug: string; pdf: boolean; tex: boolean }
+  /** tex/<slug>/<stem>.tex or .typ (slides, slides-<label>) compiled and hosted
+   *  here. `source` is the deck's format; `pdf`/`sourceStaged` say whether this
+   *  build staged the PDF / the source download. `title` is the deck's own
+   *  \title{} (LaTeX) or `#set document(title:)` (Typst), if any. */
+  | { kind: "built"; slug: string; stem: string; title: string | null; pdf: boolean; source: "tex" | "typ"; sourceStaged: boolean }
   /** A prebuilt deck hosted elsewhere — linked out, never served by us. */
-  | { kind: "external"; slug?: string; url: string }
-  | { kind: "none"; slug?: string };
+  | { kind: "external"; slug?: string; url: string; title: string | null };
 
 export type DayModule = {
   slug: string;
@@ -26,7 +28,9 @@ export type DayModule = {
   cluster: string | null;
   unlisted: boolean;
   pdf: boolean;
-  deck: Deck;
+  /** In the order the page lists them: the `slides:` link, then compiled
+   *  decks by filename. Empty when the worksheet offers none. */
+  decks: Deck[];
 };
 
 /** Where a day's buildable source is. `in-repo` is derived (the day has a
@@ -39,7 +43,8 @@ export type Day = {
   code: string;
   cluster: string;
   title: string;
-  lead: string;
+  /** Null for a day nobody teaches (day 0 — the prerequisites page). */
+  lead: string | null;
   doc: string;
   /** `kind` is the current truth: what schedule.yaml declared, or `in-repo`
    *  once the day has a worksheet. */

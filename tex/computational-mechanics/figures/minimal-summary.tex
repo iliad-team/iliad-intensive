@@ -1,0 +1,18 @@
+% The merged version of the sufficient-statistic example on the preceding slide.
+\begin{tikzpicture}[
+  x=1mm,y=1mm,
+  every node/.style={font=\small,text=iliadInk,align=center},
+  flow/.style={-{Stealth[length=2mm]},draw=iliadAccent,line width=0.6pt}
+]
+  \node (pastA) at (10,10) {Past A};
+  \node (pastB) at (10,0) {Past B};
+  \node (pastC) at (10,-10) {Past C};
+  \node[draw=iliadAccent,line width=0.6pt,inner sep=3mm,
+    minimum width=27mm,minimum height=13mm] (summary) at (57,0)
+    {Merged\\summary $r$};
+  \node (future) at (112,0) {Same distribution\\over futures};
+  \draw[flow] (pastA.east) -- node[midway,fill=white,inner sep=1pt] {$R_{\min}$} (summary.west);
+  \draw[flow] (pastB.east) -- node[midway,fill=white,inner sep=1pt] {$R_{\min}$} (summary.west);
+  \draw[flow] (pastC.east) -- node[midway,fill=white,inner sep=1pt] {$R_{\min}$} (summary.west);
+  \draw[flow] (summary.east) -- (future.west);
+\end{tikzpicture}

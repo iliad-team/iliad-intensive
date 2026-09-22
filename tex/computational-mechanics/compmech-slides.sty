@@ -1,0 +1,73 @@
+% ILIAD teaching slides. A small, content-first Beamer style.
+% Compile with pdfLaTeX. No external fonts or shell escape required.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{compmech-slides}[2026/09/04 ILIAD teaching slides]
+\RequirePackage[T1]{fontenc}
+\RequirePackage{lmodern}
+\RequirePackage{amsmath,amssymb}
+\RequirePackage{graphicx}
+\RequirePackage{booktabs,tabularx}
+\RequirePackage{microtype}
+\usefonttheme{serif}
+\definecolor{iliadInk}{HTML}{20262A}
+\definecolor{iliadAccent}{HTML}{255C6A}
+\definecolor{iliadMuted}{HTML}{525D62}
+\setbeamercolor{normal text}{fg=iliadInk,bg=white}
+\setbeamercolor{structure}{fg=iliadAccent}
+\setbeamercolor{frametitle}{fg=iliadInk,bg=white}
+\setbeamercolor{title}{fg=iliadInk}
+\setbeamercolor{footline}{fg=iliadMuted,bg=white}
+\setbeamercolor{item}{fg=iliadAccent}
+\setbeamercolor{block title}{fg=iliadAccent,bg=white}
+\setbeamercolor{block body}{fg=iliadInk,bg=white}
+\setbeamerfont{frametitle}{size=\fontsize{19}{22},series=\bfseries}
+\setbeamerfont{framesubtitle}{size=\normalsize,series=\mdseries}
+\setbeamerfont{title}{size=\fontsize{27}{31},series=\bfseries}
+\setbeamerfont{subtitle}{size=\fontsize{18}{22}}
+\setbeamerfont{author}{size=\fontsize{12}{15},series=\mdseries}
+\setbeamerfont{footline}{size=\fontsize{8}{10}}
+\setbeamerfont{block title}{series=\bfseries}
+\setbeamersize{text margin left=8mm,text margin right=8mm}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{headline}{}
+\setbeamertemplate{frametitle}{%
+  \vspace{3mm}%
+  \parbox[t]{\textwidth}{\raggedright\usebeamerfont{frametitle}\insertframetitle\par
+    \ifx\insertframesubtitle\@empty\else
+      \vspace{1mm}\usebeamerfont{framesubtitle}\insertframesubtitle\par
+    \fi}%
+  \par\vspace{2mm}}
+\setbeamertemplate{footline}{%
+  \hfill\usebeamerfont{footline}\usebeamercolor[fg]{footline}%
+  \insertframenumber/\inserttotalframenumber\hspace{8mm}\vspace{2.5mm}}
+\setbeamertemplate{itemize item}{\raisebox{0.15ex}{\scriptsize\textbullet}}
+\setbeamertemplate{itemize subitem}{\textendash}
+\setbeamertemplate{enumerate item}{\insertenumlabel.}
+\setbeamertemplate{blocks}[default]
+\setlength{\parskip}{0.5em}
+\setlength{\parindent}{0pt}
+\hypersetup{colorlinks=true,linkcolor=iliadAccent,urlcolor=iliadAccent}
+
+% Plain paragraphs and direct labels are the default. Lists remain available
+% for genuine sequences or sets; there are no automatic reveals or dividers.
+\newcommand{\keyterm}[1]{\textbf{#1}}
+\newcommand{\slidelabel}[1]{{\color{iliadAccent}\bfseries #1}\par}
+\newcommand{\source}[1]{\par\vspace{1mm}{\fontsize{8}{10}\selectfont\color{iliadMuted}#1\par}}
+\newcommand{\qualification}[1]{\par\medskip\textit{#1}\par}
+\newcommand{\evidenceimage}[2][46mm]{%
+  \includegraphics[width=\linewidth,height=#1,keepaspectratio]{#2}}
+\newcommand{\iliadtitle}{%
+  \begin{frame}[plain]
+    \vspace{10mm}
+    {\color{iliadAccent}\large\insertinstitute\par}
+    \vspace{8mm}
+    {\usebeamerfont{title}\inserttitle\par}
+    \vspace{3mm}
+    {\usebeamerfont{subtitle}\insertsubtitle\par}
+    \vfill
+    {\usebeamerfont{author}\insertauthor\par}
+    \vspace{2mm}
+    {\color{iliadMuted}\insertdate\par}
+    \vspace{5mm}
+  \end{frame}}
+\endinput

@@ -24,6 +24,10 @@ echo "== system packages (TeX Live, poppler) =="
 need=()
 command -v pdftocairo >/dev/null || need+=(poppler)
 command -v git-lfs    >/dev/null || need+=(git-lfs)
+# Typst, for slide decks written as slides*.typ. Linux pins a release via
+# scripts/install-typst.sh; Homebrew's typst is close enough for local work
+# (decks embed Typst's own fonts, so output matches CI regardless).
+command -v typst      >/dev/null || need+=(typst)
 if [ ${#need[@]} -gt 0 ]; then
   echo "installing: ${need[*]}"
   brew install "${need[@]}"

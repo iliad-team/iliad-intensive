@@ -1,0 +1,66 @@
+% A finite schematic of a refinement chain, not an exhaustive ordering.
+% The same 36 representative words appear in every panel.
+\begingroup
+\definecolor{predictiveBlue}{HTML}{A9CDE5}
+\definecolor{predictiveGold}{HTML}{F2D58A}
+\definecolor{predictivePurple}{HTML}{C9B5D8}
+\def\sequenceblob{(-18,0)
+  .. controls (-20,8) and (-14,15) .. (-6,14)
+  .. controls (2,17) and (15,14) .. (17,8)
+  .. controls (21,1) and (18,-9) .. (10,-13)
+  .. controls (1,-16) and (-12,-14) .. (-16,-8)
+  .. controls (-18,-5) and (-19,-2) .. (-18,0) -- cycle}
+\begin{tikzpicture}[
+  x=1mm,y=0.75mm,
+  every node/.style={font=\small,text=iliadInk,align=center},
+  boundary/.style={draw=iliadAccent,line width=1pt},
+  flow/.style={-{Stealth[length=2mm]},draw=iliadAccent,line width=0.7pt}
+]
+  \foreach \offset/\stage in {22/0,72/1,122/2} {
+    \begin{scope}[shift={(\offset,0)}]
+      \begin{scope}
+        \clip \sequenceblob;
+        \fill[predictiveBlue] (-22,4.5) rectangle (22,18);
+        \fill[predictiveGold] (-22,-4.5) rectangle (22,4.5);
+        \fill[predictivePurple] (-22,-18) rectangle (22,-4.5);
+        \draw[boundary] (-22,4.5) -- (22,4.5);
+        \draw[boundary] (-22,-4.5) -- (22,-4.5);
+        \ifnum\stage=0
+          \foreach \xx in {-11,-5.5,0,5.5,11} {\draw[boundary] (\xx,-18) -- (\xx,18);}
+          \foreach \yy in {-9,0,9} {\draw[boundary] (-22,\yy) -- (22,\yy);}
+        \fi
+        \ifnum\stage=1
+          % Unequal, stepped unions of singleton cells within each colour.
+          \draw[boundary] (-11,4.5) -- (-11,9) -- (-5.5,9) -- (-5.5,18);
+          \draw[boundary] (5.5,4.5) -- (5.5,9) -- (11,9) -- (11,18);
+          \draw[boundary] (-5.5,4.5) -- (-5.5,0) -- (0,0) -- (0,-4.5);
+          \draw[boundary] (11,4.5) -- (11,0) -- (5.5,0) -- (5.5,-4.5);
+          \draw[boundary] (-5.5,-4.5) -- (-5.5,-9) -- (5.5,-9) -- (5.5,-18);
+          \draw[boundary] (-5.5,-9) -- (-22,-9);
+        \fi
+      \end{scope}
+      \draw[boundary,line width=1.2pt] \sequenceblob;
+      \foreach \xx in {-13.75,-8.25,-2.75,2.75,8.25,13.75} {
+        \foreach \yy in {-6.75,-2.25,2.25,6.75,11.25} {
+          \fill[iliadInk] (\xx,\yy) circle (0.48mm);
+        }
+      }
+      \foreach \xx in {-8.25,-2.75,2.75,8.25} {
+        \fill[iliadInk] (\xx,-11.25) circle (0.48mm);
+      }
+      % Keep the bottom corner examples inside the curved outer boundary.
+      \fill[iliadInk] (-12.5,-10) circle (0.48mm);
+      \fill[iliadInk] (12.5,-10) circle (0.48mm);
+      \node[font=\footnotesize] at (20,13) {$\mathcal X^*_+$};
+    \end{scope}
+  }
+  \node[font=\small\bfseries] at (22,22) {Finest};
+  \node[font=\small\bfseries] at (72,22) {Intermediate};
+  \node[font=\small\bfseries] at (122,22) {Coarsest sufficient};
+  \node at (22,-22) {$R=\mathrm{id}$\\One sequence per cell};
+  \node at (72,-22) {$R$\\Grouped sequences};
+  \node at (122,-22) {$R_{\min}$\\Minimal sufficient};
+  \draw[flow] (43,0) -- (51,0);
+  \draw[flow] (93,0) -- (101,0);
+\end{tikzpicture}
+\endgroup

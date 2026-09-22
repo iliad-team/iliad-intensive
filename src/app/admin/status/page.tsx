@@ -3,7 +3,7 @@ import Link from "next/link";
 import { readStatus, type Day, type Deck, type SourceKind } from "@/lib/status";
 import { listClusters } from "@/lib/cluster-store";
 import { clusterLabel, pagePath } from "@/lib/clusters";
-import { BUILT_AT, COMMIT_SHA, CommitLink } from "@/components/BuildStamp";
+import { BUILT_AT, COMMIT_SHA, CommitLink, LicenseLink } from "@/components/BuildStamp";
 import {
   InFlightProvider, InFlightCell, InFlightCount, InFlightRest, InFlightTd, StatusFreshness,
 } from "@/components/InFlight";
@@ -143,21 +143,30 @@ function materialCell(day: Day, clusters: Cluster[], basePath: string): Cell {
   };
 }
 
-function DeckChips({ deck, basePath, tone }: { deck: Deck; basePath: string; tone: Tone }) {
+function DeckChips({ deck, basePath, tone, many }: { deck: Deck; basePath: string; tone: Tone; many: boolean }) {
+  // With several decks on a day, each line says which deck it is (the deck's
+  // own \title{}, or the `slides:` title); a lone deck needs no label.
+  const label = many && deck.title ? <Muted>{deck.title}</Muted> : null;
   if (deck.kind === "built") {
-    // The deck's LaTeX source is in the repo. `pdf` is false only in a
-    // --check run, which compiles nothing.
+    // The deck's source (LaTeX or Typst) is in the repo. `pdf` is false only
+    // in a --check run, which compiles nothing.
+    const file = `${basePath}/downloads/${deck.slug}/${deck.slug}-${deck.stem}`;
     return (
       <span className="flex flex-wrap items-center gap-1.5">
+        {label}
         {deck.pdf
-          ? <Chip tone={tone} href={`${basePath}/downloads/${deck.slug}/${deck.slug}-slides.pdf`}>pdf</Chip>
+          ? <Chip tone={tone} href={`${file}.pdf`}>pdf</Chip>
           : <Muted>not built in this run</Muted>}
-        {deck.tex && <Chip tone={tone} href={`${basePath}/downloads/${deck.slug}/${deck.slug}-slides.tex`}>tex</Chip>}
+        {deck.sourceStaged && <Chip tone={tone} href={`${file}.${deck.source}`}>{deck.source}</Chip>}
       </span>
     );
   }
-  if (deck.kind === "external") return <Chip tone={tone} href={deck.url} external>hosted&nbsp;↗</Chip>;
-  return null;
+  return (
+    <span className="flex flex-wrap items-center gap-1.5">
+      {label}
+      <Chip tone={tone} href={deck.url} external>hosted&nbsp;↗</Chip>
+    </span>
+  );
 }
 
 function slidesCell(day: Day, basePath: string): Cell {
@@ -176,7 +185,13 @@ function slidesCell(day: Day, basePath: string): Cell {
       <div className="flex flex-col gap-1">
         <State tone={tone}>{tone === "good" ? "built here" : "hosted elsewhere"}</State>
         {day.slides.decks.map((deck, i) => (
-          <DeckChips key={deck.slug ?? i} deck={deck} basePath={basePath} tone={tone} />
+          <DeckChips
+            key={deck.kind === "built" ? `${deck.slug}/${deck.stem}` : `${deck.slug ?? i}:${deck.url}`}
+            deck={deck}
+            basePath={basePath}
+            tone={tone}
+            many={day.slides.decks.length > 1}
+          />
         ))}
       </div>
     ),
@@ -345,7 +360,12 @@ export default async function StatusPage() {
                       <span className="text-zinc-400">{day.code}</span>{" "}
                       {dayTitle}
                     </td>
-                    <td className={`${td} text-zinc-600`}>{day.lead}</td>
+                    {/* No lead is a fact about the day, not a gap: day 0 is
+                        material nobody teaches. An em dash, not an empty
+                        cell, so it reads as answered. */}
+                    <td className={`${td} text-zinc-600`}>
+                      {day.lead ?? <span className="text-zinc-300">—</span>}
+                    </td>
                     {/* Both cells keep the build's wording — an open PR doesn't
                         make a worksheet or a deck exist. The tint is the one
                         thing the live fetch may change, and only in one
@@ -419,7 +439,7 @@ export default async function StatusPage() {
         </p>
         <p className="mt-2">
           Built {BUILT_AT}
-          {COMMIT_SHA ? <> · <CommitLink /></> : null}.
+          {COMMIT_SHA ? <> · <CommitLink /></> : null} · <LicenseLink />.
         </p>
       </footer>
     </main>
