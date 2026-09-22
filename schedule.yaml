@@ -39,7 +39,11 @@
 #   code       required  e.g. B.4. Its letter must be the enclosing cluster's
 #                        id. Unique across the file.
 #   title      required  The day's name, as the schedule calls it.
-#   lead       required  Who owns the material — the person to ask.
+#   lead       required  Who owns the material — the person to ask. Write
+#                        `none` for a day nobody teaches (day 0, the
+#                        prerequisites page): there is no owner to chase, and
+#                        saying so beats a blank nobody can tell from an
+#                        oversight. /admin/status shows a dash.
 #   doc        required  This day's tab in the big Google Doc (docs/LINKS.md).
 #   port       optional  `never` — this day is deliberately not ported: it runs
 #                        from the Doc (or from hosted PDFs) and no worksheet or
@@ -71,12 +75,13 @@
 #                          missing   only compiled PDFs exist; nothing buildable
 #   sourceUrl  optional  Upstream repo, for `ready` / `partial`.
 #   slides     optional  URL of a deck hosted elsewhere — the prebuilt PDF
-#                        somebody handed you, with no LaTeX source. Used only
-#                        while no worksheet supplies a deck. Full precedence:
-#                          a compiled tex/<slug>/slides.tex  (hosted here)
-#                            → a worksheet's own `slides:` frontmatter URL
-#                            → this key
-#                            → no deck
+#                        somebody handed you, with no LaTeX source. A fallback,
+#                        used only while no worksheet supplies a deck: once one
+#                        does, the day shows every deck its worksheets offer
+#                        (compiled tex/<slug>/slides*.tex and their `slides:`
+#                        frontmatter URLs, side by side) and this key is not
+#                        shown. Move the URL into the worksheet's own
+#                        frontmatter when you port the day.
 #   note       optional  One short, durable, neutral line. /admin/status is
 #                        PUBLIC: no chase-ups, no blame, nothing you wouldn't
 #                        say to the lead's face. That belongs in
@@ -86,12 +91,20 @@
 # Live days only. The wrap-up day carries no module material and is left out.
 
 clusters:
-  # Prerequisites and background. No teaching day of its own — it holds the
-  # URL space (/foundations/…) for the prerequisite material.
+  # Prerequisites and background, taught by nobody: day 0 is what participants
+  # are expected to know before A.1, so it opens the course and holds the
+  # /foundations/… URL space.
   - id: "0"
     label: Foundations
     urlSlug: foundations
-    days: []
+    days:
+      - code: "0"
+        title: Prerequisites
+        lead: none
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.blsy6emykmhx
+        source: ready
+        worksheets:
+          - prerequisites
 
   - id: A
     label: A — Alignment
@@ -118,8 +131,17 @@ clusters:
         title: Alignment in Practice 2
         lead: Garrett
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.g73qz582zioy
-        port: never
-        note: reading + discussion day, run from the Doc — the two discussion worksheets live there
+        source: ready
+        worksheets:
+          - alignment-in-practice-ii
+
+      - code: A.4
+        title: Reward Learning Theory
+        lead: Leon (Joar Skalse guest lecture)
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.6d2zm6vpa5tg
+        source: missing
+        worksheets:
+          - reward-learning-theory
 
   - id: B
     label: B — Learning
@@ -130,7 +152,8 @@ clusters:
         lead: Garrett (Zach remote lecture)
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.do5apxz819k1
         source: missing
-        note: deck exists as a Drive PDF only — add its URL as `slides:` when you have it
+        worksheets:
+          - mysteries-of-deep-learning
 
       - code: B.3
         title: Singular Learning Theory
@@ -156,6 +179,15 @@ clusters:
         source: ready
         sourceUrl: https://github.com/LouisYRYJ/illiad_data_attribution
         note: source repo is private
+        worksheets:
+          - data-attribution
+
+      - code: B.6
+        title: Physics of Learning
+        lead: Lucas + Dmitrii
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.svkvg1ktzxml
+        source: partial
+        note: proposed module, it has no module tab in the Doc yet, only an entry under Proposed Modules
 
   - id: C
     label: C — Abstractions, Representations, and Interpretability
@@ -166,8 +198,23 @@ clusters:
         lead: Julian
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.u7odobssyqur
         source: ready
-        sourceUrl: https://github.com/wusche1/Illiad_ML_Engineering
-        note: notebooks + LaTeX; a track-B variant lives in a second repo
+        sourceUrl: https://github.com/iliad-team/iliad-intensive-C.1.1
+        # One day, three lectures, four repos, but ONE page: the three lectures
+        # are `##` sections of intro-to-ml-engineering rather than separate
+        # worksheets. Lectures 1a and 1b run in PARALLEL in the morning — a quiz
+        # streams each student into one or the other — and lecture 2 fills the
+        # afternoon. `sourceUrl` above holds 1a's repo only, because the field
+        # takes a single string; the page links all three sections' repos:
+        #   ML Foundations           iliad-team/iliad-intensive-C.1.1
+        #   Practical ML             iliad-team/iliad-intensive-C.1.2
+        #   Claude Code for Research iliad-team/iliad-intensive-C.1.3
+        # All three are iliad-team forks of the leads' personal repos. Three
+        # things still point upstream: lecture 2's optional dotfiles link, its
+        # cheat sheet (hosted at alignment-hive.com), and C.1.3's dependency on
+        # jr-brown/research-scaffold for its config runner.
+        note: three lectures across four repos; 1a and 1b are parallel tracks
+        worksheets:
+          - intro-to-ml-engineering
 
       - code: C.2
         title: Mechanistic Interpretability
@@ -183,14 +230,16 @@ clusters:
         lead: Xavier
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.649vumndszu5
         source: ready
-        sourceUrl: https://github.com/14xp/iliad-comp-mech-materials
+        sourceUrl: https://github.com/iliad-team/iliad-intensive-C.3
+        worksheets:
+          - computational-mechanics
 
       - code: C.4
         title: Abstractions and Latents
         lead: Satya + Daniel Chiang
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.lzn2w9mlavru
-        port: never
-        note: taught from the compiled PDFs; the code lives on sourcehut
+        source: missing
+        note: to be ported; only compiled PDFs so far — Satya's sourcehut code is related but not the module
 
   - id: D
     label: D — Agency
@@ -232,6 +281,11 @@ clusters:
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.8r11zv4s7dki
         source: ready
         sourceUrl: https://github.com/Danielc-lgtm/iliad-intensive
+        # The reading guide and its exercises first, then the lecture note the
+        # day names as the optimization strand's primary pre-reading.
+        worksheets:
+          - agent-foundations
+          - optimization-thermodynamics
 
       - code: D.5
         title: Decision Theory
@@ -239,7 +293,12 @@ clusters:
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.xelg5yi9w039
         source: ready
         sourceUrl: https://github.com/Danielc-lgtm/iliad-intensive
-        note: ships its own decision-theory-slides.tex
+        # One page per lecture, each with its own deck: the morning's
+        # single-agent theory, then the afternoon's multi-agent layer and the
+        # open-source Prisoner's Dilemma tournament.
+        worksheets:
+          - decision-theory
+          - open-source-game-theory
 
       - code: D.6
         title: Instrumental Convergence
@@ -256,6 +315,13 @@ clusters:
           cannot compile Marp, so it is compiled by hand, hosted in Drive, and
           linked from the worksheet's `slides:` rather than built.
 
+      - code: D.7
+        title: World Models
+        lead: Fernando E. Rosas
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.a6ozb9tzf69k
+        source: missing
+        note: new day; the Doc tab is all there is so far
+
   - id: E
     label: E — Safety Guarantees and their Limits
     urlSlug: safety
@@ -264,8 +330,14 @@ clusters:
         title: Debate
         lead: Stephan
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.2q3bv3luklh0
-        source: missing
-        note: only compiled PDFs so far
+        source: ready
+        worksheets:
+          - debate
+        note: >-
+          Stephan handed the source over as a zip, not a repo. It held five
+          overlapping drafts of one document (plus a shared abbrv.tex); one
+          worksheet merges them, ordered as the Doc tab's teaching guide links
+          them. No solutions exist upstream for any of the 17 exercises.
 
       - code: E.2
         title: Steganography & Backdoors
@@ -273,3 +345,14 @@ clusters:
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.n0qqrafijfpi
         source: missing
         note: only compiled PDFs so far
+        worksheets:
+          - steganography
+
+      - code: E.3
+        title: Worst-Case Interpretability
+        lead: Louis
+        doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.rgyi2yd35qb9
+        source: partial
+        sourceUrl: https://github.com/LouisYRYJ/Proof_based_approach_tutorial
+        slides: https://drive.google.com/file/d/1CqJtSUFLZ_L-kSsSzvSJGXfuf1Lbq5Un/view
+        note: a tutorial notebook exists in the repo; no worksheet source yet

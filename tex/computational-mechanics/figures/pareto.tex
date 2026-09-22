@@ -1,0 +1,27 @@
+% Where the research program has got to: toy->real processes against
+% weak->strong models, and the frontier being pushed outward.
+% Editable replacement for the pareto.png raster.
+\begin{tikzpicture}[>={Stealth[length=2.4mm,width=2mm]}]
+  \draw[->,line width=.9pt] (0,0) -- (0,4.6);
+  \draw[->,line width=.9pt] (0,0) -- (5.2,0);
+  % what would count as success on each axis
+  \draw[blue,dashed,line width=.7pt] (0,3.30) -- (5.0,3.30);
+  \draw[red,dashed,line width=.7pt]  (3.55,0) -- (3.55,4.4);
+  % the frontier, and what it encloses today
+  \fill[black!8] (0,0) -- (0,1.75) .. controls (0.75,1.72) and (1.10,1.55)
+                 .. (1.45,1.30) .. controls (1.75,1.05) and (1.85,0.55)
+                 .. (1.80,0) -- cycle;
+  \draw[line width=1pt] (0,1.75) .. controls (0.75,1.72) and (1.10,1.55)
+                 .. (1.45,1.30) .. controls (1.75,1.05) and (1.85,0.55) .. (1.80,0);
+  \foreach \p in {(0,1.75), (1.45,1.30), (1.80,0.12)}{\node at \p {\footnotesize$\times$};}
+  % direction of travel
+  \foreach \s/\a in {(0.55,2.00)/80, (1.15,1.95)/62, (1.70,1.60)/45, (2.05,0.70)/20}{
+    \draw[violet,-{Stealth[length=2.2mm,width=1.9mm]},line width=.8pt] \s -- ++(\a:0.62);}
+  \node[blue,font=\small,anchor=east] at (-0.15,4.15) {Real};
+  \node[blue,font=\small,anchor=east] at (-0.15,1.15) {Toy};
+  \node[font=\small,anchor=east]      at (-0.15,3.30) {Process};
+  \node[red,font=\small,anchor=north] at (1.05,-0.12) {Weak};
+  \node[red,font=\small,anchor=north] at (4.75,-0.12) {Strong};
+  \node[font=\small,anchor=north,align=center] at (3.0,-0.75)
+       {Model\\[-0.15em]{\footnotesize(Neural Network)}};
+\end{tikzpicture}

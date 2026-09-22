@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 // Build provenance shown in page footers: when the site was built and from
 // which commit. Both are fixed at build time (the site is a static export).
 //
@@ -31,12 +33,22 @@ export function CommitLink() {
   );
 }
 
+/** Link to the course-material licence page. */
+export function LicenseLink() {
+  return (
+    <Link href="/license" className={linkClass}>
+      Licence
+    </Link>
+  );
+}
+
 /** "Built <date> · commit <sha>" — the standard footer provenance line. */
 export function BuildStamp() {
   return (
     <>
       Built {BUILT_AT}
       {SHA ? <> · <CommitLink /></> : null}
+      {" · "}<LicenseLink />
     </>
   );
 }

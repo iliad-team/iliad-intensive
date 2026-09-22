@@ -1,7 +1,4 @@
-"use client";
-
 import Link from "next/link";
-import { useNav } from "./NavContext";
 import type { IndexEntry } from "@/lib/content";
 import { clusterLabel, dayCode, pagePath, type Cluster } from "@/lib/clusters";
 
@@ -14,6 +11,12 @@ const HEADING_INDENT: Record<number, string> = {
   4: "pl-8",
 };
 
+/**
+ * Server-rendered; always in the markup, shown/hidden by the #page-shell rules
+ * in globals.css (keyed on the `nav-open` class on <html>). The old
+ * close-on-mobile click behaviour lives in public/site.js, delegated from the
+ * #module-sidebar id — no React on the client.
+ */
 export function SidebarNav({
   modules,
   activeSlug,
@@ -23,9 +26,6 @@ export function SidebarNav({
   activeSlug?: string;
   clusters?: Cluster[];
 }) {
-  const { open, setOpen } = useNav();
-  if (!open) return null;
-
   const byCluster = new Map<string, IndexEntry[]>();
   for (const m of modules) {
     const k = m.cluster ?? "Other";
@@ -44,12 +44,9 @@ export function SidebarNav({
     [...byCluster.keys()].filter((c) => !CLUSTER_ORDER.includes(c)),
   );
 
-  const closeOnMobile = () => {
-    if (window.matchMedia("(max-width: 1023px)").matches) setOpen(false);
-  };
-
   return (
     <nav
+      id="module-sidebar"
       aria-label="Modules"
       className="w-full max-w-xs shrink-0 self-start lg:sticky lg:top-[calc(var(--header-h)+1rem)] lg:max-h-[calc(100vh-var(--header-h)-2rem)] lg:overflow-y-auto pr-4"
     >
@@ -74,7 +71,6 @@ export function SidebarNav({
                       // ~6 MB for singular-learning-theory, ~5.6 MB for aixi —
                       // which is a lot of bandwidth for a link nobody clicked.
                       prefetch={false}
-                      onClick={closeOnMobile}
                       className={
                         "block rounded px-2 py-1 leading-snug " +
                         (active
@@ -102,7 +98,6 @@ export function SidebarNav({
                           <li key={`${h.slug}-${i}`}>
                             <a
                               href={`#${h.slug}`}
-                              onClick={closeOnMobile}
                               className={
                                 "block py-0.5 leading-snug text-[0.82rem] text-zinc-600 hover:text-black hover:bg-zinc-50 rounded-r " +
                                 (HEADING_INDENT[h.level] ?? "pl-2")

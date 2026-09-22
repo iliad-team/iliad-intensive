@@ -1,0 +1,694 @@
+% Shared source for the student sheet and the solutions sheet.
+% Content inside a solution environment appears only in the solutions PDF.
+
+\begin{callout}[note][Instructions]
+    Give a clear justification for each answer. You may use results proved in
+    the lecture unless an exercise asks you to establish them. Questions marked
+    \textbf{Extension} are optional.
+\end{callout}
+
+\begin{solutionsonly}
+\begin{callout}[note][Instructions]
+    These notes reproduce each exercise before its solution. Equivalent
+    arguments and notation should receive full credit when the mathematical
+    reasoning is correct.
+\end{callout}
+\end{solutionsonly}
+
+\begin{exercise}[From statistics to partitions]
+\label{ex:p2-1}
+  Let $u_1,\ldots,u_6\in\mathcal X_+^*$ be six possible histories. Suppose
+  that they induce the following conditional distributions over the entire
+  future:
+  \[
+    \begin{array}{c|cccccc}
+      \text{history} & u_1 & u_2 & u_3 & u_4 & u_5 & u_6\\
+      \hline
+      \text{future distribution} & P & P & P & Q & Q & S
+    \end{array}
+  \]
+  where $P$, $Q$, and $S$ are pairwise distinct.
+
+  Three statistics $R_A$, $R_B$, and $R_C$ induce the partitions
+  \[
+    \begin{aligned}
+      \Pi_A
+        &=\bigl\{\{u_1,u_2\},\{u_3\},\{u_4\},\{u_5\},\{u_6\}\bigr\},\\
+      \Pi_B
+        &=\bigl\{\{u_1,u_2,u_3\},\{u_4,u_5\},\{u_6\}\bigr\},\\
+      \Pi_C
+        &=\bigl\{\{u_1,u_2,u_3,u_4\},\{u_5\},\{u_6\}\bigr\}.
+    \end{aligned}
+  \]
+  Recall that a statistic is sufficient for prediction when histories assigned
+  the same value induce the same distribution over the future.
+
+  \begin{enumerate}
+    \item What does it mean for two histories to belong to the same cell of the
+      partition induced by a statistic? Illustrate your answer using $u_1$ and
+      $u_2$ in $\Pi_A$.
+
+    \item Determine which of $R_A$, $R_B$, and $R_C$ are sufficient. If a
+      statistic is not sufficient, give two histories witnessing the failure.
+
+    \item Which cells of $\Pi_A$ can be merged without losing sufficiency?
+      Perform all such merges and identify the resulting partition.
+
+    \item Explain why no two cells of $\Pi_B$ can be merged while preserving
+      sufficiency. What does this show about $R_B$?
+
+    \item Prove that every refinement of a sufficient partition is also
+      sufficient. Is every coarsening of a sufficient partition necessarily
+      sufficient? Use $\Pi_A$, $\Pi_B$, and $\Pi_C$ to illustrate your answer.
+
+    \item \textbf{Extension.} Consider the partition
+      \[
+        \Pi_D
+          =\bigl\{\{u_1\},\{u_2,u_3\},\{u_4,u_5\},\{u_6\}\bigr\}.
+      \]
+      Show that $\Pi_A$ and $\Pi_D$ are both sufficient but that neither
+      refines the other. How can both nevertheless refine the same minimal
+      sufficient partition?
+  \end{enumerate}
+\end{exercise}
+\begin{solution}[ex:p2-1]
+    \begin{enumerate}
+      \item Two histories belong to the same cell when they receive
+        the same summary value. In particular,
+        $R_A(u_1)=R_A(u_2)$.
+
+      \item Both $R_A$ and $R_B$ are sufficient. Every cell of $\Pi_A$ and
+        every cell of $\Pi_B$ contains histories carrying only one of the
+        distributions $P$, $Q$, or $S$.
+
+        The statistic $R_C$ is not sufficient. Its first cell contains $u_1$
+        and $u_4$, for example, but $u_1$ induces $P$ while $u_4$ induces $Q$.
+        Since $P\neq Q$, these histories cannot be assigned the same value by
+        a sufficient statistic.
+
+      \item The cell $\{u_1,u_2\}$ can be merged with $\{u_3\}$ because all
+        three histories induce $P$. Similarly, $\{u_4\}$ can be merged with
+        $\{u_5\}$ because both histories induce $Q$. No cell can be merged
+        with $\{u_6\}$, and no $P$-cell can be merged with a $Q$-cell. After
+        all permissible merges, the resulting partition is
+        \[
+          \bigl\{\{u_1,u_2,u_3\},\{u_4,u_5\},\{u_6\}\bigr\}=\Pi_B.
+        \]
+
+      \item The three cells of $\Pi_B$ correspond respectively to the three
+        distinct future distributions $P$, $Q$, and $S$. Merging any two cells
+        would therefore place histories with different future distributions
+        in the same cell and destroy sufficiency. Hence $R_B$ is minimal
+        sufficient.
+
+      \item Let $\Pi'$ refine a sufficient partition $\Pi$. Any two histories
+        in the same cell of $\Pi'$ also belong to the same cell of $\Pi$.
+        Since $\Pi$ is sufficient, those histories induce the same future
+        distribution. Therefore $\Pi'$ is sufficient.
+
+        In the example, $\Pi_A$ refines $\Pi_B$, and both are sufficient. A
+        coarsening need not remain sufficient: $\Pi_C$ is obtained from the
+        sufficient partition $\Pi_A$ by merging its cells
+        $\{u_1,u_2\}$, $\{u_3\}$, and $\{u_4\}$. The resulting cell contains
+        histories inducing both $P$ and $Q$, so $\Pi_C$ is not sufficient.
+
+      \item Every cell of $\Pi_D$ lies within one predictive class, so $\Pi_D$
+        is sufficient. The same was established for $\Pi_A$.
+
+        The cell $\{u_1,u_2\}$ of $\Pi_A$ is split between $\{u_1\}$ and
+        $\{u_2,u_3\}$ in $\Pi_D$, so $\Pi_A$ does not refine $\Pi_D$.
+        Conversely, $\{u_2,u_3\}$ in $\Pi_D$ is split between
+        $\{u_1,u_2\}$ and $\{u_3\}$ in $\Pi_A$, so $\Pi_D$ does not refine
+        $\Pi_A$. Both partitions nevertheless refine $\Pi_B$, because every
+        one of their cells is contained in one of the three predictive classes
+        represented by $P$, $Q$, and $S$.
+    \end{enumerate}
+\end{solution}
+
+\begin{exercise}[Causal states are minimal sufficient statistics]
+\label{ex:p2-2}
+  For $x,x'\in\mathcal X_+^*$, define the relation $\sim$ by
+  \[
+    \begin{aligned}
+    x\sim x'
+    \quad\Longleftrightarrow\quad
+    &\Pr\!\left(
+      X_{|x|+1:|x|+|y|}=y\mid X_{1:|x|}=x
+    \right)\\
+    &\qquad=
+    \Pr\!\left(
+      X_{|x'|+1:|x'|+|y|}=y\mid X_{1:|x'|}=x'
+    \right)
+    \end{aligned}
+  \]
+  for every $y\in\mathcal X^*$. Define the causal state of $x$ by
+  \[
+    \epsilon(x):=[x]_{\sim},
+  \]
+  and write $\mathcal S:=\epsilon(\mathcal X_+^*)$ for the set of
+  causal states.
+
+  \begin{enumerate}
+    \item Prove that $\sim$ is an equivalence relation on
+      $\mathcal X_+^*$ by establishing each of the following:
+      \begin{enumerate}
+        \item reflexivity: $x\sim x$ for every $x\in\mathcal X_+^*$;
+        \item symmetry: if $x\sim x'$, then $x'\sim x$;
+        \item transitivity: if $x\sim x'$ and $x'\sim x''$, then
+          $x\sim x''$.
+      \end{enumerate}
+
+    \item Prove that $\epsilon$ is sufficient for prediction.
+
+    \item Let $R:\mathcal X_+^*\to\mathcal R$ be any sufficient statistic.
+      Prove that
+      \[
+        R(x)=R(x')\quad\Longrightarrow\quad
+        \epsilon(x)=\epsilon(x').
+      \]
+      Deduce that every sufficient partition refines the causal-state
+      partition.
+
+    \item Using parts (b) and (c), conclude that $\epsilon$ is a minimal
+      sufficient statistic.
+
+    \item \textbf{Extension.} Let $T$ be another minimal sufficient
+      statistic. Prove that $T$ and $\epsilon$ induce the same partition of
+      $\mathcal X_+^*$. Deduce that there is a bijection
+      \[
+        \psi:\mathcal S\to\operatorname{im}(T)
+      \]
+      satisfying $T=\psi\circ\epsilon$.
+  \end{enumerate}
+\end{exercise}
+\begin{solution}[ex:p2-2]
+    \begin{enumerate}
+      \item
+        \begin{enumerate}
+          \item For every $x\in\mathcal X_+^*$ and every continuation $y$,
+            the conditional probability after $x$ equals itself. Hence
+            $x\sim x$, so $\sim$ is reflexive.
+
+          \item If $x\sim x'$, then the two continuation probabilities are
+            equal for every $y$. Reversing the equality shows that
+            $x'\sim x$, so $\sim$ is symmetric.
+
+          \item Suppose $x\sim x'$ and $x'\sim x''$. For every $y$, the
+            continuation probability after $x$ equals that after $x'$, which
+            equals that after $x''$. Thus $x\sim x''$, so $\sim$ is
+            transitive.
+        \end{enumerate}
+        Therefore $\sim$ is an equivalence relation.
+
+      \item If $\epsilon(x)=\epsilon(x')$, then $x$ and $x'$ belong to the
+        same equivalence class, so $x\sim x'$. By the definition of $\sim$,
+        the two histories induce the same probability for every finite
+        continuation $y$. This is precisely the definition of sufficiency for
+        prediction, so $\epsilon$ is sufficient.
+
+      \item Suppose $R(x)=R(x')$. Since $R$ is sufficient, $x$ and $x'$
+        induce the same probability for every finite continuation. Hence
+        $x\sim x'$, and equivalent histories have the same equivalence class:
+        $\epsilon(x)=\epsilon(x')$.
+
+        Thus any two histories in the same cell induced by $R$ also lie in the
+        same causal state. Every cell induced by $R$ is therefore contained in
+        a causal state, so the partition induced by $R$ refines the
+        causal-state partition. Since $R$ was arbitrary, every sufficient
+        partition has this property.
+
+      \item Part (b) shows that $\epsilon$ is sufficient. Part (c) shows that
+        its partition is refined by the partition of every sufficient
+        statistic. Hence the causal-state partition is the coarsest sufficient
+        partition, so $\epsilon$ is a minimal sufficient statistic.
+
+      \item Since $T$ is sufficient, part (c), with $R=T$, shows that the
+        partition induced by $T$ refines the causal-state partition. Since
+        $T$ is minimal and $\epsilon$ is sufficient, the causal-state
+        partition must also refine the partition induced by $T$. The two
+        partitions are therefore equal.
+
+        Define $\psi(\epsilon(x)):=T(x)$. Equality of the two partitions shows
+        that this definition is independent of the representative $x$ and
+        that distinct causal states receive distinct $T$-values. It also
+        reaches every value in $\operatorname{im}(T)$. Hence $\psi$ is a
+        bijection.
+    \end{enumerate}
+\end{solution}
+
+\begin{exercise}[From finite generators to causal states]
+\label{ex:p2-3}
+  In this exercise, $S_t$ denotes the hidden state immediately before the
+  transition that emits $X_{t+1}$. All parameters lie strictly between $0$
+  and $1$.
+
+  \begin{enumerate}
+    \item \textbf{The Zero--One--Random Process.}
+      Let $S_0$ be uniformly distributed over
+      $\{s_0,s_1,s_R\}$. The process has transitions
+      \[
+        s_0\xrightarrow{\,0:1\,}s_1,
+        \qquad
+        s_1\xrightarrow{\,1:1\,}s_R,
+        \qquad
+        s_R
+        \begin{cases}
+          \xrightarrow{\,0:1-p\,}s_0,\\[-1mm]
+          \xrightarrow{\,1:p\,}s_0.
+        \end{cases}
+      \]
+      An edge label $x:q$ means that the process emits $x$ and follows the
+      edge with probability $q$.
+
+      \begin{enumerate}
+        \item List all possible histories of length two. For each history,
+          determine whether it uniquely identifies the current hidden phase.
+          When it does, identify that phase.
+
+        \item For each ambiguous length-two history, determine which
+          additional observations resolve the ambiguity. Identify the
+          resulting phase and explain why it remains known after every
+          subsequent observation.
+
+        \item Assume that $\epsilon(\emptyset)$, $\epsilon(0)$,
+          $\epsilon(1)$, and $\epsilon(10)$ are pairwise distinct. Show that
+          the causal states have shortest-length representatives
+          \[
+            \emptyset,\quad 0,\quad 1,\quad 10,\quad 00,\quad 01,\quad 11.
+          \]
+          Explain why no additional causal states arise.
+
+        \item Under the assumption in part (iii), draw the automaton
+          associated with the causal-state dynamics.
+      \end{enumerate}
+
+    \item \textbf{The Even Process.}
+      Let $S_0$ be uniformly distributed over $\{A,B\}$ and consider the
+      generator
+      \[
+        A\xrightarrow{\,0:q\,}A,
+        \qquad
+        A\xrightarrow{\,1:1-q\,}B,
+        \qquad
+        B\xrightarrow{\,1:1\,}A.
+      \]
+      Thus every run of $1$s between successive $0$s has even length.
+
+      \begin{enumerate}
+        \item For each of the length-one histories $0$ and $1$, determine
+          whether the current hidden state can be identified exactly.
+
+        \item Starting from each ambiguous history in part (i), consider its
+          possible one-symbol extensions. Which extensions resolve the
+          ambiguity, and which remain ambiguous? You may use the fact that
+          $\epsilon(\emptyset)=\epsilon(11)$. What does this imply for
+          histories of the form $1^n$?
+
+        \item Assume additionally that
+          $\epsilon(\emptyset)\neq\epsilon(1)$. Show that the causal states
+          have shortest representatives
+          \[
+            \emptyset,\qquad 1,\qquad 0,\qquad 01,
+          \]
+          and explain why there are no additional causal states. You may
+          distinguish causal states using possible and impossible future
+          continuations.
+
+        \item Using $\epsilon(\emptyset)=\epsilon(11)$ and assuming
+          $\epsilon(\emptyset)\neq\epsilon(1)$, draw the automaton associated
+          with the causal-state dynamics.
+      \end{enumerate}
+
+    \item \textbf{The Simple Nonunifilar Source.}
+      Let $S_0$ be uniformly distributed over $\{A,B\}$ and consider
+      \[
+        A\xrightarrow{\,0:1/2\,}A,
+        \qquad
+        A\xrightarrow{\,0:1/2\,}B,
+        \qquad
+        B\xrightarrow{\,0:1/2\,}B,
+        \qquad
+        B\xrightarrow{\,1:1/2\,}A.
+      \]
+
+      \begin{enumerate}
+        \item Show that observing a $1$ identifies the new hidden state as
+          $A$.
+
+        \item Starting from $A$, show that there are $n+1$ hidden paths that
+          emit $0^n$, each with probability $2^{-n}$. How many of these paths
+          can subsequently emit $1$? Hence calculate
+          \[
+            \Pr(X_{n+2}=1\mid X_{1:n+1}=10^n).
+          \]
+
+        \item Show that this probability is different for every $n\geq0$.
+          Conclude that the histories
+          \[
+            1,10,100,\ldots
+          \]
+          belong to distinct causal states and that the process has infinitely
+          many causal states.
+      \end{enumerate}
+  \end{enumerate}
+\end{exercise}
+\begin{solution}[ex:p2-3]
+    \begin{enumerate}
+      \item
+        \begin{enumerate}
+          \item All four length-two histories are possible. Their resulting
+            hidden phases are
+            \[
+              \begin{array}{c|cccc}
+                x_{1:2} & 00 & 01 & 10 & 11\\
+                \hline
+                S_2 & s_1 & s_R & \{s_0,s_1\} & s_0.
+              \end{array}
+            \]
+            Thus $00$, $01$, and $11$ identify the phase exactly, while $10$
+            is ambiguous.
+
+          \item From the phases compatible with $10$, only $s_0$ can emit
+            $0$, and only $s_1$ can emit $1$. Consequently, $100$ identifies
+            the new phase as $s_1$, while $101$ identifies it as $s_R$. From
+            each phase, the emitted symbol determines the next phase, so every
+            later observation preserves synchronization.
+
+          \item The histories $00$, $01$, and $11$ identify $s_1$, $s_R$,
+            and $s_0$, respectively. These phases induce distinct next-token
+            distributions: $s_1$ emits only $1$, $s_0$ emits only $0$, and
+            $s_R$ can emit either symbol. Hence they give three distinct causal
+            states.
+
+            They are also distinct from the four states assumed in the
+            question. This can be seen without calculating probabilities by
+            comparing possible length-two continuations:
+            \[
+              \begin{array}{c|c}
+                \text{representative} & \text{possible length-two continuations}\\
+                \hline
+                \emptyset & \{00,01,10,11\}\\
+                0          & \{01,10,11\}\\
+                1          & \{00,01,10\}\\
+                10         & \{01,10,11\}\\
+                00         & \{10,11\}\\
+                01         & \{00,10\}\\
+                11         & \{01\}
+              \end{array}
+            \]
+            The only repeated continuation set belongs to $0$ and $10$, whose
+            causal states are assumed to be distinct. Finally, every history
+            of length at least three identifies the phase by part (ii), and so
+            belongs to one of the states represented by $00$, $01$, and $11$.
+            No further causal states arise.
+
+          \item Appending each possible symbol gives the causal-state update:
+            \[
+              \begin{array}{c|cc}
+                \text{state} & 0 & 1\\
+                \hline
+                \epsilon(\emptyset) & \epsilon(0)  & \epsilon(1)\\
+                \epsilon(0)         & \epsilon(00) & \epsilon(01)\\
+                \epsilon(1)         & \epsilon(10) & \epsilon(11)\\
+                \epsilon(10)        & \epsilon(00) & \epsilon(01)\\
+                \epsilon(00)        & \text{--}    & \epsilon(01)\\
+                \epsilon(01)        & \epsilon(11) & \epsilon(11)\\
+                \epsilon(11)        & \epsilon(00) & \text{--}
+              \end{array}
+            \]
+            Here a dash denotes an impossible extension. Drawing one node for
+            each row and the indicated symbol-labelled edges gives the
+            required automaton.
+        \end{enumerate}
+
+      \item
+        \begin{enumerate}
+          \item The history $0$ identifies the current state as $A$: only $A$
+            can emit $0$, and this transition returns to $A$. The history $1$
+            is ambiguous. If $S_0=A$, it leads to $B$, while if $S_0=B$, it
+            leads to $A$.
+
+          \item From the two states compatible with the history $1$, only $A$
+            can emit $0$. Therefore $10$ resolves the ambiguity and identifies
+            the new state as $A$. The extension $11$ remains ambiguous. Using
+            the given equality and recursively updating after pairs of $1$s
+            gives
+            \[
+              \epsilon(1^{2k})=\epsilon(\emptyset),
+              \qquad
+              \epsilon(1^{2k+1})=\epsilon(1),
+              \qquad k\geq0.
+            \]
+
+          \item If a history contains a $0$, its final $0$ synchronizes the
+            generator to $A$. An even number of trailing $1$s then leaves it
+            in $A$, represented by $0$, while an odd number leaves it in $B$,
+            represented by $01$. If the history contains no $0$, part (ii)
+            shows that its causal state is represented by $\emptyset$ or $1$,
+            according to the parity of its length. Thus no additional causal
+            states arise.
+
+            These four states are distinct. The state represented by $01$
+            cannot emit $0$, whereas the other three can. The continuation
+            $10$ is impossible after $0$ but possible after $\emptyset$ and
+            $1$. Finally, $\epsilon(\emptyset)\neq\epsilon(1)$ by assumption.
+            Hence the displayed representatives are also shortest.
+
+          \item Appending each possible symbol gives the causal-state update:
+            \[
+              \begin{array}{c|cc}
+                \text{state} & 0 & 1\\
+                \hline
+                \epsilon(\emptyset) & \epsilon(0) & \epsilon(1)\\
+                \epsilon(1)         & \epsilon(0) & \epsilon(\emptyset)\\
+                \epsilon(0)         & \epsilon(0) & \epsilon(01)\\
+                \epsilon(01)        & \text{--}   & \epsilon(0)
+              \end{array}
+            \]
+            Here a dash denotes an impossible extension. Drawing one node for
+            each row and the indicated symbol-labelled edges gives the
+            required automaton.
+        \end{enumerate}
+
+      \item
+        \begin{enumerate}
+          \item The only transition that emits $1$ starts from $B$, and that
+            transition leads to $A$. Thus the hidden state immediately after
+            observing $1$ is $A$.
+
+          \item One path remains in $A$ while emitting all $n$ zeros. Each of
+            the other $n$ paths moves from $A$ to $B$ on one of the $n$
+            transitions and then remains in $B$. Thus there are $n+1$ paths,
+            each with probability $2^{-n}$, and
+            \[
+              \Pr(0^n\mid S=A)=(n+1)2^{-n}.
+            \]
+            The $n$ paths that end in $B$ can subsequently emit $1$. Including
+            this final transition, each has probability $2^{-(n+1)}$, so
+            \[
+              \Pr(X_{n+2}=1\mid X_{1:n+1}=10^n)
+                =\frac{n2^{-(n+1)}}{(n+1)2^{-n}}
+                =\frac{n}{2(n+1)}.
+            \]
+
+          \item Since
+            \[
+              \frac{n}{2(n+1)}=\frac12-\frac{1}{2(n+1)},
+            \]
+            this probability is strictly increasing with $n$. Hence every pair
+            of histories $10^n$ and $10^m$, with $n\neq m$, already has a
+            different next-token distribution. They must lie in different
+            causal states. The source consequently has infinitely many causal
+            states despite its two-state generator.
+        \end{enumerate}
+    \end{enumerate}
+\end{solution}
+
+\begin{exercise}[Why next-token prediction is enough]
+\label{ex:p2-4}
+  Recall that
+  \[
+    \mathcal X_+^*
+      :=\left\{x\in\mathcal X^*:
+        \Pr\!\left(X_{1:|x|}=x\right)>0\right\}
+  \]
+  is the set of allowable histories.
+
+  Consider a model with parameters $\theta$ satisfying
+  \[
+    h_n=f_\theta(h_{n-1},x_n),
+    \qquad
+    y_n=g_\theta(h_{n-1},x_n).
+  \]
+  Fix the initial hidden state $h_0$ and suppose that the model predicts the
+  next-token distribution exactly: for every $n\geq1$,
+  \[
+    y_n
+      =\Pr\!\left(
+        X_{n+1}\mid X_{1:n}=x_{1:n}
+      \right),
+      \qquad \forall\,x_{1:n}\in\mathcal X_+^*.
+  \]
+  For every nonempty allowable history, define
+  \[
+    R(x_{1:n}):=(h_{n-1},x_n).
+  \]
+
+  For $a\in\mathcal X$, define the deterministic update
+  \[
+    \Phi_a(h,x):=\bigl(f_\theta(h,x),a\bigr).
+  \]
+  For a word $z_{1:j}$, write
+  \[
+    \Phi_{z_{1:j}}
+      :=\Phi_{z_j}\circ\cdots\circ\Phi_{z_1},
+    \qquad
+    \Phi_{z_{1:0}}:=\operatorname{id}.
+  \]
+
+  \begin{enumerate}
+    \item Show that, whenever $x_{1:n}z_{1:j}$ is allowable,
+      \[
+        R(x_{1:n}z_{1:j})
+          =\Phi_{z_{1:j}}\!\left(R(x_{1:n})\right).
+      \]
+      Hence show that, if $R(x_{1:n})=R(x'_{1:m})$ and both extended
+      histories are allowable, then
+      \[
+        R(x_{1:n}z_{1:j})=R(x'_{1:m}z_{1:j}).
+      \]
+
+    \item Let $R(x_{1:n})=R(x'_{1:m})$ and fix
+      $z_{1:k}\in\mathcal X^k$. As the symbols of $z_{1:k}$ are read from
+      left to right, use part (a) and exact next-token prediction to show that
+      for each $0\leq j<k$ such that the prefixes through $z_{1:j}$ are
+      allowable,
+      \[
+        \begin{aligned}
+        &\Pr\!\left(
+          X_{n+j+1}=z_{j+1}
+          \mid X_{1:n+j}=x_{1:n}z_{1:j}
+        \right)\\
+        &\qquad=
+        \Pr\!\left(
+          X_{m+j+1}=z_{j+1}
+          \mid X_{1:m+j}=x'_{1:m}z_{1:j}
+        \right).
+        \end{aligned}
+      \]
+      Deduce that either the same first zero-probability extension is
+      encountered after both histories, or every prefix of $z_{1:k}$ is
+      allowable after both histories.
+
+    \item In the case where every prefix is allowable, use the conditional
+      chain rule to write
+      \[
+        \begin{aligned}
+        &\Pr\!\left(
+          X_{n+1:n+k}=z_{1:k}\mid X_{1:n}=x_{1:n}
+        \right)\\
+        &\qquad=
+        \prod_{j=0}^{k-1}
+        \Pr\!\left(
+          X_{n+j+1}=z_{j+1}
+          \mid X_{1:n+j}=x_{1:n}z_{1:j}
+        \right).
+        \end{aligned}
+      \]
+      Write the analogous product after $x'_{1:m}$ and compare its factors.
+      Deal separately with the zero-probability case from part (b), and
+      conclude directly that
+      \[
+        \begin{gathered}
+          R(x_{1:n})=R(x'_{1:m})
+          \quad\Longrightarrow\\[1mm]
+          \Pr\!\left(
+            X_{n+1:n+k}=z_{1:k}\mid X_{1:n}=x_{1:n}
+          \right)
+          =
+          \Pr\!\left(
+            X_{m+1:m+k}=z_{1:k}\mid X_{1:m}=x'_{1:m}
+          \right).
+        \end{gathered}
+      \]
+      Hence $R(x_{1:n})=(h_{n-1},x_n)$ is a sufficient statistic for
+      predicting the entire future.
+  \end{enumerate}
+\end{exercise}
+\begin{solution}[ex:p2-4]
+    \begin{enumerate}
+      \item Appending one symbol $a$ gives
+        \[
+          R(x_{1:n}a)
+            =\bigl(f_\theta(h_{n-1},x_n),a\bigr)
+            =\Phi_a\!\left(R(x_{1:n})\right).
+        \]
+        Repeatedly applying this deterministic update along $z_{1:j}$ gives
+        \[
+          R(x_{1:n}z_{1:j})
+            =\Phi_{z_j}\circ\cdots\circ\Phi_{z_1}
+              \!\left(R(x_{1:n})\right)
+            =\Phi_{z_{1:j}}\!\left(R(x_{1:n})\right).
+        \]
+        If $R(x_{1:n})=R(x'_{1:m})$ and both extended histories are
+        allowable, applying the same composite function to the equal starting
+        representations gives
+        \[
+          R(x_{1:n}z_{1:j})=R(x'_{1:m}z_{1:j}).
+        \]
+
+      \item Suppose that the prefixes through $z_{1:j}$ are allowable after
+        both histories. Part (a) gives
+        \[
+          R(x_{1:n}z_{1:j})
+            =R(x'_{1:m}z_{1:j}).
+        \]
+        The two representations give the same arguments to $g_\theta$, so
+        exact next-token prediction gives
+        \[
+          \begin{aligned}
+          &\Pr\!\left(
+            X_{n+j+1}=z_{j+1}
+            \mid X_{1:n+j}=x_{1:n}z_{1:j}
+          \right)\\
+          &\qquad=
+          \Pr\!\left(
+            X_{m+j+1}=z_{j+1}
+            \mid X_{1:m+j}=x'_{1:m}z_{1:j}
+          \right).
+          \end{aligned}
+        \]
+        Thus the next extension has positive probability after one history
+        exactly when it has positive probability after the other. Following
+        the word from left to right, either both encounter their first zero at
+        the same position or all its prefixes are allowable after both.
+
+      \item If every prefix is allowable, the conditional chain rule gives
+        the product in the question and
+        \[
+          \begin{aligned}
+          &\Pr\!\left(
+            X_{m+1:m+k}=z_{1:k}\mid X_{1:m}=x'_{1:m}
+          \right)\\
+          &\qquad=
+          \prod_{j=0}^{k-1}
+          \Pr\!\left(
+            X_{m+j+1}=z_{j+1}
+            \mid X_{1:m+j}=x'_{1:m}z_{1:j}
+          \right).
+          \end{aligned}
+        \]
+        Part (b) shows that the factors in the two products are equal, so the
+        products are equal. If a first zero-probability extension is
+        encountered instead, part (b) shows that it occurs after both
+        histories; consequently both probabilities of the complete
+        continuation are zero.
+
+        Therefore equal values of $R$ imply equal conditional probabilities
+        for every finite continuation. By the definition of sufficiency,
+        \[
+          R(x_{1:n})=(h_{n-1},x_n)
+        \]
+        is a sufficient statistic for predicting the entire future.
+    \end{enumerate}
+\end{solution}

@@ -18,7 +18,8 @@ export function lineOf(needle) {
 }
 
 // warn(msg, needle?): needle is a verbatim source snippet used to report
-// file:line. Warnings fail CI (exit code 2); advisories never do.
+// file:line. warn() issues print as ERROR and fail CI (exit code 2);
+// advise() issues print as non-fatal warnings and never do.
 export const warnings = [];
 export const warn = (m, needle) => warnings.push({ m, needle });
 

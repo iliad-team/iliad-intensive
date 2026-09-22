@@ -1,0 +1,180 @@
+%--- iliad ---
+% summary: >-
+%   What must a next-token predictor remember about the past? Causal states,
+%   belief states and their geometry, from HMMs to generalised HMMs, ending
+%   with the evidence that transformers learn this structure.
+%--- end ---
+\documentclass[11pt]{article}
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
+% float: the Mess3 solution carries a figure inside its box, where a float
+% cannot go; [H] sets it in place.
+\usepackage{float}
+
+\title{Computational Mechanics}
+\author{\authorname{Xavier Poncini}\\ \affiliation{Simplex}
+  \and \authorname{Adam Shai}\\ \affiliation{Simplex}
+  \and \authorname{Paul Riechers}\\ \affiliation{Simplex}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Prerequisites}\label{prerequisites}
+
+Familiarity with the goals and basic methodology of mechanistic interpretability, 
+including the notions of features and circuits; the linear representation hypothesis; 
+linear probes as a method for reading off internal representations; and a basic 
+understanding of the transformer architecture. 
+
+Students should be comfortable with the idea that one can train a linear map 
+from model activations to some target structure and evaluate its 
+quality (e.g. via MSE or \(R^2\)).
+
+\textbf{Mathematical background.} The module is mathematically self-contained: 
+all formal definitions (HMMs, GHMMs, belief states, MSPs) are introduced from scratch. 
+However, students will engage with the material more fluently if they are comfortable with the following:
+
+\begin{itemize}
+\item
+  \textbf{Linear algebra:} row-stochastic matrices, rank and invertibility, null spaces (kernels).
+\item
+  \textbf{Probability:} conditional probability, Bayes\textquotesingle{} rule, probability distributions over finite sets, the probability simplex.
+\item
+  \textbf{Basic machine learning:} next-token prediction, loss functions (cross-entropy), the concept of model activations.
+\end{itemize}
+
+\begin{learningoutcomes}
+\begin{itemize}
+\item
+  Construct their own hidden Markov models.
+\item
+  Explain the motivation for introducing generalised hidden Markov models (GHMMs).
+\item
+  Explain why the belief state is a useful object for making predictions about GHMM data.
+\item
+  Compute the belief state of a GHMM.
+\item
+  Explain the difference between the belief state of a HMM and the belief state of a GHMM (that is itself not an HMM).
+\item
+  Explain the relationship between belief states and next-token observation probabilities for GHMMs.
+\item
+  Compute the mixed state presentation (MSP) for GHMMs.
+\item
+  Explain why generating data is easier than predicting data.
+\item
+  Explain the evidence for the claim: transformers represent belief state geometry in their residual stream.
+\item
+  Develop hypotheses for where transformers represent: belief states, observation probabilities, log observation probabilities.
+\end{itemize}
+\end{learningoutcomes}
+
+\section{Content}\label{content}
+
+\subsection{Fast-track}\label{fast-track}
+
+Read \href{https://arxiv.org/pdf/2405.15943}{Transformers represent belief state geometry in their residual stream}. Focus on being able to answer the following questions:
+
+\begin{itemize}
+\item
+  What is a hidden Markov model (HMM)?
+\item
+  What is a belief state?
+\item
+  What is the mixed state presentation (MSP)?
+\item
+  About the map learnt from activations to belief states:
+  \begin{itemize}
+  \item
+    What is the source?
+  \item
+    What is the target?
+  \item
+    How is the quality of the map evaluated?
+  \end{itemize}
+\end{itemize}
+
+% The roadmap is the Schedule from the source repo's README
+% (iliad-team/iliad-intensive-C.3), which is what the day was taught from on
+% 10 Sep 2026. Its links pointed at the repo's own PDFs; they point at this
+% page's decks and sections instead. Words are the README's.
+\subsection{Schedule}\label{schedule}
+
+\begin{itemize}
+\item
+  \textbf{10:00--10:30} --- \href{https://iliad-intensive.org/downloads/computational-mechanics/computational-mechanics-slides.pdf}{Lecture: Overview and scope}
+\item
+  \textbf{10:30--11:15} --- \href{https://iliad-intensive.org/downloads/computational-mechanics/computational-mechanics-slides-2-predicting-the-future.pdf}{Lecture: Predicting the future}
+\item
+  \textbf{11:15--11:30} --- \emph{Break}
+\item
+  \textbf{11:30--12:30} --- \hyperref[sec:predicting-the-future]{{Exercises}: Predicting the future}
+\item
+  \textbf{12:30--13:30} --- \emph{Lunch}
+\item
+  \textbf{13:30--14:15} --- \href{https://iliad-intensive.org/downloads/computational-mechanics/computational-mechanics-slides-3-representing-the-past.pdf}{Lecture: Representing the past}
+\item
+  \textbf{14:15--15:45} --- \hyperref[sec:representing-the-past]{{Exercises}: Representing the past}
+\item
+  \textbf{15:45--16:00} --- \emph{Break}
+\item
+  \textbf{16:00--17:45} --- \hyperref[sec:belief-geometry]{Reading \& Discussion: Transformers represent belief geometry}
+\item
+  \textbf{17:45--18:00} --- Feedback
+\end{itemize}
+
+% Parts 2-4 are the source repo's written-exercises/CompMechExercisesPt{2,3}
+% and reading-guides/CompMechReadingGuidePt4, run through a scripted
+% transform (environment names only; every word and formula is the
+% author's). Part 1 is lecture-only: its deck is the first Slides row.
+\section{Predicting the future}\label{sec:predicting-the-future}
+\input{part2}
+
+\section{Representing the past}\label{sec:representing-the-past}
+\input{part3}
+
+\section{Identifying belief geometry in transformers}\label{sec:belief-geometry}
+\input{part4}
+
+% From the source repo's README, "Python exercises: HMM from scratch".
+\section{Python exercises: HMM from scratch}\label{sec:python-exercises}
+
+The Python exercises are ARENA-style notebooks in two parts. Each part has an
+\textbf{exercises} notebook (with \texttt{\# YOUR CODE HERE} stubs, inline tests, and
+collapsible solutions) and a fully worked \textbf{solutions} notebook.
+
+\begin{itemize}
+\item
+  \textbf{Part 1 --- Sequence probabilities \& next-token distributions} (exercises) --- \href{https://colab.research.google.com/github/iliad-team/iliad-intensive-C.3/blob/main/python-exercises/colab/part1_sequence_probabilities_exercises_colab.ipynb}{Open in Colab}
+\item
+  Part 1 (solutions) --- \href{https://colab.research.google.com/github/iliad-team/iliad-intensive-C.3/blob/main/python-exercises/colab/part1_sequence_probabilities_solutions_colab.ipynb}{Open in Colab}
+\item
+  \textbf{Part 2 --- Belief states} (exercises) --- \href{https://colab.research.google.com/github/iliad-team/iliad-intensive-C.3/blob/main/python-exercises/colab/part2_belief_states_exercises_colab.ipynb}{Open in Colab}
+\item
+  Part 2 (solutions) --- \href{https://colab.research.google.com/github/iliad-team/iliad-intensive-C.3/blob/main/python-exercises/colab/part2_belief_states_solutions_colab.ipynb}{Open in Colab}
+\end{itemize}
+
+The Colab notebooks are self-contained: their setup cells write the helper
+modules into the session, so there is nothing else to install or download.
+
+\section{Learn more}\label{learn-more}
+
+\begin{itemize}
+\item
+  Beyond toy architectures -- in-context learning
+  \begin{itemize}
+  \item
+    LLMs have an amazing ability to adapt internal representations in-context -- {[}Read: ICLR: \href{https://arxiv.org/pdf/2501.00070}{In-Context Learning of Representations}{]}
+  \item
+    LLMs can predict HMM data in-context -- {[}Read: \href{https://arxiv.org/pdf/2506.07298}{Pre-trained Large Language Models Learn Hidden Markov Models In-context}{]}
+  \item
+    This suggests that internal representations of LLMs predicting GHMM data in-context, may resemble belief states.
+  \end{itemize}
+\item
+  Processes consisting of GHMMs with richer structure {[}Read: \href{https://arxiv.org/pdf/2602.02385v1}{Transformers learn factored representations}{]}
+\item
+  Review article of computational mechanics {[}Read: \href{https://www.nature.com/articles/nphys2190}{Between order and chaos}{]}
+\item
+  \href{https://www.simplexaisafety.com/}{Simplex} is a non-profit research organisation working on applying computational mechanics to AI safety.
+\end{itemize}
+
+\end{document}

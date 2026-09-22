@@ -135,7 +135,7 @@
 	\end{enumerate}  
 	\pause
 	\item RL is vastly different: Agent takes actions in an interactive environment,
-	receive scalar reward as feedback. This lends itself to several problems:
+	receives scalar reward as feedback. This lends itself to several problems:
 	\begin{enumerate}
 		\item  \textbf{Sparse reward:} Sparse feedback to do good
 
@@ -313,7 +313,7 @@
 		\begin{itemize}
 			\item For episodic  
 			(finite length interaction) environments of maximum duration $T$,
-			return $G_t = r_{t+1} + r_{t+2} + \ldots + r_T$ well defined.   
+			return $G_t = r_{t+1} + r_{t+2} + \ldots + r_T$ is well defined.   
 		\end{itemize}
 		\pause
 		\item \textbf{Problems:} (for continuing environments)
@@ -355,7 +355,7 @@
 \begin{frame}
 \frametitle{Core Assumptions}
 
-These kind of environments are called \textit{Markov Descision Processes} (MDPs),
+These kinds of environments are called \textit{Markov Decision Processes} (MDPs),
 and have the following ``nice'' properties
 \begin{enumerate}
 	\pause
@@ -366,7 +366,7 @@ and have the following ``nice'' properties
 		% \end{itemize}
 		\pause
 		\item \textbf{Markovian:} The behaviour of the environment
-		depend only on the current state $s_t$
+		depends only on the current state $s_t$
 		and action $a_t$. 
 		% \begin{itemize}
 		% 	\item \textit{Only need to consider the current state to act optimally,
@@ -409,7 +409,7 @@ and have the following ``nice'' properties
 		V_\pi(s) =& \mathbb{E}_\pi [G_t | s_t =  s]
 		\end{align*}
 	\end{block}
-(Expectation is also with respect to the transitional distribution $T$.)
+(Expectation is also with respect to the transition distribution $T$.)
 \end{itemize}
 	
 \end{frame}
@@ -451,7 +451,7 @@ we can then define the value function recursively,
 \item Equation is linear in $V_{\pi}(\cdot)$, 
 giving a set of \textbf{linear} simultaneous equations.
 \pause
-\item Given policy $\pi$, can now easy solve for $V_{\pi}(s_1), V_{\pi}(s_2), \ldots$
+\item Given policy $\pi$, can now easily solve for $V_{\pi}(s_1), V_{\pi}(s_2), \ldots$
 \pause
 \item Computing $V_\pi$ from $\pi$ is called \textbf{policy evaluation}, denote $\pi \overset{E}{\rightarrow} V_\pi$.
 \end{itemize}
@@ -480,7 +480,7 @@ in terms of the value of all states $\{V_\pi(s')\}_{s' \in \S}$.
 
 \begin{frame}
 	\begin{itemize}
-		\item States $\S = {s_0, s_L,s_R}$, actions $\A = \{a_L, a_R\}$,
+		\item States $\S = \{s_0, s_L, s_R\}$, actions $\A = \{a_L, a_R\}$,
 		possible rewards $\R= \{0,1,2\}$.
 		\item Each transition indicates if an action is taken, the reward returned
 		and which state to transition to
@@ -628,7 +628,7 @@ many steps!
     \frametitle{Glossary}
     \begin{itemize}
         \item \textbf{Transition} distribution $T : \S \times \A \to \Delta \S$, sample $s' \sim T(\cdot | s,a)$.
-        \item \textbf{Reward} function $R : \S \times \A \times \S \to \mathbb{R}$, write \textbf{reward} $r_{t+1} := R(s_t, a_t, s_{t+1}$)
+        \item \textbf{Reward} function $R : \S \times \A \times \S \to \mathbb{R}$, write \textbf{reward} $r_{t+1} := R(s_t, a_t, s_{t+1})$
         \item \textbf{Policy} $\pi : \S \to \Delta \A$ (stochastic) or $\pi : \S \to \A$ (deterministic), take $a_{t} = \pi(s_t)$ or sample $a_{t} \sim \pi(\cdot | s_t)$.
         \item \textbf{History/Trajectory}
         $
@@ -867,7 +867,7 @@ Q-learning guaranteed to converge to $Q_*$.
 
 
 \begin{frame}
-	\frametitle{SARSA v.s. Q-Learning}
+	\frametitle{SARSA vs. Q-Learning}
 	\begin{block}{SARSA Update Rule}
 		$$
 		\hat{Q}_*(s_t, a_t) \leftarrow  \hat{Q}_*(s_t, a_t) + \alpha 

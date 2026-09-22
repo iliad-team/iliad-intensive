@@ -26,9 +26,12 @@ LaTeX day this extends to math: copy equations byte-for-byte (shell slicing,
 This is the rule the whole skill hangs on, and it is easy to break by accident.
 Concretely, all of the following are forbidden:
 
-- **Writing a `summary:`.** It is always `summary: TODO` — never composed, never
+- **Writing a `summary:`.** It is `summary: TODO` — never composed, never
   paraphrased from the Doc, never lifted from `scratch/MATERIAL.md`. The Doc tabs
-  have no summary field, so *any* summary is invented. David writes them.
+  have no summary field, so *any* summary is invented. David writes them. The
+  one exception is a source with its own Overview/summary paragraph: that is
+  the author's text, and it is transcribed verbatim into `summary:` (never
+  kept as a body section — the overview lives in the page header).
 - **Distilling bullets from prose.** If the tab's intent section is three
   paragraphs and the template wants a bullet list, port the three paragraphs.
   Do not "turn them into" outcomes.
@@ -120,6 +123,10 @@ contributors:
 slides: <canonical Drive folder URL, if the deck is a raw PDF>
 ---
 
+<YouTube id="<video id>" title="<lecture recording, if one exists>" />
+
+## Prerequisites
+
 <LearningOutcomes>
 
 * first outcome
@@ -127,11 +134,16 @@ slides: <canonical Drive folder URL, if the deck is a raw PDF>
 
 </LearningOutcomes>
 
-## Prerequisites
 ## Roadmap for today
 ## Reading guide
 ## Further reading
 ```
+
+That opening order — video embeds, then `## Prerequisites`, then
+`<LearningOutcomes>` — is fixed (docs/commands.md §"Front matter opens the
+sheet"); the source's own ordering does not override it, the same as Further
+reading moving to the end. An `Overview` section in the source is transcribed
+verbatim into `summary:` (see above), never kept as a body section.
 
 **Learning outcomes must use the `<LearningOutcomes>` component**, never an
 `## Learning outcomes` heading — a heading renders as an ordinary section instead
@@ -146,7 +158,7 @@ the bullets. See `docs/commands.md` §"Learning outcomes and summary".
 | Prerequisites | keep as `## Prerequisites` |
 | Teaching guide → sessions, schedule | `## Roadmap for today` (student-facing parts only) |
 | Main content | `## Reading guide` |
-| Learn more | `## Further reading`, subsections and annotations preserved |
+| Learn more | `## Further reading`, subsections and annotations preserved — always the LAST section, just before any references |
 | Daily Checkpoint (quiz link) | **drop** |
 | Session Intent, Teaching notes | **drop** |
 | Notes for future iterations | **drop** |
@@ -168,14 +180,22 @@ contract. In outline:
   `\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}`.
   Do **not** reload hyperref/cleveref — `iliad.sty` loads them.
 - `\title{}` / `\author{\authorname{Name}\\ \affiliation{Org}}`; after
-  `\maketitle`, `\begin{summary}…\end{summary}` and
-  `\begin{learningoutcomes}\item…\end{learningoutcomes}`.
+  `\maketitle` the fixed opening order: any `\youtube[Title]{VIDEO_ID}`
+  embeds, the `Prerequisites` section, then
+  `\begin{learningoutcomes}\item…\end{learningoutcomes}` — reorder the
+  source's opening to match (content stays verbatim). The overview is the
+  `summary:` metadata key, not a `\begin{summary}` env (legacy) or a body
+  section.
 - Exercises: `\begin{exercise}[Title]` then `\label{ex:…}`. Solutions:
   `\begin{solution}[ex:…]` — the label is mandatory and must match; the build
   strips these for the `-nosol` variant.
 - Figures: inline `tikzpicture` (converter → SVG) or
   `figure`+`\includegraphics{fig/*.pdf}`. Citations: per-module `biblo.bib`,
   `\cite{}`, `\bibliographystyle{plain}`, `\bibliography{biblo}`.
+- A `Further reading` / `Learn more` section goes LAST — after all taught
+  content, just before `\bibliography` (or before `\appendix` if there is
+  one). If the source has it elsewhere, move it; the entries themselves stay
+  verbatim.
 - Never `\renewcommand`/`\renewenvironment` a contract name; never commit a
   local `iliad.sty`.
 
@@ -190,8 +210,26 @@ For a large LaTeX day the mechanical assembly suits a `general-purpose`
 subagent scoped to `<worktree>/tex/<slug>/`. Set up the worktree and branch
 **first**, so the subagent can never touch `main`. Give it the verbatim mandate,
 the framework contract above (or point it at `docs/commands.md`,
-`docs/iliad-sty.md`, `tex/example/main.tex`), the build-until-clean loop, and an
-instruction to delete its `_src/` scratch before committing.
+`docs/iliad-sty.md`, `tex/example/main.tex`), the build-until-clean loop, and the
+location of the source clone (`_src_repo/` at the worktree root, put there by
+`new-worktree.sh --src`). It is gitignored, so it needs no cleanup — but it must
+never be staged.
+
+## More than one deck on a day
+
+A worksheet folder holds every deck the day is taught from: `slides.tex`, plus
+`slides-<label>.tex` for each further lecture (a guest lecture, an afternoon
+session). A deck the author wrote in Typst keeps the same stem as `.typ`
+(`slides.typ`) and is built and listed the same way — port it verbatim, its
+images into `fig/`, and repoint only the `#image()` paths (see
+`docs/commands.md` §Slides). Each compiles and gets its own Slides row,
+`slides.tex` first and the rest in filename order. A hosted `slides:` URL is a row too — listed first,
+never superseded — so a day whose main lecture is a Google Slides deck and whose
+guest lecture has LaTeX source keeps one page: `slides:` for the former,
+`slides-<label>.tex` for the latter. Give `slides:` a `title:` (write it as
+`url:` + `title:`) when the page has several rows, so the hosted one is named
+like the compiled ones are (from their `\title{}`). Don't split a day into two
+worksheets just to host two decks. See `docs/commands.md` §Slides.
 
 ## Slides that exist only as a raw PDF
 
@@ -229,7 +267,7 @@ slides matter, open the folder and look.
 ## Build and preview
 
     node scripts/build-content.mjs --check <slug>    # converter + KaTeX gate, no PDFs
-    node scripts/build-content.mjs <slug>            # full: PDFs + downloads
+    node scripts/build-content.mjs <slug>            # full: PDFs + downloads (+ every deck, .tex or .typ)
 
 Must exit 0, with no WARN and a green KaTeX render gate. Iterate on failures by
 adjusting scaffolding/preamble only.
@@ -241,11 +279,12 @@ static build and *does* auto-reload via an injected SSE snippet. Edit sources in
 
 ## Commit + PR
 
-Stage only sources: `main.tex` + `biblo.bib` + `fig/*`, or `main.mdx` (+ `fig/`),
-plus the `schedule.yaml` line. Everything else — `main-nosol.*`, `.aux`, `.pdf`,
-`rendergate.log`, `content/`, `public/`, the `_src/` scratch, the `node_modules`
-symlink — is gitignored or must not be staged.
+Stage only sources: `main.tex` + `biblo.bib` + `fig/*` + any `slides*.tex`, or
+`main.mdx` (+ `fig/`), plus the `schedule.yaml` line. Everything else — `main-nosol.*`, `.aux`, `.pdf`,
+`rendergate.log`, `content/`, `public/`, the `_src_repo/` source clone, the
+`node_modules` symlink — is gitignored or must not be staged.
 
+    git lfs push origin port-<x.y>-claude               # --no-verify below skips the hook that uploads LFS objects
     git push -u origin port-<x.y>-claude --no-verify   # see the symlink note above
     gh pr create --base main --title "[X.Y] <Title>"
 
@@ -254,7 +293,7 @@ Every PR body points at **both** (see `docs/PR-PREVIEWS.md`):
 - the **issue** it addresses — `Closes #<n>`; find it with `gh issue list`, day
   issues are titled `[X.Y] <Title>`;
 - the **live preview** — CI deploys the rendered site to
-  `https://iliad-team.github.io/iliad-intensive/pr-preview/pr-<PR#>/` and a bot
+  `https://iliad-intensive.org/pr-preview/pr-<PR#>/` and a bot
   comments the URL once checks pass. That link is what a reviewing author opens.
 
 Watch CI with `gh pr checks <n> --watch`. Leave the worktree in place until the

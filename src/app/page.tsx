@@ -154,7 +154,14 @@ export default async function Home() {
         </div>
       )}
       <footer className="mt-16 border-t border-zinc-200 pt-4 font-sans text-xs text-zinc-500">
-        Source:{" "}
+        A course by{" "}
+        <a
+          href="https://iliad.ac"
+          className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800"
+        >
+          ILIAD
+        </a>
+        {" · "}Source:{" "}
         <a
           href="https://github.com/iliad-team/iliad-intensive"
           className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800"

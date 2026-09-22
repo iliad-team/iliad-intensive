@@ -41,7 +41,13 @@ try {
 } catch (e) { console.log("MDX compile: FAIL ::", String(e.message).split("\n")[0]); process.exit(1); }
 
 const macros = {};
-let b = body;
+// `$` is ASCII punctuation, so `\$` is a CommonMark backslash escape: micromark
+// consumes it before the math extension sees a delimiter, and emit-ast.mjs emits
+// exactly that for a price in prose. This scan splits on `$` by hand, so it has
+// to drop the escapes itself — otherwise two prices in one paragraph read as one
+// bogus math span and the gate fails a page that renders fine. (No math body
+// reaches here holding a `\$`: shims.mjs rewrites those to \char36.)
+let b = body.replace(/\\\$/g, "");
 const disp = [...b.matchAll(/\$\$([\s\S]*?)\$\$/g)].map((m) => m[1]);
 b = b.replace(/\$\$[\s\S]*?\$\$/g, " ");
 const inl = [...b.matchAll(/\$([^$]+?)\$/g)].map((m) => m[1]);

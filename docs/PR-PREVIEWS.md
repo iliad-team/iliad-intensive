@@ -4,7 +4,7 @@ Every pull request that passes the checks gets its own rendered copy of the site
 so a reviewer can click through the real pages before the PR is merged:
 
 ```
-https://iliad-team.github.io/iliad-intensive/pr-preview/pr-<N>/
+https://iliad-intensive.org/pr-preview/pr-<N>/
 ```
 
 A bot comments that URL on the PR automatically, and updates it on every push.
@@ -28,8 +28,13 @@ result and publishes it with `.github/publish-gh-pages.sh`:
 
 - **push to `main`** → wipes the root, keeps `pr-preview/`, copies `out/` in.
 - **pull request opened/updated** → after the check ladder passes, replaces
-  `pr-preview/pr-<N>/` with `out/` and upserts a comment with the URL.
-- **pull request closed** → deletes `pr-preview/pr-<N>/`.
+  `pr-preview/pr-<N>/` with `out/` and upserts a comment with the URL. (For a
+  PR from a **fork** this half is done by `fork-preview.yml` instead — see
+  [Fork PRs](#fork-prs).)
+- **pull request closed** → deletes `pr-preview/pr-<N>/`. This fires on
+  `pull_request_target`, not `pull_request`, so it holds a write token for
+  fork PRs too — safe only because the closed event never builds or executes
+  anything from the PR.
 
 All three write to the same branch, so they share a `gh-pages-write` concurrency
 group (`cancel-in-progress: false`): simultaneous deploys **queue** instead of
@@ -58,17 +63,20 @@ site. The script refuses to push a tree with no root `index.html`.
 
 ### Base path
 
-GitHub Pages serves the repo under `/iliad-intensive`. Assets and links are
-absolute, so a preview one level deeper must be built with a matching prefix.
-The workflow sets `NEXT_PUBLIC_BASE_PATH` accordingly:
+Production is served at the root of the custom domain `iliad-intensive.org`
+(see `public/CNAME`), so it needs no prefix. Assets and links are absolute, so a
+preview one level deeper must be built with a matching prefix. The workflow sets
+`NEXT_PUBLIC_BASE_PATH` accordingly:
 
 | Event | `NEXT_PUBLIC_BASE_PATH` |
 |---|---|
-| push to `main` | `/iliad-intensive` |
-| PR #N | `/iliad-intensive/pr-preview/pr-N` |
+| push to `main` | *(empty)* |
+| PR #N | `/pr-preview/pr-N` |
 
-`npm run ci` honours an existing `NEXT_PUBLIC_BASE_PATH` and falls back to
-`/iliad-intensive`, so local builds and the production deploy are unchanged.
+`npm run ci` honours an existing `NEXT_PUBLIC_BASE_PATH` and otherwise defaults
+to empty. That default **must stay empty**: the shell's `${VAR:-default}` fires
+on an empty value as well as an unset one, so a non-empty default there would
+silently re-prefix the production build even though the workflow asked for none.
 
 ## Required one-time setup (maintainer)
 
@@ -86,12 +94,104 @@ A branch source runs **Jekyll** by default, which would strip Next's `_next/`
 assets (Jekyll ignores `_`-prefixed dirs). The build writes a `.nojekyll` marker
 to the site root to disable that — no action needed, but don't remove it.
 
+### Custom domain
+
+The site is served at **`iliad-intensive.org`** (apex A records → GitHub Pages'
+four addresses, `www` → `iliad-team.github.io`, both **DNS-only / grey cloud** in
+Cloudflare so GitHub's Let's Encrypt challenge is not intercepted).
+`iliad-intensive.com` is a separate Cloudflare zone that stays *proxied* and
+redirects, path-preserving, to the `.org`. GitHub Pages holds only **one** custom
+domain per repo, which is why the `.com` is a redirect rather than a second
+`CNAME`.
+
+The domain is claimed by **`public/CNAME`**, and it has to live there rather than
+be written once by Settings → Pages. Setting the domain in the UI commits a
+`CNAME` file to `gh-pages` — but every publish force-pushes `.deploy/` as a
+brand-new orphan commit that *is* the whole branch, so a file only the UI wrote
+is gone on the next deploy, taking the domain with it. `public/` is copied to the
+root of `out/`, so keeping it in the repo re-stages it every time. **Don't delete
+`public/CNAME`.**
+
+## The diff view
+
+Every preview page's banner has a **diff vs main** checkbox. Ticked, the
+article splits into two columns — the live site's version on the left, the
+PR's on the right — with differences marked like a git diff: removed blocks
+red, added blocks green, edited blocks tinted with the changed words marked
+inside (an inline formula counts as one word). Matched blocks are padded into
+shared rows, so a removed paragraph faces a hatched blank on the other side and
+the two columns scroll together by construction; **sync scroll** off gives each
+column its own scrollbar instead. Solutions that contain a change are opened.
+
+It is `public/diff.js` (vanilla, like `site.js`) plus the controls in
+`PreviewBanner.tsx`, and only preview builds load it. The base version is
+simply fetched from the same path at the site root — production and every
+preview share one origin — so no build step and no extra deploy artifact are
+involved. If the page does not exist on main yet the fetch 404s and the
+checkbox disables itself with a note. The comparison is against what is
+**deployed**, not main's HEAD: they differ only between a merge and its deploy.
+
+Blocks are matched by content (a display equation by its TeX source), so a
+renumbered exercise counts as an edit to its heading line — that is what the
+merge would change on the page, so it is shown.
+
+### Trying it locally
+
+A local build can diff against production, which sends
+`access-control-allow-origin: *`:
+
+```sh
+node scripts/build-content.mjs <slug>
+NEXT_PUBLIC_PREVIEW_PR=local NEXT_PUBLIC_DIFF_BASE=https://iliad-intensive.org \
+  PREVIEW_ONLY=<slug> npx next build && node scripts/strip-hydration.mjs
+python3 -m http.server 4499 --directory out     # then open /<cluster>/<slug>/
+```
+
+`NEXT_PUBLIC_PREVIEW_PR=local` (anything non-numeric) shows the banner as
+"Local preview build" with no PR link; `NEXT_PUBLIC_DIFF_BASE` is where the
+base pages are fetched from, empty (the default, and what CI uses) meaning this
+origin's root.
+
+## Fork PRs
+
+On a `pull_request` event from a fork, `GITHUB_TOKEN` is read-only no matter
+what the workflow's `permissions:` block asks for — that run executes the
+fork's code (`npm ci`, the LaTeX build), so GitHub refuses to hand it a write
+token. `site.yml`'s own preview-deploy is therefore gated to same-repo PRs,
+and fork previews are published by **`.github/workflows/fork-preview.yml`**:
+
+- It triggers on `workflow_run` after a `site` build completes, so it runs in
+  *this* repo's context with a write token — but it never checks out or
+  executes anything from the PR. Its only PR-derived input is the built site,
+  downloaded as an inert artifact and copied into `pr-preview/pr-<N>/`; the
+  publish script comes from `main`.
+- Publishing still serves PR-author-controlled HTML from the production
+  site's origin, so it is gated on **who**: org members, collaborators, and
+  anyone with at least one PR already merged into this repo publish
+  automatically; there is deliberately no manual allowlist. Until an author's
+  first merge, the bot comments that on their PRs instead of a preview URL
+  (reviewers can still run the branch locally). The flip side: merging *any*
+  PR of someone's — a one-line typo fix included — grants preview publishing
+  forever.
+- The PR number is resolved from the GitHub API by the run's head SHA (the
+  `workflow_run` payload's `pull_requests[]` is empty for forks), and only if
+  that SHA is still the PR's head — a stale run skips rather than publishing
+  an outdated preview.
+- Do **not** "simplify" this back to running the deploy (or anything that
+  builds) on `pull_request_target` — that is the classic pwn-request: the
+  fork's code runs with a write token. The `closed` event is the one safe
+  exception, because cleanup touches nothing from the PR.
+
+Note `workflow_run` (and `pull_request_target`) use the workflow file on the
+**default branch**, so changes to this machinery cannot be exercised from
+their own PR — they take effect on merge. Also, GitHub's separate Actions
+approval gate ("Require approval for first-time contributors", the repo-level
+default) still applies to the *build* run itself; that approval is per-run
+until the author has a merged PR, and is separate from the preview gate —
+though both gates now dissolve at the same moment, the author's first merge.
+
 ## Caveats / known limitations
 
-- **Fork PRs.** On a `pull_request` from a fork, `GITHUB_TOKEN` is read-only, so
-  the preview deploy silently no-ops. Previews work for branches pushed to this
-  repo (the team's normal flow). Do **not** switch to `pull_request_target` to
-  work around this — it would run untrusted PR code with a write token.
 - **Concurrent deploys.** All `gh-pages` writes share the `gh-pages-write`
   concurrency group, so a `main` push and a PR deploy queue rather than race.
 - **Third-party actions.** Publishing no longer uses one. Earlier revisions used

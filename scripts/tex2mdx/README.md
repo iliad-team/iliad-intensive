@@ -6,7 +6,7 @@ main.tex ──▶ tex2mdx.mjs ──▶ <slug>.mdx  +  tikz-<sha>.svg diagrams
                  │                └── tex2mdx-check.mjs: compiles the MDX with
                  │                    the site's exact pipeline; KaTeX-renders
                  │                    every span. Never ship unchecked output.
-                 └── exit 2 on any WARN (file:line); advisories don't fail CI
+                 └── exit 2 on any ERROR (file:line); warnings don't fail CI
 ```
 
 Stages:

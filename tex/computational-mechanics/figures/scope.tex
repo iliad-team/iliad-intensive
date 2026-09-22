@@ -1,0 +1,48 @@
+% Today's scope: GHMMs on the process side, transformers on the model side.
+% Editable replacement for the scope.png raster; the two halves are drawn in
+% one picture so the slide keeps a single \input.
+\begin{tikzpicture}[
+  ring/.style={draw=black!62,line width=.7pt},
+  ghmm/.style={fill=green!62},
+  unit/.style={draw,fill=black!8,minimum width=11mm,minimum height=8mm,
+               inner sep=1pt,font=\small},
+  wire/.style={draw,line width=.6pt},
+]
+  % ---- processes: the shaded class is the one we tackle ----
+  \begin{scope}[shift={(0,0)}]
+    \draw[ring] (0,2.50) ellipse[x radius=2.20, y radius=2.50];
+    \draw[ring] (0,2.15) ellipse[x radius=1.82, y radius=2.15];
+    \draw[ring] (0,1.81) ellipse[x radius=1.48, y radius=1.81];
+    \draw[ring,ghmm] (0,1.39) ellipse[x radius=1.16, y radius=1.39];
+    \draw[ring,dashed] (0,0.99) ellipse[x radius=0.94, y radius=0.99];
+    \draw[ring] (0,0.34) ellipse[x radius=0.56, y radius=0.34];
+    \node[font=\small] at (0,4.52) {PTM};
+    \node[font=\small] at (0,3.92) {$\vdots$};
+    \node[font=\small] at (0,3.24) {PCFG};
+    \node[font=\small] at (0,2.36) {GHMM};
+    \node[font=\small] at (0,1.52) {HMM};
+    \node[font=\scriptsize] at (0,0.34) {IID};
+    \node[font=\small] at (0,5.35) {\underline{Processes}};
+    \node[font=\small] at (0,-0.65) {GHMMs};
+  \end{scope}
+  % ---- models: a residual stream, each block writing back into the sum ----
+  \begin{scope}[shift={(5.6,0.1)}]
+    \node[unit] (x)   at (0,0)    {$x$};
+    \node[unit] (px)  at (0,4.30) {$p^{(x)}$};
+    \node[unit] (att) at (1.55,1.15) {Attn};
+    \node[unit] (mlp) at (1.55,2.85) {MLP};
+    \draw[wire] (x.north) -- (px.south);
+    \foreach \y in {1.40, 3.10}{\draw[-{Stealth[length=2mm,width=1.7mm]},line width=.6pt]
+      (0,\y) -- (0,\y+0.12);}
+    \draw[wire] (0,0.52) -- (1.55,0.52) -- (att.south);
+    \draw[wire] (att.north) -- (1.55,2.00) -- (0,2.00);
+    \draw[wire] (0,2.24) -- (1.55,2.24) -- (mlp.south);
+    \draw[wire] (mlp.north) -- (1.55,3.70) -- (0,3.70);
+    \foreach \y in {2.00, 3.70}{
+      \draw[wire,fill=white] (0,\y) circle[radius=0.135];
+      \draw[wire] (-0.093,\y) -- (0.093,\y);
+      \draw[wire] (0,{\y-0.093}) -- (0,{\y+0.093});}
+    \node[font=\small] at (0.8,5.25) {\underline{Models}};
+    \node[font=\small] at (0.8,-0.75) {Transformers};
+  \end{scope}
+\end{tikzpicture}

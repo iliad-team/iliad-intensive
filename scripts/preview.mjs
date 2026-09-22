@@ -23,6 +23,7 @@ import { readFile } from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { BUILD_ARTIFACT } from "./artifacts.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEX = path.join(ROOT, "tex");
@@ -151,7 +152,7 @@ server.listen(PORT, () => {
   console.log(`  editing a worksheet rebuilds it and the browser reloads itself\n`);
 });
 
-const ARTIFACT = /\.(aux|log|out|pdf|bbl|blg|brf|toc|fls|synctex(\.gz)?|fdb_latexmk)$|main-nosol\./;
+const ARTIFACT = BUILD_ARTIFACT;   // shared: see artifacts.mjs
 let timer = null;
 const pending = new Set();
 const watcher = watch(TEX, { recursive: true }, (_event, file) => {

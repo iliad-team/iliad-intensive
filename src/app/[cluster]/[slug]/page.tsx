@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { listDownloads, listIndex, listSlugs, readModuleMdx } from "@/lib/content";
+import { listDecks, listDownloads, listIndex, listSlugs, readModuleMdx } from "@/lib/content";
 import { clusterUrlSlug, dayCode } from "@/lib/clusters";
 import { listClusters, listDays } from "@/lib/cluster-store";
 import { MdxBody } from "@/lib/mdx";
 import { ModulePageShell } from "@/components/ModulePageShell";
 import { SidebarNav } from "@/components/SidebarNav";
 import { DownloadsRow } from "@/components/DownloadsRow";
-import { BUILT_AT, COMMIT_SHA, CommitLink } from "@/components/BuildStamp";
+import { BUILT_AT, COMMIT_SHA, CommitLink, LicenseLink } from "@/components/BuildStamp";
 
 // Static export: every .mdx in content/modules is prerendered at build time.
 // content/index.json only controls the homepage/sidebar listing, so a module
@@ -42,6 +42,8 @@ export default async function ModulePage({
     listDays(),
     listDownloads(slug),
   ]);
+  // Compiled decks among the downloads, labelled from their own \title{}.
+  const decks = await listDecks(slug, downloads);
 
   if (!mod) notFound();
 
@@ -104,14 +106,22 @@ export default async function ModulePage({
             slug={slug}
             files={downloads}
             basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ""}
-            slidesUrl={fm.slides}
+            decks={decks}
+            slides={fm.slides}
           />
         </header>
         <div className="prose">
           <MdxBody source={mod.body} />
         </div>
         <footer className="not-prose mt-12 border-t border-zinc-200 pt-4 font-sans text-xs text-zinc-500">
-          Built {BUILT_AT}
+          A worksheet from the{" "}
+          <a
+            href="https://iliad.ac"
+            className="underline decoration-zinc-300 underline-offset-2 hover:text-zinc-800"
+          >
+            ILIAD
+          </a>{" "}
+          intensive · Built {BUILT_AT}
           {(() => {
             // Link the file the page was actually built from: the LaTeX
             // source when it exists, else the authored MDX.
@@ -132,7 +142,7 @@ export default async function ModulePage({
               </>
             ) : null;
           })()}
-          {COMMIT_SHA ? <> · <CommitLink /></> : null}.
+          {COMMIT_SHA ? <> · <CommitLink /></> : null} · <LicenseLink />.
         </footer>
       </article>
     </ModulePageShell>

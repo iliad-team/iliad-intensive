@@ -11,7 +11,7 @@ import remarkGfm from "remark-gfm";
 import { remarkKatexHtml } from "./remark-katex-html";
 import rehypeSlug from "rehype-slug";
 import "katex/dist/katex.min.css";
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 
 // basePath is applied automatically to <Link>/CSS/fonts but NOT to raw
 // <img src> attributes, so Figure prefixes it explicitly. Inlined at build
@@ -19,6 +19,20 @@ import type { ReactNode } from "react";
 const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
 const components = {
+  /**
+   * a — every markdown link in a worksheet body. Internal cross-links are
+   * authored host-agnostic ("/agency/solomonoff-induction"), and MDX renders
+   * them as raw <a> tags, which — unlike <Link> — get no automatic basePath.
+   * Prefix it here, the same treatment Figure gives its src, or every
+   * cross-worksheet link 404s on GitHub Pages.
+   */
+  a: ({ href, ...rest }: ComponentProps<"a">) => (
+    <a
+      href={href?.startsWith("/") && !href.startsWith("//") ? `${BASE_PATH}${href}` : href}
+      {...rest}
+    />
+  ),
+
   /**
    * KatexHtml — a formula already rendered to markup by remarkKatexHtml.
    *
@@ -31,23 +45,37 @@ const components = {
    * The `html` is KaTeX's output, not user input: it is generated at build time
    * from the worksheet's own TeX, which is already trusted enough to run
    * through the LaTeX toolchain.
+   *
+   * `tex` is the formula's source, read out as the aria-label: the plugin
+   * renders with `output: "html"`, which omits the hidden MathML copy KaTeX
+   * would otherwise emit for screen readers (halving the markup), and KaTeX's
+   * visual tree is aria-hidden — without the label the formula would be
+   * silent.
    */
-  KatexHtml: ({ html, display }: { html: string; display?: boolean }) => (
+  KatexHtml: ({ html, tex, display }: { html: string; tex?: string; display?: boolean }) => (
     <span
       className={display ? "katex-display" : "katex"}
+      // No `tex` = the formula renders to nothing (a macro-definition block);
+      // labelling it would make screen readers announce the invisible.
+      role={tex ? "math" : undefined}
+      aria-label={tex || undefined}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   ),
   /**
    * Callout — coloured side-note for an important remark, warning, or tip.
-   * Usage: <Callout type="note|warning|tip">body</Callout>
+   * Usage: <Callout type="note|warning|tip" title="optional heading">body</Callout>
+   * `title` (LaTeX: \begin{callout}[tip][Title]) heads the box; without it the
+   * box has no heading — the colour alone says what kind of aside it is.
    */
   Callout: ({
     type = "note",
+    title,
     id,
     children,
   }: {
     type?: "note" | "warning" | "tip";
+    title?: string;
     id?: string;
     children: ReactNode;
   }) => (
@@ -62,6 +90,7 @@ const components = {
             : "border-sky-500 bg-sky-50")
       }
     >
+      {title && <p className="mb-1 font-semibold">{title}</p>}
       {children}
     </div>
   ),
@@ -250,7 +279,14 @@ const components = {
         />
       </div>
       <figcaption className="mt-2 text-sm text-zinc-600">
-        {title ? <>{title} — </> : null}
+        {/* No title means the build-time lookup failed — usually a video that
+            is scheduled/unlisted and not public yet, or a bad ID. Say so
+            instead of showing a bare link, so the page reads as intentional. */}
+        {title ? (
+          <>{title} — </>
+        ) : (
+          <em>Title unavailable — video missing or not yet released. </em>
+        )}
         <a
           href={`https://www.youtube.com/watch?v=${id}`}
           target="_blank"

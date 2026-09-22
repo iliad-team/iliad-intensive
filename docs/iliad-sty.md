@@ -51,7 +51,7 @@ around it (CI also rejects redefinitions of contract names).
 | `proof` | env | amsthm; collapsible on the web |
 | `hint` | env | unnumbered block hint, rendered in place; collapsible on the web |
 | `teachingnote` | env | `[Title]` optional (default "Teaching note"); teacher-facing aside — dashed box in the PDF, collapsed drop-down on the web; unnumbered, kept in both variants |
-| `callout` | env | `[note\|tip\|warning]` coloured aside |
+| `callout` | env | `[note\|tip\|warning][Title]` coloured aside; the optional title replaces the type word on the box (PDF) and heads it (web) |
 | `remark` | env | aside in the theorem register; note-style callout on the web. Optional title: `\begin{remark}[Title]` → "Remark (Title)" |
 | `\important` | mark | ★ after an exercise's label: one of the sheet's key exercises |
 | `\authorname{}` `\affiliation{}` | cmds | structured `\author{}` entries (byline extraction) |
@@ -73,7 +73,7 @@ The website builds each page's metadata from the LaTeX itself:
 The **summary** is not extracted from the LaTeX — it lives in the
 `%--- iliad ---` comment block at the top of `main.tex`, alongside the other
 metadata keys (`cluster:`, and optional `title:`/`contributors:` overrides of
-the extracted values — a duplicate draws a build advisory). Values are
+the extracted values — a duplicate draws a build warning). Values are
 one-line YAML scalars, except `summary:`, which may be a paragraph written as
 a YAML folded block scalar (continuation lines indented two spaces after the
 leading `% `; line breaks fold into spaces):
@@ -96,7 +96,7 @@ the page is built and reachable by URL but linked from nowhere. `slides:` holds
 the URL of an externally hosted deck (rendered as an outbound link; a compiled
 `slides.tex` in the folder supersedes it — see [commands.md](commands.md)).
 
-Missing title/cluster/contributors draw build **advisories** (never
+Missing title/cluster/contributors draw build **warnings** (never
 failures) with `file.tex:line` locations.
 
 So does a summary that isn't one: **missing, empty, or still `TODO`**. The
@@ -104,18 +104,29 @@ summary is the page's lede *and* its blurb in the homepage and sidebar index, so
 a sheet without one looks unfinished in two places — and `TODO` is exactly what
 a port leaves behind when the source had no summary to transcribe (an author's
 words are ported, never invented), which makes it the easiest thing in the file
-to forget. An MDX-authored sheet gets the same advisory from
+to forget. An MDX-authored sheet gets the same warning from
 `build-content.mjs`, since it never passes through the converter.
 
 ## Labels and cross-references
 
 `\label` anything you want to reference — exercises, theorems, callouts,
 remarks all take labels, and `\cref` resolves to the exact text LaTeX
-prints, on paper and on the web alike. Any placement LaTeX binds correctly
-is valid (top level of the environment); right after `\begin{...}` is
-clearest. Callouts and remarks carry discreet per-section counters: no
-number shows in the box, but `\cref` prints "Callout 2.1" / "Remark 2.3"
-and links to it.
+prints, on paper and on the web alike. Use `\cref`, not `\ref`: it prints
+and links the type word, so you never hand-type "Section" next to it (the build
+warns about a plain `\ref`, and about a hand-written "Section~\cref{...}").
+
+Every sectioning level reads as **Section**, and every appendix level as
+**Appendix** — the package renames cleveref's `subsection` / `subsubsection` /
+`subappendix` so a `\cref` at a subsection prints "Section 2.3" rather than
+"Subsection 2.3". Heading depth is document structure, not something a
+cross-reference should announce. Set once here so no two sheets disagree; the
+converter reads these same declarations out of this file, so the web and the
+PDF always agree on what a reference is called.
+
+Any placement LaTeX binds correctly is valid (top level of the environment);
+right after `\begin{...}` is clearest. Callouts and remarks carry discreet
+per-section counters: no number shows in the box, but `\cref` prints
+"Callout 2.1" / "Remark 2.3" and links to it.
 
 ## Solutions and the two PDF variants
 

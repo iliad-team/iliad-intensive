@@ -62,22 +62,72 @@ function frontmatterOf(slug) {
 }
 
 /**
- * The deck for one worksheet, by the precedence documented in schedule.yaml:
- * compiled slides.tex (hosted here) → the sheet's own `slides:` URL → none.
- * "built" means the source exists; `pdf` says whether this run actually
+ * The decks one worksheet offers, in the order its page lists them: the
+ * `slides:` frontmatter link first (a URL, or `{url, title}`), then every
+ * compiled deck — tex/<slug>/slides.tex, then slides-<label>.tex by filename.
+ * They stack rather than shadow one another: a day whose main lecture exists
+ * only as a hosted deck and whose guest lecture compiles from source shows
+ * both. "built" means the source exists; `pdf` says whether this run actually
  * staged it (a --check run compiles no PDFs).
  */
-function deckOf(slug, fm) {
-  if (existsSync(path.join(TEX, slug, "slides.tex"))) {
-    return {
+const DECK_RE = /^(slides(?:-[a-z0-9][a-z0-9-]*)?)\.(tex|typ)$/;
+// A Typst deck's label is its `#set document(title: "…")`, when it sets one.
+// Mirrored in src/lib/content.ts (typDeckTitle) — keep the two in step.
+function typDeckTitle(src) {
+  const m = /#set\s+document\(\s*(?:[^)]*?,\s*)?title\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(src);
+  if (!m) return null;
+  const t = m[1].replace(/\\(.)/g, "$1").replace(/\s+/g, " ").trim();
+  return t || null;
+}
+// A LaTeX deck's own \title{} (beamer's \title[short]{long} included), lightly
+// de-TeXed into a label; null when the deck sets none. The site reads the same
+// thing off the staged .tex (src/lib/content.ts) — keep the two in step.
+// A LaTeX deck may instead name its row with a `% title:` in its own
+// `%--- iliad ---` block (the comment block a worksheet's main.tex opens
+// with); that wins over \title{}. Several decks of one day often share a
+// \title{} and differ only in \subtitle{}, which is what this is for.
+const DECK_META_RE = /^%--- iliad ---\r?\n([\s\S]*?)^%--- end ---/m;
+function deckTitle(src) {
+  const meta = DECK_META_RE.exec(src);
+  const forced = meta && /^%\s*title:\s*(.+?)\s*$/m.exec(meta[1]);
+  if (forced) return forced[1].replace(/^(["'])(.*)\1$/, "$2") || null;
+  const m = /\\title(?:\[[^\]]*\])?\{((?:[^{}]|\{[^{}]*\})*)\}/.exec(src);
+  if (!m) return null;
+  const t = m[1]
+    .replace(/(^|[^\\])%.*$/gm, "$1")                       // TeX comments inside the argument
+    .replace(/\\vspace\*?\{[^}]*\}/g, " ").replace(/\\\\/g, " ")
+    .replace(/\\[a-zA-Z]+\*?(\[[^\]]*\])?/g, "").replace(/[{}]/g, "")
+    .replace(/\s+/g, " ").trim();
+  return t || null;
+}
+function decksOf(slug, fm) {
+  const decks = [];
+  const ext = fm?.slides;
+  if (ext) {
+    const url = typeof ext === "string" ? ext : ext.url;
+    if (url) decks.push({ kind: "external", slug, url: String(url), title: ext.title ? String(ext.title) : null });
+  }
+  const dir = path.join(TEX, slug);
+  // {stem, ext} per deck source — .tex or .typ (build-content.mjs refuses both
+  // for one stem, so the pairing is unambiguous here).
+  const sources = existsSync(dir)
+    ? readdirSync(dir).map((f) => DECK_RE.exec(f)).filter((m) => m && !m[1].endsWith("-handout")).map((m) => ({ stem: m[1], ext: m[2] }))
+    : [];
+  sources.sort((a, b) => (a.stem === "slides" ? -1 : b.stem === "slides" ? 1 : a.stem.localeCompare(b.stem)));
+  for (const { stem, ext } of sources) {
+    const src = readFileSync(path.join(dir, `${stem}.${ext}`), "utf8");
+    decks.push({
       kind: "built",
       slug,
-      pdf: existsSync(path.join(DOWNLOADS, slug, `${slug}-slides.pdf`)),
-      tex: existsSync(path.join(DOWNLOADS, slug, `${slug}-slides.tex`)),
-    };
+      stem,
+      title: ext === "typ" ? typDeckTitle(src) : deckTitle(src),
+      pdf: existsSync(path.join(DOWNLOADS, slug, `${slug}-${stem}.pdf`)),
+      // the deck's source format, and whether this run staged the source download
+      source: ext,
+      sourceStaged: existsSync(path.join(DOWNLOADS, slug, `${slug}-${stem}.${ext}`)),
+    });
   }
-  if (fm?.slides) return { kind: "external", slug, url: String(fm.slides) };
-  return { kind: "none", slug };
+  return decks;
 }
 
 /**
@@ -127,7 +177,7 @@ export function buildStatus({ check = false, schedule } = {}) {
         cluster: d.cluster,
         unlisted: fm.unlisted === true,
         pdf: existsSync(path.join(DOWNLOADS, slug, `${slug}.pdf`)),
-        deck: deckOf(slug, fm),
+        decks: decksOf(slug, fm),
       });
     }
   }
@@ -156,8 +206,9 @@ export function buildStatus({ check = false, schedule } = {}) {
   for (const day of days.values()) {
     // material: live once any worksheet for this day is built and listed.
     day.live = day.modules.some((m) => !m.unlisted);
-    // slides: best deck any worksheet offers, else the day-level hosted URL.
-    const decks = day.modules.map((m) => m.deck).filter((d) => d.kind !== "none");
+    // slides: every deck the day's worksheets offer (page order), else the
+    // day-level hosted URL.
+    const decks = day.modules.flatMap((m) => m.decks);
     if (decks.some((d) => d.kind === "built")) day.slides = { kind: "built", decks };
     else if (decks.length) day.slides = { kind: "external", decks };
     else if (day.slidesUrl) day.slides = { kind: "external", decks: [{ kind: "external", url: day.slidesUrl }] };

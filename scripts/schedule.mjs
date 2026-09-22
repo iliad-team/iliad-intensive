@@ -28,6 +28,9 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEX = path.join(ROOT, "tex");
 export const SCHEDULE_FILE = path.join(ROOT, "schedule.yaml");
 
+/** `lead: none` — this day has no lead because nobody teaches it. */
+export const LEAD_NONE = "none";
+
 /** Where a day's buildable source is, for a day with no worksheet yet. */
 export const SOURCE_KINDS = new Set(["ready", "partial", "missing"]);
 
@@ -46,7 +49,7 @@ function worksheetsOnDisk() {
 /**
  * @returns {{
  *   clusters: {id: string, label: string, urlSlug: string}[],
- *   days: {code: string, cluster: string, title: string, lead: string,
+ *   days: {code: string, cluster: string, title: string, lead: string|null,
  *          doc: string, source: {kind: string, url: string|null, note: string|null},
  *          slidesUrl: string|null, port: "never"|null, worksheets: string[]}[],
  *   bySlug: Map<string, {slug: string, cluster: string, day: string,
@@ -120,6 +123,12 @@ export function loadSchedule() {
         if (!d?.[k]) bad(`${dWhere} is missing required key \`${k}\``);
       }
       const code = String(d.code);
+      // `lead` stays required, so a day nobody teaches has to SAY so: `none`
+      // is the only way to have no lead, and it reads as a decision rather
+      // than an omission (day 0, the prerequisites page, is the one today).
+      // A blank or missing value is still an error — it is indistinguishable
+      // from having forgotten to fill it in.
+      const lead = String(d.lead);
       if (seenCode.has(code)) bad(`${dWhere}: duplicate day code "${code}"`);
       seenCode.add(code);
       // The code carries the cluster, and the page groups by it — a day filed
@@ -166,7 +175,7 @@ export function loadSchedule() {
         code,
         cluster: id,
         title: String(d.title),
-        lead: String(d.lead),
+        lead: lead === LEAD_NONE ? null : lead,
         doc: String(d.doc),
         source: { kind: neverPort ? "never" : d.source, url: d.sourceUrl ?? null, note: d.note ?? null },
         slidesUrl: d.slides ?? null,   // day-level fallback deck (hosted elsewhere)

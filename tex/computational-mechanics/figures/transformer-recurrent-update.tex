@@ -1,0 +1,92 @@
+\begin{tikzpicture}[
+  x=1cm,y=1cm,
+  every node/.style={text=iliadInk,font=\scriptsize},
+  token/.style={draw=iliadInk,line width=0.55pt,minimum width=7mm,
+    minimum height=6mm,fill=white},
+  output/.style={draw=iliadInk,line width=0.55pt,minimum width=7mm,
+    minimum height=6mm,fill=white},
+  block/.style={draw=iliadAccent,line width=0.7pt,fill=iliadAccent!16,
+    minimum width=48mm,minimum height=5mm},
+  vflow/.style={-{Stealth[length=1.5mm]},draw=iliadInk,line width=0.55pt},
+  hflow/.style={-{Stealth[length=1.8mm]},draw=iliadAccent,line width=0.75pt},
+  cachefill/.style={fill=purple!5},
+  cacheoutline/.style={draw=purple!70!black,line width=0.8pt,fill=none},
+  cachelabel/.style={draw=purple!70!black,line width=0.8pt,
+    fill=purple!7,rounded corners=0.7mm,inner xsep=2mm,inner ysep=1mm},
+  highlight/.style={draw=purple!70!black,line width=0.8pt,inner sep=1.3mm}
+]
+
+% Cache before processing the new token.
+\begin{scope}
+  \path[cachefill] (-0.2,0.75) rectangle (3.55,3.75);
+  \foreach \yy in {1.05,2.25,3.45}{
+    \node[block] (L\yy) at (2.25,\yy) {};
+    \draw[hflow] (0.18,\yy) -- (4.32,\yy);
+  }
+
+  \foreach \xx/\lab/\id in {0.45/$x_1$/one,1.55/$x_2$/two,
+      3.05/$x_n$/n,4.35/$x_{n+1}$/new}{
+    \node[token] (tin\id) at (\xx,0) {\lab};
+    \draw[vflow] (tin\id.north) -- (\xx,0.78);
+    \draw[vflow] (\xx,1.32) -- (\xx,1.98);
+    \draw[vflow] (\xx,2.52) -- (\xx,3.18);
+    \draw[vflow] (\xx,3.72) -- (\xx,4.20);
+  }
+  \node at (2.30,0) {$\cdots$};
+
+  \foreach \xx/\lab/\id in {0.45/$y_1$/one,1.55/$y_2$/two,
+      3.05/$y_n$/n,4.35/$y_{n+1}$/new}{
+    \node[output] (out\id) at (\xx,4.50) {\lab};
+  }
+  \node at (2.30,4.50) {$\cdots$};
+  \draw[cacheoutline] (-0.2,0.75) rectangle (3.55,3.75);
+  \node[cachelabel,text=purple!70!black,font=\small\bfseries] at (1.68,2.84)
+    {$h_n=\mathrm{KV}_{1:n}$};
+  \foreach \xx/\id in {0.45/one,1.55/two,3.05/n,4.35/new}{
+    \draw[vflow] (tin\id.north) -- (\xx,0.78);
+    \draw[vflow] (\xx,3.72) -- (\xx,4.20);
+  }
+  \node[highlight,fit=(tinnew)] {};
+\end{scope}
+
+% One cached decoding step.
+\draw[-{Stealth[length=2.5mm]},draw=iliadAccent,line width=1pt]
+  (5.25,2.45) -- (7.15,2.45);
+\node[font=\small] at (6.20,2.86) {$f_\theta,\,g_\theta$};
+\node[font=\scriptsize,text=iliadMuted] at (6.20,2.05)
+  {one forward pass};
+
+% Expanded cache and the newly produced next-token distribution.
+\begin{scope}[shift={(8,0)}]
+  \path[cachefill] (-0.2,0.75) rectangle (4.65,3.75);
+  \foreach \yy in {1.05,2.25,3.45}{
+    \node[block] (R\yy) at (2.25,\yy) {};
+    \draw[hflow] (0.18,\yy) -- (4.32,\yy);
+  }
+
+  \foreach \xx/\lab/\id in {0.45/$x_1$/one,1.55/$x_2$/two,
+      3.05/$x_n$/n,4.35/$x_{n+1}$/new}{
+    \node[token] (rtin\id) at (\xx,0) {\lab};
+    \draw[vflow] (rtin\id.north) -- (\xx,0.78);
+    \draw[vflow] (\xx,1.32) -- (\xx,1.98);
+    \draw[vflow] (\xx,2.52) -- (\xx,3.18);
+    \draw[vflow] (\xx,3.72) -- (\xx,4.20);
+  }
+  \node at (2.30,0) {$\cdots$};
+
+  \foreach \xx/\lab/\id in {0.45/$y_1$/one,1.55/$y_2$/two,
+      3.05/$y_n$/n,4.35/$y_{n+1}$/new}{
+    \node[output] (rout\id) at (\xx,4.50) {\lab};
+  }
+  \node at (2.30,4.50) {$\cdots$};
+  \draw[cacheoutline] (-0.2,0.75) rectangle (4.65,3.75);
+  \node[cachelabel,text=purple!70!black,font=\small\bfseries] at (2.25,2.84)
+    {$h_{n+1}=\mathrm{KV}_{1:n+1}$};
+  \foreach \xx/\id in {0.45/one,1.55/two,3.05/n,4.35/new}{
+    \draw[vflow] (rtin\id.north) -- (\xx,0.78);
+    \draw[vflow] (\xx,3.72) -- (\xx,4.20);
+  }
+  \node[highlight,fit=(routnew)] {};
+\end{scope}
+
+\end{tikzpicture}

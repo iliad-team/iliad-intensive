@@ -21,6 +21,7 @@ Static Next.js site that renders the Iliad Intensive worksheets. **LaTeX is the 
 - [`DEVELOPMENT.md`](docs/DEVELOPMENT.md) — dev workflow + the full content pipeline.
 - [`INTERNALS.md`](docs/INTERNALS.md) — file-level site internals (what reads what).
 - [`PR-PREVIEWS.md`](docs/PR-PREVIEWS.md) — per-PR live website previews (gh-pages model, one-time setup, caveats).
+- [`website.md`](docs/website.md) — hosting/domains: DNS, Cloudflare, the Pages custom domain, base paths, caching.
 - [`commands.md`](docs/commands.md) — authoring reference: every supported worksheet construct.
 - [`iliad-sty.md`](docs/iliad-sty.md) — the `iliad.sty` worksheet contract (macros/environments).
 - [`LINKS.md`](docs/LINKS.md) — Google-Doc tab link for each day.
@@ -38,6 +39,12 @@ always-loaded facts belong here in `AGENTS.md`.
   worktree setup, the `iliad.sty` contract, the Drive convention for raw-PDF
   decks, and the commit/PR ritual. Invoked for "port A.3", "do the next reading
   day", or adding a deck to a day.
+- [`errata`](.claude/skills/errata/SKILL.md) — fix reported errata in the
+  worksheets with the smallest possible edit to `tex/<slug>/`: simple fixes
+  just made, meaning-changing fixes marked with an adjacent dated `ERRATA`
+  comment, everything left unstaged for David to audit — never committed.
+  Invoked for "fix these errata" or "someone reported a bug in B.3". Agents
+  without a skill mechanism: read the linked file and follow it as-is.
 
 `CLAUDE.md` is a one-line `@AGENTS.md` import, not a duplicate: Claude Code
 reads `CLAUDE.md` and not `AGENTS.md`, so deleting it unloads every instruction
