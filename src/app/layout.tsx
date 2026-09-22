@@ -67,8 +67,19 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col font-serif">
         <script dangerouslySetInnerHTML={{ __html: RESTORE_NAV }} />
-        <PreviewBanner />
-        <Navbar />
+        {/* On a preview the banner and the navbar stick together at the top of
+            the viewport, so the banner's controls (the diff view, "next
+            change") stay in reach however far down a long worksheet the reader
+            is. public/site.js measures #top-stack into --top-h, which the
+            sidebar's sticky offset and anchor scrolling are set from. */}
+        {IS_PREVIEW ? (
+          <div id="top-stack" className="sticky top-0 z-40">
+            <PreviewBanner />
+            <Navbar />
+          </div>
+        ) : (
+          <Navbar />
+        )}
         {children}
         {/* The site's entire client-side behaviour (~1.5 KB): sidebar toggle,
             close-on-mobile, the downloads solutions swap. Worksheet pages ship

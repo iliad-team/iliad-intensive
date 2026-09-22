@@ -31,12 +31,31 @@
  *
  * Solutions (<details>) that contain a change are opened so the change shows.
  * Turning the view off swaps back a pristine copy of the article.
+ *
+ * Two more controls in the banner:
+ *   - "allow stretched margins" (off): each column is the page's own reading
+ *     width, so anything that overflows the real page overflows here too — the
+ *     point of reviewing a diff of a maths-heavy page. On, the columns share
+ *     the viewport instead. Toggling rebuilds the view, since the spacers that
+ *     level the rows depend on the column width.
+ *   - "next change": steps through the removed / added / modified blocks in
+ *     position order, scrolling each into view with an amber ring, and turns
+ *     the diff on first if it is off.
+ *   - "hide unchanged" (on): the article's top-level blocks — paragraphs,
+ *     headings, whole exercise/theorem boxes, lists — that match on both sides
+ *     fold away, one block of context kept beside each change, one strip per
+ *     section naming its heading and saying how many blocks it holds. Clicking
+ *     a strip unfolds that run; clicking it again folds it back. Folds go in
+ *     both columns and are levelled like any matched pair.
  */
 (function () {
   "use strict";
 
   var toggle = document.getElementById("diff-toggle");
   var syncBox = document.getElementById("diff-sync");
+  var stretchBox = document.getElementById("diff-stretch");
+  var hideBox = document.getElementById("diff-hide");
+  var nextBtn = document.getElementById("diff-next");
   var status = document.getElementById("diff-status");
   var controls = document.getElementById("diff-controls");
   if (!toggle || !controls) return;
@@ -47,6 +66,8 @@
   var root = document.documentElement;
   var KEY = "iliad.diff";
   var SYNC_KEY = "iliad.diffSync";
+  var STRETCH_KEY = "iliad.diffStretch";
+  var HIDE_KEY = "iliad.diffHide";
 
   // Where the base version of THIS page lives: the same path, minus the
   // preview's base path, on the base origin ("" = this origin's root).
@@ -59,6 +80,12 @@
   var pristine = prose.cloneNode(true);
   var view = null;
   var basePromise = null;
+  // The stops "next change" walks: one entry per removed block ([base el]),
+  // added block ([pr el]) or modified pair ([base el, pr el]), in emission
+  // order; sorted by position at click time, once the rows have settled.
+  var stops = [];
+  var cur = -1;
+  var summary = "";
 
   function store(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
   function load(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -300,6 +327,104 @@
     return moved;
   }
 
+  // ------------------------------------------------------------ hide unchanged
+  var CONTEXT = 1;                     // unchanged top-level blocks kept beside a change
+  function isHeading(el) { return /^H[1-6]$/.test(el.tagName); }
+  function topOf(el, root) {
+    while (el && el.parentElement !== root) el = el.parentElement;
+    return el;
+  }
+  // Fold at the level of the article's TOP-LEVEL blocks — a paragraph, a
+  // heading, a whole exercise or theorem box, a list — not the leaves inside
+  // them, so an unchanged section vanishes with its chrome instead of leaving
+  // empty boxes and lone headings behind. A PR top corresponds to the base top
+  // that holds the other half of any matched leaf pair inside it; a top is
+  // foldable when nothing in it changed. Runs of foldable tops keep CONTEXT
+  // blocks beside each change and fold the rest, one strip per section (a
+  // heading starts a new strip and names it). Returns the number of tops
+  // hidden; the strips are pushed onto `pairs` so settle() keeps them level.
+  function foldUnchanged(ops, A, B, pairs, realign, rootA, rootB) {
+    var CHANGED = ".diff-removed, .diff-added, .diff-modified";
+    var changedIn = function (top) { return top.matches(CHANGED) || !!top.querySelector(CHANGED); };
+    var partner = new Map();           // PR top -> base top
+    ops.forEach(function (o) {
+      if (o[0] !== "=") return;
+      var ta = topOf(A[o[1]], rootA), tb = topOf(B[o[2]], rootB);
+      if (ta && tb && !partner.has(tb)) partner.set(tb, ta);
+    });
+    var tops = function (root) {
+      return Array.prototype.filter.call(root.children, function (t) { return !t.classList.contains("diff-spacer"); });
+    };
+    var idxA = new Map();
+    tops(rootA).forEach(function (t, i) { idxA.set(t, i); });
+    var hidden = 0, run = [], lastA = -1;
+
+    var foldSegment = function (seg) {                 // seg: [[prTop, baseTop], …]
+      var head = isHeading(seg[0][0]) ? seg[0][0].textContent.replace(/\s+/g, " ").trim() : null;
+      var n = seg.length - (head ? 1 : 0);             // blocks besides the heading
+      if (head ? n < 1 : n < 2) return;                // nothing worth a strip
+      var els = [];
+      seg.forEach(function (p) { els.push(p[0], p[1]); });
+      var folded = true;
+      var mk = function (before) {
+        var f = document.createElement("div");
+        f.className = "diff-fold";
+        f.setAttribute("role", "button");
+        before.parentNode.insertBefore(f, before);
+        return f;
+      };
+      var fb = mk(seg[0][0]), fa = mk(seg[0][1]);
+      // The strip stays either way and toggles the run: the same click that
+      // shows the blocks hides them again. Both columns' strips are a matched
+      // pair, so their row is re-levelled with the rest after each toggle.
+      var apply = function () {
+        els.forEach(function (el) { el.classList.toggle("diff-hidden", folded); });
+        var text = "⋯ " + (head ? "§ " + head + " — " : "") +
+          n + " unchanged block" + (n === 1 ? "" : "s") +
+          (folded ? " — click to show" : " shown — click to hide");
+        fa.textContent = text; fb.textContent = text;
+        fa.classList.toggle("diff-fold-open", !folded);
+        fb.classList.toggle("diff-fold-open", !folded);
+      };
+      var toggleRun = function () { folded = !folded; apply(); realign(); };
+      apply();
+      fa.addEventListener("click", toggleRun);
+      fb.addEventListener("click", toggleRun);
+      pairs.push([fa, fb]);
+      hidden += seg.length;
+    };
+    var flush = function () {
+      // Context after a change is worth keeping when it is prose; a heading
+      // there only names the next section, which its strip does already, so
+      // it folds with its section. Context BEFORE a change stays whatever it
+      // is — a heading there says which section the change sits in.
+      var lead = run.length && isHeading(run[0][0]) ? 0 : CONTEXT;
+      var inner = run.slice(lead, run.length - CONTEXT);
+      run = [];
+      if (!inner.length) return;
+      var seg = [];
+      inner.forEach(function (p) {
+        if (isHeading(p[0]) && seg.length) { foldSegment(seg); seg = []; }
+        seg.push(p);
+      });
+      foldSegment(seg);
+    };
+    tops(rootB).forEach(function (tb) {
+      var ta = partner.get(tb);
+      // Foldable: unchanged on both sides, and its partner follows the previous
+      // one in the base column, so the two columns fold the same stretch.
+      if (ta && !changedIn(tb) && !changedIn(ta) && idxA.get(ta) > lastA) {
+        run.push([tb, ta]);
+        lastA = idxA.get(ta);
+        return;
+      }
+      flush();
+      if (ta && idxA.has(ta)) lastA = Math.max(lastA, idxA.get(ta));
+    });
+    flush();
+    return hidden;
+  }
+
   // ------------------------------------------------------------ build / teardown
   function column(label, cls, content) {
     var col = document.createElement("div");
@@ -330,30 +455,42 @@
     var A = leaves(base, []), B = leaves(prose, []);
     var ops = pairEdits(diffSeq(A.map(blockKey), B.map(blockKey)), A, B);
     var pairs = [], removed = 0, added = 0, modified = 0;
+    stops = []; cur = -1;
     ops.forEach(function (o) {
       if (o[0] === "=") { pairs.push([A[o[1]], B[o[2]]]); return; }
-      if (o[0] === "-") { A[o[1]].classList.add("diff-removed"); openDetails(A[o[1]]); removed++; return; }
-      if (o[0] === "+") { B[o[2]].classList.add("diff-added"); openDetails(B[o[2]]); added++; return; }
+      if (o[0] === "-") { A[o[1]].classList.add("diff-removed"); openDetails(A[o[1]]); removed++; stops.push([A[o[1]]]); return; }
+      if (o[0] === "+") { B[o[2]].classList.add("diff-added"); openDetails(B[o[2]]); added++; stops.push([B[o[2]]]); return; }
       var a = A[o[1]], b = B[o[2]];
       a.classList.add("diff-modified"); b.classList.add("diff-modified");
       openDetails(a); openDetails(b);
       if (!a.classList.contains("katex-display")) markWords(a, b);
       pairs.push([a, b]);
+      stops.push([a, b]);
       modified++;
     });
-    say(removed + added + modified
-      ? "−" + removed + " +" + added + " ~" + modified + " blocks"
-      : "no differences");
-
-    var align = function () {
+    var align = function (reset) {
       if (!view) return;
+      // Spacers only ever grow, so after an unfold they are re-derived from a
+      // clean slate rather than left over-padded around the fold that went.
+      if (reset) Array.prototype.forEach.call(view.querySelectorAll(".diff-spacer"), function (s) { s.remove(); });
+      // settle() accumulates shifts down the column, so the pairs must be in
+      // column order — the folds were appended after the matched pairs.
+      pairs.sort(function (x, y) { return x[0].getBoundingClientRect().top - y[0].getBoundingClientRect().top; });
       settle(pairs, base, prose);
       settle(pairs, base, prose); // margins that stopped collapsing around new spacers
     };
-    (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(align);
-    window.addEventListener("load", align);
+    var hidden = hideBox && hideBox.checked
+      ? foldUnchanged(ops, A, B, pairs, function () { align(true); }, base, prose)
+      : 0;
+    summary = (removed + added + modified
+      ? "−" + removed + " +" + added + " ~" + modified + " blocks"
+      : "no differences") + (hidden ? " · " + hidden + " unchanged hidden" : "");
+    say(summary);
+    var alignGrow = function () { align(false); };
+    (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(alignGrow);
+    window.addEventListener("load", alignGrow);
     // Images and lazy layout can land later; one more pass a moment on.
-    setTimeout(align, 1500);
+    setTimeout(alignGrow, 1500);
   }
 
   function teardown() {
@@ -362,15 +499,55 @@
     view.parentNode.replaceChild(fresh, view);
     prose = fresh;
     view = null;
+    stops = []; cur = -1; summary = "";
     root.classList.remove("diff-open");
     say("");
   }
 
+  // ------------------------------------------------------------ next change
+  // A stop's position within its column, valid in both scroll modes: with
+  // sync scroll the columns share the page and their tops coincide; without,
+  // each column scrolls alone and its scrollTop is added back in.
+  function posOf(el) {
+    var col = el.closest(".diff-col");
+    var r = el.getBoundingClientRect(), c = col.getBoundingClientRect();
+    return r.top - c.top + col.scrollTop;
+  }
+  function goTo(i, n, total) {
+    if (cur !== -1) stops[cur].forEach(function (el) { el.classList.remove("diff-current"); });
+    cur = i;
+    stops[i].forEach(function (el) { el.classList.add("diff-current"); });
+    // The PR side of a pair, or the block's only side.
+    var target = stops[i][stops[i].length - 1];
+    target.scrollIntoView({ block: "center", behavior: "smooth" });
+    say("change " + n + " of " + total + " · " + summary);
+  }
+  function nextChange() {
+    if (!view) {
+      toggle.checked = true;
+      store(KEY, "1");
+      enable().then(function () { if (view) nextChange(); });
+      return;
+    }
+    if (!stops.length) { say(summary); return; }
+    var order = stops.map(function (s, i) { return [posOf(s[0]), i]; })
+      .sort(function (x, y) { return x[0] - y[0]; });
+    var k = 0;
+    if (cur !== -1) {
+      for (var q = 0; q < order.length; q++) {
+        if (order[q][1] === cur) { k = (q + 1) % order.length; break; }
+      }
+    }
+    goTo(order[k][1], k + 1, order.length);
+  }
+
   // ------------------------------------------------------------ controls
+  // Resolves once the view is built (or the attempt has failed and said so),
+  // so "next change" can wait for it.
   function enable() {
     say("loading main…");
     toggle.disabled = true;
-    fetchBase().then(function (baseProse) {
+    return fetchBase().then(function (baseProse) {
       toggle.disabled = false;
       if (!toggle.checked) return;
       build(baseProse);
@@ -396,6 +573,37 @@
     applySync();
     syncBox.addEventListener("change", applySync);
   }
+
+  if (stretchBox) {
+    var applyStretch = function (rebuild) {
+      root.classList.toggle("diff-stretch", stretchBox.checked);
+      store(STRETCH_KEY, stretchBox.checked ? "1" : "0");
+      // The spacers were measured at the old column width: rebuild the view
+      // (the base article is already fetched) rather than re-settle on top of
+      // stale padding.
+      if (rebuild && view) {
+        fetchBase().then(function (baseProse) { teardown(); build(baseProse); });
+      }
+    };
+    if (load(STRETCH_KEY) === "1") stretchBox.checked = true;
+    applyStretch(false);
+    stretchBox.addEventListener("change", function () { applyStretch(true); });
+  }
+
+  if (hideBox) {
+    var applyHide = function (rebuild) {
+      store(HIDE_KEY, hideBox.checked ? "1" : "0");
+      // Folding is decided while the view is built, so a change rebuilds it.
+      if (rebuild && view) {
+        fetchBase().then(function (baseProse) { teardown(); build(baseProse); });
+      }
+    };
+    if (load(HIDE_KEY) === "0") hideBox.checked = false;
+    applyHide(false);
+    hideBox.addEventListener("change", function () { applyHide(true); });
+  }
+
+  if (nextBtn) nextBtn.addEventListener("click", nextChange);
 
   if (load(KEY) === "1") { toggle.checked = true; enable(); }
 })();
