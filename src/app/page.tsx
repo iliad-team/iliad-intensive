@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { listIndex } from "@/lib/content";
-import { clusterLabel, dayCode, pagePath } from "@/lib/clusters";
+import { clusterLabel, dayCode } from "@/lib/clusters";
 import { listClusters, listDays } from "@/lib/cluster-store";
+import { isChanged } from "@/lib/preview";
+import { CHANGED_TINT, ModuleLink } from "@/components/ModuleLink";
 import { BuildStamp, REPO_URL } from "@/components/BuildStamp";
 
 // JSX, not a string: the closing sentence carries a link. This paragraph sits
@@ -121,15 +123,19 @@ export default async function Home() {
                     <ul className={group.items.length > 1 ? "space-y-3 border-l border-zinc-200 pl-4" : ""}>
                       {group.items.map((p) => (
                         <li key={p.slug}>
-                          <Link
-                            href={pagePath(p.cluster, p.slug, clusterList)}
-                            // Same reason as SidebarNav: the whole curriculum is
-                            // listed here, and prefetching every worksheet's RSC
-                            // payload on viewport entry is tens of MB for links
-                            // the reader has not chosen yet.
-                            prefetch={false}
-                            className="block font-serif text-[1.25rem] leading-snug hover:text-[var(--link)]"
+                          <ModuleLink
+                            cluster={p.cluster}
+                            slug={p.slug}
+                            clusters={clusterList}
+                            // On a PR preview a worksheet the PR touched wears a
+                            // green tint, so a reviewer sees at a glance which
+                            // pages to look at; the others open the live site.
+                            className={
+                              "block font-serif text-[1.25rem] leading-snug hover:text-[var(--link)]" +
+                              (isChanged(p.slug) ? ` ${CHANGED_TINT}` : "")
+                            }
                             style={{ fontWeight: 500 }}
+                            title={isChanged(p.slug) ? "Changed in this pull request" : undefined}
                           >
                             {dayCode(p.day, p.part, p.parts) && (
                               <span className="mr-2 align-[0.1em] font-sans text-[0.72rem] tracking-[0.08em] text-zinc-400">
@@ -137,7 +143,7 @@ export default async function Home() {
                               </span>
                             )}
                             {p.title}
-                          </Link>
+                          </ModuleLink>
                           {p.frontmatter?.summary && (
                             <p className="mt-1 font-serif text-[1rem] text-zinc-600 leading-relaxed">
                               {p.frontmatter.summary}

@@ -78,6 +78,53 @@ to empty. That default **must stay empty**: the shell's `${VAR:-default}` fires
 on an empty value as well as an unset one, so a non-empty default there would
 silently re-prefix the production build even though the workflow asked for none.
 
+## Partial previews: only what the PR changed
+
+A preview carries only the worksheets the PR touched, plus the shell (the
+homepage, `/admin/status`, `/intensives`, `/license`). Every other worksheet
+link on it goes to the **live site**, which is the right page: a preview sits
+on the same origin as production, so `/pr-preview/pr-N/agency/aixi/` and
+`/agency/aixi/` are the same page whenever AIXI is untouched. Publishing the
+copy only repeated production — ~165 MB per open PR on the `gh-pages` tip,
+four fifths of it PDFs and figures.
+
+How it is decided (`.github/workflows/site.yml`, the `cfg` step):
+
+- `gh pr diff --name-only` lists the PR's files against its merge base (works
+  for forks; read access suffices).
+- `tex/<slug>/…` marks that worksheet **changed**. It is rendered, published,
+  and tinted green on the preview's homepage and in its sidebar.
+- Anything else the site reads — `tex/iliad.sty`, `scripts/`, `src/`,
+  `public/`, `schedule.yaml`, the package and Next config files, the
+  workflows — makes it a **full** preview: every page built, as before.
+  Changed worksheets are still tinted.
+- Paths the site never reads — `docs/`, `.claude/`, `scratch/`, root Markdown,
+  and `intensives/` (its page is in every preview anyway) — mark nothing, so
+  such a PR publishes the shell alone.
+- If the file list cannot be fetched, the preview is full. Missing a changed
+  page is the one failure this must never have.
+
+The set reaches the build as `PREVIEW_CHANGED_SLUGS` and `PREVIEW_FULL`
+(`src/lib/preview.ts`). `listSlugs` then renders only the changed worksheets;
+`scripts/prune-preview.mjs` (last in `npm run ci`) removes the unchanged
+worksheets' `downloads/` and `uploads/` directories, which Next copies out of
+`public/` wholesale, and writes `out/preview-manifest.json`, from which the
+preview comment names the changed pages. Links are resolved at render time:
+`ModuleLink` and `siteHref` point at the preview's copy when it exists and at
+the live site when it does not. A production build ignores both variables —
+only a build with `NEXT_PUBLIC_PREVIEW_PR` set can be partial — so a stray
+environment value cannot drop pages from the live site.
+
+`check-overflow` skips the pages a partial preview did not render. Fork PRs
+get the same treatment for free: `fork-preview.yml` publishes the artifact
+the build produced.
+
+To reproduce one locally (see [Trying it locally](#trying-it-locally)), add
+`PREVIEW_CHANGED_SLUGS=<slug>` to the `next build` and run
+`node scripts/prune-preview.mjs` after `strip-hydration`; with
+`NEXT_PUBLIC_DIFF_BASE=https://iliad-intensive.org` the unchanged links go to
+production, so the whole site stays navigable.
+
 ## Required one-time setup (maintainer)
 
 The previous setup deployed via the **GitHub Actions** Pages source, which serves
@@ -122,6 +169,28 @@ inside (an inline formula counts as one word). Matched blocks are padded into
 shared rows, so a removed paragraph faces a hatched blank on the other side and
 the two columns scroll together by construction; **sync scroll** off gives each
 column its own scrollbar instead. Solutions that contain a change are opened.
+
+The banner is two rows — what this preview is, then the diff controls — and
+sticks to the top of the viewport together with the navbar (`#top-stack` in
+`layout.tsx`; `site.js` measures the stack into `--top-h`, which the anchor
+scroll offset and the sidebar's sticky offset derive from). The second row:
+
+- **diff vs main** — the two-column view described above.
+- **sync scroll** — the columns share the page's scroll (on) or each get
+  their own (off).
+- **hide unchanged** (on by default) — every run of blocks that match on both
+  sides folds into one strip saying how many, with one block of context kept
+  either side of a change and headings never hidden. Click a strip to unfold
+  that run.
+- **allow stretched margins** (off by default) — off, each column is exactly
+  the page's own reading width, so an equation that overflows the real page
+  overflows its column here too, which is the point of reviewing a
+  maths-heavy page; the pair is centred and the page scrolls sideways on a
+  narrow viewport. On, the columns share the viewport and read more
+  comfortably, but hide overflow.
+- **next change ▸** — steps through the removed, added and modified blocks in
+  position order, scrolling each into view with an amber ring; if the diff is
+  off it turns it on first.
 
 It is `public/diff.js` (vanilla, like `site.js`) plus the controls in
 `PreviewBanner.tsx`, and only preview builds load it. The base version is
