@@ -139,6 +139,12 @@
   \definecolor{iliadZinc300}{HTML}{D4D4D8}    % teaching note border-zinc-300
 \fi
 \RequirePackage{hyperref}
+% \url in the PDF: typewriter, and allowed to break after any character —
+% xurl extends the url package's break list (by default only "/" and ".",
+% never a hyphen) to every letter and digit, and gives \Urlmuskip a little
+% stretch so a line that is mostly URL can still justify. Without it a long
+% slug-style path is one unbreakable word that runs off the page.
+\RequirePackage{xurl}
 \hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue}
 \RequirePackage[capitalise,noabbrev]{cleveref}
 
