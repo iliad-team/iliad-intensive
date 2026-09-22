@@ -181,7 +181,7 @@ scroll offset and the sidebar's sticky offset derive from). The second row:
 - **hide unchanged** (on by default) — every run of blocks that match on both
   sides folds into one strip saying how many, with one block of context kept
   either side of a change and headings never hidden. Click a strip to unfold
-  that run.
+  that run; click it again to fold it back.
 - **allow stretched margins** (off by default) — off, each column is exactly
   the page's own reading width, so an equation that overflows the real page
   overflows its column here too, which is the point of reviewing a

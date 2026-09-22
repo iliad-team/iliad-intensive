@@ -44,8 +44,9 @@
  *   - "hide unchanged" (on): every run of blocks that match on both sides is
  *     folded into one strip saying how many, with one block of context kept
  *     either side of a change and headings never hidden. Clicking a strip
- *     unfolds that run. Folds go in both columns and are levelled like any
- *     matched pair, so the rows stay side by side.
+ *     unfolds that run; clicking it again folds it back. Folds go in both
+ *     columns and are levelled like any matched pair, so the rows stay side
+ *     by side.
  */
 (function () {
   "use strict";
@@ -341,24 +342,32 @@
       if (inner.length < 2) return;
       var as = inner.map(function (o) { return A[o[1]]; });
       var bs = inner.map(function (o) { return B[o[2]]; });
-      as.concat(bs).forEach(function (el) { el.classList.add("diff-hidden"); });
-      var label = "⋯ " + inner.length + " unchanged blocks — click to show";
+      var els = as.concat(bs);
+      var folded = true;
       var mk = function (before) {
         var f = document.createElement("div");
         f.className = "diff-fold";
         f.setAttribute("role", "button");
-        f.textContent = label;
         before.parentNode.insertBefore(f, before);
         return f;
       };
       var fa = mk(as[0]), fb = mk(bs[0]);
-      var open = function () {
-        as.concat(bs).forEach(function (el) { el.classList.remove("diff-hidden"); });
-        fa.remove(); fb.remove();
-        realign();
+      // The strip stays either way and toggles the run: the same click that
+      // shows the blocks hides them again. The strips are a matched pair, so
+      // their row is re-levelled with the rest after each toggle.
+      var apply = function () {
+        els.forEach(function (el) { el.classList.toggle("diff-hidden", folded); });
+        var text = folded
+          ? "⋯ " + inner.length + " unchanged blocks — click to show"
+          : "⋯ " + inner.length + " unchanged blocks shown — click to hide";
+        fa.textContent = text; fb.textContent = text;
+        fa.classList.toggle("diff-fold-open", !folded);
+        fb.classList.toggle("diff-fold-open", !folded);
       };
-      fa.addEventListener("click", open);
-      fb.addEventListener("click", open);
+      var toggleRun = function () { folded = !folded; apply(); realign(); };
+      apply();
+      fa.addEventListener("click", toggleRun);
+      fb.addEventListener("click", toggleRun);
       pairs.push([fa, fb]);
       hidden += inner.length;
     };

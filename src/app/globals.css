@@ -410,6 +410,11 @@ mark.diff-ins { background: #86efac; color: inherit; }
   color: #3f3f46;
   border-color: #a1a1aa;
 }
+/* An unfolded run keeps its strip, drawn solid so it reads as "open". */
+.diff-fold-open {
+  border-style: solid;
+  background: #f4f4f5;
+}
 
 /* The blanks that keep matched rows level across the two columns. */
 .diff-spacer {
