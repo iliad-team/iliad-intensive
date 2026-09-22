@@ -13,7 +13,7 @@ import { printRaw } from "@unified-latex/unified-latex-util-print-raw";
 import { listNewcommands } from "@unified-latex/unified-latex-util-macros";
 import { warn, advise, snippetOf, warnings, advisories } from "./state.mjs";
 import { isAutoLabel } from "./autolabel.mjs";
-import { applyMathShims } from "./shims.mjs";
+import { applyMathShims, braceMathArgs } from "./shims.mjs";
 import { slug, ghSlug, readGroup, readOpt, readArg, NEST, CHILD } from "./util.mjs";
 import { registerTikz } from "./tikz.mjs";
 
@@ -101,6 +101,14 @@ const CONTRACT_MACROS = {
   // all the converter has to do
   crefalias: { signature: "m m" },
 };
+// A body that OPENS with a display-math fence must not be glued onto the bold
+// label line. `**Theorem 1.** $$` makes micromark read that `$$` as an inline
+// math delimiter rather than a fence, which throws every later `$$` in the file
+// out of phase and ends with acorn trying to parse a `{` in some unrelated
+// equation as JSX. `\begin{theorem}\[ ... \]\end{theorem}` is idiomatic
+// LaTeX, so break the line instead of gluing.
+const thmBody = (label, body) => (body.startsWith("$$") ? `${label}\n\n${body}` : `${label} ${body}`);
+
 const THM_COUNTED = new Set(["theorem", "lemma", "proposition", "corollary", "fact", "definition", "example"]);
 
 // ------------------------------------------------------------- run state ---
@@ -592,21 +600,21 @@ function emitEnv(n) {
     // Definition/theorem family render axiom-style: a bold markdown lead
     // inside the coloured box (math in titles renders; no header chrome).
     case "definition":
-      mdx = `<Definition${id}>\n\n**Definition${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Definition>`;
+      mdx = `<Definition${id}>\n\n${thmBody(`**Definition${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.**`, walk(n.content).trim())}\n\n</Definition>`;
       break;
     case "theorem": case "lemma": case "proposition": case "corollary": {
       const kindName = env.charAt(0).toUpperCase() + env.slice(1);
-      mdx = `<Theorem${id}>\n\n**${kindName}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Theorem>`;
+      mdx = `<Theorem${id}>\n\n${thmBody(`**${kindName}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.**`, walk(n.content).trim())}\n\n</Theorem>`;
       break;
     }
     case "fact":
-      mdx = `<Callout type="note">\n\n**Fact${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="note">\n\n${thmBody(`**Fact${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.**`, walk(n.content).trim())}\n\n</Callout>`;
       break;
     case "remark":
-      mdx = `<Callout type="note">\n\n**Remark${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="note">\n\n${thmBody(`**Remark${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.**`, walk(n.content).trim())}\n\n</Callout>`;
       break;
     case "example":
-      mdx = `<Callout type="tip">\n\n**Example${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+      mdx = `<Callout type="tip">\n\n${thmBody(`**Example${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.**`, walk(n.content).trim())}\n\n</Callout>`;
       break;
     case "callout": {
       const type = ["note", "tip", "warning"].includes((opt ?? "").trim()) ? opt.trim() : "note";
@@ -634,7 +642,7 @@ function emitEnv(n) {
       break;
     default: {
       if (declared) {
-        mdx = `<Callout type="note">\n\n**${declared}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.** ${walk(n.content).trim()}\n\n</Callout>`;
+        mdx = `<Callout type="note">\n\n${thmBody(`**${declared}${thmNum ? ` ${thmNum}` : ""}${opt ? ` (${walkStr(opt).trim()})` : ""}.**`, walk(n.content).trim())}\n\n</Callout>`;
       } else {
         warn(`unknown environment "${env}" — wrapper dropped, contents converted as plain prose`, `\\begin{${env}}`);
         mdx = `{/* TODO(tex2mdx): env ${env} */}\n${walk(n.content)}`;
@@ -1148,6 +1156,9 @@ function emitFootnotes() {
 
 export function emitDocument(bodyTex, context) {
   ctx = context;
+  // Brace-less mandatory args (\frac12) before ANY parse — see shims.mjs.
+  bodyTex = braceMathArgs(bodyTex);
+  const preambleTex = braceMathArgs(context.preamble ?? "");
   anchorMap = {};
   droppedLabels = new Set();
   authorMacros = {};
@@ -1158,7 +1169,7 @@ export function emitDocument(bodyTex, context) {
 
   // phase A: default parse of preamble+body to harvest author macro definitions
   const p0 = getParser({ environments: ENV_SIGNATURES, macros: CONTRACT_MACROS });
-  const fullAst = p0.parse(context.preamble + "\n" + bodyTex);
+  const fullAst = p0.parse(preambleTex + "\n" + bodyTex);
   const macroSigs = { ...CONTRACT_MACROS };
   const silencedWarn = console.warn, silencedLog = console.log;
   console.warn = () => {}; console.log = () => {};
@@ -1175,8 +1186,8 @@ export function emitDocument(bodyTex, context) {
     authorMacros[nc.name] = { signature: nc.signature || "", body: printRaw(nc.body) };
   }
   // simple \def\name{...} (parameterless)
-  for (const m of (context.preamble + bodyTex).matchAll(/\\def\s*\\([a-zA-Z]+)\s*\{/g)) {
-    const g = readGroup(context.preamble + bodyTex, m.index + m[0].length - 1);
+  for (const m of (preambleTex + bodyTex).matchAll(/\\def\s*\\([a-zA-Z]+)\s*\{/g)) {
+    const g = readGroup(preambleTex + bodyTex, m.index + m[0].length - 1);
     if (g && !(m[1] in authorMacros)) { authorMacros[m[1]] = { signature: "", body: g.content }; macroSigs[m[1]] ??= { signature: "" }; }
   }
 

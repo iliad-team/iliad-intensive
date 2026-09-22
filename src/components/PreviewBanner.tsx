@@ -10,6 +10,16 @@ const PR = process.env.NEXT_PUBLIC_PREVIEW_PR;
 // its title rather than the word "undefined".
 const PR_TITLE = process.env.NEXT_PUBLIC_PREVIEW_PR_TITLE?.trim();
 
+// A preview built by hand (NEXT_PUBLIC_PREVIEW_PR=local) has no PR to link.
+const IS_PR = !!PR && /^\d+$/.test(PR);
+
+// The diff view (public/diff.js) fetches the base version of each page from
+// here + the page's path. Empty = this origin's root, which is where the
+// production site lives relative to /pr-preview/pr-N/. A local build sets it
+// to https://iliad-intensive.org (which allows cross-origin reads).
+const DIFF_BASE = process.env.NEXT_PUBLIC_DIFF_BASE ?? "";
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 // Fixed project locations.
 const LIVE_URL = "https://iliad-intensive.org/";
 const REPO_URL = "https://github.com/iliad-team/iliad-intensive";
@@ -23,7 +33,7 @@ export function PreviewBanner() {
       className="w-full bg-amber-400 text-amber-950 px-4 py-2 text-sm text-center flex flex-wrap items-center justify-center gap-x-4 gap-y-1"
     >
       <span className="font-medium">
-        ⚠ Preview of pull request #{PR}
+        {IS_PR ? <>⚠ Preview of pull request #{PR}</> : <>⚠ Local preview build</>}
         {PR_TITLE && (
           <>
             {" — "}
@@ -46,14 +56,37 @@ export function PreviewBanner() {
         <a className="underline underline-offset-2 font-medium" href={LIVE_URL}>
           Go to the live site&nbsp;↗
         </a>
-        <a
-          className="underline underline-offset-2 font-medium"
-          href={prUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Open PR #{PR}&nbsp;↗
-        </a>
+        {IS_PR && (
+          <a
+            className="underline underline-offset-2 font-medium"
+            href={prUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Open PR #{PR}&nbsp;↗
+          </a>
+        )}
+      </span>
+      {/* The diff view's controls. Inert markup: public/diff.js owns them and
+          hides the whole group on pages without a worksheet article. */}
+      <span
+        id="diff-controls"
+        className="flex flex-wrap items-center justify-center gap-x-3 font-sans text-xs"
+      >
+        <label className="inline-flex items-center gap-1 cursor-pointer">
+          <input
+            type="checkbox"
+            id="diff-toggle"
+            data-diff-base={DIFF_BASE}
+            data-base-path={BASE_PATH}
+          />
+          diff vs main
+        </label>
+        <label id="diff-sync-label" className="inline-flex items-center gap-1 cursor-pointer">
+          <input type="checkbox" id="diff-sync" defaultChecked />
+          sync scroll
+        </label>
+        <span id="diff-status" className="italic text-amber-900/80" />
       </span>
     </div>
   );
