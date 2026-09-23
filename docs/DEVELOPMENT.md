@@ -130,6 +130,28 @@ together define the authoring contract.
   shared style rebuilds everything, as it must. `--no-cache` forces a rebuild;
   reach for it if you ever suspect a stale artifact.
 
+## House-style lint (no build needed)
+
+`node scripts/house-lint.mjs [slug ... | file.tex ...]` (or `./run.sh lint`)
+sweeps every tracked `tex/<slug>/main.tex` and `main.mdx` in well under a second
+for the house-style violations a pattern can find: hand-typed references
+(`\ref`, `Exercise~\cref`, `\cref{..}(b)`, literal "Exercise 2.3"), the
+front-matter order, Further reading not last, unbound or dangling solutions,
+unlabelled exercises, `\ifsolutions` in the body, hand-rolled `\textit{Hint:}` /
+`\emph{Remark.}` lead-ins doing a contract environment's job, contract
+redefinitions, a missing or `TODO` summary, `cluster:`/`day:` in frontmatter,
+bad `\youtube` IDs, images outside `fig/`, and the MDX pitfalls (`<!-- -->`,
+`#` headings, undefined footnotes, bare `$` amounts, parked `{/* */}` comments).
+`--rules` lists every rule with its level; `--min=warn` hides the info level;
+`--json` is for tools. It exits 1 only on an error-level finding.
+
+The rules restate docs/commands.md and docs/iliad-sty.md, and reuse the
+converter's own `CONTRACT_NAMES` and `frontMatterOrderIssues`, so the lint and
+the build's advisories never disagree. It is advisory and wired into no hook.
+Silence a finding you have judged fine with `% house-lint-ignore <rule>` on the
+line or the line above it (`{/* house-lint-ignore <rule> */}` in MDX), or
+`% house-lint-ignore-file <rule>` anywhere in the file.
+
 ## Overflow check (math wider than the page)
 
 `node scripts/check-overflow.mjs [slug ...]` renders every built page in
