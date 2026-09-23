@@ -9,14 +9,8 @@
 %   translation between the latents of human and AI models.
 %--- end ---
 \documentclass[11pt]{article}
-\IfFileExists{iliad.sty}{\usepackage{iliad}}{\usepackage{../iliad}}
-\geometry{a4paper,margin=25mm}
-\usepackage{microtype}
-\AtBeginEnvironment{example}{\crefalias{theorem}{example}}
-\AtBeginEnvironment{definition}{\crefalias{theorem}{definition}}
-\AtBeginEnvironment{lemma}{\crefalias{theorem}{lemma}}
-\AtBeginEnvironment{corollary}{\crefalias{theorem}{corollary}}
-\AtBeginEnvironment{proposition}{\crefalias{theorem}{proposition}}
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
+\usepackage[round]{natbib}
 \newcommand{\PI}{\mathcal{P}^{+}(I)}
 \newcommand{\Up}{\mathord{\supseteq}}
 \title{Condensation}
