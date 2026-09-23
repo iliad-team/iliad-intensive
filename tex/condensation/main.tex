@@ -1,10 +1,12 @@
 %--- iliad ---
-% separateSolutions: true
 % title: Condensation
 % summary: >-
 %   Organizing information across a family of observations. Define latent
 %   models, examine reconstruction and conditional independence, and prove
-%   an exact and quantitative correspondence theorem.
+%   an exact and quantitative correspondence theorem. A worked
+%   hierarchical-clustering example, and how condensation relates to earlier
+%   work in statistics and what remains between the theorem and useful
+%   translation between the latents of human and AI models.
 %--- end ---
 \documentclass[11pt]{article}
 \IfFileExists{iliad.sty}{\usepackage{iliad}}{\usepackage{../iliad}}
@@ -156,6 +158,38 @@ and recovering $Y_{\{1,2\}}$ from $X_1$.
 addresses in this example neither of which contains the other.
 \end{enumerate}
 \end{exercise}
+\begin{solution}[ex:bits]
+The independent fair bits are $S,P,Q$, and
+$X_1=(S,P)$, $X_2=(S,Q)$, $X_3=(P,Q)$.
+\begin{enumerate}[label=(\alph*)]
+\item $H(X_1)=2$. The tuple of all observations determines $(S,P,Q)$ and is
+determined by it, so $H(X_1,X_2,X_3)=3$.
+The pair $(X_1,X_2)$ already determines all three bits, hence
+\[
+ I(X_1;X_2)=H(X_1)+H(X_2)-H(X_1,X_2)=2+2-3=1.
+\]
+Its shared bit is $S$.
+\item The families, including constant slots, are
+\[
+\begin{split}
+ \Up\{1\}&=\{\{1\},\{1,2\},\{1,3\},\{1,2,3\}\},\\
+ \Up\{2\}&=\{\{2\},\{1,2\},\{2,3\},\{1,2,3\}\},\\
+ \Up\{1,2\}&=\{\{1,2\},\{1,2,3\}\}.
+\end{split}
+\]
+The first tuple has nonconstant entries $S,P$, so determines $X_1$.
+Intersecting the first two families leaves $\{\{1,2\},\{1,2,3\}\}=\Up\{1,2\}$,
+the third family listed, whose only nonconstant content is $S$.
+\item Recover $X_1$ by taking the ordered pair
+$(Y_{\{1,2\}},Y_{\{1,3\}})$. Recover $Y_{\{1,2\}}$ from $X_1$ by
+projecting onto its first coordinate.
+\item Addresses $\{1,2\}$ and $\{1,3\}$ overlap but neither contains the
+other. Thus the contribution pattern need not form a nested tree.
+\end{enumerate}
+The original model also satisfies the Markov condition. All nonconstant slots
+are mutually independent, so disjoint subcollections are independent, including
+after conditioning on the remaining common subcollection. Reconstruction follows from the indicated coordinate projections.
+\end{solution}
 
 \section{Two conditions on a latent model}
 \label{sec:conditions}
@@ -239,6 +273,63 @@ $H(Y_{\{1,2,3\}}\mid X_1)$. Which condition fails?
 Markov condition have different roles.
 \end{enumerate}
 \end{exercise}
+\begin{solution}[ex:failed]
+\begin{enumerate}[label=(\alph*)]
+\item In the singleton-copy model $Y_{\{i\}}=X_i$, the contributing family
+for $i$ includes $X_i$ itself. Thus LVM holds. Each
+nonconstant latent has just one contributing observation, from which it is
+recovered identically, so reconstruction holds too.
+
+For $\mathcal{F}=\Up\{1\}$ and $\mathcal{G}=\Up\{2\}$, all entries
+of $Y_{\mathcal{F}\cap\mathcal{G}}$ are constant. The only nonconstant entries
+of the two larger tuples are $X_1$ and $X_2$. Consequently
+\[
+ I(Y_{\mathcal{F}};Y_{\mathcal{G}}\mid Y_{\mathcal{F}\cap\mathcal{G}})
+ =I(X_1;X_2)=1.
+\]
+Both singleton slots determine $S$, while their common ancestor slots are
+constant. This violates the Markov condition. It is enough to
+exhibit this one pair of upward-closed families; finding the maximum defect
+is unnecessary.
+\item With only $Y_{\{1,2,3\}}=(S,P,Q)$ nonconstant, each observation is
+obtained by projection, so LVM holds. Every nonempty
+upward-closed family contains the top address. If both families are nonempty,
+their intersection contains that top slot and determines all latent variables;
+the conditional mutual information is zero. If either is empty it is zero as
+well. Thus the Markov condition holds.
+
+But $X_1=(S,P)$ leaves the independent fair bit $Q$ unknown, so
+\[
+ H(Y_{\{1,2,3\}}\mid X_1)=H(Q\mid S,P)=1.
+\]
+Reconstruction fails.
+\item LVM requires enough latent information to determine
+each observation. Reconstruction excludes information placed at a shared
+address that an individual contributing observation cannot recover. The Markov
+condition excludes dependence between address collections not accounted for
+by their common slots. The singleton model satisfies the second requirement but
+fails the third; the top-slot model satisfies the third but fails the second.
+\end{enumerate}
+
+\textbf{Check on the existence example.}
+The existence subsection in the student sheet is a proved example, not an
+additional exercise. For a binary pair with full support, a top slot determined
+by each observable must be constant: writing it as $f(X_1)=g(X_2)$, each of the
+four pairs imposes an equality between the corresponding function values.
+With a constant top, LVM makes $X_1$ a function of
+$Y_{\{1\}}$ and $X_2$ a function of $Y_{\{2\}}$. Thus data processing yields
+\[
+ I(X_1;X_2)\le I(Y_{\{1\}};Y_{\{2\}})=\eta_Y.
+\]
+The equality holds because, on the two-observable address poset, the only
+pair of incomparable nonempty upward-closed families consists of the two
+singleton towers. Every other Markov term is zero. For the noisy fair-bit
+pair, $H(X_2)=1$ and $H(X_2\mid X_1)=h_2(q)$, proving the stated lower bound.
+It is attained by the singleton-copy model $Y_{\{i\}}=X_i$, with constant top.
+This model has both exact reconstruction directions but a positive Markov
+defect. Setting that defect to zero is impossible. The argument does not bound
+the tradeoff when reconstruction is allowed to be inexact.
+\end{solution}
 
 \subsection{Existence is a separate question}
 \label{sec:existence}
@@ -333,6 +424,28 @@ another. Explain why correspondence between these tuples is a different
 claim from correspondence between the singleton slots.
 \end{enumerate}
 \end{exercise}
+\begin{solution}[ex:duplicates]
+Here $C,R,T$ are independent fair bits. In model $Y$ the three slots are
+$C,R,T$; in model $Z$ they are $C,(C,R),(C,T)$.
+\begin{enumerate}[label=(\alph*)]
+\item Both contributing families determine their observations. All slots are
+recoverable from each observation to which they contribute. For example,
+$C$ is the first coordinate of either $X_1$ or $X_2$, and $Z_{\{1\}}=X_1$.
+For two observables the only nontrivial Markov requirement is independence of
+the two singleton slots given the top slot. For $Y$ this is
+$I(R;T\mid C)=0$. For $Z$ it is
+\[
+ I((C,R);(C,T)\mid C)=I(R;T\mid C)=0.
+\]
+Both are therefore perfect condensations.
+\item $H(Z_{\{1\}}\mid Y_{\{1\}})=H(C,R\mid R)=H(C)=1$.
+\item The $Y$ tower at $\{1\}$ consists of $(R,C)$, and the $Z$ tower
+consists of $((C,R),C)$. Each is a deterministic function of the other. A copy
+of the higher-address information can appear in a lower slot without changing
+the tower's total information. Thus the individual slots need not correspond
+even when the relevant towers do.
+\end{enumerate}
+\end{solution}
 
 \section{The correspondence theorem}
 \label{sec:correspondence}
@@ -418,6 +531,35 @@ chain rule, which is stated in the
 The desired difference contains a conditional mutual information
 and a conditional entropy.
 \end{hint}
+\begin{solution}[ex:witness]
+For arbitrary finite $U,M,P,Q$, the exact identity is
+\begin{align*}
+ &H(U\mid M,P)+H(U\mid M,Q)+I(P;Q\mid M)-H(U\mid M)\\
+ &\hspace{15mm}=I(P;Q\mid U,M)+H(U\mid M,P,Q).
+\end{align*}
+For a direct verification, first subtract the two conditional mutual
+informations using their entropy definitions:
+\begin{align*}
+ I(P;Q\mid M)-I(P;Q\mid U,M)
+ &=H(P\mid M)+H(Q\mid M)-H(P,Q\mid M)\\
+ &\quad-H(P\mid U,M)-H(Q\mid U,M)+H(P,Q\mid U,M)\\
+ &=I(U;P\mid M)+I(U;Q\mid M)-I(U;P,Q\mid M)\\
+ &=H(U\mid M)-H(U\mid P,M)-H(U\mid Q,M)\\
+ &\quad+H(U\mid P,Q,M).
+\end{align*}
+Rearrangement gives the displayed slack identity. Its right side is
+nonnegative, proving the lemma.
+
+If $H(U\mid M,P)=H(U\mid M,Q)=I(P;Q\mid M)=0$, the inequality and
+nonnegativity imply $H(U\mid M)=0$. Thus a target recoverable from each
+witness is recoverable from their designated common part when the witnesses
+are conditionally independent given that part.
+
+The first two terms measure what each witness, together with $M$, still fails
+to determine about $U$. The third measures dependence between $P,Q$ not
+accounted for by $M$. No independence assumption is needed for the inequality
+itself; exact independence is the case where the third error is zero.
+\end{solution}
 
 \begin{exercise}[E5: The dependence term is needed; 5 minutes]
 \label{ex:dependence}
@@ -425,6 +567,17 @@ Let $U=P=Q$ be a fair bit and let $M$ be constant. Evaluate every term in
 \eqref{eq:witness}. What would go wrong if the mutual-information term were
 omitted? How does this example resemble the singleton-copy model in E2?
 \end{exercise}
+\begin{solution}[ex:dependence]
+With $U=P=Q$ a fair bit and $M$ constant,
+\[
+ H(U\mid M)=1,\quad H(U\mid M,P)=H(U\mid M,Q)=0,
+ \quad I(P;Q\mid M)=1.
+\]
+The inequality is the equality $1\le0+0+1$. Without its mutual-information
+term it would assert $1\le0$. The two witnesses each determine the same bit while
+the designated common variable is constant, as in the singleton-copy model
+of E2.
+\end{solution}
 
 \begin{exercise}[E6: Transfer through an observable; 10 minutes]
 \label{ex:transfer}\important
@@ -437,6 +590,18 @@ State the equality obtained by adding $X_i$ to the conditioning tuple, then
 apply the conditioning inequality. Does this argument assume that $U$ and
 $Z_{\Up\{i\}}$ are conditionally independent given $X_i$?
 \end{exercise}
+\begin{solution}[ex:transfer]
+If $X_i$ is a function of $Z_{\Up\{i\}}$ almost surely, adding $X_i$ to
+that conditioning tuple changes no information. Hence
+\[
+ H(U\mid Z_{\Up\{i\}})
+ =H(U\mid Z_{\Up\{i\}},X_i)
+ \le H(U\mid X_i).
+\]
+The inequality is conditioning monotonicity. It does not assume that $U$ and
+the receiver tuple are conditionally independent given $X_i$. They can share
+additional information beyond $X_i$.
+\end{solution}
 
 \begin{exercise}[E7: Intersect the address families; 15 minutes]
 \label{ex:intersections}\important
@@ -455,6 +620,35 @@ Why can the extra conditioning on $M$ be dropped from each reconstruction
 term? Write the resulting bound using $\eta_Z$.
 \end{enumerate}
 \end{exercise}
+\begin{solution}[ex:intersections]
+\begin{enumerate}[label=(\alph*)]
+\item The first two families are listed in E1, and
+\[
+ \Up\{3\}=\{\{3\},\{1,3\},\{2,3\},\{1,2,3\}\}.
+\]
+Thus $\Up\{1\}\cap\Up\{2\}=\{\{1,2\},\{1,2,3\}\}$,
+and intersecting with $\Up\{3\}$ leaves only $\{1,2,3\}$.
+\item If $C$ belongs to every family in an intersection and $D\supseteq C$,
+upward closure places $D$ in each such family, hence in the intersection.
+\item For an address $C$,
+\[
+ C\in\bigcap_{i\in A}\Up\{i\}
+ \quad\Longleftrightarrow\quad
+ (\forall i\in A)\ i\in C
+ \quad\Longleftrightarrow\quad A\subseteq C
+ \quad\Longleftrightarrow\quad C\in\Up A.
+\]
+\item Put $M=Z_{\mathcal{F}\cap\mathcal{G}}$,
+$P=Z_{\mathcal{F}}$, $Q=Z_{\mathcal{G}}$. The tuple $M$ is a subtuple of
+both $P$ and $Q$. Thus $H(U\mid M,P)=H(U\mid P)$ and similarly for $Q$.
+By the definition of $\eta_Z$, the lemma gives
+\[
+ H(U\mid Z_{\mathcal{F}\cap\mathcal{G}})
+ \le H(U\mid Z_{\mathcal{F}})+H(U\mid Z_{\mathcal{G}})+\eta_Z.
+\]
+Upward closure is needed to invoke the bound $\eta_Z$.
+\end{enumerate}
+\end{solution}
 
 \begin{pdfonly}
 \pagebreak
@@ -485,6 +679,65 @@ all relevant slots $C$. Why does this not by itself supply the tower error
 budget $H(Y_{\Up A}\mid X_i)\le\varepsilon$?
 \end{enumerate}
 \end{exercise}
+\begin{solution}[ex:induction]
+Fix a nonempty $A=\{i_1,\ldots,i_k\}$, put
+$\mathcal{G}_j=\bigcap_{\ell=1}^{j}\Up\{i_\ell\}$.
+Every $\Up\{i\}$ is upward closed, as is every $\mathcal{G}_j$ by E7.
+We prove
+\begin{equation}
+ H(Y_{\Up A}\mid Z_{\mathcal{G}_j})\le
+ \sum_{\ell=1}^{j}H(Y_{\Up A}\mid X_{i_\ell})+(j-1)\eta_Z
+ \label{eq:induction-sol}
+\end{equation}
+for $1\le j\le k$.
+
+For $j=1$, $\mathcal{G}_1=\Up\{i_1\}$, and E6 gives
+$H(Y_{\Up A}\mid Z_{\mathcal{G}_1})\le H(Y_{\Up A}\mid X_{i_1})$. This is the claimed
+bound with zero intersection terms.
+
+Suppose \eqref{eq:induction-sol} holds for $j-1$, where $2\le j\le k$.
+Apply E7 to the upward-closed families $\mathcal{G}_{j-1}$ and
+$\Up\{i_j\}$. Their intersection is $\mathcal{G}_j$, so
+\begin{align*}
+ H(Y_{\Up A}\mid Z_{\mathcal{G}_j})
+ &\le H(Y_{\Up A}\mid Z_{\mathcal{G}_{j-1}})
+       +H(Y_{\Up A}\mid Z_{\Up\{i_j\}})+\eta_Z\\
+ &\le \sum_{\ell=1}^{j-1}H(Y_{\Up A}\mid X_{i_\ell})+(j-2)\eta_Z
+       +H(Y_{\Up A}\mid X_{i_j})+\eta_Z\\
+ &=\sum_{\ell=1}^{j}H(Y_{\Up A}\mid X_{i_\ell})+(j-1)\eta_Z.
+\end{align*}
+The second line uses the induction hypothesis and E6. This completes the
+induction. At $j=k$, E7 gives $\mathcal{G}_k=\Up A$, hence
+\[
+ H(Y_{\Up A}\mid Z_{\Up A})
+ \le\sum_{i\in A}H(Y_{\Up A}\mid X_i)+(|A|-1)\eta_Z.
+\]
+For $|A|=1$ this is exactly the observable-transfer inequality, so no intersection
+or Markov error is required. There are $k$ reconstruction errors and $k-1$
+Markov defects.
+Bounding each reconstruction error by $\delta$ and each Markov defect by
+$\eta$ gives
+$k\delta+(k-1)\eta$, or $(2k-1)\varepsilon$ for a common budget.
+
+If $Y,Z$ are perfect condensations, each reconstruction error is zero: for every
+$C\supseteq A$ and $i\in A$, reconstruction says $Y_C$ is a function
+of $X_i$. The finite tuple of such variables is consequently a function of
+$X_i$. Also $\eta_Z=0$. The inequality gives zero conditional entropy in the
+forward direction. Interchanging $Y,Z$, using reconstruction in $Z$
+and $\eta_Y=0$, proves the reverse direction. Zero conditional entropy is
+almost-sure deterministic recoverability in our finite setting.
+
+The proof uses LVM in $Z$ for E6, the sender's reconstruction to bound those errors, and the receiver's Markov condition
+at intersections. It needs no cross-model independence, and its finite
+coupling preserves all marginal conditions used.
+
+Finally, approximate slotwise errors do not directly give the same error for
+a tuple. For example, if two independent fair bits $R,T$ remain unknown given
+a constant observation, each conditional entropy is one bit but the tuple's
+is two bits. Conditional subadditivity gives a sum of the slot budgets, not a
+single budget. The theorem states its hypothesis in terms of tower errors to
+avoid this ambiguity.
+\end{solution}
 
 \section{Optional: several observations as one witness}
 \label{sec:blocks}
@@ -518,6 +771,42 @@ witness. Show that $C\in\mathcal{R}$ exactly when $|A\setminus C|\le r$.
 What does this give for $r=0$? Why is the receiver generally larger for $r>0$?
 \end{enumerate}
 \end{exercise}
+\begin{solution}[ex:blocks]
+\begin{enumerate}[label=(\alph*)]
+\item A nonempty address $C\subseteq\{1,2,3\}$ meets each of
+$\{1,2\},\{1,3\},\{2,3\}$ precisely when $|C|\ge2$.
+A singleton misses the complementary pair; every address with at least two
+elements meets every pair. Thus the surviving tuple consists of the three
+pair slots and the top slot. Applying the two-witness lemma twice, after
+observable transfer for each block, gives
+\[
+ H(U\mid Z_{\{C:|C|\ge2\}})\le3\delta+2\eta_Z.
+\]
+It does not isolate the top slot alone.
+\item For each block $B$, the collection $Z_{\mathcal{J}_B}$ determines
+$X_B$: for every $i\in B$ it contains $Z_{\Up\{i\}}$. E6 therefore
+extends to $H(U\mid Z_{\mathcal{J}_B})\le H(U\mid X_B)$.
+Each $\mathcal{J}_B$ is upward closed. Enumerate
+$\mathcal{W}=\{B_1,\ldots,B_N\}$ and intersect the first $j$ contributing
+families. Exactly the induction in E8, now with these families as leaves,
+gives
+\[
+ H(U\mid Z_{\mathcal{R}})\le
+ \sum_{B\in\mathcal{W}}H(U\mid X_B)+(N-1)\eta_Z,
+ \quad \mathcal{R}=\bigcap_{B\in\mathcal{W}}\mathcal{J}_B.
+\]
+For $N=1$ this is just the transfer inequality. We required a nonempty family
+so the induction and the intersection count apply.
+\item An address $C$ fails to meet some $(r+1)$-subset of $A$ exactly when
+$A\setminus C$ contains at least $r+1$ elements. Thus it meets every such
+subset exactly when $|A\setminus C|\le r$. For $r=0$ this says
+$A\subseteq C$, recovering the tower. For $r>0$ an address can survive even
+if it misses some elements of $A$; the receiver is a larger tuple.
+If every witness error is at most $\delta$, write
+$N=\binom{|A|}{r+1}$ to obtain the explicit bound
+$N\delta+(N-1)\eta_Z$. The restriction $r<|A|$ ensures witnesses exist.
+\end{enumerate}
+\end{solution}
 
 Eisenstat's later almost-perfect-condensation formulation bounds the tower
 reconstruction error whenever $|A\cap B|>r$, the Markov defect, and the number
@@ -577,6 +866,91 @@ under one score but not the other?
 $H(Y_{\Up A}\mid X_B)\le\chi(B)-H(X_B)$.
 \end{enumerate}
 \end{exercise}
+\begin{solution}[ex:scores]
+\begin{enumerate}[label=(\alph*)]
+\item List $\mathcal{J}_B$ as $A_1,\ldots,A_q$ with strict supersets appearing
+before subsets. Such an order exists because strict inclusion has no cycles.
+Every strict superset of an active address also meets $B$, so is in this list.
+Therefore
+\[
+ H(Y_{A_t}\mid Y_{\Up A_t\setminus\{A_t\}})
+ \ge H(Y_{A_t}\mid Y_{A_1},\ldots,Y_{A_{t-1}}).
+\]
+Summing and applying the chain rule gives
+$\chi(B)\ge H(Y_{\mathcal{J}_B})$, hence $V_B\ge0$.
+\item Since $Y_{\mathcal{J}_B}$ determines $X_B$, the joint entropy can be
+expanded in two ways:
+\[
+ H(X_B,Y_{\mathcal{J}_B})=H(Y_{\mathcal{J}_B})
+ =H(X_B)+H(Y_{\mathcal{J}_B}\mid X_B).
+\]
+Subtracting $H(X_B)$ and adding $V_B$ proves
+\[
+ \chi(B)-H(X_B)=V_B+H(Y_{\mathcal{J}_B}\mid X_B).
+\]
+\item In E3, the independent model $Y$ has simple score $1+1+1=3$ and
+conditioned score $1+1+1=3$. In model $Z$, the simple score is $1+2+2=5$,
+while the conditioned score is
+\[
+ H(C)+H(C,R\mid C)+H(C,T\mid C)=1+1+1=3.
+\]
+Both models determine $X_1,X_2$, whose joint entropy is three. The conditioned
+score charges only the extra information below $C$; its copies add zero
+conditional entropy. The simple score charges those copies again.
+\item If $A\cap B\ne\varnothing$, every $C\supseteq A$ meets $B$.
+Thus $Y_{\Up A}$ is a subtuple of $Y_{\mathcal{J}_B}$ and
+\[
+ H(Y_{\Up A}\mid X_B)
+ \le H(Y_{\mathcal{J}_B}\mid X_B)
+ \le\chi(B)-H(X_B),
+\]
+where the last inequality uses the nonnegative score decomposition.
+\end{enumerate}
+
+\textbf{Additional check: equivalence of the perfect definitions.}
+This argument is available for students who want to connect the two definitions
+completely; it is not an extra required exercise.
+
+Let $V_I=\chi(I)-H(Y_{\PI})$. For upward-closed $\mathcal{F},\mathcal{G}$,
+partition $\PI$ into
+\[
+ \mathcal{C}=\mathcal{F}\cap\mathcal{G},\quad
+ \mathcal{P}=\mathcal{F}\setminus\mathcal{G},\quad
+ \mathcal{Q}=\mathcal{G}\setminus\mathcal{F},\quad
+ \mathcal{R}=\PI\setminus(\mathcal{F}\cup\mathcal{G}).
+\]
+Order these blocks $\mathcal{C},\mathcal{P},\mathcal{Q},\mathcal{R}$, internally
+by reverse inclusion. Upward closure ensures this order is valid and no slot
+in $\mathcal{Q}$ has a strict superset in $\mathcal{P}$, or conversely.
+Conditioning inequalities and chain rules within each block imply
+\begin{align*}
+ \chi(I)&\ge H(Y_{\mathcal{C}})+H(Y_{\mathcal{P}}\mid Y_{\mathcal{C}})
+ +H(Y_{\mathcal{Q}}\mid Y_{\mathcal{C}})
+ +H(Y_{\mathcal{R}}\mid Y_{\mathcal{C}},Y_{\mathcal{P}},Y_{\mathcal{Q}})\\
+ &=H(Y_{\PI})+I(Y_{\mathcal{P}};Y_{\mathcal{Q}}\mid Y_{\mathcal{C}}).
+\end{align*}
+The latter mutual information equals
+$I(Y_{\mathcal{F}};Y_{\mathcal{G}}\mid Y_{\mathcal{F}\cap\mathcal{G}})$.
+Hence $\eta_Y\le V_I$.
+
+If all score gaps vanish, the decomposition forces $V_I=0$, giving the Markov
+condition. The singleton gap at $B=\{i\}$ forces the contributing tuple,
+and therefore each slot at an address containing $i$, to be determined by
+$X_i$. This gives reconstruction.
+
+Conversely, suppose reconstruction and the Markov condition hold.
+For every $B$, each active slot $Y_A$ is determined by some $X_i$ with
+$i\in A\cap B$, and hence by $X_B$. Therefore
+$H(Y_{\mathcal{J}_B}\mid X_B)=0$.
+In a reverse-inclusion order, the earlier slots consist of all strict
+supersets of the current slot and some incomparable slots. The global
+Markov condition implies that conditioning on these extra earlier slots does
+not reduce its entropy beyond conditioning on strict supersets: apply the
+condition to the upward cone of the current address and the upward-closed
+family of earlier addresses. Their intersection is the strict-superset
+family. Thus the score's chain-rule inequality is an equality, $V_B=0$.
+The decomposition gives $\chi(B)=H(X_B)$ for all $B$.
+\end{solution}
 
 Eisenstat defines perfect condensation by $\chi(B)=H(X_B)$ for every $B$.
 The equivalence with the characterization above is his Theorem 5.10.
@@ -632,7 +1006,7 @@ report an average information budget.
 \subsection{Discussion prompts}
 \begin{enumerate}
 \item Choose a comparison from
-\href{/interpretability/condensation-context/\#3-connections-to-prior-work}{Connections
+\hyperref[sec:context-connections]{Connections
 to prior work} in the context reading. State one mathematical similarity and
 one difference in what is being characterized. If it relates to one of the
 condensation conditions, say how.
@@ -642,7 +1016,7 @@ needed to find and use the translation between them?
 \item Where might a correspondence like this matter for AI safety? Trace one
 chain from the theorem to something you would want, and say where it breaks:
 which steps does the theorem not establish?
-\href{/interpretability/condensation-context/\#5-the-connection-to-ai-safety}{The
+\hyperref[sec:context-safety]{The
 connection to AI safety} sets out one such chain.
 \end{enumerate}
 
@@ -663,4 +1037,477 @@ coverage qualification.
 Shalizi and Crutchfield, \emph{Computational Mechanics: Pattern and Prediction,
 Structure and Simplicity} (2001).
 \end{itemize}
+
+\section{A hierarchical clustering example}
+\subsection{Prerequisites}
+This supplementary example uses the latent-model definition and conditional
+entropy from the main worksheet. All variables are finite-valued and all logs
+have base two. The example adapts the hierarchy in Jeremy Gillen and Daniel
+Chiang's \emph{A summary of Condensation and its relation to Natural Latents},
+\S1.1.1. The construction and figure here are new; we do not use their numerical
+entropy estimates.
+
+\begin{learningoutcomes}
+\begin{itemize}
+\item Distinguish LVM, where the latents assigned to an observation determine
+it, from reconstruction, where an observation recovers those latents.
+\item Compare the information charged by different latent models for the same query.
+\end{itemize}
+\end{learningoutcomes}
+
+\subsection{Thirty-six observations}
+There are two groups, each containing two clusters, each with nine observations.
+Write $X_{gcj}$ for the $j$th two-dimensional point in cluster $c$ of group $g$.
+The labels $(g,c,j)$ and memberships are fixed. We are comparing models of this
+labelled family, not inferring an unknown partition of an unlabelled cloud.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{fig/hierarchical-points.pdf}
+\caption{One draw from the finite model. The left panel shows the 36 points;
+the right panel shows which set of observations receives each parameter, and is
+not a graph inferred from the points. The global shape $S$ is available to every
+observation.}
+\label{fig:hierarchy}
+\end{figure}
+
+The parameters are a global shape $S$, group centers $G_1,G_2$, and cluster
+centers $M_{gc}$. Given these parameters, the 36 observations are independent.
+Marginalizing over shared parameters generally makes observations dependent.
+The plotted cloud is one realization; the random variables and their entropies
+refer to the joint law across realizations.
+
+\newpage
+\subsection{An explicit finite law}
+Let $D=\{0,\ldots,200\}^2$. Draw $S$ uniformly from three shape labels, and
+draw $G_1,G_2$ independently and uniformly from $\{60,\ldots,140\}^2$,
+independently of $S$. Conditional on $G_g$, draw its two centers independently:
+\[
+ P(M_{gc}=m\mid G_g=a)\ \propto\
+ \exp\!\left(-\frac{\|m-a\|^2}{128}\right),\qquad m\in D.
+\]
+Given $S$ and all centers, draw the observations independently, using
+\[
+ P(X_{gcj}=x\mid M_{gc}=m,S=s)\ \propto\
+ \exp\!\left(-\tfrac12(x-m)^\mathsf{T}Q_s^{-1}(x-m)\right),\quad x\in D,
+\]
+where
+\[
+ Q_{\mathrm{round}}=\begin{pmatrix}5&0\\0&5\end{pmatrix},\quad
+ Q_{\mathrm{right}}=\begin{pmatrix}25&20\\20&25\end{pmatrix},\quad
+ Q_{\mathrm{left}}=\begin{pmatrix}25&-20\\-20&25\end{pmatrix}.
+\]
+Each proportionality means normalization by the sum over $D$. These are
+probability mass functions on a finite grid. The matrices control shape; they
+are not the exact covariances after discretization and boundary truncation.
+Every grid point has positive probability. Cluster centers tend to lie near
+their group center, but the four components need not be visually separated in
+every realization.
+
+\subsection{A structured latent model}
+Let $I$ contain all 36 indices. Let $A_g$ be the 18 indices of group $g$, and
+$A_{gc}$ the nine indices of cluster $(g,c)$. Assign
+\[
+ Y_I=S,\qquad Y_{A_g}=G_g,\qquad Y_{A_{gc}}=M_{gc},\qquad
+ Y_{\{i\}}=X_i,
+\]
+and make every other slot constant. The joint law factorizes in the address
+inclusion order, so its ordered Markov defect is zero.
+
+The singleton slot supplies the sampled point itself. Thus
+$H\bigl(X_i\mid Y_{\{A\,:\,i\in A\}}\bigr)=0$ exactly. The cluster center and shape alone
+specify a conditional distribution for the point; they do not determine its
+realized coordinates. The residual conditional entropy is
+$H(X_i\mid M_{gc},S)$.
+
+Reconstruction is different. All the kernels have full support, so any
+finite observation block leaves several parameter configurations with positive
+posterior probability. For example, $H(M_{gc}\mid X_i)>0$. The model's joint
+law satisfies the Markov condition exactly, but it is not a perfect condensation.
+
+For a nonempty block $B$, let $\mathcal J_B=\{A:A\cap B\ne\varnothing\}$.
+The general score-gap identity is
+\[
+ \chi(B)-H(X_B)
+ =\bigl[\chi(B)-H(Y_{\mathcal J_B})\bigr]
+   +H(Y_{\mathcal J_B}\mid X_B).
+\]
+Here the bracketed Markov term is zero. The gap is the latent information
+remaining uncertain after observing the queried block.
+
+\newpage
+\subsection{Three organizations of the same observable law}
+For a nonempty queried \emph{observation block} $B$, the conditioned score
+sums the charges of all slots whose addresses meet $B$.
+
+\paragraph{One global tuple.}
+Put $Z_I=X_I$ and make every other slot constant. The global slot determines
+each observation. For every nonempty $B$,
+\[
+ \chi_{\mathrm{global}}(B)=H(X_I),\qquad
+ \chi_{\mathrm{global}}(B)-H(X_B)=H(X_I\mid X_B).
+\]
+This attains the entropy bound when querying the whole tuple. Even a singleton
+query incurs the entire tuple's entropy in this score.
+
+\paragraph{An ordered chain.}
+Choose an ordering $X_1,\ldots,X_{36}$. Set
+$Z_{\{j,j+1,\ldots,36\}}=X_j$ and make other slots constant. The contributing
+slots for $X_i$ contain $X_1,\ldots,X_i$. The charge for slot $j$ is
+$H(X_j\mid X_1,\ldots,X_{j-1})$, hence
+\[
+ \chi_{\mathrm{chain}}(B)=H(X_1,\ldots,X_{\max B}).
+\]
+This attains the entropy bound for prefix queries. Querying only $X_{36}$ costs
+$H(X_I)$. These statements concern this particular address assignment, not
+every autoregressive architecture.
+
+\paragraph{The structured model.}
+The score charges the shape once, the group and cluster parameters needed by
+$B$, and the residual uncertainty of each requested observation:
+\[
+\begin{aligned}
+ \chi_{\mathrm{structured}}(B)={}&H(S)
+ +\sum_{g:B\cap A_g\ne\varnothing}H(G_g)\\
+ &+\sum_{g,c:B\cap A_{gc}\ne\varnothing}H(M_{gc}\mid G_g)
+ +\sum_{i\in B}H(X_i\mid M_{g(i)c(i)},S).
+\end{aligned}
+\]
+This expression avoids charging for unrelated observations. It need not be
+smaller than the other scores for every block. In particular, for $B=I$ it
+exceeds $H(X_I)$ by the remaining parameter uncertainty, whereas both baseline
+constructions attain $H(X_I)$. Fitting the observable law does not by itself
+settle which organization is preferable across queries.
+
+\subsection{Why blocks help recover parameters}
+For nonempty $B$ inside a fixed cluster $(g,c)$, set $\Theta=(S,G_g,M_{gc})$. The
+nonconstant contributing tuple is $(\Theta,X_B)$, so
+\[
+ \chi_{\mathrm{structured}}(B)-H(X_B)=H(\Theta\mid X_B).
+\]
+For nonempty $B\subseteq B'\subseteq A_{gc}$, the reduction in this gap is
+\[
+ H(\Theta\mid X_B)-H(\Theta\mid X_{B'})
+ =I(\Theta;X_{B'\setminus B}\mid X_B)\ge0.
+\]
+More points can inform the shared parameters. Exact recovery still fails for
+finite blocks. Even knowing one cluster center need not determine its parent
+group center. When $B$ extends to another cluster, its contributing parameter
+family changes, so the displayed monotonicity argument no longer applies as
+written. This example motivates block witnesses and nonzero recovery errors;
+it does not establish a chosen uniform error bound.
+
+\paragraph{Source.}
+The motivating hierarchy is from Gillen and Chiang,
+\href{https://www.alignmentforum.org/posts/agw7HhW4cWjADpBgo}{\emph{A summary of
+Condensation and its relation to Natural Latents}}, \S1.1.1. The finite law,
+illustration, and exact score comparisons above are this course's adaptation.
+
+\section{Condensation in context}
+\subsection{Prerequisites}
+This reading follows the condensation worksheet. It uses conditional entropy,
+conditional independence, and the distinction between an individual latent and
+a collection of latents. All variables in the examples have finite alphabets;
+logarithms are base two.
+
+\begin{learningoutcomes}
+\begin{itemize}
+\item Relate condensation to sufficient statistics, common information,
+computational mechanics, and graphical models.
+\item Separate informational correspondence from finding and using a translation.
+\item Identify which additional claims would connect correspondence to AI safety.
+\end{itemize}
+\end{learningoutcomes}
+
+\subsection{What is being characterized?}
+Fix jointly distributed observables $X_1,\ldots,X_n$. We organize information
+into latents $Y_A$, indexed by nonempty subsets $A$ of the observable indices.
+The address specifies which observations the latent is assigned to. Each $X_i$
+is determined by its contributing collection $(Y_A:i\in A)$.
+
+LVM alone leaves considerable freedom. The additional reconstruction
+and Markov conditions constrain where shared information can reside. The
+correspondence theorem compares two models satisfying these conditions: their
+collections above the same address determine one another, exactly or with a
+controlled conditional-entropy error.
+
+This provides a conditional sense of objectivity. Once the observables and the
+conditions are fixed, agreement in information content need not come from a
+shared vocabulary. It follows from each model's relationship to the observations.
+The theorem does not choose the observables. Changing the questions changes the
+problem, and may change the information that must correspond.
+
+Nor is each latent automatically a human concept. A model includes residual
+information needed to determine observations. The interpretation of its parts
+as concepts is an additional connection between the mathematics and the uses of
+a latent model.
+
+\subsection{Connections to prior work}
+\label{sec:context-connections}
+\subsubsection{Sufficient statistics}
+For a fixed joint law of $(X,V)$, a statistic $T=f(X)$ is sufficient for predicting
+$V$ when
+\[
+ I(X;V\mid T)=0.
+\]
+Knowing $X$ then gives no predictive information about $V$ beyond $T$.
+For finite alphabets, grouping values $x$ with the same conditional distribution
+$P(V\mid X=x)$ gives a minimal such statistic, on the support of $X$.
+This differs from parametric sufficiency, where the conditional law of
+the sample given a statistic must be independent of the unknown parameter.
+Both formulations ask which distinctions must be retained for an inference task.
+
+Predictive sufficiency does not say that $T$ determines the realized value of
+$V$. Condensation's LVM condition does demand determination, using the whole
+contributing collection, including residual variables. A sufficient
+statistic can itself be a vector or another structured object.
+
+A sufficient statistic is by construction a function of $X$. A latent need not
+be, because reconstruction is asked for only up to a defect: that leaves room
+for latents which are parameters of a law rather than functions of the
+observations. The additional
+question here is how to organize a family of latent parts across many specified
+observables. See \href{https://www.stats.org.uk/statistical-inference/Fisher1922.pdf}{Fisher (1922)}
+and \href{https://www.stat.cmu.edu/~cshalizi/dm/19/lectures/17/lecture-17.html}{Shalizi's account of predictive sufficiency}.
+
+\subsubsection{Common information}
+Two older questions distinguish requirements that appear together in the
+perfect case. The maximal deterministic common part of $X_1,X_2$ is a variable
+$K$ recoverable from either observation, through which every other common
+function factors. Its entropy is the G\'acs--K\"orner common information.
+Wyner's common information instead minimizes $I(X_1,X_2;W)$ over extensions
+satisfying $X_1\perp X_2\mid W$. Such a $W$ need not be separately recoverable
+from the observations.
+
+If $W$ is both separately recoverable and screens off dependence, then
+\[
+ I(X_1;X_2)=H(W)+I(X_1;X_2\mid W)=H(W).
+\]
+Moreover, every common function $K$ is determined by $W$: the two-witness lemma,
+with witnesses $X_1,X_2$ and common part $W$, gives $H(K\mid W)=0$.
+Thus this special case is closely connected to common information in the sense
+of G\'acs and K\"orner.
+
+It is restrictive. If $X$ is a fair bit and $V=X\mathbin{\oplus}N$ for independent
+$N\sim\operatorname{Bernoulli}(p)$, $0<p<1/2$, all four pairs have positive
+probability. Any common function must therefore be constant, although
+$I(X;V)=1-h_2(p)>0$, where
+$h_2(p)=-p\log_2 p-(1-p)\log_2(1-p)$. Recoverable common information and
+mutual information differ.
+
+Common/private source coding already studies structured organization
+of information. Condensation's particular focus is a family of subset-addressed
+latents and correspondence under conditions on that family.
+See \href{https://cs-web.bu.edu/faculty/gacs/papers/commoninf.pdf}{G\'acs and K\"orner (1973)}
+and \href{https://arxiv.org/pdf/1010.3613}{Liu, Xu and Chen's extension of Wyner's common information}.
+
+\subsubsection{Computational mechanics}
+Computational mechanics groups past histories according to their conditional
+distributions over futures. Its causal states have predictive optimality,
+minimality, and uniqueness properties. This is an important precedent for
+characterizing such a construction through informational requirements.
+
+The present setup starts from a family of jointly distributed questions rather
+than a distinguished past/future split. It characterizes latent collections
+associated with different observable subsets.
+See \href{https://arxiv.org/abs/cond-mat/9907176}{Shalizi and Crutchfield (2001)}.
+
+\subsubsection{Graphical models and the information bottleneck}
+The ordered Markov condition in condensation is a graphical-model condition.
+A subset-ordered directed graph places larger addresses above smaller ones.
+Under the corresponding factorization, the latent joint law is
+\[
+ P(y)=\prod_{A\ne\varnothing}P(y_A\mid y_{\supsetneq A}).
+\]
+A factorization alone does not ensure that observations recover the latents,
+or that different latent models correspond. Those are additional requirements.
+Graphical language also does not make the result a causal-identification theorem.
+Eisenstat discusses this connection explicitly in Definition 5.8 and Example 6.3
+of \href{https://openreview.net/pdf?id=HwKFJ3odui}{the condensation paper}.
+
+The information bottleneck compresses an input $X$ into $T$ while retaining
+information about a specified relevance variable $V$. A standard objective is
+\[
+ I(X;T)-\beta I(T;V), \qquad T\perp V\mid X.
+\]
+It provides an established distribution-based approach to useful summaries of
+the data.
+Our condensation problem instead involves many addressed latents, LVM, and
+conditions across observable sets. An optimum of a generic
+bottleneck objective does not automatically satisfy these conditions.
+See \href{https://arxiv.org/abs/physics/0004057}{Tishby, Pereira and Bialek (1999)}.
+
+\subsection{What information theory leaves out}
+\subsubsection{An encoding and access to its inverse}
+Let $X$ be uniform on $\{1,\ldots,N\}$ and let $Y=\pi(X)$ for a fixed
+permutation $\pi$. Then
+\[
+ H(X\mid Y)=H(Y\mid X)=0.
+\]
+This is exact correspondence whether $\pi$ is the identity or a large
+unstructured lookup table. The entropies do not charge for describing the table,
+learning it, storing it, or using it. For a finite table an inverse exists and is
+computable; that does not make it available to a particular learner.
+
+For a concrete learning distinction, draw $\pi$ uniformly from all permutations
+and reveal $m<N$ distinct input--output pairs. Conditional on those pairs, the
+image of a previously unseen input is uniform over the $N-m$ unused outputs. The best success
+probability without further information is $1/(N-m)$. For every fixed permutation
+the correspondence entropy is zero, yet a learner with few examples cannot
+predict an unseen pairing. These are different probability models: one fixes
+the permutation; the other describes uncertainty about it.
+
+A separate question concerns computation even when a transformation has a short
+known description. Entropic bounds alone give no running-time bound for an
+inverse. Establishing computational difficulty requires an additional argument
+or assumption; it does not follow from this permutation example.
+
+\subsubsection{Rare events and average error}
+Let $E\sim\operatorname{Bernoulli}(p)$. Define $R=0$ when $E=0$ and, when
+$E=1$, let $R$ be uniform over $M$ other values. Since $R$ reveals $E$,
+\[
+ H(R)=h_2(p)+p\log_2 M.
+\]
+For $p=10^{-6}$ and $M=2^{10^6}$, the rare branch contributes one full bit.
+An independent sample of size $m$ misses that branch with probability
+$(1-p)^m$. Large informational contributions can be absent from a small
+dataset.
+
+Conversely, suppose a variable $T$ records $E$, and records the value of a fair
+bit $B$, independent of $E$, only when $E=0$. Then
+\[
+ H(B\mid T)=p.
+\]
+The average uncertainty is small, but conditional on the rare event $E=1$, the
+bit is entirely unknown. If that event is a critical decision, its importance
+is not measured by its probability alone. Entropy is an average informational
+quantity, not a measure of the consequences of errors.
+
+These examples distinguish informational equivalence, statistical access, and
+performance on important cases. A useful translation may need guarantees about
+all three.
+
+\subsection{The connection to AI safety}
+\label{sec:context-safety}
+\begin{enumerate}
+\item \textbf{Corresponding information.} Under the reconstruction and Markov
+conditions, the theorem gives correspondence between specified collections in
+two models of the same observables.
+\item \textbf{Concepts of actual agents.} To apply that result, we need to
+identify suitable variables in actual agents and establish the relevant
+conditions, including how their observables relate. The theorem does not show
+that learning procedures produce such models.
+\item \textbf{A usable translation.} Informational correspondence could support
+identifying which of an AI's latents carries something humans care about. We
+must still find
+the correspondence with available data and computation, and connect it to the
+particular human distinction of interest.
+\item \textbf{Interpretation and specification.} A usable translation could help
+interpret predictions or express objectives in an AI's world model. This requires
+preserving relevant distinctions when circumstances or models change.
+\item \textbf{Safer systems.} Better interpretation and specification could improve
+oversight and alignment. Sharing concepts does not entail sharing values,
+reporting faithfully, or following an intended objective.
+\end{enumerate}
+The first step is the mathematical result of this lesson. The subsequent steps
+state a research programme and the additional work required to connect it to
+safety.
+
+\subsection{Discussion}
+\begin{enumerate}
+\item \textbf{Choosing the questions.} Consider two agents describing the same
+physical system, one using local measurements and another using a different
+collection of measurements. What would have to be established before applying
+a theorem that assumes the same observables? Distinguish changing value labels
+from changing which distinctions an observable makes. Identify one restriction
+on observable choice that seems justified for a concrete application.
+\item \textbf{What would count as a useful translation?} Suppose two latent tuples $U,V$
+satisfy $H(U\mid V)=H(V\mid U)=0$. Specify an additional test
+that would make this correspondence useful for interpreting a learned model.
+State what access the test requires: paired samples, interventions, model
+internals, or a known decoder. Which part of the permutation example would
+that access resolve?
+\item \textbf{From correspondence to oversight.} Choose one human distinction
+that matters for evaluating an AI's behavior. Trace the steps from a
+correspondence theorem to an oversight procedure that uses that distinction.
+Name a failure that could occur despite exact informational correspondence,
+and state what additional evidence would address it.
+\end{enumerate}
+
+\subsection{Further reading}
+The linked sources above support different parts
+of the discussion. For the mathematical development, start with
+\href{https://openreview.net/pdf?id=HwKFJ3odui}{Eisenstat's \emph{Condensation: A Theory of Concepts}},
+particularly the exact and quantitative correspondence results.
+For the score connection, see
+\href{https://satyabenson.com/writing/condensation-conditions-conditioned-score}{\emph{Relating Almost Perfect Condensation Conditions and the Conditioned Score}}.
+The score decomposition connects excess conditioned code length to dependence
+and recoverability defects; the converse requires attention to which observation
+sets the reconstruction assumptions cover.
+
+\section{Condensation: Quiz}
+Take the quiz at
+\href{https://docs.google.com/forms/d/e/1FAIpQLSdTAs3Dq6dOeoju0TsyfaVcEcRdZaNgpAe_FMC7rCR3fohOSw/viewform}{this
+link}. The questions are reproduced here because the form cannot typeset
+mathematics.
+
+\subsection{Questions}
+Use base-two logarithms. Throughout, $S,P,Q$ are independent fair bits and
+$X_1=(S,P)$, $X_2=(S,Q)$, $X_3=(P,Q)$, with $S,P,Q$ at addresses
+$\{1,2\},\{1,3\},\{2,3\}$.
+
+\begin{enumerate}
+\item What is $I(X_1;X_2)$?
+\begin{itemize}
+\item $0$
+\item $1$
+\item $2$
+\item $3$
+\end{itemize}
+
+\item Same model. What is $H(Y_{\{1,2\}}\mid X_1)$?
+\begin{itemize}
+\item $0$
+\item $1/2$
+\item $1$
+\item $2$
+\end{itemize}
+
+\item Now put $Y_{\{i\}}=X_i$ at each singleton address, with every other slot
+constant. Which condition fails?
+\begin{itemize}
+\item the latent variable model condition (LVM)
+\item the reconstruction condition
+\item the ordered Markov condition
+\item none of them fails
+\end{itemize}
+
+\item Complete the two-witness bound
+$H(U\mid M)\le H(U\mid M,P)+H(U\mid M,Q)+{}$\,?
+\begin{itemize}
+\item $I(P;Q)$
+\item $I(P;Q\mid M)$
+\item $H(P\mid Q)$
+\item $0$
+\end{itemize}
+
+\item In the correspondence theorem with $|A|=k$, suppose every reconstruction
+error and every Markov defect is at most $\varepsilon$. What is the bound on
+$H(Y_{\Up A}\mid Z_{\Up A})$?
+\begin{itemize}
+\item $k\varepsilon$
+\item $(k-1)\varepsilon$
+\item $(2k-1)\varepsilon$
+\item $2k\varepsilon$
+\end{itemize}
+
+\item Two corresponding latent collections satisfy $H(U\mid V)=H(V\mid U)=0$.
+Which of these does that \emph{not} establish?
+\begin{itemize}
+\item each collection is a function of the other almost everywhere
+\item neither collection retains uncertainty about the other
+\item an efficient procedure for translating between them
+\item the two collections carry the same information
+\end{itemize}
+\end{enumerate}
 \end{document}

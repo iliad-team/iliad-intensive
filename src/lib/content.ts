@@ -9,7 +9,6 @@ import { PARTIAL, isPublished } from "./preview";
 export type Frontmatter = {
   title?: string;
   unlisted?: boolean;
-  separateSolutions?: boolean;
   cluster?: string;
   difficulty?: number;
   importance?: number;

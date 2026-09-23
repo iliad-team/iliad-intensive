@@ -15,7 +15,7 @@ import { BUILT_AT, COMMIT_SHA, CommitLink, LicenseLink } from "@/components/Buil
 export const dynamicParams = false;
 
 // A worksheet marked `unlisted` is reachable only by URL: keep it out of search
-// results too, so an answer key distributed by a teacher is not indexed.
+// results too.
 export async function generateMetadata({ params }: { params: Promise<{ cluster: string; slug: string }> }) {
   const { slug } = await params;
   const mod = await readModuleMdx(slug);
@@ -119,9 +119,6 @@ export default async function ModulePage({
             basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ""}
             decks={decks}
             slides={fm.slides}
-            /* `separateSolutions`: the answers live in their own document, so
-               there is no -nosol variant to toggle between. */
-            withSolutionsToggle={!fm.separateSolutions}
           />
         </header>
         <div className="prose">

@@ -243,9 +243,6 @@ clusters:
         source: ready
         worksheets:
           - condensation
-          - condensation-clustering
-          - condensation-context
-          - condensation-quiz
 
   - id: D
     label: D — Agency
