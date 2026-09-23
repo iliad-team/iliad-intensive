@@ -129,7 +129,9 @@ $$
 V_\pi(s) = \sum_{a \in \cA} \pi(a \mid s) \sum_{s' \in \cS} T(s' \mid s, a)\bigl(R(s,a,s') + \gamma\, V_\pi(s')\bigr).
 $$
 \end{callout}
-\textit{Hint:} condition on the first action and the first transition, then separate the immediate reward from the remaining return.
+\begin{hint}
+Condition on the first action and the first transition, then separate the immediate reward from the remaining return.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:bellman_proof]
@@ -348,7 +350,9 @@ $$
 \end{callout}
 is also a contraction with factor $\gamma$. Conclude that $V_\pi$ is its unique fixed point and that $\mathcal{B}^n_{\pi} V_0 \to V_{\pi}$ for any initial $V_0 \in \mathcal{V}$ as $n \to \infty$.
 
-\emph{Remark.} This shows that the numerical policy evaluation algorithm from the ARENA materials converges to the correct solution.
+\begin{remark}
+This shows that the numerical policy evaluation algorithm from the ARENA materials converges to the correct solution.
+\end{remark}
 \end{exercise}
 
 \begin{solution}[prob:Bpi_contraction]
@@ -389,7 +393,9 @@ where the second equality holds because $\pi_V(s)$ selects a maximizing action b
 \label{prob:V_pi_star} Define the \textbf{greedy policy} with respect to $V^*$ by $\pi^* = \pi_{V^*}$ as in the previous part.
 Show that $V_{\pi^*} = V^*$, i.e.\ the value function of $\pi^*$ equals the fixed point of $\mathcal{B}$.
 
-\textit{Hint:} show that $V^*$ satisfies the same fixed-point equation as $V_{\pi^*}$.
+\begin{hint}
+Show that $V^*$ satisfies the same fixed-point equation as $V_{\pi^*}$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:V_pi_star]
@@ -402,7 +408,9 @@ So $V^*$ is a fixed point of $\mathcal{B}_{\pi^*}$. By \cref{prob:Bpi_contractio
 $$
 V_{\pi^*}(s) \ge V_\pi(s).
 $$
-\textit{Hint:} show that $\mathcal{B} V_\pi \ge V_\pi$ pointwise, then iterate and take the limit.
+\begin{hint}
+Show that $\mathcal{B} V_\pi \ge V_\pi$ pointwise, then iterate and take the limit.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:optimality]
@@ -459,7 +467,9 @@ If equality holds at every state $s$, then $V_\pi$ is a fixed point of $\mathcal
 \begin{exercise}
 \label{prob:policy_improvement_thm} Show that $V_{\pi'}(s) \ge V_\pi(s)$ for all $s \in \cS$.
 
-\textit{Hint:} show that $\mathcal{B}_{\pi'} V_\pi \ge V_\pi$ pointwise using \cref{prob:greedy_equals_B}, then iterate $\mathcal{B}_{\pi'}$ and take the limit.
+\begin{hint}
+Show that $\mathcal{B}_{\pi'} V_\pi \ge V_\pi$ pointwise using \cref{prob:greedy_equals_B}, then iterate $\mathcal{B}_{\pi'}$ and take the limit.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:policy_improvement_thm]
@@ -473,7 +483,9 @@ By \cref{prob:Bpi_contraction}, $\mathcal{B}_{\pi'}^n V_\pi \to V_{\pi'}$ as $n 
 \begin{exercise}
 \label{prob:policy_iteration} The \textbf{policy iteration} algorithm generates a sequence of policies $\pi_0, \pi_1, \pi_2, \ldots$ where each $\pi_{k+1}$ is the greedy policy with respect to $V_{\pi_k}$. Show that this sequence converges to an optimal policy $\pi^*$ in a finite number of steps.
 
-\textit{Hint:} how many deterministic policies are there?
+\begin{hint}
+How many deterministic policies are there?
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:policy_iteration]
@@ -495,7 +507,9 @@ It remains to show this implies optimality. Since $\pi_{k+1}$ is greedy with res
 $$
 \|V_n - V^*\|_\infty \;\le\; \gamma^n \|V_0 - V^*\|_\infty.
 $$
-\emph{Remark.} This bound is not useful as a stopping criterion in practice as it depends on the unknown $V^*$.
+\begin{remark}
+This bound is not useful as a stopping criterion in practice as it depends on the unknown $V^*$.
+\end{remark}
 \end{exercise}
 
 \begin{solution}[prob:geometric_decay]
@@ -513,7 +527,9 @@ $$
 $$
 This bound uses only $\|V_1 - V_0\|_\infty$ --- a quantity computable after a single iteration, independent of $V^*$.
 
-\textit{Hint:} write $V^* - V_n = \sum_{k=n}^{\infty}(V_{k+1} - V_k)$ (valid since $V_k \to V^*$), and bound each term using the contraction of $\mathcal{B}$.
+\begin{hint}
+Write $V^* - V_n = \sum_{k=n}^{\infty}(V_{k+1} - V_k)$ (valid since $V_k \to V^*$), and bound each term using the contraction of $\mathcal{B}$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:a_priori_bound]
@@ -535,7 +551,9 @@ $$
 \|V_n - V^*\|_\infty \;\le\; \frac{\gamma}{1-\gamma}\, \|V_n - V_{n-1}\|_\infty.
 $$
 
-\textit{Hint:} telescope from $n$ as in \cref{prob:a_priori_bound}, but bound $\|V_{k+1} - V_k\|_\infty$ in terms of $\|V_n - V_{n-1}\|_\infty$ instead.
+\begin{hint}
+Telescope from $n$ as in \cref{prob:a_priori_bound}, but bound $\|V_{k+1} - V_k\|_\infty$ in terms of $\|V_n - V_{n-1}\|_\infty$ instead.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:a_posteriori_bound]
@@ -574,7 +592,9 @@ $$
 \frac{\gamma}{1-\gamma}\, \|V_n - V_{n-1}\|_\infty \;\le\; \frac{\gamma^n}{1-\gamma}\, \|V_1 - V_0\|_\infty.
 $$
 
-\textit{Hint:} bound $\|V_n - V_{n-1}\|_\infty$ by repeated application of the contraction.
+\begin{hint}
+Bound $\|V_n - V_{n-1}\|_\infty$ by repeated application of the contraction.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:a_posteriori_tighter]
@@ -683,7 +703,9 @@ so the bound of \cref{prob:concrete_bound} is attained with equality. No bound i
 % $$
 % The dependence on $\delta$ is \emph{only} through $\log(1/\delta)$: halving $\delta$ (doubling precision) costs a constant $\frac{\log 2}{1-\gamma} \approx \frac{0.7}{1-\gamma}$ extra iterations, regardless of how small $\delta$ already is. This is geometric convergence: each iteration buys a fixed multiplicative improvement in the error. The expensive part of the bound is the $\frac{1}{1-\gamma}$ prefactor --- the \textbf{effective horizon} --- which blows up as $\gamma \to 1$. So the true cost driver is $\gamma$ near $1$, not $\delta$ near $0$.
 
-\emph{Remark.} Combining \cref{prob:a_posteriori_bound,prob:a_priori_bound,prob:concrete_bound} gives a chain of progressively weaker but increasingly upfront-computable bounds:
+\begin{remark}
+Combining \cref{prob:a_posteriori_bound,prob:a_priori_bound,prob:concrete_bound} gives a chain of progressively weaker but increasingly upfront-computable bounds:
+\end{remark}
 
 \begin{callout}[note]
 \textbf{Convergence Bounds}
@@ -800,7 +822,9 @@ $$
 \end{callout}
 (Here $\mathcal{B}$ takes a $Q$-function to a $Q$-function, whereas the earlier $\mathcal{B}$ in \cref{def:bellman_op} takes a $V$-function to a $V$-function --- whether $\mathcal{B}$ denotes the $V$- or $Q$-version is always clear from its argument.) Show that $\mathcal{B}$ is a $\gamma$-contraction on $(\mathcal{Q}, \|\cdot\|_\infty)$.
 
-\textit{Hint:} this is similar to the proof of \cref{prob:B_contraction}.
+\begin{hint}
+This is similar to the proof of \cref{prob:B_contraction}.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:BQ_contraction]
@@ -872,7 +896,9 @@ i.e.\ the difference between the sampled target (using the single transition $s_
 \begin{exercise}
 \label{prob:noise_zero_mean} Show that the noise satisfies $\mathbb{E}[w_t(s,a) \mid \mathcal{F}_t] = 0$ for all $(s,a) \in \cS \times \cA$, where $\mathcal{F}_t$ denotes the history up to time $t$ as in \cref{thm:stochastic_approx}.
 
-\textit{Hint:} conditioned on $\mathcal{F}_t$, the quantities $Q_t$, $s_t$, and $a_t$ are all determined. What is the only remaining source of randomness?
+\begin{hint}
+Conditioned on $\mathcal{F}_t$, the quantities $Q_t$, $s_t$, and $a_t$ are all determined. What is the only remaining source of randomness?
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:noise_zero_mean]
@@ -891,7 +917,9 @@ For $(s,a) \neq (s_t, a_t)$, we have $w_t(s,a) = 0$ by definition, so $\mathbb{E
 $$
 \mathbb{E}\bigl[w_t(s,a)^2 \mid \mathcal{F}_t\bigr] \le C\bigl(1 + \|Q_t\|_\infty^2\bigr).
 $$
-\textit{Hint:} first show that $|w_t(s_t, a_t)| \le 2(R_{\max} + \gamma\, \|Q_t\|_\infty)$.
+\begin{hint}
+First show that $|w_t(s_t, a_t)| \le 2(R_{\max} + \gamma\, \|Q_t\|_\infty)$.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:noise_bounded_var]
@@ -936,7 +964,9 @@ So $C = 8\max(R_{\max}^2, \gamma^2)$ works. For $(s,a) \neq (s_t, a_t)$, we have
 
 \begin{exercise}
 \label{prob:q_learning_converge} Conclude: state the conditions on the learning rate schedule and the exploration policy under which Q-learning converges, i.e.\ $Q_t \to Q^*$ with probability $1$.
-\emph{Remark.} The ARENA implementation uses a constant learning rate $\alpha$, which does not satisfy $\sum_t \alpha_t(s,a)^2 < \infty$. In practice, constant-rate Q-learning does not converge exactly but oscillates in a neighbourhood of $Q^*$ whose size shrinks with $\alpha$.
+\begin{remark}
+The ARENA implementation uses a constant learning rate $\alpha$, which does not satisfy $\sum_t \alpha_t(s,a)^2 < \infty$. In practice, constant-rate Q-learning does not converge exactly but oscillates in a neighbourhood of $Q^*$ whose size shrinks with $\alpha$.
+\end{remark}
 \end{exercise}
 
 \begin{solution}[prob:q_learning_converge]
@@ -983,7 +1013,9 @@ $$
 \end{callout}
 assuming $\mathbf{I} - \gamma\, \mathbf{P}^\pi$ is invertible (which we prove in \cref{prob:exact_eval_invertible}).
 
-\textit{Hint:} specialize the Bellman equation to a deterministic policy and write the resulting system of $|\cS|$ equations in matrix-vector form.
+\begin{hint}
+Specialize the Bellman equation to a deterministic policy and write the resulting system of $|\cS|$ equations in matrix-vector form.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:exact_eval_derive]
@@ -1008,7 +1040,9 @@ Assuming $\mathbf{I} - \gamma\, \mathbf{P}^\pi$ is invertible, left-multiplying 
 \begin{exercise}
 \label{prob:exact_eval_invertible} Prove that $\mathbf{I} - \gamma\, \mathbf{P}^\pi$ is invertible for any deterministic policy $\pi$ and any $\gamma \in (0, 1)$.
 
-\textit{Hint:} apply \cref{fact:neumann}.
+\begin{hint}
+Apply \cref{fact:neumann}.
+\end{hint}
 \end{exercise}
 
 \begin{solution}[prob:exact_eval_invertible]
@@ -1027,7 +1061,9 @@ $$
 which has a direct interpretation: $(\mathbf{P}^\pi)^k \mathbf{r}^\pi$ is the vector of expected rewards exactly $k$ steps into the future under $\pi$, and $\mathbf{v}^\pi$ is their discounted sum.
 \end{solution}
 
-\emph{Remark.} The same derivation extends to stochastic policies by defining $\mathbf{P}^\pi_{s,s'} = \sum_{a} \pi(a \mid s)\, T(s' \mid s, a)$ and $\mathbf{r}^\pi_s = \sum_{a} \pi(a \mid s) \sum_{s'} T(s' \mid s, a)\, R(s, a, s')$. The matrix $\mathbf{P}^\pi$ remains row-stochastic, so the argument above applies unchanged.
+\begin{remark}
+The same derivation extends to stochastic policies by defining $\mathbf{P}^\pi_{s,s'} = \sum_{a} \pi(a \mid s)\, T(s' \mid s, a)$ and $\mathbf{r}^\pi_s = \sum_{a} \pi(a \mid s) \sum_{s'} T(s' \mid s, a)\, R(s, a, s')$. The matrix $\mathbf{P}^\pi$ remains row-stochastic, so the argument above applies unchanged.
+\end{remark}
 
 
 % Author's draft note (was \leon{...} via commenting.sty):

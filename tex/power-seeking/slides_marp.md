@@ -19,7 +19,7 @@
 # folder the worksheet's `slides:` key points at (see main.tex) — a folder link
 # survives re-uploads where a file link does not.
 #
-# `mdp.svg` and `swap.svg` in this folder are the two diagrams it references.
+# `fig/mdp.svg` and `fig/swap.svg` are the two diagrams it references.
 # ---------------------------------------------------------------------------
 marp: true
 theme: default
@@ -186,7 +186,7 @@ with $A(r)=p(\mathcal F(s\mid a)\mid s, r)$ and $A'(r)=p(\mathcal F(s\mid a')\mi
 
 ## Example: gaining resources
 
-![bg right:40% fit](mdp.svg)
+![bg right:40% fit](fig/mdp.svg)
 
 - **gain** $(a)$: reach $G_1$ — *rest* there, or *leverage* it to a further outcome $G_2$.
 - **forgo** $(a')$: the single modest outcome $B$.
@@ -203,7 +203,7 @@ f_{G_2} &= e_s+\gamma\,e_{G_1}+\tfrac{\gamma^2}{1-\gamma}\,e_{G_2}
 
 ## The swap: $\phi=\mathrm{swap}(B,G_1)$
 
-![w:760](swap.svg)
+![w:760](fig/swap.svg)
 
 - $\phi\cdot f'=f_{G_1}\in\mathcal F(s\mid a)$ — **(E)** holds; **(D)** holds whenever $\mathcal D$ is exchangeable in $B,G_1$.
 - A goal prizing $B$ (forgo) $\mapsto$ a goal prizing $G_1$ (gain). The leverage option $G_2$ has **no forgo-side twin** $\Rightarrow$ gain is *strictly* favored.

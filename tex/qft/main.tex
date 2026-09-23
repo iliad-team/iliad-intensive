@@ -248,7 +248,9 @@ Here $\xi$ is Gaussian noise with mean $0$ and covariance $I$, $\eta$ is the lea
 (See \cite[Chapter 3]{TongKineticTheory} for a physics-focused discussion of this convergence.) A prior can be included by training on the modified loss $\CL(\theta) - \beta^{-1}\log\pi(\theta)$, which reproduces \eqref{Bayes-P}. Thus one can \emph{engineer} the Bayesian posterior by Langevin training, and this is how theoretical predictions derived from \eqref{Bayes-P} are usually tested. Note that the Langevin route gives a different Bayes-to-gradient connection from the first: here training time $t\to\infty$ at fixed $T$ gives the posterior at $\beta = 1/T$, while $T\to 0$ at fixed $t$ gives gradient flow.
 
 \smallskip
-\textbf{Remark:} SGD itself is more complicated than Langevin dynamics. The covariance $\Sigma(\theta)$ of its effective noise depends on the position in the loss landscape, and at late times SGD need not converge to any stationary distribution. Despite many qualitative and empirical similarities between Bayesian learning and SGD/Adam training, the precise relation between them remains an open problem. We will compare the two repeatedly: for wide networks in \cref{sec:train} (gradient flow) versus \cref{sec:Bayes-kernel} (Bayesian); for toy models of grokking in \cref{sec:MFT} \cite{rubin2024grokking}; and, for toy models of superposition \cite{elhage2022superposition} through the lens of singular learning theory, in \cite{chen2023dynamical}.
+\begin{remark}
+SGD itself is more complicated than Langevin dynamics. The covariance $\Sigma(\theta)$ of its effective noise depends on the position in the loss landscape, and at late times SGD need not converge to any stationary distribution. Despite many qualitative and empirical similarities between Bayesian learning and SGD/Adam training, the precise relation between them remains an open problem. We will compare the two repeatedly: for wide networks in \cref{sec:train} (gradient flow) versus \cref{sec:Bayes-kernel} (Bayesian); for toy models of grokking in \cref{sec:MFT} \cite{rubin2024grokking}; and, for toy models of superposition \cite{elhage2022superposition} through the lens of singular learning theory, in \cite{chen2023dynamical}.
+\end{remark}
 
 \subsection{Why the exponential of a loss is a likelihood}
 \label{sec:loss-likelihood}
@@ -734,13 +736,15 @@ Here we've conditioned on the previous layer, and used that for independent mean
 The prefactor $1/\sqrt{N_{\ell-1}}$, the square root of the number of inputs (the ``fan-in'') feeding each neuron, is exactly what keeps the preactivations of order one at large width. We call this the \emph{fan-in normalization}; it goes back to LeCun and collaborators in the 90's \cite{lecun1998efficient}. In \cref{sec:train} it will also be called the \emph{NTK normalization}, and in \cref{sec:MFT} we will meet the alternative \emph{mean-field normalization}, in which the output layer carries $1/N$ instead of $1/\sqrt N$.
 
 \smallskip
-\noindent\textbf{Remark (other conventions).} Common practice, and the convention of much of the literature, is to put no explicit prefactors in the network and instead to initialize with width-dependent variances,
+\begin{remark}[other conventions]
+Common practice, and the convention of much of the literature, is to put no explicit prefactors in the network and instead to initialize with width-dependent variances,
 %
 \begin{equation} \label{init-fanin-var}
     \tilde w^{(\ell)}_{ij} := \frac{w^{(\ell)}_{ij}}{\sqrt{N_{\ell-1}}} \;\sim\; \CN\Big(0,\frac{\sigma_w}{N_{\ell-1}}\Big)\,.
 \end{equation}
 %
 At initialization the two conventions describe \emph{exactly} the same distribution of network functions: \eqref{init-fanin-var} is a change of variables on parameter space, and the network function is the same function of $x$. Everything in this section, which concerns initialization only, is insensitive to the choice. During training, however, the two conventions are \emph{not} equivalent: gradient descent is not invariant under rescaling coordinates on parameter space, as we will explain in \cref{sec:NTK-const}. Keeping every parameter of order one, with the factors of $N$ displayed explicitly in the network function, makes the comparison between different scaling limits transparent, and it is the convention we use throughout these notes. When reading the literature, expect the factors of $N$ to sit in the variances instead, and translate with \eqref{init-fanin-var}.
+\end{remark}
 
 \subsection{Gaussian processes}
 \label{sec:GP}
@@ -884,7 +888,8 @@ Each subsequent layer is the same. At infinite width, the kernels become determi
 with $\bar K^{L+1}(x,x')$ ultimately governing a GP for the network function $f(x)$.
 
 \smallskip
-\noindent\textbf{Remark (exact kernels):} For a few special activation functions, the Gaussian expectation in \eqref{Kbar-rec} can be evaluated in closed form, giving explicit NNGP kernels. Write $K_{11}=\bar K^{(\ell-1)}(x,x)$, $K_{22}=\bar K^{(\ell-1)}(x',x')$ and $K_{12}=\bar K^{(\ell-1)}(x,x')$ for the previous layer's kernel values. For ReLU, $\phi(u)=\max(u,0)$, one finds the \emph{arc-cosine kernel} of Cho and Saul \cite{cho2009kernel},
+\begin{remark}[exact kernels]
+For a few special activation functions, the Gaussian expectation in \eqref{Kbar-rec} can be evaluated in closed form, giving explicit NNGP kernels. Write $K_{11}=\bar K^{(\ell-1)}(x,x)$, $K_{22}=\bar K^{(\ell-1)}(x',x')$ and $K_{12}=\bar K^{(\ell-1)}(x,x')$ for the previous layer's kernel values. For ReLU, $\phi(u)=\max(u,0)$, one finds the \emph{arc-cosine kernel} of Cho and Saul \cite{cho2009kernel},
 %
 \begin{equation} \label{relu-kernel}
     \bar K^{(\ell)}(x,x') = \frac{\sigma_w}{2\pi}\,\sqrt{K_{11}K_{22}}\;\Big(\sin\vartheta + (\pi - \vartheta)\cos\vartheta\Big)\,,
@@ -899,6 +904,7 @@ and for the sigmoid-like activation $\phi = \mathrm{erf}$ Williams \cite{william
 \end{equation}
 %
 Iterating either formula through the layers gives the exact infinite-width kernel of a deep ReLU or erf network in a few lines of code. (Deriving \eqref{relu-kernel}--\eqref{erf-kernel} is a pleasant but somewhat lengthy Gaussian-integral workout.)
+\end{remark}
 
 \begin{exercise}[The NNGP correspondence, empirically (lab)]
 \label{ex:nngp-lab}
@@ -1184,7 +1190,8 @@ The analysis of features can equivalently be performed via the NTK. As a matrix,
 with eigenvectors = the feature vectors, and eigenvalues = $\{s_i^2\}$\,. Thus feature learning happens when the NTK changes during training.
 
 \smallskip
-\noindent\textbf{Remark:} A closely related ``dual'' object that appears in other parts of learning theory is the Fisher information metric on parameter space $\R^P$. Its empirical version is
+\begin{remark}
+A closely related ``dual'' object that appears in other parts of learning theory is the Fisher information metric on parameter space $\R^P$. Its empirical version is
 %
 \begin{equation} \mathcal F := J^TJ = f^*(\delta)\,, \end{equation}
 %
@@ -1192,6 +1199,7 @@ the pull-back (via the network function) of constant Euclidean metric on the spa
 In coordinates, $\mathcal F_{ij} =\frac{\pd f^\mu}{\pd \theta^i}\delta_{\mu\nu} \frac{\pd f^\mu}{\pd \theta^j}$.
 %
 The Fisher metric has eigenvalues $(s_1^2,...,s_n^2,\overbrace{0,...,0}^{P-n})$, and is automatically degenerate when $P>n$ (more parameters than training data points). This is one of the starting points of singular learning theory.
+\end{remark}
 
 
 \subsection{Constant NTK at large width}
@@ -2567,7 +2575,9 @@ Jensen's inequality gives $\log\E Z\geq\E\log Z$, so the annealed free energy $-
 For the Ising perceptron the direction of the error follows. The datasets that dominate $\E Z$ are those that constrain the student unusually weakly, and weakly constrained students sit at low overlap. The annealed average therefore overweights poorly aligned students, and overestimates the amount of data needed to learn: it puts the transition to perfect generalization at $\alpha_c^{\rm ann}\approx1.45$, where the exact calculation sketched below gives $\alpha_c\approx1.245$ \cite{gyorgyi1990first}. The structure of the transition, two basins exchanging dominance, is the same in both.
 
 \smallskip
-\textbf{Remark:} Annealing does not always err so gently. Here the model is realizable (a teacher exists) and the fluctuations of $\varphi$ are tame, so annealing shifts a number without changing the picture. In general the annealed computation can fail qualitatively, most famously for models with discrete weights at large load, where it can predict negative entropies (fewer than one consistent student, nonsense for a count) and spurious transition points.
+\begin{remark}
+Annealing does not always err so gently. Here the model is realizable (a teacher exists) and the fluctuations of $\varphi$ are tame, so annealing shifts a number without changing the picture. In general the annealed computation can fail qualitatively, most famously for models with discrete weights at large load, where it can predict negative entropies (fewer than one consistent student, nonsense for a count) and spurious transition points.
+\end{remark}
 
 \subsection{Replicas}
 \label{app:replica-method}

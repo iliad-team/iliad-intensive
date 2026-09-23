@@ -1430,7 +1430,9 @@ Combining with \cref{prob:xi_lower_bound}:
 \]
 \end{solution}
 
-\textit{Remark.} With the Solomonoff prior, $w_\mu = 2^{-K(\mu)}$ may be astronomically small. The result guarantees non-zero value, not near-optimal value.
+\begin{remark}
+With the Solomonoff prior, $w_\mu = 2^{-K(\mu)}$ may be astronomically small. The result guarantees non-zero value, not near-optimal value.
+\end{remark}
 
 
 %===================================
@@ -1806,8 +1808,10 @@ This completes the proof of \cref{thm:selfopt}. \qedhere
 \medskip
 \end{solution}
 
-\textit{Remark.} We do not need to know which policy $\tilde\pi$ is self-optimizing, or whether it is computable. Mere existence suffices.
+\begin{remark}
+We do not need to know which policy $\tilde\pi$ is self-optimizing, or whether it is computable. Mere existence suffices.
 For countable $\cM$, this final step is harder: a countable sum of $\mu^\pi$-a.s.-convergent sequences need not converge $\mu^\pi$-a.s.\ The general proof uses a ``convergence of mixture tails'' argument \cite[Lem.~5.28]{Hutter:04uaibook}.
+\end{remark}
 
 %===================================
 \section*{Further reading}
