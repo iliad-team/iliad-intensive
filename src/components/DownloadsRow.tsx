@@ -103,7 +103,7 @@ export function DownloadsRow({
           const sol = href(`${slug}.${ext}`);
           const nosol = href(`${slug}-nosol.${ext}`);
           return (
-            <li key={ext} className="flex items-center gap-2">
+            <li key={ext} className="flex flex-wrap items-center gap-2">
               <span className={rowLabel}>{LABELS[ext]}</span>
               {VIEWABLE.has(ext) && <Box href={sol} sol={sol} nosol={nosol}>view</Box>}
               <Box href={sol} sol={sol} nosol={nosol} download>download</Box>
@@ -112,7 +112,7 @@ export function DownloadsRow({
         })}
 
         {external && (
-          <li className="flex items-center gap-2">
+          <li className="flex flex-wrap items-center gap-2">
             <span className={rowLabel}>Slides</span>
             <a
               href={external.url}
@@ -127,7 +127,7 @@ export function DownloadsRow({
         )}
 
         {decks.map((deck) => (
-          <li key={deck.stem} className="flex items-center gap-2">
+          <li key={deck.stem} className="flex flex-wrap items-center gap-2">
             <span className={rowLabel}>Slides</span>
             {deck.handout ? (
               <>

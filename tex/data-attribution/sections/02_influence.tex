@@ -60,12 +60,12 @@ i.e.\ the parameter influence is, to first order, the change in $w^*$ that would
 \begin{exercise}[Derivation of the influence function]\label{ex:if-derive}
 Let $w^*(\beta) = \argmin_{w\in W}\,L(w;\beta)$ as above and assume the Hessian $H = \nabla_w^2 L(w^*)$ is invertible. Recall that the \emph{implicit function theorem} states: if $F:W\times B\to\mathbb{R}^{\dim W}$ is $C^1$, $F(w^*,\mathbf{1})=0$, and the Jacobian $\partial F/\partial w$ at $(w^*,\mathbf{1})$ is invertible, then there is a unique $C^1$ map $\beta\mapsto w^*(\beta)$ on a neighborhood of $\mathbf{1}$ with $F(w^*(\beta),\beta)\equiv 0$, whose derivative is obtained by implicit differentiation of $F$.
 \begin{enumerate}
-  \item[(a)] Apply the implicit function theorem to $F(w,\beta) := \nabla_w L(w;\beta)$ to conclude that $\beta\mapsto w^*(\beta)$ is well-defined and $C^1$ near $\mathbf{1}$. Which hypothesis of the theorem uses the invertibility of $H$? Where do we use that $w^*$ is the unique global minimum (rather than merely a critical point)?
-  \item[(b)] By differentiating the first-order optimality condition $\nabla_w L(w^*(\beta);\beta)=0$ with respect to $\beta_i$, show that
+  \item Apply the implicit function theorem to $F(w,\beta) := \nabla_w L(w;\beta)$ to conclude that $\beta\mapsto w^*(\beta)$ is well-defined and $C^1$ near $\mathbf{1}$. Which hypothesis of the theorem uses the invertibility of $H$? Where do we use that $w^*$ is the unique global minimum (rather than merely a critical point)?
+  \item By differentiating the first-order optimality condition $\nabla_w L(w^*(\beta);\beta)=0$ with respect to $\beta_i$, show that
   \[
     \frac{\partial w^*(\beta)}{\partial \beta_i}\bigg\rvert_{\beta=\mathbf{1}} \;=\; -\,H^{-1}\,\nabla_w L(w^*,z_i).
   \]
-  \item[(c)] Use the chain rule to obtain the formula for $\mathcal{I}(z_i,\phi)$ in \Cref{def:if}. Make sure to keep track of the evaluation at $\beta = \mathbf{1}$.
+  \item Use the chain rule to obtain the formula for $\mathcal{I}(z_i,\phi)$ in \Cref{def:if}. Make sure to keep track of the evaluation at $\beta = \mathbf{1}$.
 \end{enumerate}
 \end{exercise}
 % TODO: Fix 1/n mistake form renormalization
@@ -73,19 +73,19 @@ Let $w^*(\beta) = \argmin_{w\in W}\,L(w;\beta)$ as above and assume the Hessian 
 \begin{exercise}[Linear regression]\label{ex:ols-if}
 Consider linear regression with training data $\{(x_i,y_i)\}_{i=1}^n$, $x_i\in\mathbb{R}^p$, and squared loss $L(w,(x_i,y_i)) = \tfrac12(y_i - w^\top x_i)^2$. Write $A := \sum_i x_i x_i^\top$. In this case the minimizer, the influence function, and the exact LOO update all have closed-form solutions. We will see that in general the influence functions can diverge in extreme cases.
 \begin{enumerate}
-  \item[(a)] Derive the minimizer $w^*$ by setting $\nabla_w L(w) = 0$. Show that $w^* = A^{-1}\sum_i x_i y_i$.
-  \item[(b)] Compute the parameter influence $\mathcal{I}_{\mathrm{param}}(z_j)$ from \Cref{def:if}.
-  \item[(c)] Define $w^*(\beta_j) := \argmin_w \sum_{i\ne j} L(w,z_i) + \beta_j L(w,z_j)$, so that $\beta_j = 1$ is the unperturbed model and $\beta_j = 0$ corresponds to fully removing $z_j$. Using the Sherman--Morrison formula\footnote{For an invertible matrix $M$ and vectors $u,v$: $(M + uv^\top)^{-1} = M^{-1} - \frac{M^{-1}u\,v^\top M^{-1}}{1 + v^\top M^{-1}u}$.}, show that
+  \item Derive the minimizer $w^*$ by setting $\nabla_w L(w) = 0$. Show that $w^* = A^{-1}\sum_i x_i y_i$.
+  \item Compute the parameter influence $\mathcal{I}_{\mathrm{param}}(z_j)$ from \Cref{def:if}.
+  \item Define $w^*(\beta_j) := \argmin_w \sum_{i\ne j} L(w,z_i) + \beta_j L(w,z_j)$, so that $\beta_j = 1$ is the unperturbed model and $\beta_j = 0$ corresponds to fully removing $z_j$. Using the Sherman--Morrison formula\footnote{For an invertible matrix $M$ and vectors $u,v$: $(M + uv^\top)^{-1} = M^{-1} - \frac{M^{-1}u\,v^\top M^{-1}}{1 + v^\top M^{-1}u}$.}, show that
   \[
     w^*(\beta_j) \;-\; w^* \;=\; -\,\frac{(1-\beta_j)\,A^{-1} x_j\,r_j}{1 - (1-\beta_j)\,h_j},
   \]
   where $r_j := y_j - x_j^\top w^*$ is the residual at $z_j$ and $h_j := x_j^\top A^{-1} x_j$ is the \emph{leverage} of $x_j$. Note that this is a rational function of $\beta_j$. This is the ground truth effect of perturbing $z_j$.
-  \item[(d)] Expand the closed form from (c) as a Taylor series in $(1-\beta_j)$ around the unperturbed point $\beta_j = 1$ by recognizing $1/(1 - (1-\beta_j)h_j)$ as a geometric series, and obtain
+  \item Expand the closed form from (c) as a Taylor series in $(1-\beta_j)$ around the unperturbed point $\beta_j = 1$ by recognizing $1/(1 - (1-\beta_j)h_j)$ as a geometric series, and obtain
   \[
     w^*(\beta_j) - w^* \;=\; -\,A^{-1} x_j\,r_j\,\sum_{k=1}^{\infty}\,(1-\beta_j)^k\,h_j^{\,k-1}.
   \]
   Identify the $k=1$ term with the parameter influence from part (b), and observe that the higher-order terms ($k \ge 2$) are suppressed by powers of the leverage $h_j$.
-  \item[(e)] Specialize to the LOO endpoint $\beta_j = 0$. Sum the geometric series in $h_j$ to obtain the closed-form deletion update
+  \item Specialize to the LOO endpoint $\beta_j = 0$. Sum the geometric series in $h_j$ to obtain the closed-form deletion update
   \[
     w^*_{(-j)} - w^* \;=\; -\,A^{-1} x_j\,r_j\,\bigl(1 + h_j + h_j^{2} + h_j^{3} + \cdots\bigr) \;=\; -\,\frac{A^{-1} x_j\,r_j}{1 - h_j}.
   \]
@@ -163,8 +163,8 @@ Even with the PBRF reframing, computing $(G + \lambda I)^{-1}$ for a billion-par
 \begin{exercise}[Failure of the first-order approximation in a degenerate model]\label{ex:if-degenerate}
 Consider the toy two-parameter model from the SLT lecture day in which $w = (a,b)$ enters the loss only through the product $u = ab$, with squared loss $L(w,z) = \tfrac12(z - ab)^2$ on training data $\{z_1,\dots,z_n\}\subset\mathbb{R}$.
 \begin{enumerate}
-  \item[(a)] Write down the Hessian of the training loss at any minimizer $(a^*,b^*)$ with $a^* b^* = \bar z := \tfrac1n\sum_i z_i$. Show that it has rank one, and identify the one-dimensional null space geometrically.
-  \item[(b)] Compute the influence function $\mathcal{I}(z_i,\phi)$ for the observable $\phi(w) = ab$, treating $H^{-1}$ as a Moore--Penrose pseudoinverse\footnote{Concretely you can take the eigendecomposition of $H$ and only invert the non-zero eigenvalues.}. How does it compare with the exact LOO change in $\phi$?
-  \item[(c)] Repeat (b) using the damped inverse $(H + \lambda I)^{-1}$ for a small $\lambda > 0$. Discuss how the answer depends on $\lambda$, on the choice of minimizer $(a^*,b^*)$ along the singular set, and on $n$. What does this say about the proximity gap?
+  \item Write down the Hessian of the training loss at any minimizer $(a^*,b^*)$ with $a^* b^* = \bar z := \tfrac1n\sum_i z_i$. Show that it has rank one, and identify the one-dimensional null space geometrically.
+  \item Compute the influence function $\mathcal{I}(z_i,\phi)$ for the observable $\phi(w) = ab$, treating $H^{-1}$ as a Moore--Penrose pseudoinverse\footnote{Concretely you can take the eigendecomposition of $H$ and only invert the non-zero eigenvalues.}. How does it compare with the exact LOO change in $\phi$?
+  \item Repeat (b) using the damped inverse $(H + \lambda I)^{-1}$ for a small $\lambda > 0$. Discuss how the answer depends on $\lambda$, on the choice of minimizer $(a^*,b^*)$ along the singular set, and on $n$. What does this say about the proximity gap?
 \end{enumerate}
 \end{exercise}
