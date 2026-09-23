@@ -45,6 +45,25 @@ always-loaded facts belong here in `AGENTS.md`.
   comment, everything left unstaged for David to audit — never committed.
   Invoked for "fix these errata" or "someone reported a bug in B.3". Agents
   without a skill mechanism: read the linked file and follow it as-is.
+- [`content-build`](.claude/skills/content-build/SKILL.md) — how
+  `tex/<slug>/` becomes a page, PDFs and downloads: the `build-content.mjs`
+  ladder, the per-worksheet cache, auto-labels and the `.aux`, `schedule.yaml`
+  → `index.json`/`status.json`, the `./run.sh` loops, a red-build debugging map.
+  Read before running or debugging a build.
+- [`tex2mdx`](.claude/skills/tex2mdx/SKILL.md) — the converter's internals:
+  stages, which file owns what, what every LaTeX construct becomes on the web,
+  cross-refs, solution relocation, the KaTeX macro block, where to add a shim
+  or a construct. Read before editing `scripts/tex2mdx/` or when a conversion
+  ERRORs.
+- [`site-rendering`](.claude/skills/site-rendering/SKILL.md) — the Next.js
+  site: build-time inputs, routes, the MDX component catalogue and the
+  KaTeX-to-HTML plugin, why worksheet pages ship no React (`strip-hydration` +
+  `site.js`), base-path rules, `/admin/status` and its live PR overlay. Read
+  before touching `src/`.
+- [`ci-previews`](.claude/skills/ci-previews/SKILL.md) — `site.yml` job by
+  job, the single `gh-pages` branch and orphan force-push publish, fork-PR
+  previews and their trust gate, hooks, the preview banner and diff view, a
+  deploy debugging map. Read when CI is red or a preview is missing.
 
 `CLAUDE.md` is a one-line `@AGENTS.md` import, not a duplicate: Claude Code
 reads `CLAUDE.md` and not `AGENTS.md`, so deleting it unloads every instruction
