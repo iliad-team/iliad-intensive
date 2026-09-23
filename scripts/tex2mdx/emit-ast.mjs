@@ -759,7 +759,9 @@ function emitMacro(n) {
       const txt = (k >= 1 ? walkArg(n, k - 1).trim() : "") || url;
       return `[${txt}](${url})`;
     }
-    case "url": return `<${lastArgRaw(n) ?? ""}>`;
+    // \url{U}: a markdown link whose text is the URL. Not an <U> autolink —
+    // MDX reads angle brackets as JSX and fails on the "/" in "https://".
+    case "url": { const u = (lastArgRaw(n) ?? "").trim(); return `[${u}](${u})`; }
     case "cref": case "Cref": return crefLinks(lastArgRaw(n) ?? "");
     case "ref": { const r = resolveRef((lastArgRaw(n) ?? "").trim()); return `[${r.text.replace(/^\w+\s/, "")}](#${r.anchor})`; }
     case "eqref": { const r = resolveRef((lastArgRaw(n) ?? "").trim()); return `[(${r.num})](#${r.anchor})`; }
