@@ -67,7 +67,7 @@ const RULES = {
   "reloads-iliad-package":  ["warn",  "re-loads hyperref or cleveref, which iliad.sty loads (and cleveref must load last)"],
   "stmaryrd":               ["warn",  "loads stmaryrd — iliad.sty already provides \\llbracket/\\rrbracket"],
   "youtube-id":             ["error", "\\youtube / <YouTube> takes the 11-character video ID, not a URL"],
-  "image-outside-fig":      ["warn",  "an image referenced from, or committed to, somewhere other than fig/ (silently bypasses LFS)"],
+  "image-outside-fig":      ["warn",  "an image referenced from, or committed to, somewhere other than fig/ (binary ones then bypass LFS)"],
   "local-iliad-sty":        ["error", "a committed per-folder iliad.sty copy — the shared tex/iliad.sty is the only one"],
   "bare-dollar-amount":     ["warn",  "MDX: a currency amount written with a bare $ — write \\$"],
   // MDX
@@ -281,7 +281,7 @@ function lintFile(rel, raw, tracked) {
     report("typed-subpart", o, `\\cref{${m[1]}}(${m[2]}) hand-writes the part — \\label the \\item`));
   // \textbf{Part 1(a).} / \emph{Hint: …} / \textit{Remark.} — prose standing in
   // for exercise/enumerate/hint/remark, which is what numbers and collapses them.
-  const LEAD = /\\(?:textbf|textit|emph|textsc)\s*\{\s*((?:Part|Exercise|Problem|Question)\s*~?\s*\d+(?:\.\d+)*\s*(?:\([a-z]\))?|Parts?\s*\([a-z]\)|Hint|Remark|Note|Solution|Proof|Definition|Theorem|Lemma|Example)\s*[.:)]/g;
+  const LEAD = /\\(?:textbf|textit|emph|textsc)\s*\{\s*((?:Part|Exercise|Problem|Question)\s*~?\s*\d+(?:\.\d+)*\s*(?:\([a-z]\))?|Parts?\s*\([a-z]\)|Hint|Remark|Note|Solution|Proof|Definition|Theorem|Lemma|Example)(?:\s*\([^)]*\))?\s*[.:)]/g;
   const leadIns = [];
   const proofs = envSpans(code, "proof");
   B(LEAD, (m, o) => {
