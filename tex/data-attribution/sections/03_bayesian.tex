@@ -77,13 +77,13 @@ As we have seen in the SLT day, tools involving the Hessian are usually a low-or
 \begin{exercise}[Power series expansion of Bayesian influence functions]\label{ex:bif-expansion}
 Let $w^*$ be a local minimum of the training loss $L(w) = \sum_{i=1}^n L(w,z_i)$ with positive-definite Hessian $H = \nabla_w^2 L(w^*)$. Write $\Delta w = w - w^*$, and abbreviate $g_\phi = \nabla_w\phi(w^*)$, $H_\phi = \nabla_w^2\phi(w^*)$ for the gradient and Hessian of the observable, and $g_i = \nabla_w L(w^*,z_i)$, $H_i = \nabla_w^2 L(w^*,z_i)$ for the per-sample loss.
 \begin{enumerate}
-  \item[(a)] \textbf{(Laplace approximation.)} Consider the posterior $p(w\mid\mathcal{D}) \propto e^{-L(w)}\,\varphi(w)$. Taylor-expand $L(w)$ to second order around $w^*$, using the fact that $\nabla L(w^*) = 0$ at a minimum. Argue that for large $n$ the quadratic term in $L$ dominates the prior $\varphi$, and conclude that
+  \item \textbf{(Laplace approximation.)} Consider the posterior $p(w\mid\mathcal{D}) \propto e^{-L(w)}\,\varphi(w)$. Taylor-expand $L(w)$ to second order around $w^*$, using the fact that $\nabla L(w^*) = 0$ at a minimum. Argue that for large $n$ the quadratic term in $L$ dominates the prior $\varphi$, and conclude that
   \[
     p(w\mid\mathcal{D}) \;\approx\; \mathcal{N}(w^*,\;H^{-1}).
   \]
   Under this approximation, $\Delta w \sim \mathcal{N}(0, H^{-1})$. (This is called the \emph{Laplace approximation}; the Bernstein--von Mises theorem guarantees it is asymptotically exact for non-singular models.)
 
-  \item[(b)] \textbf{(Taylor expansion of the covariance.)} Expand $\phi(w)$ and $L(w,z_i)$ in Taylor series around $w^*$:
+  \item \textbf{(Taylor expansion of the covariance.)} Expand $\phi(w)$ and $L(w,z_i)$ in Taylor series around $w^*$:
   \begin{align*}
     \phi(w) &= \phi(w^*) + g_\phi^\top\Delta w + \tfrac{1}{2}\Delta w^\top H_\phi\,\Delta w + \cdots, \\
     L(w,z_i) &= L(w^*,z_i) + g_i^\top\Delta w + \tfrac{1}{2}\Delta w^\top H_i\,\Delta w + \cdots.
@@ -94,19 +94,19 @@ Let $w^*$ be a local minimum of the training loss $L(w) = \sum_{i=1}^n L(w,z_i)$
   \]
   Why do terms with $k+m$ odd vanish?
 
-  \item[(c)] \textbf{(Leading order: classical IF.)} Compute the $(k,m) = (1,1)$ term:
+  \item \textbf{(Leading order: classical IF.)} Compute the $(k,m) = (1,1)$ term:
   \[
     \mathrm{Cov}_{\mathcal{N}}\bigl(g_\phi^\top\Delta w,\;g_i^\top\Delta w\bigr) \;=\; g_\phi^\top H^{-1} g_i.
   \]
   Conclude that $-g_\phi^\top H^{-1}g_i = -\nabla_w\phi(w^*)^\top H^{-1}\nabla_w L(w^*,z_i)$ is the classical influence function $\mathcal{I}(z_i,\phi)$ from \Cref{def:if}. This is the leading-order term of the BIF.
 
-  \item[(d)] \textbf{(Second-order correction.)} Compute the $(k,m) = (2,2)$ term using Isserlis' theorem (the Gaussian moment identity $\E[\Delta w_a\Delta w_b\Delta w_c\Delta w_d] = \Sigma_{ab}\Sigma_{cd} + \Sigma_{ac}\Sigma_{bd} + \Sigma_{ad}\Sigma_{bc}$ with $\Sigma = H^{-1}$). Show that
+  \item \textbf{(Second-order correction.)} Compute the $(k,m) = (2,2)$ term using Isserlis' theorem (the Gaussian moment identity $\E[\Delta w_a\Delta w_b\Delta w_c\Delta w_d] = \Sigma_{ab}\Sigma_{cd} + \Sigma_{ac}\Sigma_{bd} + \Sigma_{ad}\Sigma_{bc}$ with $\Sigma = H^{-1}$). Show that
   \[
     \mathrm{Cov}_{\mathcal{N}}\!\left(\tfrac{1}{2}\Delta w^\top H_\phi\,\Delta w,\;\tfrac{1}{2}\Delta w^\top H_i\,\Delta w\right) = \tfrac{1}{2}\,\tr\bigl(H_\phi\,H^{-1}\,H_i\,H^{-1}\bigr).
   \]
   This correction involves the \emph{Hessians} of the observable and per-sample loss. It captures second-order curvature interactions that the classical IF misses entirely. In the linear regression setting of \Cref{ex:bayesian-ols}, why does this correction vanish?
 
-  \item[(e)] \textbf{(Localized version: damped IF.)} Now consider the local BIF of \Cref{eq:local-bif} with localization strength $\gamma$. The localized posterior is approximately $\mathcal{N}(w^*,\,(H+\gamma I)^{-1})$. Repeat the leading-order computation of part (c) to show that
+  \item \textbf{(Localized version: damped IF.)} Now consider the local BIF of \Cref{eq:local-bif} with localization strength $\gamma$. The localized posterior is approximately $\mathcal{N}(w^*,\,(H+\gamma I)^{-1})$. Repeat the leading-order computation of part (c) to show that
   \[
     \mathrm{BIF}_\gamma(z_i,\phi) \;\approx\; -\,\nabla_w\phi(w^*)^\top\,(H + \gamma I)^{-1}\,\nabla_w L(w^*,z_i).
   \]
@@ -150,14 +150,14 @@ The $1/\beta$ normalization kills the determinant term (which is $O(1)$) and the
 \begin{exercise}[Influence functions as optimal parameter shifts]\label{ex:bif-ot}
 Let $w^*$ be a non-degenerate minimum of $L$ with positive-definite Hessian $H = \nabla^2 L(w^*)$. In this exercise we work at the unique minimum, so the $\beta\to\infty$ limit simply evaluates everything at $w^*$.
 \begin{enumerate}
-  \item[(a)] \textbf{(KL in terms of energies.)} Starting from \eqref{eq:kl-expectation}, substitute $p_0^\beta(w) = e^{-\beta L(w)}/Z(\beta,0)$ and $p_\varepsilon^\beta(w) = e^{-\beta(L(w)-\varepsilon L_k(w))}/Z(\beta,\varepsilon)$, and show that
+  \item \textbf{(KL in terms of energies.)} Starting from \eqref{eq:kl-expectation}, substitute $p_0^\beta(w) = e^{-\beta L(w)}/Z(\beta,0)$ and $p_\varepsilon^\beta(w) = e^{-\beta(L(w)-\varepsilon L_k(w))}/Z(\beta,\varepsilon)$, and show that
   \begin{align*}
     \frac{1}{\beta}\,D_{\mathrm{KL}} \;=\; &\E_{p_0^\beta}\!\bigl[L(w + \varepsilon r) - \varepsilon\,L_k(w + \varepsilon r) - L(w)\bigr] \\
     &+\; \frac{1}{\beta}\log\frac{Z(\beta,\varepsilon)}{Z(\beta,0)} \;-\; \frac{1}{\beta}\,\E_{p_0^\beta}\!\bigl[\log|\det(I + \varepsilon\nabla r)|\bigr],
   \end{align*}
   where $Z(\beta,\varepsilon) = \int e^{-\beta(L(w)-\varepsilon L_k(w))}\,dw$. Explain why the last two terms vanish in the $\beta\to\infty$ limit. \emph{Hint:} $\log|\det(I+\varepsilon\nabla r)| = O(1)$, and by Laplace's method $\tfrac{1}{\beta}\log Z(\beta,\varepsilon) \to -\inf_w[L(w) - \varepsilon L_k(w)]$.
 
-  \item[(b)] \textbf{(Taylor expansion at $w^*$.)} Since the expectation under $p_0^\beta$ concentrates at $w^*$ as $\beta\to\infty$, expand $L(w^* + \varepsilon r)$ and $\varepsilon\,L_k(w^* + \varepsilon r)$ using $\nabla L(w^*) = 0$:
+  \item \textbf{(Taylor expansion at $w^*$.)} Since the expectation under $p_0^\beta$ concentrates at $w^*$ as $\beta\to\infty$, expand $L(w^* + \varepsilon r)$ and $\varepsilon\,L_k(w^* + \varepsilon r)$ using $\nabla L(w^*) = 0$:
   \begin{align*}
     L(w^* + \varepsilon r) &= L(w^*) + \tfrac{\varepsilon^2}{2}\,r^\top H\,r + O(\varepsilon^3), \\
     \varepsilon\,L_k(w^* + \varepsilon r) &= \varepsilon\,L_k(w^*) + \varepsilon^2\,\nabla L_k(w^*)^\top r + O(\varepsilon^3).
@@ -169,11 +169,11 @@ Let $w^*$ be a non-degenerate minimum of $L$ with positive-definite Hessian $H =
 
   \emph{Hint:} After substitution, the terms that do not depend on $r$ should assemble into $\tfrac{\varepsilon^2}{2}\nabla L_k^\top H^{-1}\nabla L_k$ and cancel with the partition-function contribution, leaving a perfect square.
 
-  \item[(c)] \textbf{(IFs are optimal.)} The cost \eqref{eq:ot-quadratic} is a squared Mahalanobis distance (in the Hessian metric) between the shift $r$ and the influence function $r_{\mathrm{IF}} := H^{-1}\nabla L_k(w^*)$. Conclude that the IF minimizes $\mathcal{F}$ to $O(\varepsilon^2)$ among \emph{all} smooth shift maps $w\mapsto w+\varepsilon r(w)$, and that the minimum cost is $O(\varepsilon^3)$.
+  \item \textbf{(IFs are optimal.)} The cost \eqref{eq:ot-quadratic} is a squared Mahalanobis distance (in the Hessian metric) between the shift $r$ and the influence function $r_{\mathrm{IF}} := H^{-1}\nabla L_k(w^*)$. Conclude that the IF minimizes $\mathcal{F}$ to $O(\varepsilon^2)$ among \emph{all} smooth shift maps $w\mapsto w+\varepsilon r(w)$, and that the minimum cost is $O(\varepsilon^3)$.
 
   State the result in words: \emph{the influence function is the approximately KL-optimal way to shift the parameters of the unperturbed Boltzmann distribution to approximate the perturbed one.}
 
-  \item[(d)] \textbf{(Degenerate case.)} Now suppose $w^*$ lies on a minimum manifold $\mathcal{S}_L$ and $H$ is singular with null space $N$. Argue (without detailed proof) that:
+  \item \textbf{(Degenerate case.)} Now suppose $w^*$ lies on a minimum manifold $\mathcal{S}_L$ and $H$ is singular with null space $N$. Argue (without detailed proof) that:
   \begin{itemize}
     \item The cost \eqref{eq:ot-quadratic} generalizes to $\mathcal{F}(r,\varepsilon) = \tfrac{\varepsilon^2}{2}(r - H^+\nabla L_k)^\top H\,(r - H^+\nabla L_k) + O(\varepsilon^3)$, where $H^+$ is the Moore--Penrose pseudoinverse.
     \item The minimizer is $r = H^+\nabla L_k + r_{\mathrm{NS}}$ for any $r_{\mathrm{NS}}\in N$: directions in the null space of $H$ have zero cost, because the Hessian assigns zero curvature to movement along the minimum manifold.
@@ -181,13 +181,13 @@ Let $w^*$ be a non-degenerate minimum of $L$ with positive-definite Hessian $H =
   \end{itemize}
   Connect this to the SLT perspective: for singular models, the minimum is a variety, and the IF tells you how to move \emph{off} the variety but is silent about movement \emph{along} it.
 
-  \item[(e)] \textbf{(Linear regression check.)} Specialize to the Bayesian linear regression setting of \Cref{ex:bayesian-ols} with prior $w\sim\mathcal{N}(0,\tau^2I)$. The Boltzmann distribution at inverse temperature $\beta = 1$ is the Bayesian posterior $\mathcal{N}(\mu,V)$, which is already Gaussian, no need to take $\beta\to\infty$. A constant shift $w\mapsto w + \varepsilon r$ sends $\mathcal{N}(\mu,V)$ to $\mathcal{N}(\mu + \varepsilon r,\,V)$. The true perturbed posterior (downweighting $z_k$ by $\varepsilon$) has mean $\mu + \varepsilon\,\mathrm{BIF}(z_k,w) + O(\varepsilon^2)$ and covariance $V + O(\varepsilon)$. Using the KL formula for Gaussians with the same covariance, show that
+  \item \textbf{(Linear regression check.)} Specialize to the Bayesian linear regression setting of \Cref{ex:bayesian-ols} with prior $w\sim\mathcal{N}(0,\tau^2I)$. The Boltzmann distribution at inverse temperature $\beta = 1$ is the Bayesian posterior $\mathcal{N}(\mu,V)$, which is already Gaussian, no need to take $\beta\to\infty$. A constant shift $w\mapsto w + \varepsilon r$ sends $\mathcal{N}(\mu,V)$ to $\mathcal{N}(\mu + \varepsilon r,\,V)$. The true perturbed posterior (downweighting $z_k$ by $\varepsilon$) has mean $\mu + \varepsilon\,\mathrm{BIF}(z_k,w) + O(\varepsilon^2)$ and covariance $V + O(\varepsilon)$. Using the KL formula for Gaussians with the same covariance, show that
   \[
     D_{\mathrm{KL}}\bigl(\mathcal{N}(\mu + \varepsilon r,\,V)\;\big\|\;\mathcal{N}(\mu + \varepsilon b,\,V)\bigr) \;=\; \frac{\varepsilon^2}{2}\,(r-b)^\top V^{-1}(r-b),
   \]
   which is minimized at $r = b = \mathrm{BIF}(z_k,w) = (A + \lambda I)^{-1}x_k r_k$. Verify that this is consistent with \eqref{eq:ot-quadratic}: the ``Hessian of the energy'' (training loss plus prior) is $V^{-1} = \sigma^{-2}A + \tau^{-2}I$, and $V^{-1}\cdot\mathrm{BIF} = \sigma^{-2}x_k r_k = \nabla_w L(w,z_k)\big|_{w=\mu}$.
 
-  \item[(f)] \textbf{(Comparison with \Cref{ex:bif-expansion}.)} The Laplace expansion exercise and this exercise both relate the IF to the BIF, but they answer different questions:
+  \item \textbf{(Comparison with \Cref{ex:bif-expansion}.)} The Laplace expansion exercise and this exercise both relate the IF to the BIF, but they answer different questions:
   \begin{itemize}
     \item \Cref{ex:bif-expansion} is an \emph{algebraic identity}: BIF $=$ IF $+$ higher-order corrections. It requires the Laplace approximation (hence non-singular $H$, Gaussian posterior) and tells you what happens when you truncate the BIF.
     \item This exercise is an \emph{optimality result}: the IF shift minimizes the KL divergence between the shifted and true perturbed distributions. The $\beta\to\infty$ result (parts a--d) needs only mild regularity of $\mathcal{L}$ and works even for singular $H$ (via the pseudoinverse).

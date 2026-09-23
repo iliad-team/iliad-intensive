@@ -85,13 +85,13 @@ Equation~\eqref{eq:unroll-formula} looks like a sum over training steps and, for
 
 \begin{exercise}[Derivation of the unrolling formula]\label{ex:unroll-derive}
 \begin{enumerate}
-  \item[(a)] Starting from the SGD update \eqref{eq:sgd-update}, apply the chain rule to write $\tfrac{\partial w_{t+1}}{\partial \beta_i}\big|_{\beta=\mathbf{1}}$ as a sum of two terms: one from the explicit dependence on $\beta_i$ (the direct effect) and one from the dependence of $w_t$ on $\beta_i$ (the indirect effect). Show that the result is the recursion
+  \item\label{ex:unroll-derive-a} Starting from the SGD update \eqref{eq:sgd-update}, apply the chain rule to write $\tfrac{\partial w_{t+1}}{\partial \beta_i}\big|_{\beta=\mathbf{1}}$ as a sum of two terms: one from the explicit dependence on $\beta_i$ (the direct effect) and one from the dependence of $w_t$ on $\beta_i$ (the indirect effect). Show that the result is the recursion
   \[
     \frac{\partial w_{t+1}}{\partial \beta_i} \;=\; J_t\,\frac{\partial w_t}{\partial \beta_i} \;-\; \frac{\eta_t}{b}\;\mathbf{1}[i\in B_t]\;\nabla_w L(w_t,z_i),
   \]
   with initial condition $\tfrac{\partial w_0}{\partial \beta_i} = 0$. Compute the Jacobian $J_t$ explicitly in terms of the mini-batch Hessian $\widehat{H}_t$ which leads to \eqref{eq:step-jacobian}.
-  \item[(b)] Solve the recursion by ``unrolling'' it (i.e.\ by substituting repeatedly and using \eqref{eq:chained-jacobian}) to obtain \eqref{eq:unroll-formula}.
-  \item[(c)] \textbf{(Preconditioned SGD.)} Suppose instead that the optimizer uses a preconditioner $P_t \succ 0$:
+  \item Solve the recursion by ``unrolling'' it (i.e.\ by substituting repeatedly and using \eqref{eq:chained-jacobian}) to obtain \eqref{eq:unroll-formula}.
+  \item \textbf{(Preconditioned SGD.)} Suppose instead that the optimizer uses a preconditioner $P_t \succ 0$:
   \begin{equation}\label{eq:precond-update}
     w_{t+1}(\beta) \;=\; w_t(\beta) \;-\; \frac{\eta_t}{b}\,P_t\sum_{i\in B_t}\beta_i\,\nabla_w L(w_t(\beta),z_i).
   \end{equation}
@@ -211,9 +211,9 @@ so $\varepsilon = 0$ is the original training run and $\varepsilon = 1/n$ corres
   \begin{pmatrix} w_{t+1} \\ r_{t+1} \end{pmatrix} \;=\; \underbrace{\begin{pmatrix} I & 0 \\ 0 & J_t \end{pmatrix}}_{\text{propagation}} \begin{pmatrix} w_t \\ r_t \end{pmatrix} \;+\; \underbrace{\begin{pmatrix} -\frac{\eta_t}{b}\sum_{i\in B_t}\nabla_w L(w_t,z_i) \\[4pt] \frac{\eta_t}{b}\,\mathbf{1}[k\in B_t]\,\nabla_w L(w_t,z_k) \end{pmatrix}}_{\text{driving terms}}
 \end{equation}
 \begin{enumerate}
-  \item[(a)] \textbf{(The response recursion.)} By differentiating \eqref{eq:interpolated-sgd} with respect to $\varepsilon$ at $\varepsilon = 0$, derive \eqref{eq:response-markov}, where $J_t = I - \frac{\eta_t}{b}\sum_{i\in B_t}\nabla_w^2 L(w_t,z_i)$ is the step Jacobian from \eqref{eq:step-jacobian}. The top row is ordinary SGD; verify that the bottom row is the same recursion as \Cref{ex:unroll-derive}(a), but now with stochastic batches. Since the driving terms depend only on $(w_t, r_t)$ and the i.i.d.\ batch selection $B_t$, the joint process is a Markov chain. Why is this observation useful?
+  \item \textbf{(The response recursion.)} By differentiating \eqref{eq:interpolated-sgd} with respect to $\varepsilon$ at $\varepsilon = 0$, derive \eqref{eq:response-markov}, where $J_t = I - \frac{\eta_t}{b}\sum_{i\in B_t}\nabla_w^2 L(w_t,z_i)$ is the step Jacobian from \eqref{eq:step-jacobian}. The top row is ordinary SGD; verify that the bottom row is the same recursion as \cref{ex:unroll-derive-a}, but now with stochastic batches. Since the driving terms depend only on $(w_t, r_t)$ and the i.i.d.\ batch selection $B_t$, the joint process is a Markov chain. Why is this observation useful?
 
-  \item[(b)] \textbf{(Deterministic warm-up: full-batch GD.)} As a warm-up, consider full-batch gradient descent with constant learning rate $\eta$ (i.e.\ $B_t = \{1,\dots,n\}$ for all $t$). Assume training has converged: $w_t \approx w^*$ and $\nabla_w^2 L(w_t) \approx H$ for all $t$ in a window of length $K$. Show that the response over this window satisfies
+  \item \textbf{(Deterministic warm-up: full-batch GD.)} As a warm-up, consider full-batch gradient descent with constant learning rate $\eta$ (i.e.\ $B_t = \{1,\dots,n\}$ for all $t$). Assume training has converged: $w_t \approx w^*$ and $\nabla_w^2 L(w_t) \approx H$ for all $t$ in a window of length $K$. Show that the response over this window satisfies
   \[
     r_T \;\approx\; -\bigl[I - (I-\eta H)^K\bigr]\,H^{-1}\,\nabla_w L(w^*,z_k).
   \]
@@ -221,7 +221,7 @@ so $\varepsilon = 0$ is the original training run and $\varepsilon = 1/n$ corres
 
   Take $K\to\infty$ (assuming $\eta < 2/\lambda_{\max}(H)$) and recover the influence function $r_\infty = -H^{-1}\nabla_w L(w^*,z_k) = r_{\mathrm{IF}}$.
 
-  \item[(c)] \textbf{(Stochastic case: convergence to IF.)} Now return to SGD with i.i.d.\ batches and a decaying learning rate satisfying $\sum_t \eta_t = \infty$, $\sum_t \eta_t^2 < \infty$ (the Robbins--Monro conditions). Assume SGD converges to a local minimum $w^*$ with $H = \nabla_w^2 L(w^*)$ positive semidefinite. The continuous-time ODE that the response tracks is
+  \item \textbf{(Stochastic case: convergence to IF.)} Now return to SGD with i.i.d.\ batches and a decaying learning rate satisfying $\sum_t \eta_t = \infty$, $\sum_t \eta_t^2 < \infty$ (the Robbins--Monro conditions). Assume SGD converges to a local minimum $w^*$ with $H = \nabla_w^2 L(w^*)$ positive semidefinite. The continuous-time ODE that the response tracks is
   \begin{equation}\label{eq:response-ode}
     \dot{r}(t) \;=\; -H\,r(t) \;+\; \nabla_w L(w^*,z_k).
   \end{equation}
@@ -269,15 +269,15 @@ The influence on the loss of a test example $z_q = (x_q, y_q)$, with residual $r
 \end{equation}
 
 \begin{enumerate}
-  \item[(a)] \textbf{(Three sources of influence.)} Interpret the three terms in \eqref{eq:dln-influence-formula}:
+  \item \textbf{(Three sources of influence.)} Interpret the three terms in \eqref{eq:dln-influence-formula}:
   \begin{itemize}
     \item $A\,\mathcal{G}(t)$ and $\mathcal{G}(t)\,B$: the perturbation \emph{rotates} the singular bases, mixing already-learned modes into each other. Why are these terms proportional to the current mode strengths $\mathcal{G}(t)$ rather than to their derivatives?
     \item $\mathcal{G}'_\varepsilon(t)$: the perturbation \emph{shifts} the singular values, changing how fast each mode is learned. Why does this term involve $g'_t(s_k)$, sensitivity of the dynamics to the singular value, rather than $\mathcal{G}_k(t)$ itself?
   \end{itemize}
-  \item[(b)] \textbf{(When does influence peak?)} Using the dynamics \eqref{eq:dln-dynamics}, argue that $g'_t(s_k)$ is peaked around $t \approx t_k^*$ (the transition time of mode $k$). Conclude that the $\mathcal{G}'_\varepsilon$ term, the part of influence that acts through the learning speed of each mode, is concentrated in time around the moment the mode is being learned. Before and after, this contribution is negligible.
+  \item \textbf{(When does influence peak?)} Using the dynamics \eqref{eq:dln-dynamics}, argue that $g'_t(s_k)$ is peaked around $t \approx t_k^*$ (the transition time of mode $k$). Conclude that the $\mathcal{G}'_\varepsilon$ term, the part of influence that acts through the learning speed of each mode, is concentrated in time around the moment the mode is being learned. Before and after, this contribution is negligible.
 
   \emph{Hint:} Consider the limits $t \ll t_k^*$ (mode not yet learning, $\mathcal{G}_k \approx \mathcal{G}_k(0)$) and $t \gg t_k^*$ (mode saturated, $\mathcal{G}_k \approx s_k$). In both cases, how sensitive is $\mathcal{G}_k$ to a small change in $s_k$?
-  \item[(c)] \textbf{(Sign flips.)} Consider $d = 2$ with $s_1 \gg s_2$: mode~1 captures a coarse distinction (``animal vs.\ plant'') and mode~2 a fine distinction (``dog vs.\ cat'' within animals). A dog example $z_{\mathrm{dog}}$ and a cat example $z_{\mathrm{cat}}$ share the same mode-1 coordinate but have opposite mode-2 coordinates: $(x_{\mathrm{dog}})_2 = +(x_{\mathrm{cat}})_2$. Using \eqref{eq:dln-influence-loss}, argue that the influence of $z_{\mathrm{dog}}$ on a cat test loss can change sign during training: positive while mode~1 is being learned (shared structure), negative after mode~2 is learned (competing structure). At what time is the sign flip sharpest?
+  \item \textbf{(Sign flips.)} Consider $d = 2$ with $s_1 \gg s_2$: mode~1 captures a coarse distinction (``animal vs.\ plant'') and mode~2 a fine distinction (``dog vs.\ cat'' within animals). A dog example $z_{\mathrm{dog}}$ and a cat example $z_{\mathrm{cat}}$ share the same mode-1 coordinate but have opposite mode-2 coordinates: $(x_{\mathrm{dog}})_2 = +(x_{\mathrm{cat}})_2$. Using \eqref{eq:dln-influence-loss}, argue that the influence of $z_{\mathrm{dog}}$ on a cat test loss can change sign during training: positive while mode~1 is being learned (shared structure), negative after mode~2 is learned (competing structure). At what time is the sign flip sharpest?
 \end{enumerate}
 \end{exercise}
 
