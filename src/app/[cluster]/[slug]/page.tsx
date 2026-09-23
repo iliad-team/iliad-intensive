@@ -14,6 +14,17 @@ import { BUILT_AT, COMMIT_SHA, CommitLink, LicenseLink } from "@/components/Buil
 // missing from the index is built but unlisted (reachable only by URL).
 export const dynamicParams = false;
 
+// A worksheet marked `unlisted` is reachable only by URL: keep it out of search
+// results too.
+export async function generateMetadata({ params }: { params: Promise<{ cluster: string; slug: string }> }) {
+  const { slug } = await params;
+  const mod = await readModuleMdx(slug);
+  return {
+    title: `${mod?.frontmatter.title ?? slug} — Iliad`,
+    ...(mod?.frontmatter.unlisted ? { robots: { index: false, follow: false } } : {}),
+  };
+}
+
 export async function generateStaticParams() {
   const [slugs, clusterList] = await Promise.all([listSlugs(), listClusters()]);
   const params = [];

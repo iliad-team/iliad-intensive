@@ -6,7 +6,9 @@
  * element whose box extends past the right edge of the content column
  * (`.prose`) — the "math runs off the page" bug, but it catches wide tables,
  * <pre> blocks and images the same way. Elements inside a horizontally
- * scrollable ancestor are fine and skipped.
+ * scrollable ancestor are fine and skipped — except a display formula that
+ * only fits because .katex-display scrolls (globals.css). That scroll box is
+ * an emergency fallback, not a fix, so it is reported too, as "scrolls".
  *
  * Measured, not guessed: the page is laid out by a real browser with the
  * site's CSS and (awaited) web fonts, so a warning here is a pixel fact.
@@ -226,6 +228,15 @@ const DETECT = `(async () => {
     const over = Math.round(r.right - limit + 1);
     if (over > (wraps.get(wrap) ?? 0)) wraps.set(wrap, over);
   }
+  // A display formula wider than the column scrolls inside .katex-display
+  // (globals.css) instead of escaping, so the loop above skips its pieces as
+  // contained. Report it anyway: the scroll bar is a fallback, and the fix is
+  // still to break the equation in the source. "over" is the hidden width.
+  const scrolls = new Set();
+  for (const d of container.querySelectorAll(".katex-display")) {
+    const over = d.scrollWidth - d.clientWidth;
+    if (over > 1 && !wraps.has(d)) { wraps.set(d, over); scrolls.add(d); }
+  }
   const anchors = [...document.querySelectorAll("[id]")];
   const anchorFor = (el) => {
     let best = null;
@@ -238,7 +249,8 @@ const DETECT = `(async () => {
   const out = [];
   for (const [wrap, over] of wraps) {
     const cls = wrap.classList;
-    const kind = cls?.contains("katex-display") ? "display math"
+    const kind = scrolls.has(wrap) ? "display math (scrolls)"
+      : cls?.contains("katex-display") ? "display math"
       : cls?.contains("katex") ? "inline math"
       : wrap.tagName.toLowerCase();
     const tex = wrap.getAttribute?.("aria-label") ?? "";
