@@ -1,0 +1,277 @@
+---
+contributors:
+  - Jane Doe (Example University)
+  - John Roe (Example Institute)
+title: "Example Worksheet: The Kitchen Sink"
+summary: >-
+  A template worksheet in the shape of the module template, demonstrating
+  every construct the pipeline supports: this paragraph is the overview,
+  shown under the title and in the index.
+# slides: https://drive.google.com/drive/folders/<folderId>
+unlisted: true
+---
+
+$\gdef\R{\mathbb{R}}\gdef\E{\mathbb{E}}\gdef\KL#1#2{D_{\mathrm{KL}}\!\left(#1 \,\middle\|\, #2\right)}\gdef\argmax{\operatorname*{arg\,max}}$
+
+
+
+**Contents**
+
+- [1. Prerequisites](#1-prerequisites)
+- [2. Roadmap for today](#2-roadmap-for-today)
+- [3. Content](#3-content)
+  - [3.1 Fast track](#31-fast-track)
+  - [3.2 Main content](#32-main-content)
+    - [3.2.1 Lecture: entropy](#321-lecture-entropy)
+    - [3.2.2 Exercise session](#322-exercise-session)
+    - [3.2.3 Reading and discussion](#323-reading-and-discussion)
+    - [3.2.4 Daily checkpoint](#324-daily-checkpoint)
+  - [3.3 Learn more](#33-learn-more)
+
+<YouTube id="dQw4w9WgXcQ" title="Rick Astley - Never Gonna Give You Up (Official Video) (4K Remaster)" />
+
+## 1. Prerequisites
+
+- Comfort with probability on finite sets ($\E$, distributions on a finite $\mathcal{X}$).
+- One variable of calculus: we differentiate $-t \log t$ once.
+- From [Prerequisites (day 0)](/foundations/prerequisites): big-$O$ notation and the idea of a bit.
+
+<LearningOutcomes>
+
+**What**
+
+- Define the entropy of a distribution and compute it by hand for small examples.
+- State and prove Gibbs' inequality, and use it to bound entropy.
+- Recognise every markup element the LaTeX $\to$ web pipeline supports, and copy this file as the starting point for a sheet.
+
+**Why**
+
+Entropy is the unit of account for everything later in the course that measures information: description length, KL divergence, mutual information. A participant who cannot manipulate it fluently is stuck from day two onwards.
+
+**How**
+
+A morning lecture states the definitions and proves Gibbs' inequality; an exercise session makes the participants reprove it and find the equality case themselves; a reading and discussion block connects it to coding.
+
+</LearningOutcomes>
+
+## 2. Roadmap for today
+
+- 10:00 – 11:00 [Lecture: entropy](#321-lecture-entropy)
+- 11:00 – 11:15 Break
+- 11:15 – 12:30 [Exercise session](#322-exercise-session)
+- 12:30 – 13:30 Lunch
+- 13:30 – 15:00 [Reading and discussion](#323-reading-and-discussion)
+- 15:00 – 15:30 [Daily checkpoint](#324-daily-checkpoint) and feedback form
+
+<TeachingNote title="Required materials">
+
+Projector and whiteboard. Print the exercise sheet without solutions (the `-nosol` PDF the site offers) for anyone who wants paper.
+
+</TeachingNote>
+
+## 3. Content
+
+### 3.1 Fast track
+
+To get the core in an hour: read [Definition 3.1](#def-entropy) and [Theorem 3.2](#thm-gibbs) and the proof, do [Exercise 3.1](#ex-warmup), then skim ([MacKay 2003](#bib-mackay-03), ch. 4).
+
+### 3.2 Main content
+
+The day runs as three sub-modules — a lecture, an exercise session, and a reading block — closing with the daily checkpoint.
+
+#### 3.2.1 Lecture: entropy
+
+<TeachingNote title="Intent">
+
+Give the participants the definition and one inequality they can prove themselves, so the afternoon exercises are a rehearsal and not a first sighting. Everything after the proof of [Theorem 3.2](#thm-gibbs) can be cut if time is short.
+
+</TeachingNote>
+
+<TeachingNote>
+
+TN, slide 12: draw $-t\log t$ on the board before showing the plot; most participants have never seen that it is concave.
+
+</TeachingNote>
+
+Ordinary prose converts verbatim, including *emphasis*, **bold**, `monospace`, and special characters like 50% or §3. Inline math is copied byte-for-byte: $e^{i\pi}+ 1 = 0$, and KaTeX handles comparisons like $x_{<t}$ without trouble. Custom notation defined in the preamble just works: $\KL{p}{q}\geq 0$, $\argmax_{a}\E[R \mid a]$, for $p, q$ distributions on $\R^{n}$. A literal dollar in prose is \$1,000.
+
+Display math works as
+
+$$
+\sum_{k=1}^{n}k = \frac{n(n+1)}{2},
+$$
+
+and as numbered equations you can reference:
+
+<div id="eq-basel">
+
+$$
+\sum_{n \geq 1}\frac{1}{n^{2}}= \frac{\pi^{2}}{6}.
+$$
+
+</div>
+
+Multi-line derivations use `align`:
+
+$$
+\begin{aligned}(a+b)^{2}&= (a+b)(a+b) \\&= a^{2} + 2ab + b^{2}.\end{aligned}
+$$
+
+Cross-references resolve to the exact text LaTeX prints: [Equation 1](#eq-basel) (or, number only, [(1)](#eq-basel)) sits in [Section 3.2.1](#321-lecture-entropy); below we meet [Definition 3.1](#def-entropy) and [Theorem 3.2](#thm-gibbs). Always `\cref`, never a hand-written "Section 3" next to a `\ref` — the build flags it.
+
+<Definition id="def-entropy">
+
+**Definition 3.1 (entropy).** The *entropy* of a distribution $p$ on a finite set $\mathcal{X}$ is
+
+$$
+H(p) = -\sum_{x \in \mathcal{X}}p(x) \log p(x).
+$$
+
+</Definition>
+
+<Theorem id="thm-gibbs">
+
+**Theorem 3.2 (Gibbs' inequality).** For any distributions $p, q$ on $\mathcal{X}$, $-\sum_{x} p(x) \log q(x) \geq H(p)$, with equality iff $p = q$.
+
+</Theorem>
+
+<Solution title="Proof">
+
+By definition, $\KL{p}{q}= \sum_{x} p(x) \log \frac{p(x)}{q(x)}\geq 0$ by Jensen's inequality applied to the concave function $\log$; rearranging gives the claim. Equality in Jensen requires $p(x)/q(x)$ constant, i.e. $p = q$. (On the website this proof is collapsible, like a solution.)
+
+</Solution>
+
+<Theorem id="lem-uniform">
+
+**Lemma 3.3.** $H(p) \leq \log |\mathcal{X}|$, with equality iff $p$ is uniform.
+
+</Theorem>
+
+<Solution title="Proof">
+
+Apply [Theorem 3.2](#thm-gibbs) with $q$ uniform.
+
+</Solution>
+
+<div id="exa-coin">
+<Callout type="tip">
+
+**Example 3.4.** A fair coin has $H = \log 2$: one bit. A coin with $p(\text{heads}) = 1$ has $H = 0$.
+
+</Callout>
+</div>
+
+<div id="co-pitfall">
+<Callout type="warning" id="co-pitfall">
+
+Callouts flag pitfalls, tips, or side notes. Types: `note` (default), `tip`, `warning`. They may be labelled and referenced, like this one. Mind the base of the logarithm: bits for $\log_{2}$, nats for $\ln$.
+
+</Callout>
+</div>
+
+<Callout type="tip" title="A titled callout">
+
+A second optional argument titles the box: it replaces the "Tip" label on the PDF frame and heads the box on the web. Handy for a highlighted key equation, $H(p) = -\sum_{x} p(x) \log p(x)$, or a named aside. Keep maths out of the title itself.
+
+</Callout>
+
+<div id="rem-aside">
+<Callout type="note">
+
+**Remark (Continuous distributions).** A `remark` is an aside; on the website it renders as a note-style callout. The optional title is appended in parentheses. Referencing works: see [Callout 3.1](#co-pitfall) above (and this remark is [Remark 3.1](#rem-aside)).
+
+</Callout>
+</div>
+
+<div id="fig-value">
+<Figure src="/uploads/example-tex/value-curve.svg" alt="An example figure from fig/. On the web this becomes a Figure component.">
+
+An example figure from `fig/`. On the web this becomes a `Figure` component.
+
+</Figure>
+</div>
+
+See [Figure 1](#fig-value). The same in TikZ, inline:
+
+<Figure src="/uploads/example-tex/tikz-7575965314bb.svg" alt="diagram" />
+
+Citations come from `biblo.bib`: the idea of entropy is due to ([Shannon 1948](#bib-shannon-48)); for a textbook treatment see ([MacKay 2003](#bib-mackay-03), ch. 4). On the web every citation becomes author–year text linking to a References list at the foot of the page, whatever `\bibliographystyle` the PDF uses. External links are plain [hyperlinks](https://en.wikipedia.org/wiki/Entropy_(information_theory)), and footnotes are supported.[^1]
+
+#### 3.2.2 Exercise session
+
+<TeachingNote title="Intent">
+
+The participants reprove the lecture's inequality with their own hands and find its equality case, so that "entropy is maximised by the uniform distribution" becomes something they derived rather than heard. Pairs; [Exercise 3.2](#ex-gibbs-hard) is the one to discuss on the board.
+
+</TeachingNote>
+
+<Exercise id="ex-warmup">
+**Exercise 3.1 (Entropy warm-up).** Let $p$ be a distribution on a finite set $\mathcal{X}$.
+
+<span id="ex-warmup-a">**(a)**</span> Show that $H(p) \geq 0$.
+
+**(b)** For which $p$ is $H(p) = 0$?
+</Exercise>
+
+
+<Exercise id="ex-gibbs-hard">
+**Exercise 3.2 (★) (Gibbs, the hard direction).** Prove the equality case of [Theorem 3.2](#thm-gibbs) directly, without citing Jensen's equality condition. [*Note:* this one is solved at the end of the sheet instead of inline, to demonstrate both solution placements.]
+</Exercise>
+
+<Hint>
+
+Consider $f(t) = t - 1 - \log t$: it is nonnegative on $t > 0$ and vanishes only at $t = 1$.
+
+</Hint>
+
+
+<Exercise id="ex-open">
+**Exercise 3.3 (Open-ended).** Why might a learning system that compresses its inputs well also predict them well? No solution is given: this is a discussion exercise.
+</Exercise>
+
+#### 3.2.3 Reading and discussion
+
+<TeachingNote title="Intent">
+
+Connect the morning's definition to coding, through one well-curated reading with clear take-aways, then a discussion that compares and contrasts. Groups of three to four; steer towards the source-coding theorem if the discussion stalls.
+
+</TeachingNote>
+
+- ([MacKay 2003](#bib-mackay-03), ch. 4), sections 4.1–4.3 (about 40 minutes). Take-away: the entropy is the average length of the best code.
+- ([Shannon 1948](#bib-shannon-48)), section 6 only. Take-away: where the axioms for $H$ come from.
+
+<Callout type="note" title="Discussion prompt">
+
+Two participants disagree: one says entropy is a property of the source, the other that it is a property of the observer's beliefs about the source. Who is right, and does [Theorem 3.2](#thm-gibbs) settle it?
+
+</Callout>
+
+#### 3.2.4 Daily checkpoint
+
+A ten-minute quiz, [here](https://example.com/quiz), then the daily feedback form.
+
+<TeachingNote title="Notes for future iterations">
+
+The reading block ran long last time; consider dropping Shannon's section 6 and giving the discussion prompt the extra half hour.
+
+</TeachingNote>
+
+### 3.3 Learn more
+
+**Deeper.** ([MacKay 2003](#bib-mackay-03), ch. 5–6) for source coding and the noisy channel. **Frontier.** The [minimum description length](https://en.wikipedia.org/wiki/Minimum_description_length) literature, which is where this thread is picked up on the Solomonoff induction day.
+
+## References
+
+<div id="bib-mackay-03">
+
+David J. C. MacKay (2003). [*Information Theory, Inference, and Learning Algorithms*](https://www.inference.org.uk/itila/). Cambridge University Press.
+
+</div>
+
+<div id="bib-shannon-48">
+
+Claude E. Shannon (1948). *A Mathematical Theory of Communication*. Bell System Technical Journal.
+
+</div>
+
+[^1]: On the web this becomes a numbered footnote: the marker links down to a note at the foot of the page, and the note links back. In the PDF it is an ordinary LaTeX footnote.

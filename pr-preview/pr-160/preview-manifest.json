@@ -1,0 +1,22 @@
+{
+  "pr": "160",
+  "full": false,
+  "changed": [
+    {
+      "slug": "singular-learning-theory",
+      "title": "Singular Learning Theory",
+      "code": "B.3",
+      "path": "/learning/singular-learning-theory/"
+    },
+    {
+      "slug": "qft",
+      "title": "Physics of Deep Learning",
+      "code": "B.6",
+      "path": "/learning/qft/"
+    }
+  ],
+  "published": [
+    "singular-learning-theory",
+    "qft"
+  ]
+}
