@@ -29,6 +29,7 @@ Usage:
   ./run.sh notebooks [slug ...]  sync each notebook master (<name>.py) with its
                         local <name>.ipynb, then build the Colab notebooks into
                         build/notebooks/ (no slug = every module with notebooks)
+  ./run.sh test-notebooks  test tex/gen_notebooks.py itself (after changing it)
   ./run.sh slugs           list every worksheet slug, one per line
   ./run.sh <script>        any other script from package.json
 
@@ -80,6 +81,7 @@ case "${1:-}" in
   slugs) list_slugs; exit 0 ;;
   # Python, not Node: no nvm needed. See docs/NOTEBOOKS.md.
   notebooks) shift; exec python3 "$here/tex/gen_notebooks.py" "$@" ;;
+  test-notebooks) exec python3 "$here/tex/test_gen_notebooks.py" ;;
 esac
 
 # Load nvm.

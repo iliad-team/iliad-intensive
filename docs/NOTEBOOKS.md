@@ -423,7 +423,8 @@ enters a master or the local editing notebook.
 
 `gen_notebooks.py` reads `schedule.yaml` with a small reader of its own, to stay
 standard-library only. It was checked against `scripts/schedule.mjs` for every scheduled
-worksheet (2026-09-23). If they ever disagree, fix the Python one.
+worksheet (2026-09-23), and `scripts/schedule.mjs --check`, the first step of `./run.sh ci`, fails
+the build if they ever disagree. Then fix the Python one.
 
 ### Images — the existing site build
 
@@ -519,12 +520,24 @@ same notebooks as their repos' `build` branches, cell for cell, except that one 
 
 ## Tests
 
-Run by hand while building this (not yet in CI): a scratch module taken through every
-row of the sync table, including the stale-autosave and orphan cases; importing a
-foreign notebook with magics, a cell magic, an empty cell, a raw cell, a syntax error,
-an embedded image, a named and an unnamed attachment, a local image outside `fig/`, a
-code cell reading a local CSV, and Colab GPU metadata; an image name colliding with an
-existing figure. All pass. Worth turning into a CI test.
+`tex/test_gen_notebooks.py` (`./run.sh test-notebooks`) tests the generator itself.
+It's standard library only and takes about 2 seconds. Nothing runs it automatically:
+run it after changing `gen_notebooks.py`. It works in a throwaway copy, so it never
+touches `tex/` or your local notebooks. Two groups:
+
+- **scenarios:** a scratch module taken through every row of the sync table
+  (including the stale-autosave conflict, the Colab round trip and a deleted master);
+  importing an arbitrary notebook (magics, cell magics, empty/raw/broken cells, embedded
+  and local images, a CSV read, GPU metadata); image naming and collisions; the exercise
+  split; the solutions module, `support/` and the fetch/path cells; `--preview`.
+- **real masters:** every master in the repo is committed in canonical layout,
+  round-trips `.py` → local notebook → `.py` exactly, and publishes both versions (and a
+  PR preview) with only global URLs.
+
+Separately, `./run.sh ci` (so every CI build) starts with `node scripts/schedule.mjs
+--check`. It validates `schedule.yaml` with the real parser, and checks that the
+generator's own small reader agrees on every page URL. Either failure stops the build
+before anything compiles.
 
 ## Open questions
 

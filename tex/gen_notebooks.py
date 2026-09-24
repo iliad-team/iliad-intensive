@@ -734,7 +734,7 @@ def schedule_pages() -> dict[str, tuple[str, str]]:
             in_sheets = len(m.group(1))
             for sheet in re.findall(r"[\w.-]+", m.group(2) or ""):
                 pages[sheet] = (f"{code} · {title}" if title else str(code), f"/{cluster}/{sheet}/")
-        elif in_sheets is not None and (m := re.match(r"^\s*-\s*([\w.-]+)\s*$", line)):
+        elif in_sheets is not None and (m := re.match(r"""^\s*-\s*["']?([\w.-]+)["']?\s*$""", line)):
             pages[m.group(1)] = (f"{code} · {title}" if title else str(code), f"/{cluster}/{m.group(1)}/")
     return pages
 
@@ -963,9 +963,15 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("slugs", nargs="*", help="modules under tex/ (default: every module with notebooks)")
     ap.add_argument("--publish", action="store_true", help="only build published notebooks (CI)")
+    ap.add_argument("--page-map", action="store_true",
+                    help="print this script's slug -> page path table as JSON and exit "
+                         "(scripts/schedule.mjs --check compares it with the real parser)")
     ap.add_argument("--preview", metavar="PR", type=int,
                     help="with --publish: build PR <PR>'s preview (links and images under pr-preview/pr-<PR>/)")
     args = ap.parse_args()
+    if args.page_map:
+        print(json.dumps({slug: page for slug, (_, page) in schedule_pages().items()}, sort_keys=True))
+        return 0
     try:
         if args.preview is not None:
             if not args.publish:

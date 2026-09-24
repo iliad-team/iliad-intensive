@@ -175,6 +175,10 @@ the slides link).
 
 ## `schedule.yaml` rules (`scripts/schedule.mjs`, fatal, one-line fixes)
 
+`./run.sh ci` runs `node scripts/schedule.mjs --check` **first**: a bad schedule fails
+before anything compiles, under a `✗✗✗ schedule.yaml check failed` banner. The same
+step checks that `tex/gen_notebooks.py`'s own schedule reader agrees on every page URL.
+
 - Cluster: `id`, `label`, `urlSlug` required and unique; `urlSlug` never
   `admin` (it would shadow `/admin/status`).
 - Day: `code`, `title`, `lead`, `doc` required, plus `source` (`ready` |
