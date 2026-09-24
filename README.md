@@ -138,11 +138,22 @@ any worksheet with no `slides*.tex`/`slides*.typ`.
 
 ## Start a worksheet
 
+Two templates, one skeleton — pick the format you want to write in:
+
 ```
-cp -r tex/example tex/name-of-your-material
+cp -r tex/example-tex tex/name-of-your-material   # LaTeX: web page + PDF
+cp -r tex/example-mdx tex/name-of-your-material   # MDX:   web page only
 ```
-`tex/example/main.tex` includes an example of every supported construct
-that is defined in `iliad.sty`. See `docs/iliad-sty.md` for more details.
+
+Both are the module template as a worksheet (Prerequisites, the What/Why/How
+learning-outcomes box, Roadmap, Fast track, Main content split into
+sub-modules with their intents and teaching notes, Daily checkpoint, Learn
+more) **and** a demo of every construct the format supports, each used where
+a real sheet would use it — `tex/example-tex/main.tex` for `iliad.sty` and the
+converter, `tex/example-mdx/main.mdx` for the page components. Paste your
+material into the matching sections and delete the instructions (`%` comments
+in LaTeX, `{/* … */}` in MDX) as you go. See `docs/commands.md` for every
+construct and `docs/iliad-sty.md` for the package.
 
 ## LaTeX Format
 

@@ -1,7 +1,7 @@
 # Authoring reference — every supported construct
 
 Construct-by-construct syntax for worksheets, LaTeX first, with the MDX
-equivalent where you author `main.mdx` directly. `tex/example/main.tex` is
+equivalent where you author `main.mdx` directly. `tex/example-tex/main.tex` is
 the living demo of everything here; [iliad-sty.md](iliad-sty.md) covers the
 package mechanics.
 
@@ -525,7 +525,9 @@ the answer — the note included, not just its marker.
 `main.mdx` replaces `main.tex` entirely: YAML frontmatter (`title`,
 `summary`, `contributors` — `title` required, there's no
 `\title{}` to fall back on), KaTeX math with `$…$`/`$$…$$`, and the JSX
-components named above. **There is no PDF**: LaTeX is the format that becomes a
+components named above. `tex/example-mdx/main.mdx` is the template for this
+path — the same day-shaped skeleton as `tex/example-tex/main.tex`, with every
+component used once. **There is no PDF**: LaTeX is the format that becomes a
 print artifact, MDX the one that becomes a web page, so an MDX-authored sheet is
 a page and nothing else. Downloads offer Markdown alone (± solutions) — no PDF,
 no LaTeX. Everything else — the `-nosol` variant, the index, the render gate —
