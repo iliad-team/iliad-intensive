@@ -18,10 +18,12 @@ matomatical           # Matthew Farrugia-Roberts — B.3
 gcorlouer             # Guillaume Corlouer — B.4
 LouisYRYJ             # Louis Jaburi — B.5, E.2, E.3
 tdimofte              # Tudor Dimofte — B.6
+CharlesR-W            # Charles Renshaw-Whitman — B.6
 wusche1               # Julian Schulz — C.1, C.2
 BorisTheBrave         # Adam Newgas — C.1
 14xp                  # Xavier Poncini — C.3
 satchlj               # Satya Benson — C.4, D.4, D.5
+ferosas               # Fernando E. Rosas — D.1
 Danielc-lgtm          # Daniel C — D.4, D.5
 SWaeldchen            # Stephan Wäldchen — E.1, E.2
 museiliad-bot         # errata bot — small fixes across days
@@ -31,8 +33,6 @@ museiliad-bot         # errata bot — small fixes across days
 # priech                # Paul Riechers — C.3  # TODO: verify
 # adamshai              # Adam Shai — C.3  # TODO: verify
 # JoarSkalse            # Joar Skalse — A.4  # TODO: verify
-# ferosas               # Fernando E. Rosas — D.1  # TODO: verify
 # oggy03                # Kai Ogden — B.3  # TODO: verify
-# CharlesRenshawWhitman # Charles Renshaw-Whitman — B.6  # TODO: verify
 # ?                     # Aleksander Czejdo — B.6  # TODO: verify (no GitHub account found)
 # ?                     # Brianna Grado-White — B.6  # TODO: verify (no GitHub account found)
