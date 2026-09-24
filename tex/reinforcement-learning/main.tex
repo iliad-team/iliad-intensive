@@ -648,10 +648,7 @@ V_n(s) \;=\; R_{\max}\bigl(1 + \gamma + \gamma^2 + \cdots + \gamma^{n-1}\bigr) \
 $$
 The fixed point $V^*(s)$ solves $V^*(s) = R_{\max} + \gamma\, V^*(s)$, giving $V^*(s) = R_{\max}/(1-\gamma)$. Therefore
 $$
-\begin{aligned}
-\|V_n - V^*\|_\infty \;&=\; V^*(s) - V_n(s) \;=\; \frac{R_{\max}}{1-\gamma} - \frac{R_{\max}(1 - \gamma^n)}{1-\gamma} \\
-\;&=\; \frac{\gamma^n}{1-\gamma}\, R_{\max},
-\end{aligned}
+\|V_n - V^*\|_\infty \;=\; V^*(s) - V_n(s) \;=\; \frac{R_{\max}}{1-\gamma} - \frac{R_{\max}(1 - \gamma^n)}{1-\gamma} \;=\; \frac{\gamma^n}{1-\gamma}\, R_{\max},
 $$
 so the bound of \cref{prob:concrete_bound} is attained with equality. No bound in terms of only $n$, $\gamma$, and $R_{\max}$ can be sharper.
 \end{solution}

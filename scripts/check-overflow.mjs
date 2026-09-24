@@ -8,7 +8,10 @@
  * <pre> blocks and images the same way. Elements inside a horizontally
  * scrollable ancestor are fine and skipped — except a display formula that
  * only fits because .katex-display scrolls (globals.css). That scroll box is
- * an emergency fallback, not a fix, so it is reported too, as "scrolls".
+ * an emergency fallback, not a fix, so it is reported too, as "scrolls" —
+ * but only past SLACK px: a display that ends in a comma or full stop
+ * typically "overflows" by 2–4px of that glyph's advance box, which sits
+ * flush with the column edge and reads as fitting.
  *
  * Measured, not guessed: the page is laid out by a real browser with the
  * site's CSS and (awaited) web fonts, so a warning here is a pixel fact.
@@ -202,6 +205,9 @@ await send("Page.enable");
 // Offenders collapse onto their nearest presentational wrapper (the KaTeX
 // span, a table, a <pre>) so each formula is reported once, labelled with
 // the nearest preceding anchor id for finding it on the page.
+// Hidden width a scrolling display may have before it is reported — see the
+// header. public/diff.js's column-edge marker uses the same number.
+const SLACK = 4;
 const DETECT = `(async () => {
   await document.fonts.ready;
   const container = document.querySelector(".prose") || document.body;
@@ -235,7 +241,7 @@ const DETECT = `(async () => {
   const scrolls = new Set();
   for (const d of container.querySelectorAll(".katex-display")) {
     const over = d.scrollWidth - d.clientWidth;
-    if (over > 1 && !wraps.has(d)) { wraps.set(d, over); scrolls.add(d); }
+    if (over > ${SLACK} && !wraps.has(d)) { wraps.set(d, over); scrolls.add(d); }
   }
   const anchors = [...document.querySelectorAll("[id]")];
   const anchorFor = (el) => {
