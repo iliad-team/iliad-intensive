@@ -324,6 +324,8 @@ clusters:
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.a6ozb9tzf69k
         source: missing
         note: new day; the Doc tab is all there is so far
+        worksheets:
+          - world-models
 
   - id: E
     label: E — Safety Guarantees and their Limits
