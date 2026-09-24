@@ -55,7 +55,21 @@ tex/
 - **Master names** become file and link names, so the tool rejects names with spaces, or
   ending in `_sol`/`_nosol`, with a suggested fix.
 - **Helper modules** the notebooks import go in `support/`. A helper next to `main.tex`
-  would not ship with the notebooks.
+  would not ship with the notebooks. `support/` is published as-is next to the
+  notebooks, so a package inside it (`support/part6_goalmisgen/`) keeps its import name.
+  Binaries in it (images a module loads) go through LFS, like `fig/`.
+- **Support modules on Colab and locally.** When a module has `support/` or a solutions
+  module, every published notebook gets a second cell, after the header, that on Colab
+  sparse-clones the notebook's folder from the `notebooks` branch (its PR preview's folder,
+  in a preview) and puts it on `sys.path`. The local editing notebook instead starts with
+  a marked cell putting `build/notebooks/<slug>/` on `sys.path`. That's where the
+  published copy of `support/` and the solutions module sit after every run of the
+  tool, and the cell is skipped when syncing back.
+- **Solutions module.** A master whose support code imports ARENA's solutions module
+  (D.2's `tests.py` does, to test students' answers against the reference) names it on a
+  `# ! SOLUTIONS: part6_goalmisgen/solutions.py` line at the top. The tool then also
+  publishes that file: every solution and `py`-filtered code cell as plain Python,
+  exactly as ARENA's generator wrote it (checked byte-for-byte against D.2's old build).
 - **`fig/` is shared.** It is already LFS-tracked at any depth for every image format
   (`.gitattributes`), so notebook images need no new rule, and one image can serve the
   worksheet, a deck and a notebook.
@@ -299,6 +313,8 @@ ignoring outputs, execution counts and image embedding.
 | `raw` cells | Kept, as `# ! CELL TYPE: raw` |
 | A line starting `# ! CELL TYPE:` inside a cell | Error: it would split the master there |
 | Notebook metadata Colab relies on (`accelerator`, `colab.gpuType`) | A `# ! NOTEBOOK: {…}` first line |
+| The solutions-module setting (`metadata.iliad.solutions` in the local notebook) | A `# ! SOLUTIONS: <path>` line at the top |
+| The local notebook's `sys.path` cell | Skipped (marked as generated) |
 | Outputs, execution counts | Dropped |
 | Images | See [Images](#images) |
 
@@ -383,8 +399,9 @@ group, since two force-pushes at once would drop one's work.
 - `--publish` only reads `.py` files and writes `build/notebooks/`; it never touches a
   local `.ipynb`, so CI cannot destroy anything. Checks: every notebook parses as JSON,
   and no `data:`, `attachment:` or `fig/` image source remains.
-- Support modules reach Colab the way D.2's do today: a setup cell sparse-clones the
-  `notebooks` branch and adds the slug's folder to `sys.path`.
+- Support modules reach Colab through the fetch cell the generator adds (see
+  [Layout](#layout)); a master needs no clone code of its own.
+- Checks out with LFS, so binaries in `support/` are published as real files.
 
 ### The header cell
 
@@ -447,11 +464,26 @@ A same-repo PR previews its notebooks end to end:
 After merging, the old repo's `build` branch should stay, and the repo be archived
 rather than deleted, so Colab links already shared keep working.
 
-**D.2 — next.** Same steps; its support modules (`agent.py`, `ppo.py`, `tests.py`, …) go
-in `tex/<its slug>/support/`, and its setup cell's sparse clone must point at this
-repo's `notebooks` branch. Its `goalmisgen-2.6-staging` and `goalmisgen-2.6-benchmark`
-branches are fully merged into its `main` (checked 2026-09-23); its orphan `notebooks`
-branch is stale output.
+**D.2 — done** (stacked on the previews PR):
+
+1. `tex/policy-gradients-misgeneralization/goal_misgeneralisation.py`: D.2's master at
+   `main` 83147cc, transformed by script (three changes): the first cell dropped (the
+   Streamlit section list), a `# ! SOLUTIONS: part6_goalmisgen/solutions.py` line added,
+   and the setup cell's clone of the old repo's `build` branch removed (the generator's
+   fetch cell replaces it; its `%pip install` and widget-manager lines stay).
+2. `support/part6_goalmisgen/`: the nine support files from `gen/support/part6_goalmisgen/`,
+   unchanged (the two PNGs in LFS).
+3. `main.mdx`'s hard-coded Colab link became `<NotebookNoSol name="goal_misgeneralisation">`.
+4. Checked: the published notebooks match the old `build` branch cell for cell, apart
+   from the header cell, the fetch cell and the trimmed setup cell. `solutions.py` is
+   byte-identical, and the support modules and solutions module import from the
+   published folder.
+
+Still pointing at the old repo: `slides-goalmisgen.tex` and the notebook link the
+pottery-shop game at `iliad-team.github.io/iliad-intensive-D.2/play.html`, served by
+that repo's Pages. Archiving the repo keeps it served. Its `goalmisgen-2.6-*` branches are
+fully merged into its `main` (checked 2026-09-23); its orphan `notebooks` branch is stale
+output.
 
 ## Generator
 
@@ -467,7 +499,7 @@ solution dropdown placed in the next markdown cell, the `master-comment`, `main`
 heading (only when the master has a split; the header cell now carries the Colab links), and learning objectives copied from a
 "Content & Learning Objectives" cell under each section heading.
 
-**Dropped:** Streamlit pages, the solutions `.py`, ruff formatting, `config.yaml`, and
+**Dropped:** Streamlit pages, ruff formatting, `config.yaml`, and
 every *required* structure (section-list first cell, `[X.Y]` title, `# Introduction`
 cell, exercise-cell format). Also the hard-coded "Part of the ILIAD Intensive course
 material…" line both old generators put under the title; a master that wants it
@@ -490,7 +522,5 @@ existing figure. All pass. Worth turning into a CI test.
 - **Does Colab keep notebook metadata on download?** The Colab editing workflow relies on
   `metadata.iliad.base` surviving. If it doesn't, a notebook edited in Colab reports a
   conflict (safe, but not smooth).
-- **`solutions.py`:** ARENA emitted it next to the notebooks, and D.2's tests may import
-  it. Not produced yet; decide when moving D.2.
 - **Where C.3's generator fits:** a second step in `notebooks.yml`, or ported onto the
   master format.
