@@ -389,8 +389,10 @@ pr-preview/pr-<N>/<slug>/…               PR <N>'s preview, removed when the PR
 
 Every write goes through `.github/notebooks-branch.sh` (`production`, `preview <N>`,
 `remove <N>`, `sweep`): fetch the current tree, change only the part it owns, force-push
-the whole tree as one orphan commit. All callers share the `notebooks-write` concurrency
-group, since two force-pushes at once would drop one's work.
+the whole tree as one orphan commit. The push uses `--force-with-lease` on the commit it
+fetched, and starts over if another writer pushed first, so simultaneous writers can't
+drop each other's work. There is deliberately no shared concurrency group: GitHub cancels
+an older *pending* run in a group, which could silently drop a production publish.
 
 ### Notebooks — `.github/workflows/notebooks.yml`
 

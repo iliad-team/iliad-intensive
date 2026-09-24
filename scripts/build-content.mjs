@@ -366,6 +366,11 @@ const notebookMasters = (slug) => {
   if (!existsSync(dir)) return [];
   return readdirSync(dir).filter((f) => isMaster(path.join(dir, f))).map((f) => f.slice(0, -3)).sort();
 };
+// Every master in the repo as "<slug>/<name>", computed once per build.
+let ALL_MASTERS = null;
+const allNotebookMasters = () => (ALL_MASTERS ??= readdirSync(TEX, { withFileTypes: true })
+  .filter((d) => d.isDirectory())
+  .flatMap((d) => notebookMasters(d.name).map((n) => `${d.name}/${n}`)).sort());
 // The notebook side of a module folder, which the worksheet build ignores.
 const isNotebookFile = (dir, e) =>
   e.name === "support" || e.name === ".trash" || /\.ipynb$/.test(e.name) || /^\..+\.sync$/.test(e.name)
@@ -431,10 +436,15 @@ const worksheetHash = (slug) => {
   hashDir(h, path.join(TEX, slug));                    // the sheet's own sources
   hashPath(h, path.join(TEX, "iliad.sty"));            // shared worksheet contract
   hashPath(h, path.join(TEX, "alphaurl.bst"));         // vendored bibliography style
-  h.update(`notebooks:${notebookMasters(slug).join(",")}`);  // what \notebooksol{…} can resolve to
-  // A preview build links the PR's notebooks, production its own: a sheet with
-  // notebook links must never be served from the other's cache.
-  if (NB_PREVIEW && linksNotebooks(path.join(TEX, slug))) h.update(`nb-preview:${NB_PREVIEW}`);
+  // A sheet that links notebooks depends on which notebooks exist ANYWHERE: its
+  // \notebooksol{name} or {other-slug/name} is checked against them. So renaming
+  // or deleting a master re-checks every sheet that links one, in any module. And
+  // a preview build links the PR's notebooks, production its own, so the two never
+  // share such a sheet's cached page. Sheets without notebook links hash neither.
+  if (linksNotebooks(path.join(TEX, slug))) {
+    h.update(`notebooks:${allNotebookMasters().join(",")}`);
+    h.update(`nb-preview:${NB_PREVIEW}`);
+  }
   // Only the scripts that can change a worksheet's ARTIFACTS. Hashing the whole
   // scripts/ tree was safe but far too wide: build-status.mjs writes nothing but
   // content/status.json, and preview.mjs / watch.mjs write nothing at all, yet

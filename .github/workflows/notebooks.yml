@@ -54,11 +54,15 @@ jobs:
   build:
     if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-    # Every writer of the `notebooks` branch holds this lock: each publish
-    # force-pushes the whole tree, so two at once would drop one's work.
+    # One run per PR (a newer push supersedes an older one) and one line for
+    # main (a newer merge publishes the newer tree). NOT one lock shared by every
+    # writer: GitHub cancels an older *pending* run in a group, so a shared lock
+    # could silently drop a production publish queued behind a PR build. Writers
+    # stay safe without one: .github/notebooks-branch.sh pushes with
+    # --force-with-lease and starts over if another writer got there first.
     concurrency:
-      group: notebooks-write
-      cancel-in-progress: false
+      group: notebooks-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
     steps:
       # LFS: support/ can hold binaries the modules load (D.2's sprites.png), and
       # those are published as-is. (fig/ images are the site build's business.)
@@ -143,9 +147,6 @@ jobs:
   preview-cleanup:
     if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
     runs-on: ubuntu-latest
-    concurrency:
-      group: notebooks-write
-      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:
@@ -158,9 +159,6 @@ jobs:
   preview-sweep:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
-    concurrency:
-      group: notebooks-write
-      cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
         with:

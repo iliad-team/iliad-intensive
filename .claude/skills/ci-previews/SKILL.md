@@ -251,6 +251,8 @@ python3 -m http.server 4499 --directory out
    hash — no version suffix to bump. Mirror any package change in `setup.sh`.
 7. `workflow_run`/`pull_request_target` changes are only exercised after
    merge; say so in the PR.
-8. Every `notebooks` writer takes `concurrency: notebooks-write` and goes through
-   `.github/notebooks-branch.sh`, which fetches the tree, edits only its own part and
-   force-pushes the whole of it.
+8. Every `notebooks` writer goes through `.github/notebooks-branch.sh`, which fetches
+   the tree, edits only its own part and pushes the whole of it with
+   `--force-with-lease`, retrying if another writer got there first. Don't put the
+   writers in one shared concurrency group: GitHub cancels an older *pending* run in a
+   group, so a production publish could be silently dropped.

@@ -202,6 +202,9 @@ def scenarios(tmp: Path) -> None:
           and "return 42" in src(sol) and "pass" not in src(sol))
     check("published notebooks get the Colab fetch cell",
           'git sparse-checkout set "s"' in "".join(sol["cells"][1]["source"]))
+    check("the fetch cell is identical in both versions (no doubled newlines)",
+          nosol["cells"][1]["source"] == sol["cells"][1]["source"]
+          and not any(line.endswith("\n\n") for line in sol["cells"][1]["source"]))
     local = json.loads((S / "split.ipynb").read_text())
     check("local notebook starts with the marked sys.path cell",
           "build/notebooks/s" in "".join(local["cells"][0]["source"]))

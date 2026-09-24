@@ -425,6 +425,9 @@ def nb_json(cells: list[dict], meta: dict, extra: dict | None = None) -> str:
         **deepcopy(meta),
         **(extra or {}),
     }
+    # Copies, not the callers' cells: one cell can go into both published versions
+    # (the fetch cell does), and rewriting it in place would add a second "\n".
+    cells = deepcopy(cells)
     for c in cells:
         src = c["source"]
         c["source"] = [line + "\n" for line in src[:-1]] + [src[-1]] if src else []
