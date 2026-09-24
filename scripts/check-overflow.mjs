@@ -52,6 +52,13 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadSchedule } from "./schedule.mjs";
 
+// CI runs this as its own job (site.yml `overflow`), beside the deploy rather
+// than ahead of it, and sets SKIP_OVERFLOW_CHECK for the build's `npm run ci`.
+if (process.env.SKIP_OVERFLOW_CHECK) {
+  console.log("check-overflow: skipped — CI runs it as its own job (site.yml `overflow`)");
+  process.exit(0);
+}
+
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUT_DIR = path.join(ROOT, "out");
 const INDEX = path.join(ROOT, "content", "index.json");
