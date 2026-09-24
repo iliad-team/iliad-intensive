@@ -1,0 +1,62 @@
+---
+title: World Models
+summary: >-
+  We cover a general introduction to world models, how to formally defined them,
+  why they matter, and how agents use them to build abstractions.
+contributors:
+  - Fernando Rosas (University of Sussex)
+slides: https://drive.google.com/drive/folders/1Q5O-Y3tHbcsGMVbbLmH2HDxr1p8vhW2H
+---
+
+## Prerequisites
+
+* Basic understanding of learning theory (as provided by eg. session B.1) and reinforcement learning (as provided e.g. by Session D.1), and familiarity with the corresponding terminology.
+* Having some knowledge of statistical physics would help to more easily internalise the contents related with abstraction, although this is not mandatory.
+
+<LearningOutcomes>
+
+* Obtain a theoretical understanding of how world models are understood and used in AI, and also in other disciplines including control theory, neuroscience, and cognitive science.
+* Develop a conceptual understanding of how world models are used in modern AI systems, including Ha & Schmidhuber, Dreamer, Genie, and JEPA.
+* Have a critical understanding of why world models matter — how agents can use world models, and what can they do with world models that they couldn’t do without them.
+* Become familiar with the notion of transducer / stochastic automata as a general architecture of world models, and how it generalises various kinds of world models in reinforcement learning (e.g. POMDPs and beliefs MDPs).
+* Reason about how agents can build abstractions as coarse-grainings of world models
+* Understand the role of symmetries in the construction of abstractions in world models.
+
+</LearningOutcomes>
+
+## Roadmap for today
+
+* The current rendition was done as follows:
+  * Morning lecture about general introduction to world models (1hr).
+  * Discussion (1hr)
+  * Lunch break.
+  * Afternoon lecture on formal approaches to world modelling + discussion (1.5hr).
+  * Break.
+  * Late afternoon session on abstractions in world models (1hr).
+
+## Reading guide
+
+### Fast-track
+
+* The slides should provide a basic understanding of the main ideas. From there, students can choose to go deeper into specific topics by following the notes or papers referred to in various slides.
+
+### Main content
+
+The session is divided into three parts: (a) general introduction to world models, (b) formal definition of world models in reinforcement learning, and (c) operationalisation of abstractions within world models. Each of these units build in the previous one.
+
+* (A) The introductory lecture in world models was done following the content within these rough [notes](https://drive.google.com/file/d/12UzgFkMN2bpu8U50vB5tAHxVdCpKdr3f/view?usp=drive_link). The session used [these slides](https://drive.google.com/file/d/1Rtfc5uW0oTDJBx7IEkJlmgLR1KOcg_4Z/view?usp=drive_link).
+* (B) The session on a formal approach to world models for reinforcement learning agents used [these slides](https://drive.google.com/file/d/1wR_tNsOu41_IKlFRUO0NLuq5IvIKqE52/view?usp=drive_link), which are closely related to [this paper](https://arxiv.org/abs/2504.04608) (see also this [LW post](https://www.lesswrong.com/posts/L6Z6K8qXJhrSNMN4L/ai-in-a-vat-fundamental-limits-of-efficient-world-modelling))
+* (C) The last session on abstractions in world models used [these slides](https://drive.google.com/file/d/11LyzmBFRoovylkOPPzMNuG2olPwG-y9P/view?usp=drive_link), which are closely related to this [preprint](https://arxiv.org/abs/2512.00984).
+
+## Further reading
+
+* Related work on world models:
+  * [Geniel 3](https://deepmind.google/blog/genie-3-a-new-frontier-for-world-models/)
+  * [Latest Dreamer paper](https://www.nature.com/articles/s41586-025-08744-2)
+  * [Robust agents learn world models](https://deepmind.google/research/publications/49666/)
+  * [Separation principle](https://en.wikipedia.org/wiki/Separation_principle) from optimal control theory as a foundation of why agents build beliefs and plan upon them.
+  * [Deep dive into JEPA](https://rohitbandaru.github.io/blog/JEPA-Deep-Dive/)
+* Related work on abstractions on world models
+  * [Abstractions as emergent properties](https://www.quantamagazine.org/the-new-math-of-how-large-scale-order-emerges-20240610/)
+  * [Towards a unified theory of abstractions in MDPs](http://rbr.cs.umass.edu/aimath06/proceedings/P21.pdf)
+  * [A Theory of Abstraction in Reinforcement Learning](https://david-abel.github.io/thesis.pdf)
