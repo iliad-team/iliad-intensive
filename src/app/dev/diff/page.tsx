@@ -43,7 +43,15 @@ export default function DevDiffPage() {
         </h1>
         <p className="mt-2 text-sm text-zinc-600">
           Any two versions of a worksheet page, each rendered with today&apos;s pipeline from the
-          commit that produced it. Figures show today&apos;s version.
+          commit that produced it. Figures show today&apos;s version. The compiled pages are served
+          from{" "}
+          <a
+            href="https://github.com/iliad-team/iliad-intensive-snapshots"
+            className="underline decoration-zinc-400 underline-offset-2 hover:text-zinc-900"
+          >
+            iliad-team/iliad-intensive-snapshots
+          </a>
+          , which renders every new version within minutes of a push.
         </p>
         <form id="dd-form" method="get" className="mt-4 grid gap-2 text-sm sm:grid-cols-[auto_1fr]">
           <label htmlFor="dd-page" className="self-center text-zinc-500">page</label>
