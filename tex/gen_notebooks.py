@@ -774,7 +774,7 @@ def header_cell(slug: str, name: str, kind: str) -> dict:
     fields = {
         "page_label": label,
         "page_url": SITE + page,
-        "version": "solutions" if kind == "sol" else "exercises",
+        "version": "Solutions" if kind == "sol" else "Exercises",
         "nosol_url": colab_url(slug, name, "nosol"),
         "sol_url": colab_url(slug, name, "sol"),
     }
