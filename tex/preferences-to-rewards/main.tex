@@ -1416,9 +1416,11 @@ scaling and an additive shift modulated by $1-\gamma(t)$.
 \begin{enumerate}[label=(\alph*)]
 \item Writing $t_i=(s_{i-1},a_i,s_i)$, the shaped total is
 \[
+\begin{aligned}
 \sum_{i=1}^{n} r_\Phi(t_i)
-=\sum_{i=1}^{n} r(t_i)+\sum_{i=1}^{n}\bigl(\Phi(s_i)-\Phi(s_{i-1})\bigr)
-=\sum_{i=1}^{n} r(t_i)+\Phi(s_n)-\Phi(s_0),
+&=\sum_{i=1}^{n} r(t_i)+\sum_{i=1}^{n}\bigl(\Phi(s_i)-\Phi(s_{i-1})\bigr) \\
+&=\sum_{i=1}^{n} r(t_i)+\Phi(s_n)-\Phi(s_0),
+\end{aligned}
 \]
 since the middle sum telescopes.
 \item Utility is exactly unchanged iff the boundary term vanishes on every
