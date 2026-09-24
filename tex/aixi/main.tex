@@ -490,7 +490,7 @@ Expanding the numerator using $\xi(\aes_{1:t}) = \sum_\nu w_\nu \nu(\aes_{1:t})$
     \xi(e_t \mid \aes_{<t} a_t)
     ~&=~ \frac{\sum_{\nu \in \cM} w_\nu\, \nu(\aes_{1:t})}{\xi(\aes_{<t})} \\[4pt]
     ~&=~ \frac{\sum_{\nu} w_\nu\, \nu(\aes_{<t}) \cdot \nu(e_t \mid \aes_{<t} a_t)}{\xi(\aes_{<t})}
-    \qquad \text{(chain rule, \cref{prob:chain_rule})} \\[4pt]
+    \quad \text{(chain rule, \cref{prob:chain_rule})} \\[4pt]
     ~&=~ \sum_{\nu} \underbrace{\frac{w_\nu\, \nu(\aes_{<t})}{\xi(\aes_{<t})}}_{= \, w(\nu \mid \aes_{<t})} \cdot\, \nu(e_t \mid \aes_{<t} a_t) \\[4pt]
     ~&=~ \sum_{\nu \in \cM} w(\nu \mid \aes_{<t})\, \nu(e_t \mid \aes_{<t} a_t).
 \end{align*}
@@ -1006,7 +1006,8 @@ We now unroll this definition into the explicit \textbf{expectimax} expression: 
 By iterating the finite-horizon Bellman optimality equation (\cref{prob:bellman_opt}), show that
 \begin{align*}
     V_\xi^{*,m}(\aes_{<t})
-    ~=~ (1-\gamma) \max_{a_t} \sum_{e_t} \xi(e_t \mid \aes_{<t} a_t)\, &\max_{a_{t+1}} \sum_{e_{t+1}} \xi(e_{t+1} \mid \aes_{<t+1} a_{t+1}) \cdots \\
+    ~=~ (1-\gamma) &\max_{a_t} \sum_{e_t} \xi(e_t \mid \aes_{<t} a_t) \\
+    &\max_{a_{t+1}} \sum_{e_{t+1}} \xi(e_{t+1} \mid \aes_{<t+1} a_{t+1}) \cdots \\
     \cdots &\max_{a_m} \sum_{e_m} \xi(e_m \mid \aes_{<m} a_m) \,G_{t-1:m}
 \end{align*}
 and hence, collecting the percept factors with the chain rule (\cref{prob:chain_rule}) and taking $m \to \infty$ (\cref{prob:inf_horizon,prob:inf_opt_policy}), that AIXI selects the action

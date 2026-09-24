@@ -539,7 +539,7 @@
     var scope = view || prose;
     Array.prototype.forEach.call(scope.querySelectorAll(".katex-display"), function (el) {
       var over = el.scrollWidth - el.clientWidth;
-      var bad = on && over > 1;
+      var bad = on && over > 13; // check-overflow.mjs's SLACK (calibrated by eye)
       el.classList.toggle("diff-overflow", bad);
       if (bad) { el.title = "overflows the column by " + over + "px"; count++; }
       else if (el.title && el.title.indexOf("overflows the column") === 0) el.removeAttribute("title");
