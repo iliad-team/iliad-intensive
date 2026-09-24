@@ -164,6 +164,13 @@ from part6_goalmisgen.agent import ActorCriticNetwork
 from part6_goalmisgen.evaluation import RewardFunction, compute_return, evaluate_behaviour
 from part6_goalmisgen.potteryshop import Action, Environment, Item, State, collect_rollout
 from part6_goalmisgen.ppo import ppo_train_step, ppo_train_step_multienv
+# FILTERS: ~
+# TODO: LivePlot is vendored in support/part6_goalmisgen/liveplot.py. Its successor is the
+# library https://github.com/ARENA-education/liveplot (different API: panel strings,
+# log(**metrics), built-in tqdm bar). Once that is stable, pip install it from git pinned to a
+# commit SHA (PyPI's `liveplot` is an unrelated package), import LivePlot from it instead, and
+# delete the vendored copy. Master-only note: this block is filtered out of every notebook.
+# END FILTERS
 from part6_goalmisgen.util import LivePlot, display_envs, display_rollout, display_rollouts
 
 device = t.device("cuda" if t.cuda.is_available() else "mps" if t.backends.mps.is_available() else "cpu")
