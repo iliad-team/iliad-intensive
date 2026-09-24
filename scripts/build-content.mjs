@@ -107,6 +107,16 @@ try {
   process.exit(1);
 }
 
+// Reproducible PDFs. pdfTeX stamps the build time into every PDF it writes (its
+// dates, and the /ID derived from them), so rebuilding an unchanged sheet gave
+// a different file each time. With SOURCE_DATE_EPOCH set, the bytes depend only
+// on the input and the output path, which on CI never changes — so a rebuilt,
+// unchanged PDF is identical to production's, and a PR preview can link
+// production's copy instead of publishing it again (scripts/prune-preview.mjs).
+// Only the PDF metadata dates are pinned; \today still prints the real date.
+// Typst honours the same variable. Inherited by every tool this script runs.
+process.env.SOURCE_DATE_EPOCH ??= "1767225600";   // 2026-01-01T00:00:00Z
+
 const pexec = promisify(execFile);
 const exec = (cmd, argv, opts = {}) =>
   pexec(cmd, argv, { maxBuffer: 64 * 1024 * 1024, ...opts });

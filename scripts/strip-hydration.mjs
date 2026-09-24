@@ -21,15 +21,22 @@
  *   - prefetching: gone, which for this site is a feature (the homepage
  *     prefetching every worksheet's multi-MB payload was pure waste)
  *
+ * The same payload also ships a second time as files: each page's index.txt
+ * and __next.*.txt, which only the client router ever fetches. With the
+ * router gone they are dead weight — 79 MB per copy of the site, three 5.7 MB
+ * copies for QFT alone — and every copy is uploaded again by every GitHub Pages
+ * deploy. So they are deleted beside every stripped page.
+ *
  * /admin/status is EXEMPT: its live-PR overlay (InFlight.tsx) is real client
- * React, so that page keeps its scripts untouched. The per-page index.txt
- * flight files are also kept — that page's router still expects them.
+ * React, so that page keeps its scripts and its own .txt files untouched. (Its
+ * router may still prefetch a stripped page's payload; that 404s, and a click
+ * becomes an ordinary page load — the same as everywhere else on the site.)
  *
  * The page must be byte-identical markup after the cut: this only ever removes
  * whole <script> / <link rel=preload as=script> elements pointing into the
  * framework, and fails loudly on anything unexpected.
  */
-import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, writeFileSync, readdirSync, statSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -108,7 +115,10 @@ if (files.length === 0) {
 
 let totalBefore = 0;
 let totalAfter = 0;
+let flightFiles = 0;
+let flightBytes = 0;
 const rows = [];
+const FLIGHT_FILE = /^(index|__next\..+)\.txt$/;
 for (const file of files) {
   const before = readFileSync(file, "utf8");
   const a = stripInlineFlight(before);
@@ -121,6 +131,15 @@ for (const file of files) {
     throw new Error(`${path.relative(OUT, file)}: framework scripts survived the strip`);
   }
   writeFileSync(file, b.html);
+  // The flight payload's file copies, beside this page (see the header).
+  const dir = path.dirname(file);
+  for (const name of readdirSync(dir)) {
+    if (!FLIGHT_FILE.test(name)) continue;
+    const p = path.join(dir, name);
+    flightBytes += statSync(p).size;
+    flightFiles++;
+    rmSync(p);
+  }
   totalBefore += before.length;
   totalAfter += b.html.length;
   if (before.length - b.html.length > 100_000) {
@@ -134,3 +153,4 @@ console.log(
   `  total ${(totalBefore / 1048576).toFixed(2)} → ${(totalAfter / 1048576).toFixed(2)} MB ` +
   `(−${(100 * (1 - totalAfter / totalBefore)).toFixed(0)}%)`,
 );
+console.log(`  deleted ${flightFiles} flight .txt files (${(flightBytes / 1048576).toFixed(1)} MB)`);

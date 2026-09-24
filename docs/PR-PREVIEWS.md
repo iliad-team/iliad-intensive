@@ -29,8 +29,8 @@ gh-pages/
     pr-14/  index.html, ...       ← preview for PR #14
 ```
 
-`.github/workflows/site.yml` builds the site once per event, then stages the
-result and publishes it with `.github/publish-gh-pages.sh`:
+`.github/workflows/site.yml` builds the site once per event, then publishes it
+with `.github/publish-gh-pages.sh`:
 
 - **push to `main`** → wipes the root, keeps `pr-preview/`, copies `out/` in.
 - **pull request opened/updated** → after the check ladder passes, replaces
@@ -42,9 +42,15 @@ result and publishes it with `.github/publish-gh-pages.sh`:
   fork PRs too — safe only because the closed event never builds or executes
   anything from the PR.
 
-All three write to the same branch, so they share a `gh-pages-write` concurrency
-group (`cancel-in-progress: false`): simultaneous deploys **queue** instead of
-racing — which force-pushing needs even more than appending did. The URL comment
+All of them write to the same branch, so each changes **only the part it owns**
+of the branch as it is right now: `publish-gh-pages.sh` fetches the current
+`gh-pages` trees (no file contents), builds the new root with git plumbing, and
+pushes with `--force-with-lease` against the commit it read. If another writer
+got in first the push is refused and it rebuilds on top of theirs and retries,
+so no write is ever lost. (They used to share a `gh-pages-write` concurrency
+group instead; GitHub keeps one *pending* job per group and cancels the older
+one, so a burst of three writers silently dropped the middle one — five
+previews outlived their PRs that way in September 2026.) The URL comment
 is `continue-on-error` — a GitHub API hiccup can't fail an otherwise-successful
 deploy (the URL is deterministic regardless).
 
@@ -59,13 +65,21 @@ This is not a tidiness preference. Appending grew the branch to **5.4 GB across
 for it, since git's default refspec fetches all branches. A single worksheet page
 is ~10 MB, so each rebuild added another copy.
 
-The consequence for anyone editing the workflow: **each job stages the complete
-tree** in `.deploy/` (check out `gh-pages`, edit only the subtree it owns) and
-lets the script replace the branch with it. A force-push has no previous state to
-merge against, so a path missing from `.deploy/` is a path unpublished. This is
-why the production job carries `pr-preview/` forward instead of deleting it, and
-why `clean-exclude`-style filtering cannot work here: the tree you push *is* the
-site. The script refuses to push a tree with no root `index.html`.
+The consequence for anyone editing the workflow: **the tree you push *is* the
+site**. A force-push has no previous state to merge against, so the publish
+script builds the complete new tree itself — the current branch's trees with
+only the writer's own subtree replaced — which is why production carries
+`pr-preview/` forward instead of deleting it. Always publish through the script
+(`production <dir>`, `preview <N> <dir>`, `remove <N>…`, `list`); it refuses a
+tree with no root `index.html`.
+
+Every GitHub Pages deploy re-uploads the whole branch — production plus every
+open preview — so the branch's size is what a deploy costs (~2 min at 1.9 GB).
+Three things keep it small: `strip-hydration` deletes Next's `.txt` flight files
+(79 MB per copy of the site), a preview links any download or figure that is
+byte-identical to production's instead of copying it (`prune-preview.mjs`,
+comparing git blob ids against `gh-pages`), and the content build pins
+`SOURCE_DATE_EPOCH` so a rebuilt, unchanged PDF *is* byte-identical.
 
 ### Base path
 
@@ -159,8 +173,8 @@ domain per repo, which is why the `.com` is a redirect rather than a second
 
 The domain is claimed by **`public/CNAME`**, and it has to live there rather than
 be written once by Settings → Pages. Setting the domain in the UI commits a
-`CNAME` file to `gh-pages` — but every publish force-pushes `.deploy/` as a
-brand-new orphan commit that *is* the whole branch, so a file only the UI wrote
+`CNAME` file to `gh-pages` — but every production publish replaces the root
+with the built site as a brand-new orphan commit, so a file only the UI wrote
 is gone on the next deploy, taking the domain with it. `public/` is copied to the
 root of `out/`, so keeping it in the repo re-stages it every time. **Don't delete
 `public/CNAME`.**
@@ -309,8 +323,8 @@ and merge it; to revoke, remove it.
 
 ## Caveats / known limitations
 
-- **Concurrent deploys.** All `gh-pages` writes share the `gh-pages-write`
-  concurrency group, so a `main` push and a PR deploy queue rather than race.
+- **Concurrent deploys.** Writers don't queue; each pushes with a lease and
+  retries on top of whoever got in first (up to 8 attempts), so none is lost.
 - **Third-party actions.** Publishing no longer uses one. Earlier revisions used
   `rossjrw/pr-preview-action` (dropped: a post-deploy REST call for the commit
   SHA failed the check on a GitHub API blip even though the deploy succeeded)

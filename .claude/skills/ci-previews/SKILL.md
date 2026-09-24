@@ -21,13 +21,26 @@ gh-pages/                    ← ONE orphan commit, force-pushed on every publis
 ```
 
 GitHub Pages serves the branch from `(root)` at `iliad-intensive.org`. Every
-writer stages the **whole tree** in `.deploy/` (checkout `gh-pages`, edit only
-its own subtree) and hands it to `.github/publish-gh-pages.sh`, which refuses
-a tree with no root `index.html`, makes an orphan commit and
-`git push --force origin HEAD:gh-pages`. A path missing from `.deploy/` is a
-path unpublished — that is why the production deploy deletes everything at the
-root *except* `pr-preview/`, and why appending history was abandoned (5.4 GB
-across 90 commits). Clones exclude the branch with a negative refspec (README).
+writer goes through `.github/publish-gh-pages.sh` (`production <dir>`,
+`preview <N> <dir>`, `remove <msg> <N>…`, `list`). In a scratch repo it fetches
+the current `gh-pages` **trees only** (`--depth=1 --filter=blob:none`), builds
+the new root by editing tree objects (`ls-tree | mktree --missing`: the root
+replaced for production with `pr-preview/` carried over, or one
+`pr-preview/pr-<N>/` replaced/removed), refuses a tree with no root
+`index.html`, makes an orphan commit and pushes it with
+`--force-with-lease=gh-pages:<the commit it read>`; refused → rebuild on the new
+tip and retry (≤8, random 2–10 s back-off). Never through an index: `read-tree
+--prefix`/`write-tree` download every blob to check it (measured: 300 MB for a
+one-file preview). A preview publish is ~0.2 s of git. No history is kept
+(appending grew the branch to 5.4 GB across 90 commits); clones exclude the
+branch with a negative refspec (README).
+
+**Size is speed.** GitHub's own "pages build and deployment" re-uploads the
+whole branch on every publish (checkout ~21 s, artifact upload ~40 s, deploy
+~47 s at 1.9 GB). Keep it small: `strip-hydration` deletes the `.txt` flight
+files, `prune-preview` links production-identical downloads/figures instead of
+copying them, the content build pins `SOURCE_DATE_EPOCH` so rebuilt PDFs are
+identical, and dead previews are removed (cleanup + sweep).
 
 The Colab notebooks live on their own orphan branches, one commit each: **`notebooks`**
 (production, written only from main) and **`notebooks-pr-<N>`** (a same-repo PR's
@@ -43,9 +56,11 @@ through `.github/notebooks-branch.sh`. See the section below and `docs/NOTEBOOKS
 **Concurrency**: group `site-<PR number || ref>`, `cancel-in-progress` only for
 `pull_request*` events. Keyed on the PR *number* because a merged PR's closed
 event has no merge ref and used to fall into main's group and cancel the
-production build (main lost 7 of 11 deploys, all checks green). Every job that
-writes `gh-pages` additionally takes `concurrency: gh-pages-write` with
-`cancel-in-progress: false`, so writers queue.
+production build (main lost 7 of 11 deploys, all checks green). The `gh-pages`
+writers take **no** job concurrency: they used to share `gh-pages-write`, but
+GitHub keeps one pending job per group and cancels the older, so a burst of
+three writers lost the middle one (#170/#173/#174's cleanups, Sep 2026). The
+publish script's lease-and-retry replaces the lock.
 
 **`build`** (every event except close/schedule/dispatch; 20-minute cap):
 1. `actions/checkout` with `lfs: true` (figures are LFS pointers otherwise and
@@ -108,12 +123,11 @@ writes `gh-pages` additionally takes `concurrency: gh-pages-write` with
 Advisory and never red (`|| echo`), as it was inside `npm run ci`; it skips pages
 absent from `out/` (partial previews).
 
-**`deploy`** (push to main): download `site`, guard, checkout `gh-pages` into
-`.deploy`, `find .deploy -mindepth 1 -maxdepth 1 ! -name .git ! -name pr-preview -exec rm -rf`,
-`cp -a out/. .deploy/`, publish `"Deploy <sha>"`.
+**`deploy`** (push to main): download `site`, guard,
+`publish-gh-pages.sh production out "Deploy <sha>"`.
 
-**`preview-deploy`** (`pull_request` from a branch in *this* repo only): stage
-`.deploy/pr-preview/pr-N/`, publish, then upsert one PR comment carrying the
+**`preview-deploy`** (`pull_request` from a branch in *this* repo only):
+`publish-gh-pages.sh preview <N> out …`, then upsert one PR comment carrying the
 marker `<!-- pr-preview-url -->` with the URL and head sha
 (`continue-on-error`; the URL is deterministic anyway). The comment reads
 `out/preview-manifest.json` to name the changed pages, or say the preview is
@@ -127,18 +141,23 @@ site at the root path, which on the same origin *is* the unchanged page
 tinted green on the homepage and sidebar. Only a build with
 `NEXT_PUBLIC_PREVIEW_PR` set can be partial, so production never is. Measured:
 one changed worksheet publishes ~11 MB instead of ~165. Fork previews get it
-for free (same artifact). Local recipe: add `PREVIEW_CHANGED_SLUGS=<slug>` and
+for free (same artifact). And in **every** preview, full or partial, a download
+or figure whose git blob id equals production's at the same path (the build job
+lists `gh-pages`'s `downloads`/`uploads` trees into `PREVIEW_PROD_ASSETS`) is
+deleted and its links rewritten from `<base>/downloads/…` to `/downloads/…`,
+production's copy on the same origin; `uploads/*/nb/` is exempt (the preview's
+notebooks link it). Local recipe: add `PREVIEW_CHANGED_SLUGS=<slug>` and
 `NEXT_PUBLIC_DIFF_BASE=https://iliad-intensive.org` to a preview-flavoured
 build, then `node scripts/prune-preview.mjs`.
 
 **`preview-cleanup`** (`pull_request_target: closed`): checkout **main** (the
-merge ref is gone once merged), remove `pr-preview/pr-N/`, publish, flip the
+merge ref is gone once merged), `publish-gh-pages.sh remove … <N>`, flip the
 comment to "Preview removed". Safe on `pull_request_target` only because it
 runs nothing from the PR.
 
-**`preview-sweep`** (schedule/dispatch): for every `pr-preview/pr-*/`, `gh pr
-view --json state`; delete only on a definitive `CLOSED`/`MERGED`, keep on any
-API failure, publish once. The backstop for a cleanup that never fired.
+**`preview-sweep`** (schedule/dispatch): for every number from
+`publish-gh-pages.sh list`, `gh pr view --json state`; delete only on a
+definitive `CLOSED`/`MERGED`, keep on any API failure, one `remove` for all. The backstop for a cleanup that never fired.
 
 ## `.github/workflows/notebooks.yml` — the `notebooks` branch
 
@@ -250,7 +269,7 @@ python3 -m http.server 4499 --directory out
 | PR check red | `gh pr checks <n>` / `gh run view <id> --log-failed`. The build step prints the same `✗ <slug>: …` lines as `./run.sh ci`; reproduce locally with `./run.sh ci <slug>` |
 | build green but no preview comment | same-repo PR: did `preview-deploy` run (`gh run view`)? Fork PR: is there a `fork-preview` run after it, and did the trust gate print `trusted=true`? Comment step is `continue-on-error`, so the URL may still work |
 | preview shows stale content | the run for the newest push may have been cancelled by a newer push (same `site-<N>` group); look at the head sha in the comment |
-| production not updated after merge | `gh run list --workflow site --branch main`; check the `deploy` job, and whether a `gh-pages-write` writer ahead of it failed. `/admin/status` also shows "N commits behind main" from the browser |
+| production not updated after merge | `gh run list --workflow site --branch main`; check the `deploy` job's log (a lease retry says "another writer published first"). `/admin/status` also shows "N commits behind main" from the browser |
 | preview 404s on assets/links | base path not applied somewhere render-time — see the `site-rendering` skill; or `.nojekyll` missing (Jekyll drops `_next/`) |
 | preview of a closed PR still live | wait for Monday's sweep or `gh workflow run site.yml` |
 | apt step stalls or fails | the log is in the Build step's "TeX Live + poppler" group. Ubuntu mirror incident; re-run. If `apt-packages.txt` changed, the first run is cold by design |
@@ -268,8 +287,9 @@ python3 -m http.server 4499 --directory out
 1. Never route an event that **builds** through `pull_request_target`, and
    never `npm ci`/checkout PR code in `fork-preview.yml` — both hand a write
    token to the PR author.
-2. Every `gh-pages` writer takes `concurrency: gh-pages-write`, never cancels
-   in progress, stages the complete tree, and calls the publish script.
+2. Every `gh-pages` write goes through `.github/publish-gh-pages.sh`. Never add
+   a shared `concurrency:` group to the writers (GitHub drops pending jobs),
+   never check out `gh-pages` to stage it, never push to it any other way.
 3. Keep PR-controlled strings (title, branch) out of `${{ }}` inside `run:`;
    pass them via `env:`.
 4. Keep the `pr-preview-url` comment marker and the URL format; the PR
