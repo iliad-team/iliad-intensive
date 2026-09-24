@@ -2,10 +2,18 @@
  * diff.js — the PR-preview "diff" view: this page side by side with the same
  * page on the live site, differences highlighted like a git diff.
  *
- * Loaded ONLY by preview builds (layout.tsx adds the script when
- * NEXT_PUBLIC_PREVIEW_PR is set), and inert unless the page has a worksheet
- * article and the banner's #diff-toggle checkbox exists. Vanilla JS, like
- * site.js: worksheet pages ship no framework (scripts/strip-hydration.mjs).
+ * Loaded by preview builds (layout.tsx adds the script when
+ * NEXT_PUBLIC_PREVIEW_PR is set), and by /dev/diff (public/dev-diff.js, which
+ * compares two snapshots of a page). Inert unless the page has a worksheet
+ * article and a #diff-toggle checkbox (components/DiffControls.tsx). Vanilla
+ * JS, like site.js: worksheet pages ship no framework (strip-hydration.mjs).
+ *
+ * #diff-toggle's data-* attributes say where the base comes from:
+ *   data-diff-base, data-base-path   preview: this page's path on the base site
+ *   data-diff-url                    a fixed URL instead (/dev/diff)
+ *   data-label-base, data-label-pr   the two column headings
+ *   data-key                         localStorage key for on/off (default iliad.diff)
+ *   data-autostart                   start on, unless the reader turned it off
  *
  * How it works
  *   1. Fetch the SAME path from the base site — production is served from the
@@ -64,7 +72,7 @@
   if (!prose) { controls.hidden = true; return; }
 
   var root = document.documentElement;
-  var KEY = "iliad.diff";
+  var KEY = toggle.getAttribute("data-key") || "iliad.diff";
   var SYNC_KEY = "iliad.diffSync";
   var STRETCH_KEY = "iliad.diffStretch";
   var HIDE_KEY = "iliad.diffHide";
@@ -75,7 +83,9 @@
   var baseOrigin = toggle.getAttribute("data-diff-base") || "";
   var pagePath = location.pathname;
   if (basePath && pagePath.indexOf(basePath) === 0) pagePath = pagePath.slice(basePath.length) || "/";
-  var baseUrl = baseOrigin + pagePath;
+  var baseUrl = toggle.getAttribute("data-diff-url") || baseOrigin + pagePath;
+  var LABEL_BASE = toggle.getAttribute("data-label-base") || "main (live site)";
+  var LABEL_PR = toggle.getAttribute("data-label-pr") || "this pull request";
 
   var pristine = prose.cloneNode(true);
   var view = null;
@@ -448,8 +458,8 @@
     view = document.createElement("div");
     view.className = "diff-view";
     prose.parentNode.insertBefore(view, prose);
-    view.appendChild(column("main (live site)", "diff-col-base", base));
-    view.appendChild(column("this pull request", "diff-col-pr", prose));
+    view.appendChild(column(LABEL_BASE, "diff-col-base", base));
+    view.appendChild(column(LABEL_PR, "diff-col-pr", prose));
     root.classList.add("diff-open");
 
     var A = leaves(base, []), B = leaves(prose, []);
@@ -545,7 +555,7 @@
   // Resolves once the view is built (or the attempt has failed and said so),
   // so "next change" can wait for it.
   function enable() {
-    say("loading main…");
+    say("loading " + (toggle.getAttribute("data-label-base") || "main") + "…");
     toggle.disabled = true;
     return fetchBase().then(function (baseProse) {
       toggle.disabled = false;
@@ -605,5 +615,6 @@
 
   if (nextBtn) nextBtn.addEventListener("click", nextChange);
 
-  if (load(KEY) === "1") { toggle.checked = true; enable(); }
+  var on = load(KEY);
+  if (on === "1" || (on === null && toggle.hasAttribute("data-autostart"))) { toggle.checked = true; enable(); }
 })();

@@ -289,10 +289,11 @@ html.nav-open #nav-toggle .icon-close {
   display: inline;
 }
 
-/* ---- PR-preview diff view (public/diff.js) ------------------------------
-   Two columns — the live site's article on the left, this PR's on the right —
-   with matched blocks padded into shared rows. Only preview builds load the
-   script; on production none of this markup exists. */
+/* ---- diff view (public/diff.js) -----------------------------------------
+   Two columns — the base article on the left (the live site's, on a PR
+   preview; the older snapshot, on /dev/diff), the new one on the right — with
+   matched blocks padded into shared rows. Loaded only by preview builds and by
+   /dev/diff; nowhere else does this markup exist. */
 body:not(:has(main article .prose)) #diff-controls {
   display: none;
 }

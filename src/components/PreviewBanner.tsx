@@ -1,4 +1,5 @@
 import { CHANGED, PARTIAL } from "@/lib/preview";
+import { DiffControls } from "@/components/DiffControls";
 
 // Shown ONLY on per-PR preview builds. CI sets NEXT_PUBLIC_PREVIEW_PR to the PR
 // number for preview deploys (see .github/workflows/site.yml); production builds
@@ -39,9 +40,6 @@ export function PreviewBanner() {
   if (!PR) return null;
   const prUrl = `${REPO_URL}/pull/${PR}`;
   const n = CHANGED.size;
-  const control =
-    "rounded border border-amber-600/40 bg-amber-300/60 px-2 py-0.5 leading-tight " +
-    "transition-colors hover:border-amber-700 hover:bg-amber-300";
   return (
     <div role="alert" className="w-full bg-amber-400 text-amber-950 font-sans text-sm">
       <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 pb-1 pt-2 text-center">
@@ -90,46 +88,13 @@ export function PreviewBanner() {
           </span>
         )}
       </div>
-      {/* The diff view's controls. Inert markup: public/diff.js owns them and
-          hides the whole row on pages without a worksheet article. */}
-      <div
-        id="diff-controls"
-        className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-amber-600/30 px-4 pb-2 pt-1.5 text-xs"
-      >
-        <label className="inline-flex cursor-pointer items-center gap-1">
-          <input
-            type="checkbox"
-            id="diff-toggle"
-            data-diff-base={DIFF_BASE}
-            data-base-path={BASE_PATH}
-          />
-          diff vs main
-        </label>
-        <label id="diff-sync-label" className="inline-flex cursor-pointer items-center gap-1">
-          <input type="checkbox" id="diff-sync" defaultChecked />
-          sync scroll
-        </label>
-        {/* On by default: unchanged sections and blocks fold into clickable
-            strips (one per section, named by its heading), one block of context
-            kept beside each change, so a long sheet reads as its changes. */}
-        <label id="diff-hide-label" className="inline-flex cursor-pointer items-center gap-1">
-          <input type="checkbox" id="diff-hide" defaultChecked />
-          hide unchanged
-        </label>
-        {/* Off by default: each diff column is then exactly as wide as the
-            page's own column, so an equation that runs off the real page runs
-            off here too. On, the columns share the viewport and hide it. */}
-        <label id="diff-stretch-label" className="inline-flex cursor-pointer items-center gap-1">
-          <input type="checkbox" id="diff-stretch" />
-          allow stretched margins
-        </label>
-        {/* Steps through the changes in position order; turns the diff on
-            first if it is off. */}
-        <button type="button" id="diff-next" className={control}>
-          next change&nbsp;▸
-        </button>
-        <span id="diff-status" className="italic text-amber-900/80" />
-      </div>
+      {/* The diff view's controls (components/DiffControls.tsx); diff.js
+          fetches the base article from DIFF_BASE + this page's path. */}
+      <DiffControls
+        label="diff vs main"
+        className="border-t border-amber-600/30"
+        toggleData={{ "data-diff-base": DIFF_BASE, "data-base-path": BASE_PATH }}
+      />
     </div>
   );
 }
