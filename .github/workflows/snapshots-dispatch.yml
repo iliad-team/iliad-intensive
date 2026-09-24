@@ -1,0 +1,45 @@
+# Tell iliad-intensive-snapshots that a page may have a new version, so it
+# renders it now rather than at its daily backstop run. The snapshots repo
+# renders every version of tex/<slug>/ on every branch and every PR head,
+# fork PRs included (its .github/workflows/update.yml).
+#
+# Needs one secret, SNAPSHOTS_DISPATCH_TOKEN: a fine-grained PAT scoped to
+# iliad-team/iliad-intensive-snapshots only, with "Actions: read and write"
+# and nothing else. It starts that repo's update workflow (workflow_dispatch)
+# and cannot touch its contents: a leak lets someone start or cancel runs,
+# never push. Not repository_dispatch, which needs Contents: write. Without
+# the secret this job is a no-op, and the snapshots repo still catches up on
+# its daily run.
+#
+# pull_request_target (not pull_request) so fork PRs get the secret. It is
+# safe here only because this job never checks out or runs anything from the
+# PR: it sends one fixed API call. Keep it that way. Same-repo PRs are skipped:
+# their push already fired this. NOTE: pull_request_target runs this file as
+# it is on main, so fork PRs are covered only once this is merged.
+name: snapshots-dispatch
+
+on:
+  push:
+    paths: ["tex/**"]
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    paths: ["tex/**"]
+
+permissions: {}
+
+jobs:
+  dispatch:
+    if: >-
+      github.event_name == 'push'
+      || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.SNAPSHOTS_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::notice::SNAPSHOTS_DISPATCH_TOKEN not set; snapshots catch up on their daily run"
+            exit 0
+          fi
+          gh api -X POST repos/iliad-team/iliad-intensive-snapshots/actions/workflows/update.yml/dispatches -f ref=main
