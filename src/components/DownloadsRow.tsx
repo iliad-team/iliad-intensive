@@ -99,7 +99,6 @@ export function DownloadsRow({
           <input
             type="checkbox"
             id="solutions-toggle"
-            defaultChecked
             className="accent-zinc-600"
           />
           with solutions
@@ -112,8 +111,8 @@ export function DownloadsRow({
           return (
             <li key={ext} className="flex flex-wrap items-center gap-2">
               <span className={rowLabel}>{LABELS[ext]}</span>
-              {VIEWABLE.has(ext) && <Box href={sol} sol={sol} nosol={nosol}>view</Box>}
-              <Box href={sol} sol={sol} nosol={nosol} download>download</Box>
+              {VIEWABLE.has(ext) && <Box href={nosol} sol={sol} nosol={nosol}>view</Box>}
+              <Box href={nosol} sol={sol} nosol={nosol} download>download</Box>
             </li>
           );
         })}
@@ -157,7 +156,7 @@ export function DownloadsRow({
         {notebooks.map((nb) => (
           <li key={nb.name} className="flex flex-wrap items-center gap-2">
             <span className={rowLabel}>Notebook</span>
-            <Box href={nb.sol} sol={nb.sol} nosol={nb.nosol}>colab&nbsp;↗</Box>
+            <Box href={nb.nosol} sol={nb.sol} nosol={nb.nosol}>colab&nbsp;↗</Box>
             {notebooks.length > 1 && nb.title && <span className="text-zinc-500">{nb.title}</span>}
           </li>
         ))}
