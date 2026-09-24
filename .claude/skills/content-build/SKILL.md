@@ -139,9 +139,39 @@ which also refreshes the staged `.mdx` downloads) and the rest of `scripts/`
 `schedule.yaml`; the code is the truth. `--no-cache` if you suspect a stale
 artifact. The stamp is written only after a clean full build.
 
+**Notebook files are not worksheet inputs.** The hash skips, at the module's top level,
+notebook masters (a `.py` whose first line starts `# ! `), `*.ipynb`, the `.<name>.sync`
+stamps, `.trash/`, `*.from-notebook.py` and `support/` (`isNotebookFile`). So editing a
+notebook never recompiles a PDF. What *is* hashed: the list of master names, because
+`\notebooksol{name}` must resolve against it; and, on a PR preview build only, the
+preview prefix, for a sheet whose sources link a notebook (`linksNotebooks`), so a
+preview and production never share that sheet's cached page.
+
 In CI the same artifacts are restored from `actions/cache` (key never hits,
 `restore-keys: worksheets-` pulls the newest), so an untouched day is not
 recompiled there either.
+
+## Notebooks (built elsewhere; touched here in three places)
+
+Colab notebooks are built by `tex/gen_notebooks.py` (`./run.sh notebooks <slug>`) and
+published by `notebooks.yml`, never by this ladder. See `docs/NOTEBOOKS.md`. The content
+build meets them three times:
+
+1. **Links.** Right after the schedule stamp (step 2.4b), `resolveNotebookLinks` turns
+   `<NotebookSol name="x"/>` / `<NotebookNoSol …/>` (what `\notebooksol{x}` converts to,
+   or what an MDX sheet writes) into plain Colab links. An unknown name is a build error.
+   pdflatex gets `\def\iliadslug{<slug>}\def\iliadnbpreview{…}` ahead of the document
+   (the `tex` helper), so the PDF links resolve too. In a same-repo PR preview,
+   `NOTEBOOK_PREVIEW_PR` points every link at `pr-preview/pr-<N>/` of the `notebooks`
+   branch.
+2. **Images.** `stageNotebookImages` copies the `fig/` files the masters reference
+   (images, and linked files like `fig/play.html`) to `public/uploads/<slug>/nb/`, on
+   every build including cache hits. That's where published notebooks link them.
+3. **The page's Notebook row.** After the worker pool, `content/notebooks.json` is
+   rewritten for every module: name, first heading, both Colab URLs.
+
+`fig/*.html` is also copied to `/uploads/<slug>/` like an image (a self-contained demo
+the slides link).
 
 ## `schedule.yaml` rules (`scripts/schedule.mjs`, fatal, one-line fixes)
 
@@ -184,6 +214,8 @@ and `.claude/worktrees/` so stale worktrees don't fail type-checking.
 | page shows wrong day/cluster | run a full build; a cached sheet is re-stamped on every hit, a `--check` output is not |
 | numbering differs from the PDF | stale `.aux`; delete `tex/<slug>/main.aux` or `--no-cache` |
 | watcher rebuilds forever | something writes a file not matched by `BUILD_ARTIFACT` in `scripts/artifacts.mjs` |
+| `\notebooksol{x}: no notebook master tex/<slug>/x.py` | a typo in the name, or the master's first line doesn't start `# ! ` |
+| a notebook edit recompiled a PDF | it touched something the hash keeps, e.g. `fig/` (shared with the sheet), or a `.py` that isn't a master |
 
 Full CI ladder locally: `./run.sh ci <slug>`; overflow check against a dev
 server: `node scripts/check-overflow.mjs <slug> --base-url http://localhost:3000`

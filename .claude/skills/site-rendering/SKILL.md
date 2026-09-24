@@ -24,6 +24,7 @@ the mechanics and the rules.
 | `schedule.yaml` | `lib/cluster-store.ts` (`server-only`) `listClusters`, `listDays` | cluster labels + URL segments, day codes + titles; degrades to `DEFAULT_CLUSTERS`/`[]` |
 | `intensives/*.yaml` | `lib/intensives.ts` (`server-only`) | throws on bad data — a wrong published date is worse than a red build |
 | `public/downloads/<slug>/` | `listDownloads`, `listDecks` | which buttons the downloads row offers; deck titles read off the staged `.tex`/`.typ` |
+| `content/notebooks.json` | `listNotebooks` | the page's **Notebook** row(s) in `DownloadsRow`: each notebook's two Colab URLs (already preview-aware). Written by the content build on every run |
 | `license.md` | `app/license/page.tsx` | rendered through the same MDX pipeline |
 | `NEXT_PUBLIC_BASE_PATH` | `next.config.ts`, `lib/mdx.tsx`, module page, status page, `PreviewBanner` | sub-path hosting for PR previews; empty in production |
 | `NEXT_PUBLIC_COMMIT_SHA` | `components/BuildStamp.tsx` | footer commit link; `npm run ci` defaults it to `git rev-parse HEAD` |
@@ -108,8 +109,10 @@ So all client behaviour lives in `public/site.js` (~60 lines, vanilla,
 feature-detected by id): the `#nav-toggle` button toggles `nav-open` on
 `<html>` and stores it under `localStorage["iliad.navOpen"]`; a click on a
 link inside `#module-sidebar` closes the sidebar below `lg`; the
-`#solutions-toggle` checkbox swaps every `a[data-sol]` between its
-`data-sol`/`data-nosol` hrefs. `ModulePageShell` renders **both** layout
+`#solutions-toggle` checkbox (unticked by default, so links start on the no-solutions
+files; also synced once on load, for back/forward form restore) swaps every
+`a[data-sol]` between its `data-sol`/`data-nosol` hrefs, the worksheet downloads and
+the Notebook row alike. `ModulePageShell` renders **both** layout
 states in the markup and `globals.css`'s `#page-shell` rules pick one from
 `html.nav-open`; `NavToggle` ships both icons and `aria-expanded="false"`
 which site.js syncs. `body:has(#module-sidebar)` hides the toggle where there

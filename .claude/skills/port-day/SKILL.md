@@ -311,3 +311,14 @@ Say what the source didn't have. Doc tabs are frequently internally inconsistent
 — stale tables of contents promising sections the body lacks, scheduled blocks
 with no material. Those are gaps to flag for chasing the author, not gaps to fill
 in yourself.
+
+## Days whose material includes notebooks
+
+A notebook that is generated purely from Python (an ARENA-format master, or any
+`.ipynb` to import) moves in with the day: the master goes in `tex/<slug>/<name>.py`,
+its images in `fig/`, modules it imports in `support/`. It is linked with
+`\notebooksol{name}` / `\notebooknosol{name}`, never a hard-coded Colab URL. Commit the
+`.py`, never an `.ipynb`. E.3 (#168) and D.2 (#174) are the worked examples. The
+"Migration" section of `docs/NOTEBOOKS.md` lists what each needed, and the move is a
+scripted transform shown as a diff, like any port. Hand-maintained notebook repos (C.1.1,
+C.2) and ARENA's own material stay where they are and are linked as they are.

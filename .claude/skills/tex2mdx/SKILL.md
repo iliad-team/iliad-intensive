@@ -149,6 +149,12 @@ What constructs become (the component *names* are the contract with
 heading anchors are `ghSlug(heading text)` so they match what rehype-slug
 generates on the site.
 
+- **Notebook links.** `\notebooksol[text]{name}` / `\notebooknosol[…]{…}` (signature
+  `o m`) emit `<NotebookSol name="…">text</NotebookSol>` / `<NotebookNoSol …/>`, the same
+  tags an MDX sheet writes. There is no site component for them: `build-content.mjs`
+  (`resolveNotebookLinks`) replaces them with plain Colab links before the render gate,
+  because only the build knows which notebook masters exist. See `docs/NOTEBOOKS.md`.
+
 ### Math
 
 `mathClean` = `applyMathShims` (`KATEX_SHIMS` synonyms, `\$` → `\char36 `,
