@@ -24,6 +24,12 @@
  *
  * Exits 1 if any error-level finding is reported, else 0.
  *
+ * The content build also runs it: build-content.mjs calls lintFile() with
+ * { build: true } for every sheet it rebuilds and prints the findings as
+ * ordinary non-fatal `⚠ warning:` notes. Build mode leaves out the info level
+ * and every rule the build already reports itself (BUILD_SKIP), so nothing is
+ * said twice; this CLI remains the whole-repo sweep with every rule.
+ *
  * Silence a finding you have judged to be fine with a comment on the flagged
  * line or the line above it (MDX: {/* house-lint-ignore … *\/}):
  *   % house-lint-ignore literal-number-ref
@@ -78,6 +84,16 @@ const RULES = {
   "mdx-footnote-undefined": ["error", "a [^label] footnote reference with no [^label]: definition"],
 };
 const LEVELS = { info: 0, warn: 1, error: 2 };
+
+// Rules the content build already checks on its own — the converter's
+// advisories and warnings, the MDX path's summary and order checks, or a hard
+// failure (frontmatter schedule keys, a contract clash, an MDX compile error).
+// Build mode drops them so each finding is reported once.
+export const BUILD_SKIP = new Set([
+  "summary-missing", "frontmatter-schedule-key", "summary-env",
+  "plain-ref", "typed-subpart", "solution-dangling", "contract-redefined",
+  "youtube-id", "mdx-html-comment",
+]);
 
 // ------------------------------------------------------------------ helpers ---
 
@@ -182,7 +198,13 @@ const CONTRACT_ENVS = ["exercise", "solution", "proof", "callout", "remark", "le
   "definition", "theorem", "lemma", "proposition", "corollary", "fact", "example", "hint",
   "solutionsonly", "pdfonly", "teachingnote"];
 
-function lintFile(rel, raw, tracked) {
+/**
+ * Lint one sheet. `rel` is the path findings are reported under; `tracked` is
+ * `git ls-files tex` (for the committed-images rule). With { build: true }:
+ * no info level, no BUILD_SKIP rules, and only what the converter's own
+ * front-matter and \\hyperref checks cannot see.
+ */
+export function lintFile(rel, raw, tracked, { build = false } = {}) {
   const kind = rel.endsWith(".mdx") ? "mdx" : "tex";
   const findings = [];
   const at = lineIndex(raw);
@@ -201,6 +223,7 @@ function lintFile(rel, raw, tracked) {
     }
   });
   const report = (rule, off, msg) => {
+    if (build && (BUILD_SKIP.has(rule) || RULES[rule][0] === "info")) return;
     const { line, col } = typeof off === "number" ? at(off) : { line: off.line, col: 1 };
     if (fileIgnores.has(rule) || lineIgnores.get(line)?.has(rule)) return;
     findings.push({ file: rel, line, col, rule, level: RULES[rule][0], msg: msg ?? RULES[rule][1] });
@@ -218,7 +241,7 @@ function lintFile(rel, raw, tracked) {
   for (const k of ["cluster", "day"]) if (meta?.keys[k]) report("frontmatter-schedule-key", { line: meta.keys[k].line },
     `frontmatter sets \`${k}:\` — list the slug under its day in schedule.yaml instead`);
 
-  if (kind === "mdx") return lintMdx(raw, report), findings;
+  if (kind === "mdx") return lintMdx(raw, report, build), findings;
 
   // ---- TeX
   const code = stripTexComments(raw);
@@ -241,7 +264,7 @@ function lintFile(rel, raw, tracked) {
       if (!g) continue;
       const t = g.content.replace(/\\[a-zA-Z]+\s*/g, "").replace(/[{}]/g, "").trim().toLowerCase();
       const item = { at: bodyOff + m.index };
-      if (/^prerequisites?\b/.test(t)) pos.prereqs ??= item;
+      if (/^prerequisites?\b/.test(t)) pos.prereqs ??= { ...item, paragraph: m[1] === "paragraph" };
       else if (m[1] === "paragraph" || /^(overview|introduction)\b/.test(t)) continue;
       else pos.content ??= item;
     }
@@ -249,7 +272,10 @@ function lintFile(rel, raw, tracked) {
     if (lo >= 0) pos.outcomes = { at: bodyOff + lo };
     const yt = body.search(/\\youtube\b/);
     if (yt >= 0) pos.video = { at: bodyOff + yt };
-    for (const i of frontMatterOrderIssues(pos)) report("frontmatter-order", i.at, i.msg);
+    // The converter already judges a \\section-headed Prerequisites; in build
+    // mode speak up only for the \\paragraph form it does not recognise.
+    if (!build || pos.prereqs?.paragraph)
+      for (const i of frontMatterOrderIssues(pos)) report("frontmatter-order", i.at, i.msg);
   }
 
   // Further reading is the last \section before the appendix / bibliography.
@@ -296,6 +322,8 @@ function lintFile(rel, raw, tracked) {
     // them first; a match followed by "of/in \cite" also points outside.
     let scan = body;
     for (const [i, n] of leadIns) scan = scan.slice(0, i) + " ".repeat(n) + scan.slice(i + n);
+    // \\hyperref link text is the converter's to judge in the build
+    if (build) scan = scan.replace(/\\hyperref\[[^\]]*\]\{[^{}]*\}/g, (s) => s.replace(/[^\n]/g, " "));
     scan = scan
       .replace(/\\cite\w*\s*(\[[^\]]*\]\s*){1,2}/g, (s) => s.replace(/[^\n]/g, " "))
       .replace(/\\(?:sub)*section\*?\s*(\[[^\]]*\])?\s*\{[^\n]*/g, (s) => s.replace(/[^\n]/g, " "))
@@ -381,7 +409,7 @@ function bareDollars(text, fn) {
   }
 }
 
-function lintMdx(raw, report) {
+function lintMdx(raw, report, build) {
   const text = blankMdx(raw);
   const each = (re, fn) => { for (const m of text.matchAll(re)) fn(m, m.index); };
 
@@ -402,7 +430,8 @@ function lintMdx(raw, report) {
   if (lo >= 0) pos.outcomes = { at: lo };
   const yt = text.indexOf("<YouTube");
   if (yt >= 0) pos.video = { at: yt };
-  for (const i of frontMatterOrderIssues(pos)) report("frontmatter-order", i.at, i.msg);
+  // build-content.mjs runs this same check over main.mdx itself
+  if (!build) for (const i of frontMatterOrderIssues(pos)) report("frontmatter-order", i.at, i.msg);
 
   const secs = [...text.matchAll(/^## +(.*)$/gm)].map((m) => ({ at: m.index, title: m[1].trim() }));
   const fr = secs.findIndex((s) => /further\s+read|learn\s+more/i.test(s.title));
@@ -422,7 +451,7 @@ function lintMdx(raw, report) {
 
 // --------------------------------------------------------------------- main ---
 
-function trackedFiles() {
+export function trackedFiles() {
   try {
     return execFileSync("git", ["ls-files", "tex"], { cwd: ROOT, encoding: "utf8" }).split("\n").filter(Boolean);
   } catch {
@@ -430,6 +459,9 @@ function trackedFiles() {
   }
 }
 
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();
+
+function main() {
 const argv = process.argv.slice(2);
 if (argv.includes("--rules")) {
   const w = Math.max(...Object.keys(RULES).map((k) => k.length));
@@ -468,3 +500,4 @@ else {
   console.log(`\n${sheets.length} sheet(s): ${n("error")} error(s), ${n("warn")} warning(s), ${n("info")} info`);
 }
 process.exit(all.some((f) => f.level === "error") ? 1 : 0);
+}

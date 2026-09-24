@@ -22,6 +22,9 @@
  * Exit codes: 0 ok · 1 something failed (converter warnings, KaTeX errors,
  * or a PDF build failure) — error messages carry file:line from the converter.
  *
+ * Each rebuilt sheet is also run through scripts/house-lint.mjs in build mode;
+ * its findings are non-fatal `⚠ warning:` notes and never change the exit code.
+ *
  * Usage:
  *   build-content.mjs [flags] [slug ...]   no slugs = build every worksheet
  *
@@ -43,6 +46,7 @@ import { fileURLToPath } from "node:url";
 import { injectAutoLabelsTree } from "./tex2mdx/autolabel.mjs";
 import { transformInputTree } from "./tex2mdx/texinput.mjs";
 import { frontMatterOrderIssues } from "./tex2mdx/util.mjs";
+import { lintFile as houseLintFile, trackedFiles } from "./house-lint.mjs";
 import { buildStatus } from "./build-status.mjs";
 import { loadSchedule, ScheduleError } from "./schedule.mjs";
 
@@ -433,6 +437,14 @@ const outputsPresent = (slug) => {
 
 /** Build one worksheet. Returns { ok, text } — text is the complete,
  *  atomically printable log block for this slug. */
+let tracked;
+function houseLint(slug) {
+  const rel = ["main.tex", "main.mdx"].map((f) => `tex/${slug}/${f}`).find((f) => existsSync(path.join(ROOT, f)));
+  if (!rel) return [];
+  tracked ??= trackedFiles() ?? [];
+  return houseLintFile(rel, readFileSync(path.join(ROOT, rel), "utf8"), tracked, { build: true });
+}
+
 async function buildSlug(slug) {
   const dir = path.join(TEX, slug);
   const mdxOut = path.join(MODULES, `${slug}.mdx`);
@@ -468,6 +480,17 @@ async function buildSlug(slug) {
       cached: true,
       text: moved ? `↷ ${slug} cached — re-stamped for schedule\n` : "",
     };
+  }
+  // House-style lint (scripts/house-lint.mjs): the pattern-level checks the
+  // converter does not make — hand-typed Hint:/Remark. lead-ins, references
+  // typed as text, Further reading not last, images outside fig/, … — as
+  // non-fatal notes. After the cache check on purpose: a sheet is linted when it
+  // rebuilds, so the notes are about what you are editing; `./run.sh lint`
+  // sweeps every sheet. On GitHub Actions each finding is also an annotation.
+  for (const f of houseLint(slug)) {
+    if (process.env.GITHUB_ACTIONS)
+      notes.push(`::warning file=${f.file},line=${f.line},col=${f.col},title=house style: ${f.rule}::${f.msg}`);
+    notes.push(`⚠ warning: ${f.file}:${f.line}  ${f.msg} [house-lint ${f.rule}]`);
   }
   // Every TeX tool runs with the worksheet folder as cwd. BSTINPUTS adds the
   // shared tex/ dir to bibtex's style search path so tex/alphaurl.bst — vendored

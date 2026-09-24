@@ -147,7 +147,22 @@ bad `\youtube` IDs, images outside `fig/`, and the MDX pitfalls (`<!-- -->`,
 
 The rules restate docs/commands.md and docs/iliad-sty.md, and reuse the
 converter's own `CONTRACT_NAMES` and `frontMatterOrderIssues`, so the lint and
-the build's advisories never disagree. It is advisory and wired into no hook.
+the build's advisories never disagree.
+
+**In the build.** `build-content.mjs` runs the same lint on every sheet it
+rebuilds (full build, `--check`, so the watch loop, pre-push and CI too) and
+prints each finding as an ordinary non-fatal note, tagged with its rule:
+
+    ⚠ warning: tex/aixi/main.tex:1433  "Remark" as a typed lead-in — use remark [house-lint hand-rolled-lead-in]
+
+It never fails a build. Build mode drops the info level and every rule the
+build already reports itself (`BUILD_SKIP` in the script: summary, plain
+`\ref`, typed subparts, dangling solutions, `\youtube` IDs, …), plus the
+front-matter order except for a `\paragraph{Prerequisites}` the converter
+cannot see — so nothing is said twice. It runs after the cache check, so an
+unchanged sheet stays silent: the notes are about what you are editing, and
+`./run.sh lint` is the sweep of every sheet. On GitHub Actions each finding is
+also emitted as a `::warning` annotation, which shows on the PR's diff.
 Silence a finding you have judged fine with `% house-lint-ignore <rule>` on the
 line or the line above it (`{/* house-lint-ignore <rule> */}` in MDX), or
 `% house-lint-ignore-file <rule>` anywhere in the file.
