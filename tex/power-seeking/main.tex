@@ -462,13 +462,11 @@ $(\phi \cdot f)^\top (\phi \cdot r) = f^\top r$.
 Writing out the inner product and reindexing the sum by $s' = \phi^{-1}(s)$ (a bijection
 of $\cS$):
 $$
-\begin{aligned}
 (\phi \cdot x)^\top (\phi \cdot y)
-&= \sum_{s \in \cS} (\phi \cdot x)_{s}\, (\phi \cdot y)_{s}
-= \sum_{s \in \cS} x_{\phi^{-1}(s)}\, y_{\phi^{-1}(s)} \\
-&= \sum_{s' \in \cS} x_{s'}\, y_{s'}
+= \sum_{s \in \cS} (\phi \cdot x)_{s}\, (\phi \cdot y)_{s}
+= \sum_{s \in \cS} x_{\phi^{-1}(s)}\, y_{\phi^{-1}(s)}
+= \sum_{s' \in \cS} x_{s'}\, y_{s'}
 = x^\top y .
-\end{aligned}
 $$
 \end{solution}
 

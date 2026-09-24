@@ -9,9 +9,9 @@
  * scrollable ancestor are fine and skipped — except a display formula that
  * only fits because .katex-display scrolls (globals.css). That scroll box is
  * an emergency fallback, not a fix, so it is reported too, as "scrolls" —
- * but only past SLACK px: a display that ends in a comma or full stop
- * typically "overflows" by 2–4px of that glyph's advance box, which sits
- * flush with the column edge and reads as fitting.
+ * but only past SLACK px. Calibrated by eye (Sep 2026): displays hiding
+ * 2–13px, mostly a trailing comma or full stop, all read as fitting; the
+ * two AIXI displays hiding 14px were visibly too long.
  *
  * Measured, not guessed: the page is laid out by a real browser with the
  * site's CSS and (awaited) web fonts, so a warning here is a pixel fact.
@@ -207,7 +207,7 @@ await send("Page.enable");
 // the nearest preceding anchor id for finding it on the page.
 // Hidden width a scrolling display may have before it is reported — see the
 // header. public/diff.js's column-edge marker uses the same number.
-const SLACK = 4;
+const SLACK = 13;
 const DETECT = `(async () => {
   await document.fonts.ready;
   const container = document.querySelector(".prose") || document.body;
