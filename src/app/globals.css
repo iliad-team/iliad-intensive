@@ -289,10 +289,11 @@ html.nav-open #nav-toggle .icon-close {
   display: inline;
 }
 
-/* ---- PR-preview diff view (public/diff.js) ------------------------------
-   Two columns — the live site's article on the left, this PR's on the right —
-   with matched blocks padded into shared rows. Only preview builds load the
-   script; on production none of this markup exists. */
+/* ---- diff view (public/diff.js) -----------------------------------------
+   Two columns — the base article on the left (the live site's, on a PR
+   preview; the older snapshot, on /dev/diff), the new one on the right — with
+   matched blocks padded into shared rows. Loaded only by preview builds and by
+   /dev/diff; nowhere else does this markup exist. */
 body:not(:has(main article .prose)) #diff-controls {
   display: none;
 }
@@ -374,6 +375,19 @@ html.diff-stretch .diff-col > .prose {
 .katex-display.diff-added   { outline-color: #86efac; }
 .diff-col-base .katex-display.diff-modified { outline-color: #fca5a5; }
 .diff-col-pr   .katex-display.diff-modified { outline-color: #86efac; }
+
+/* "show column edge" (#diff-edge, public/diff.js): a red line down the right
+   edge of every article column — the page's own, or both diff columns' — so a
+   display cut off by its scroll box is seen to stop exactly at the edge, and a
+   dashed red outline on each display equation that is in fact wider than the
+   column (diff.js measures them). Off by default; diff open or closed. */
+html.diff-edge main article .prose {
+  box-shadow: 2px 0 0 0 #dc2626;
+}
+html.diff-edge .katex-display.diff-overflow {
+  outline: 2px dashed #dc2626;
+  outline-offset: 2px;
+}
 
 /* Word-level marks inside an edited block; inline maths is one token. */
 mark.diff-del { background: #fca5a5; color: inherit; text-decoration: line-through; text-decoration-color: #991b1b; }

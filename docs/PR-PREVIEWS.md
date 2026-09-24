@@ -196,12 +196,18 @@ scroll offset and the sidebar's sticky offset derive from). The second row:
   maths-heavy page; the pair is centred and the page scrolls sideways on a
   narrow viewport. On, the columns share the viewport and read more
   comfortably, but hide overflow.
+- **show column edge** (off by default) — a red line down the right edge of
+  every article column, and a dashed red outline on each display equation that
+  is wider than its column (the label counts them). That is the overflow
+  `scripts/check-overflow.mjs` reports, made visible: the equation's scroll box
+  otherwise clips it silently at the edge. Independent of the diff — it works on
+  the plain preview page too, and on `/dev/diff`.
 - **next change ▸** — steps through the removed, added and modified blocks in
   position order, scrolling each into view with an amber ring; if the diff is
   off it turns it on first.
 
 It is `public/diff.js` (vanilla, like `site.js`) plus the controls in
-`PreviewBanner.tsx`, and only preview builds load it. The base version is
+`DiffControls.tsx`, and only preview builds load it (and `/dev/diff`, below). The base version is
 simply fetched from the same path at the site root — production and every
 preview share one origin — so no build step and no extra deploy artifact are
 involved. If the page does not exist on main yet the fetch 404s and the
@@ -211,6 +217,20 @@ checkbox disables itself with a note. The comparison is against what is
 Blocks are matched by content (a display equation by its TeX source), so a
 renumbered exercise counts as an edit to its heading line — that is what the
 merge would change on the page, so it is shown.
+
+### Page history: `/dev/diff`
+
+The same view compares any two historical versions of a page:
+`/dev/diff/?page=<slug>&from=<tree>&to=<tree>` (trees may be abbreviated; with
+none given, the newest version against the one before it). Every version, on
+every branch, is pre-rendered by the
+[iliad-intensive-snapshots](https://github.com/iliad-team/iliad-intensive-snapshots)
+repo's backfill with today's pipeline, one HTML file per distinct `tex/<slug>/`
+tree. `public/dev-diff.js` reads that repo's `index.json` and two of the pages
+from raw.githubusercontent.com (`access-control-allow-origin: *`), puts the
+newer article on the page and points `diff.js` at the older one through
+`#diff-toggle`'s `data-diff-url`. The site build stores none of it. Figures
+come from this site's `/uploads/`, so an old version shows today's figures.
 
 ### Trying it locally
 

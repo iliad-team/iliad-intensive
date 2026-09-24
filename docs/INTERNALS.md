@@ -59,6 +59,7 @@ runtime inputs. If it's not in this table, the site doesn't depend on it.
 | `NEXT_PUBLIC_BASE_PATH` env | `next.config.ts`, `src/lib/mdx.tsx`, module page | sub-path hosting (GitHub Pages project site); applied at render time, never baked into generated MDX |
 | `NEXT_PUBLIC_COMMIT_SHA` env | `src/components/BuildStamp.tsx` | commit shown + linked in the page footer; set by CI, falls back to `git rev-parse HEAD` locally |
 | `NEXT_PUBLIC_PREVIEW_PR` env | `src/components/PreviewBanner.tsx` | PR number on preview builds only; renders the "not the live site" banner |
+| `NEXT_PUBLIC_SNAPSHOTS_URL` env | `src/app/dev/diff/page.tsx` | where `/dev/diff` reads page history from; default the `main` branch of [iliad-intensive-snapshots](https://github.com/iliad-team/iliad-intensive-snapshots) on raw.githubusercontent.com. Override only to test against a local copy |
 
 ## src/ — the whole site, ~800 lines
 
@@ -71,6 +72,7 @@ Routes (`src/app/`):
 | `intensives/[intensive]/page.tsx` | one programme's calendar: a row per day (date · code · linked material). Material comes from `index.json`, so it lists what was actually built; a day whose worksheets aren't ported says so |
 | `page.tsx` | homepage: hero paragraph + modules grouped by cluster from `index.json`, then by teaching day within a cluster — a day taught in several parts gets a heading (code + title, an anchor a part page links back to) and nests its parts; a one-worksheet day stays a flat row |
 | `[cluster]/[slug]/page.tsx` | the module page. `generateStaticParams` enumerates every MDX module; renders header (title/cluster/day/summary/contributors), `DownloadsRow`, the MDX body, and a "Built <date> from <source>" footer. `dynamicParams = false` — anything not prerendered 404s |
+| `dev/diff/page.tsx` | `/dev/diff`: any two historical versions of a page, through the PR-preview diff view. A static shell; `public/dev-diff.js` fetches the versions, pre-rendered in the iliad-intensive-snapshots repo, in the browser (see `docs/PR-PREVIEWS.md`) |
 | `globals.css` | Tailwind 4 + `prose` typography tweaks |
 | `icon.svg` | favicon |
 
@@ -86,7 +88,8 @@ Libraries (`src/lib/`):
 Components (`src/components/`): `ModulePageShell` (sidebar + content grid),
 `SidebarNav` (cluster-grouped module list with per-page heading TOC),
 `Navbar`, `NavContext`/`NavToggle` (mobile drawer state), `DownloadsRow`
-(pdf/tex/mdx ± solutions buttons), `IliadMark` (logo).
+(pdf/tex/mdx ± solutions buttons), `IliadMark` (logo), `DiffControls` (the
+diff view's controls row, shared by `PreviewBanner` and `/dev/diff`).
 
 ## scripts/ — the content pipeline
 
