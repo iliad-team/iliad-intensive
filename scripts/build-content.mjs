@@ -929,7 +929,7 @@ async function buildSlug(slug) {
   }
 
   // 3. author figures: fig/*.pdf → public/uploads/<slug>/*.svg; web-native
-  //    assets (svg/png/jpg) copy through as-is. The MDX references them by
+  //    assets (svg/png/jpg, and .html demos) copy through as-is. The MDX references them by
   //    basename under /uploads/<slug>/; TikZ snippets are handled separately.
   const figDir = path.join(dir, "fig");
   if (existsSync(figDir)) {
@@ -942,7 +942,9 @@ async function buildSlug(slug) {
         } catch {
           return done(false, `figure conversion failed: fig/${f}`);
         }
-      } else if (/\.(svg|png|jpe?g|gif|webp)$/i.test(f)) {
+      } else if (/\.(svg|png|jpe?g|gif|webp|html)$/i.test(f)) {
+        // .html: a self-contained web demo the sheet or its notebook links
+        // (policy-gradients-misgeneralization/fig/play.html), served as-is.
         copyFileSync(path.join(figDir, f), path.join(up, f));
       }
     }

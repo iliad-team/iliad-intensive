@@ -216,6 +216,27 @@ def _attr(tag: str, name: str) -> re.Match | None:
     return re.search(rf"""\b{name}\s*=\s*(?:"(?P<v>[^"]*)"|'(?P<w>[^']*)')""", tag, re.I)
 
 
+FIG_LINK = re.compile(r'(?<!!)\[(?P<text>[^\]]*)\]\(\s*<?(?P<src>fig/[^)\s>]+)>?(?P<title>\s+"[^"]*")?\s*\)')
+HTML_A = re.compile(r"<a\b[^>]*>", re.I)
+
+
+def map_fig_links(text: str, fn) -> str:
+    """Rewrite every plain link into fig/ in a markdown cell's text: fn(path) -> new URL.
+    For files a notebook links rather than shows, e.g. an HTML demo (fig/play.html)."""
+    def md(m):
+        return m.group(0).replace(m["src"], fn(m["src"]), 1)
+
+    def html(m):
+        tag = m.group(0)
+        href = _attr(tag, "href")
+        value = href and (href["v"] if href["v"] is not None else href["w"])
+        if not value or not value.startswith("fig/"):
+            return tag
+        return tag[: href.start()] + href.group(0).replace(value, fn(value), 1) + tag[href.end():]
+
+    return HTML_A.sub(html, FIG_LINK.sub(md, text))
+
+
 def map_images(text: str, fn) -> str:
     """Rewrite every image src in a markdown cell's text: fn(src, alt) -> new src."""
     def md(m):
@@ -345,7 +366,7 @@ def image_for_publish(src: str, slug: str, slug_dir: Path, where: str) -> str:
             raise ConvertError(f"{where}: {src} does not exist")
         return IMAGE_URL.format(preview=PREVIEW, slug=slug, path=src[len("fig/"):])
     raise ConvertError(f"{where}: image {src[:60]!r} is not in fig/ — published notebooks may only "
-                       "link images from fig/ or the web")
+                       "show images from fig/ or the web")
 
 
 # ----------------------------------------------------- notebook <-> master ----
@@ -655,7 +676,10 @@ def publish_cells(cells: list[Cell], slug: str, name: str, slug_dir: Path
         for key in text:
             if text[key]:
                 text[key] = map_images("\n".join(text[key]),
-                                       lambda s, a: image_for_publish(s, slug, slug_dir, cell.where)).split("\n")
+                                       lambda s, a: image_for_publish(s, slug, slug_dir, cell.where))
+                # links into fig/ (an HTML demo, say) are served next to the images
+                text[key] = map_fig_links(text[key],
+                                          lambda s: image_for_publish(s, slug, slug_dir, cell.where)).split("\n")
         for key, out in (("colab-ex", ex), ("colab-soln", sol)):
             src = tidy(text[key], strip_main=False)
             if src is None:

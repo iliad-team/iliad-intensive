@@ -363,6 +363,15 @@ The local notebook embeds images so it also displays correctly when uploaded to 
 - Two different new images with the same name in one sync: error.
 - A notebook referencing a PDF in `fig/`: error (notebooks can't display PDFs).
 
+### Other files in `fig/` (HTML demos)
+
+A self-contained web page can live in `fig/` too: D.2's pottery-shop game is
+`fig/play.html`. The site build copies `.html` from `fig/` like an image, to
+`/uploads/<slug>/play.html`, which the slides link. A notebook links it as
+`[play the pottery shop](fig/play.html)`, and publishing rewrites a plain link into `fig/`
+the same way it rewrites an image (to `/uploads/<slug>/nb/…`, or the PR preview's copy).
+The file must not load anything relative to itself; `play.html` loads nothing at all.
+
 Images may be deleted. A deleted image breaks any notebook still pointing at it,
 including copies students saved, and that is accepted.
 

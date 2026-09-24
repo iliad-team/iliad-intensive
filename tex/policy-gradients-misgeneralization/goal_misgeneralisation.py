@@ -289,7 +289,7 @@ So much for defining the data types involved, the actual implementation of the e
 
 We encourage you to skim the implementation in `part6_goalmisgen/potteryshop.py` --- the environment dynamics are about 60 lines of (heavily commented) tensor operations, and reading them is a good way to make sure you understand exactly how the world works before you start designing reward functions for it.
 
-You can **[play the pottery shop in your browser](https://iliad-team.github.io/iliad-intensive-D.2/play.html)** to get a feel for the dynamics (move the robot around, smash urns, pick up shards and bin them) before you start designing reward functions for it.
+You can **[play the pottery shop in your browser](fig/play.html)** to get a feel for the dynamics (move the robot around, smash urns, pick up shards and bin them) before you start designing reward functions for it.
 
 Below we instantiate an instance of the pottery shop environment.
 We can see the `Environment` object requires the following arguments:
