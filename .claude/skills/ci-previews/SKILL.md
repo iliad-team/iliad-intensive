@@ -152,9 +152,13 @@ the fork's code), so its push would 403 (PR #119). This workflow fires on
 - resolves the PR number by listing open PRs and matching **head sha** (the
   `workflow_run` payload's `pull_requests[]` is empty for forks), and skips if
   the PR's current head has moved on;
-- publishes only when `author_association` is OWNER/MEMBER/COLLABORATOR/
-  CONTRIBUTOR — i.e. anyone with one merged PR here. No manual allowlist (David,
-  2026-08-28). Untrusted authors get a 🔒 comment instead.
+- publishes only for a **trusted** author: OWNER/MEMBER/COLLABORATOR, or listed
+  in `.github/trusted-contributors` on main (`.github/trust.sh`, which reads the
+  list from main via the API). A merged PR no longer grants trust by itself
+  (David, 2026-09-24). Untrusted authors get a 🔒 comment instead. The same
+  rule gates `approve-trusted.yml` (auto-approves a trusted fork author's CI;
+  the repo requires approval for all external contributors) and
+  `snapshots-dispatch.yml`. See `docs/PR-PREVIEWS.md` "Who is trusted".
 - `workflow_run` and `pull_request_target` always use the workflow file on
   **main**, so edits to these two paths take effect only after merge and
   cannot be tested from their own PR.

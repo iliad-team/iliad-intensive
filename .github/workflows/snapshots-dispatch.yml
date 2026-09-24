@@ -1,7 +1,7 @@
 # Tell iliad-intensive-snapshots that a page may have a new version, so it
 # renders it now rather than at its daily backstop run. The snapshots repo
-# renders every version of tex/<slug>/ on every branch and every PR head,
-# fork PRs included (its .github/workflows/update.yml).
+# renders every version of tex/<slug>/ on every branch and every PR head by a
+# trusted author, fork PRs included (its .github/workflows/update.yml).
 #
 # Needs one secret, SNAPSHOTS_DISPATCH_TOKEN: a fine-grained PAT scoped to
 # iliad-team/iliad-intensive-snapshots only, with "Actions: read and write"
@@ -13,9 +13,13 @@
 #
 # pull_request_target (not pull_request) so fork PRs get the secret. It is
 # safe here only because this job never checks out or runs anything from the
-# PR: it sends one fixed API call. Keep it that way. Same-repo PRs are skipped:
-# their push already fired this. NOTE: pull_request_target runs this file as
-# it is on main, so fork PRs are covered only once this is merged.
+# PR: it reads main's trust list and sends one fixed API call. Keep it that
+# way. Same-repo PRs are skipped: their push already fired this. A fork PR
+# only dispatches if its author is trusted (.github/trust.sh: org member,
+# collaborator, or listed in .github/trusted-contributors on main) — the
+# snapshots repo applies the same rule to which PR heads it renders.
+# NOTE: pull_request_target runs this file as it is on main, so fork PRs are
+# covered only once this is merged.
 name: snapshots-dispatch
 
 on:
@@ -25,7 +29,8 @@ on:
     types: [opened, synchronize, reopened]
     paths: ["tex/**"]
 
-permissions: {}
+permissions:
+  contents: read   # to read main's trust list; nothing else
 
 jobs:
   dispatch:
@@ -35,7 +40,27 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - env:
+      - name: Is the fork PR's author trusted?
+        id: gate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Via env, never spliced into the script: PR-controlled strings.
+          LOGIN: ${{ github.event.pull_request.user.login }}
+          ASSOC: ${{ github.event.pull_request.author_association }}
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = push ]; then echo "trusted=true" >> "$GITHUB_OUTPUT"; exit 0; fi
+          # main's copy of trust.sh (fetched, not the PR's); it reads main's list.
+          if ! curl -fsSL --retry 3 -o "$RUNNER_TEMP/trust.sh" \
+                 -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github.raw" \
+                 "https://api.github.com/repos/$GITHUB_REPOSITORY/contents/.github/trust.sh?ref=main"; then
+            echo "::warning::could not fetch .github/trust.sh from main — not dispatching for $LOGIN"
+            echo "trusted=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          t=$(bash "$RUNNER_TEMP/trust.sh" "$LOGIN" "$ASSOC")
+          echo "fork PR by $LOGIN ($ASSOC): trusted=$t"
+          echo "trusted=$t" >> "$GITHUB_OUTPUT"
+      - if: steps.gate.outputs.trusted == 'true'
+        env:
           GH_TOKEN: ${{ secrets.SNAPSHOTS_DISPATCH_TOKEN }}
         run: |
           if [ -z "$GH_TOKEN" ]; then

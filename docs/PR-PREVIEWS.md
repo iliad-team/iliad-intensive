@@ -263,13 +263,9 @@ and fork previews are published by **`.github/workflows/fork-preview.yml`**:
   downloaded as an inert artifact and copied into `pr-preview/pr-<N>/`; the
   publish script comes from `main`.
 - Publishing still serves PR-author-controlled HTML from the production
-  site's origin, so it is gated on **who**: org members, collaborators, and
-  anyone with at least one PR already merged into this repo publish
-  automatically; there is deliberately no manual allowlist. Until an author's
-  first merge, the bot comments that on their PRs instead of a preview URL
-  (reviewers can still run the branch locally). The flip side: merging *any*
-  PR of someone's — a one-line typo fix included — grants preview publishing
-  forever.
+  site's origin, so it is gated on **who**. See [Who is trusted](#who-is-trusted):
+  untrusted authors get a comment instead of a preview URL (reviewers can
+  still run the branch locally).
 - The PR number is resolved from the GitHub API by the run's head SHA (the
   `workflow_run` payload's `pull_requests[]` is empty for forks), and only if
   that SHA is still the PR's head — a stale run skips rather than publishing
@@ -281,11 +277,35 @@ and fork previews are published by **`.github/workflows/fork-preview.yml`**:
 
 Note `workflow_run` (and `pull_request_target`) use the workflow file on the
 **default branch**, so changes to this machinery cannot be exercised from
-their own PR — they take effect on merge. Also, GitHub's separate Actions
-approval gate ("Require approval for first-time contributors", the repo-level
-default) still applies to the *build* run itself; that approval is per-run
-until the author has a merged PR, and is separate from the preview gate —
-though both gates now dissolve at the same moment, the author's first merge.
+their own PR — they take effect on merge.
+
+### Who is trusted
+
+A fork PR's author is **trusted** if they are an org member or a collaborator
+(GitHub's `author_association` OWNER/MEMBER/COLLABORATOR: people who can push
+branches here anyway), **or** their login is in
+[`.github/trusted-contributors`](../.github/trusted-contributors) **on main**.
+`.github/trust.sh` is the one implementation, and every caller reads the list
+from main through the API, so a PR adding its own author to the list does
+nothing until a maintainer merges it. Having a PR merged grants nothing by
+itself: that closes "get a typo fix merged, then send something malicious"
+(the rule until 2026-09-24 was "anyone with a merged PR").
+
+Trust unlocks three things; an untrusted fork PR gets none of them:
+
+| What | Where | Untrusted author |
+|---|---|---|
+| CI runs without a click | the repo setting "Require approval for **all external contributors**", plus `approve-trusted.yml`, which approves a trusted author's waiting runs through the API | runs wait for a maintainer's **Approve and run** |
+| A live preview | `fork-preview.yml` | a 🔒 comment instead |
+| `/dev/diff` history | `snapshots-dispatch.yml` only dispatches for trusted authors, and iliad-intensive-snapshots' `update.yml` only renders trusted PR heads | not rendered |
+
+What a fork PR can never do, trusted or not: write to this repo. Its own runs
+get a read-only token and no secrets, and the jobs that do hold a write token
+(`fork-preview`, `approve-trusted`, `snapshots-dispatch`) run main's code and
+never check out or execute the PR.
+
+To trust someone, add their login to `.github/trusted-contributors` in a PR
+and merge it; to revoke, remove it.
 
 ## Caveats / known limitations
 

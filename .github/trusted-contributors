@@ -1,0 +1,38 @@
+# Trusted fork contributors — one GitHub login per line, then who they are and
+# the days they own (# comments allowed).
+#
+# A pull request from a FORK only gets our automation if its author is on this
+# list (or is an org member / repo collaborator): its workflows run without a
+# maintainer clicking "Approve and run", its build is published as a live
+# preview, and its pages are rendered into the /dev/diff history. Having a PR
+# merged grants nothing. Every check reads THIS FILE ON main, never a PR's copy,
+# so a PR adding its own author changes nothing until merged. See .github/trust.sh
+# and docs/PR-PREVIEWS.md ("Who is trusted").
+
+davidquarel           # David Quarel — D.1, D.2, D.3
+LangLeon              # Leon Lang — A.1, A.4, D.1, D.3, D.6
+GarretteBaker         # Garrett Baker — A.3
+Eugleo                # Evžen Wybitul — A.2
+zfurman56             # Zach Furman — B.2, B.3
+matomatical           # Matthew Farrugia-Roberts — B.3
+gcorlouer             # Guillaume Corlouer — B.4
+LouisYRYJ             # Louis Jaburi — B.5, E.2, E.3
+tdimofte              # Tudor Dimofte — B.6
+CharlesR-W            # Charles Renshaw-Whitman — B.6
+wusche1               # Julian Schulz — C.1, C.2
+BorisTheBrave         # Adam Newgas — C.1
+14xp                  # Xavier Poncini — C.3
+satchlj               # Satya Benson — C.4, D.4, D.5
+ferosas               # Fernando E. Rosas — D.1
+Danielc-lgtm          # Daniel C — D.4, D.5
+SWaeldchen            # Stephan Wäldchen — E.1, E.2
+museiliad-bot         # errata bot — small fixes across days
+
+# Not yet trusted: the GitHub login below matches the author's name, but no page
+# of theirs links back to it. Uncomment once confirmed with the person.
+# priech                # Paul Riechers — C.3  # TODO: verify
+# adamshai              # Adam Shai — C.3  # TODO: verify
+# JoarSkalse            # Joar Skalse — A.4  # TODO: verify
+# oggy03                # Kai Ogden — B.3  # TODO: verify
+# ?                     # Aleksander Czejdo — B.6  # TODO: verify (no GitHub account found)
+# ?                     # Brianna Grado-White — B.6  # TODO: verify (no GitHub account found)

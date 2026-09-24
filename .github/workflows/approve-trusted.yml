@@ -1,0 +1,73 @@
+# Run a trusted fork contributor's CI without a maintainer clicking "Approve
+# and run".
+#
+# The repo's Actions setting "Approval for running fork pull request workflows
+# from contributors" is set to "Require approval for all external
+# contributors": every fork PR's workflows (site.yml, notebooks.yml, …) wait
+# for a maintainer. That alone closes "get one typo merged, then send a
+# malicious PR": merging a PR no longer grants anything. This workflow gives
+# the people listed in .github/trusted-contributors (read from main, via
+# .github/trust.sh) their CI back automatically, by approving their waiting
+# runs through the API. Everyone else keeps waiting for a human.
+#
+# Safe on pull_request_target (it holds a token that can approve runs) ONLY
+# because it never checks out or executes anything from the PR: it checks out
+# main, reads a list, and calls two API endpoints with the PR's head SHA.
+# Keep it that way. NOTE: pull_request_target runs this file as it is on main,
+# so it only works once merged.
+name: approve-trusted
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  approve:
+    # Forks only: same-repo PRs never need approval.
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # main, not the PR (pull_request_target's default checkout is the base).
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: .github
+      - name: Approve the waiting runs of a trusted contributor
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Via env, never spliced into the script: PR-controlled strings.
+          LOGIN: ${{ github.event.pull_request.user.login }}
+          ASSOC: ${{ github.event.pull_request.author_association }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if [ "$(.github/trust.sh "$LOGIN" "$ASSOC")" != true ]; then
+            echo "::notice::PR #$NUMBER by $LOGIN ($ASSOC) is not on .github/trusted-contributors — its workflows wait for a maintainer's approval"
+            exit 0
+          fi
+          # The PR's pull_request runs are created alongside this one and may not
+          # exist yet; poll for ~2 minutes, approving each waiting run once.
+          approved=0; quiet=0
+          for _ in $(seq 1 12); do
+            ids=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs?head_sha=$HEAD_SHA&status=action_required&per_page=100" \
+                    --jq '.workflow_runs[].id')
+            if [ -n "$ids" ]; then
+              for id in $ids; do
+                gh api -X POST "repos/$GITHUB_REPOSITORY/actions/runs/$id/approve" >/dev/null
+                echo "approved run $id"; approved=$((approved + 1))
+              done
+              quiet=0
+            else
+              quiet=$((quiet + 1))
+              # Some approved and nothing new for 30 s: done.
+              [ "$approved" -gt 0 ] && [ "$quiet" -ge 3 ] && break
+            fi
+            sleep 10
+          done
+          echo "PR #$NUMBER by $LOGIN: trusted, approved $approved run(s)"
