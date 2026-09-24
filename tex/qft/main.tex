@@ -958,7 +958,7 @@ and then do the exact Gaussian integral over $a$'s, and then over $\tilde z$'s:
      & \hspace{.4in} \textstyle-\frac{\sigma_w}{2d}\int dx\,dx'\, \tilde z_i(x) (x\cdot x') \tilde z_i(x') + i  \int dx\, \tilde z_i(x)z_i(x)\Big]\bigg] \\
      & = \frac{1}{Z'} \int D\tilde z\,\exp\bigg[\textstyle -\frac{1}{2\sigma_w}|c|^2-\frac{\sigma_w}{2d}\sum_i\int dx\,dx'\, \tilde z_i(x) (x\cdot x') \tilde z_i(x') \notag \\
      & \hspace{1.5in} \textstyle + i  \sum_i\int dx\, \tilde z_i(x)z_i(x)\bigg] \\
-     & = \frac{1}{Z''} e^{\textstyle  -\frac{1}{2\sigma_w}|c|^2 - \frac{1}{2\sigma_w} \sum_i \int dx\,dx'\, z_i(x) \big(\frac{x\cdot x'}{d}\big)^{-1}z_i(x')}\,.
+     & = \frac{1}{Z''} \exp\bigg[\textstyle  -\frac{1}{2\sigma_w}|c|^2 - \frac{1}{2\sigma_w} \sum_i \int dx\,dx'\, z_i(x) \big(\frac{x\cdot x'}{d}\big)^{-1}z_i(x')\bigg]\,.
 \end{align}
 %
 We clearly see the first-layer GP kernel $K^{(1)}(x,x') = \frac{\sigma_w}{d} x\cdot x'$ appearing.
@@ -966,10 +966,11 @@ We clearly see the first-layer GP kernel $K^{(1)}(x,x') = \frac{\sigma_w}{d} x\c
 To push-forward to the network outputs $f = \frac{1}{\sqrt N}c\cdot \phi(z)$, we just do this again:
 \begin{align}
     P(f) &= \int dc\,Dz\, P(c,z)\, \delta\Big(f(x)-\tfrac{1}{\sqrt N}c\cdot \phi(z(x))\Big) \\
-     & = \frac{1}{Z''} \int dc\,Dz\,D\tilde f\, e^{\textstyle  \Big[-\frac{1}{2\sigma_w}|c|^2 - \frac{1}{2\sigma_w} \sum_i \int dx\,dx'\, z_i(x) \big(\frac{x\cdot x'}{d}\big)^{-1}z_i(x')} \notag \\
-     & \hspace{1in} {}^{\textstyle + i\int dx \tilde f(x)(f(x)-\frac{1}{\sqrt N}c\cdot \phi(z(x))) \Big]} \\
-     & \hspace{-.2in} = \frac{1}{Z'''} \int Dz\,D\tilde f\, e^{\textstyle \Big[- \frac{1}{2\sigma_w} \int dx\,dx'\,  \big(\frac{x\cdot x'}{d}\big)^{-1}z(x)\cdot z(x') \Big.} \notag \\
-     & \hspace{.6in} {}^{\textstyle - \frac{\sigma_w}{2N} \int dx\,dx' \tilde f(x)[\phi(z(x))\cdot \phi(z(x'))]\tilde f(x') +i\int dx\, \tilde f(x) f(x)\Big]}
+     & = \frac{1}{Z''} \int dc\,Dz\,D\tilde f\, \exp\bigg[\textstyle -\frac{1}{2\sigma_w}|c|^2 \notag \\
+     & \hspace{1in} \textstyle - \frac{1}{2\sigma_w} \sum_i \int dx\,dx'\, z_i(x) \big(\frac{x\cdot x'}{d}\big)^{-1}z_i(x') \notag \\
+     & \hspace{1in} \textstyle + i\int dx \tilde f(x)(f(x)-\frac{1}{\sqrt N}c\cdot \phi(z(x)))\bigg] \\
+     & \hspace{-.2in} = \frac{1}{Z'''} \int Dz\,D\tilde f\, \exp\bigg[\textstyle - \frac{1}{2\sigma_w} \int dx\,dx'\,  \big(\frac{x\cdot x'}{d}\big)^{-1}z(x)\cdot z(x') \notag \\
+     & \hspace{.3in} \textstyle - \frac{\sigma_w}{2N} \int dx\,dx' \tilde f(x)[\phi(z(x))\cdot \phi(z(x'))]\tilde f(x') +i\int dx\, \tilde f(x) f(x)\bigg]
 \end{align}
 %
 The problem is that it's now impossible to do the integral over the $z$'s exactly, because (for general activation function $\phi$) the action is no longer quadratic in them. However, as $N\to \infty$, we can treat $\exp\big[- \frac{\sigma_w}{2N} \int dx\,dx' \tilde f(x)[\phi(z(x))\cdot \phi(z(x'))]\tilde f(x')\big]$ as a perturbation, and approximate the \emph{exponent} $[\phi(z(x))\cdot \phi(z(x'))]$ by its expectation value under the Gaussian measure $\exp\big[- \frac{1}{2\sigma_w} \int dx\,dx'\,  \big(\frac{x\cdot x'}{d}\big)^{-1}z(x)\cdot z(x')\big]$ (with kernel $K^{(1)}$) on the $z$'s. To be clear, the approximation that's happening is of the form
@@ -985,9 +986,9 @@ Up to $O(1/N)$ corrections, that produces the deterministic kernel of the previo
 and we get
 %
 \begin{align}
-    P(f) &= \frac{1}{Z''''} \int D\tilde f\, e^{\textstyle -\frac{1}{2} \int dx\, dx'\, \tilde f(x) \bar K^{(2)}(x,x') \tilde f(x') + i\int dx\, \tilde f(x) f(x)} \notag \\
-     & \hspace{2.2in} + O\Big(\frac{1}{N}\Big) \\
-     &= \frac{1}{Z'''''} e^{\textstyle -\frac{1}{2} \int dx\, dx'\, f(x) \bar K^{(2)}(x,x')^{-1}  f(x')} +O\Big(\frac{1}{N}\Big) \,.
+    P(f) &= \frac{1}{Z''''} \int D\tilde f\, \exp\bigg[\textstyle -\frac{1}{2} \int dx\, dx'\, \tilde f(x) \bar K^{(2)}(x,x') \tilde f(x') \notag \\
+     & \hspace{1.5in} \textstyle + i\int dx\, \tilde f(x) f(x)\bigg] + O\Big(\frac{1}{N}\Big) \\
+     &= \frac{1}{Z'''''} \exp\bigg[\textstyle -\frac{1}{2} \int dx\, dx'\, f(x) \bar K^{(2)}(x,x')^{-1}  f(x')\bigg] +O\Big(\frac{1}{N}\Big) \,.
 \end{align}
 
 
