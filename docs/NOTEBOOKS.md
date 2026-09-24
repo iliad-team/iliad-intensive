@@ -402,7 +402,9 @@ older *pending* run in a group, which could silently drop a production publish.
 Every write goes through `.github/notebooks-branch.sh` (`production`, `preview <N>`,
 `remove <N>`, `sweep`). Deleting a branch doesn't free space at once: GitHub
 garbage-collects unreferenced objects in its own time. The branches are small anyway
-(about 500 KB of notebooks), and clones skip them (README: `^refs/heads/notebooks*`).
+(about 500 KB of notebooks), and clones skip them (README: `^refs/heads/notebooks` and
+`^refs/heads/notebooks-pr-*`, exact so that source branches like `notebooks-fix` still
+fetch).
 
 ### Notebooks — `.github/workflows/notebooks.yml`
 

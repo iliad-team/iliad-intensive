@@ -16,7 +16,8 @@ cd iliad-intensive
 git config --unset-all remote.origin.fetch
 git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
 git config --add remote.origin.fetch '^refs/heads/gh-pages'
-git config --add remote.origin.fetch '^refs/heads/notebooks*'
+git config --add remote.origin.fetch '^refs/heads/notebooks'
+git config --add remote.origin.fetch '^refs/heads/notebooks-pr-*'
 git fetch origin
 chmod +x setup.sh
 ./setup.sh
