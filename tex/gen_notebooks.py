@@ -49,12 +49,18 @@ BUILD = ROOT / "build" / "notebooks"
 # {preview} is "" for production and "pr-preview/pr-<N>/" for a PR preview (--preview N):
 # the PR's notebooks sit under that folder of the `notebooks` branch, and their
 # images under the same folder of the site preview.
-COLAB_URL = "https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/notebooks/{preview}{slug}/{name}_{kind}.ipynb"
+REPO, BRANCH = "iliad-team/iliad-intensive", "notebooks"
+COLAB_URL = f"https://colab.research.google.com/github/{REPO}/blob/{BRANCH}/{{preview}}{{slug}}/{{name}}_{{kind}}.ipynb"
 IMAGE_URL = "https://iliad-intensive.org/{preview}uploads/{slug}/nb/{path}"
 PREVIEW = ""  # set from --preview
 
 CELL_HEADER = "# ! CELL TYPE:"
 NOTEBOOK_HEADER = "# ! NOTEBOOK:"
+# `# ! SOLUTIONS: <path>`: also publish ARENA's solutions module (every solution and
+# `py`-filtered cell, as plain Python) at <path> inside the published folder, e.g.
+# part6_goalmisgen/solutions.py when the support modules' tests import it.
+SOLUTIONS_HEADER = "# ! SOLUTIONS:"
+SOLUTIONS_KEY = "solutions"  # its key in the parsed metadata and in metadata.iliad
 MAGIC = "#%! "  # prefix that keeps IPython magics (%pip, !ls, %%bash) valid Python in a master
 NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 CELL_TYPES = ("code", "markdown", "raw")
@@ -110,11 +116,14 @@ def parse_master(text: str, where: str) -> tuple[dict, list[Cell]]:
     """Master .py text -> (kept notebook metadata, cells)."""
     lines = text.splitlines()
     meta = {}
-    if lines and lines[0].startswith(NOTEBOOK_HEADER):
-        try:
-            meta = json.loads(lines[0][len(NOTEBOOK_HEADER):])
-        except json.JSONDecodeError as e:
-            raise ConvertError(f"{where}:1: bad {NOTEBOOK_HEADER} line: {e}") from e
+    while lines and lines[0].startswith((NOTEBOOK_HEADER, SOLUTIONS_HEADER)):
+        if lines[0].startswith(SOLUTIONS_HEADER):
+            meta[SOLUTIONS_KEY] = check_solutions_path(lines[0][len(SOLUTIONS_HEADER):].strip(), where)
+        else:
+            try:
+                meta.update(json.loads(lines[0][len(NOTEBOOK_HEADER):]))
+            except json.JSONDecodeError as e:
+                raise ConvertError(f"{where}:1: bad {NOTEBOOK_HEADER} line: {e}") from e
         lines = lines[1:]
     starts = [i for i, line in enumerate(lines) if line.startswith(CELL_HEADER)]
     if not starts or any(line.strip() for line in lines[: starts[0]]):
@@ -148,6 +157,18 @@ def parse_master(text: str, where: str) -> tuple[dict, list[Cell]]:
     return meta, cells
 
 
+def check_solutions_path(path: str, where: str) -> str:
+    if not re.fullmatch(r"[\w-]+(/[\w-]+)*\.py", path):
+        raise ConvertError(f"{where}: {SOLUTIONS_HEADER} wants a relative path like "
+                           f"'package/solutions.py', got {path!r}")
+    return path
+
+
+def colab_meta(meta: dict) -> dict:
+    """The notebook metadata a master keeps for Colab, without the build's own keys."""
+    return {k: v for k, v in meta.items() if k != SOLUTIONS_KEY}
+
+
 def _bracket_list(line: str, prefix: str, at: str) -> list[str]:
     rest = line[len(prefix):].strip()
     if not (rest.startswith("[") and rest.endswith("]")):
@@ -158,11 +179,13 @@ def _bracket_list(line: str, prefix: str, at: str) -> list[str]:
 def serialize_master(meta: dict, cells: list[Cell]) -> str:
     """The canonical text of a master. parse_master(serialize_master(x)) == x."""
     out = []
-    if meta:
-        out.append(NOTEBOOK_HEADER + " " + json.dumps(meta, sort_keys=True))
+    if colab_meta(meta):
+        out.append(NOTEBOOK_HEADER + " " + json.dumps(colab_meta(meta), sort_keys=True))
+    if meta.get(SOLUTIONS_KEY):
+        out.append(f"{SOLUTIONS_HEADER} {meta[SOLUTIONS_KEY]}")
     for cell in cells:
         for line in cell.source:
-            if line.startswith(CELL_HEADER) or line.startswith(NOTEBOOK_HEADER):
+            if line.startswith((CELL_HEADER, NOTEBOOK_HEADER, SOLUTIONS_HEADER)):
                 raise ConvertError(f"{cell.where}: a line in the cell starts with '{line[:13]}', "
                                    "which would split the master there; indent it or reword it")
         out += [f"{CELL_HEADER} {cell.cell_type}", f"# ! FILTERS: [{','.join(cell.filters)}]",
@@ -337,6 +360,8 @@ def notebook_to_master(nb: dict, store: FigStore, where: str) -> tuple[str, list
         cell_type = c.get("cell_type")
         source = c.get("source", "")
         text = "".join(source) if isinstance(source, list) else source
+        if (c.get("metadata") or {}).get("iliad", {}).get("generated") or text.startswith(LOCAL_PATH_MARK):
+            continue  # a cell this tool added to the local notebook, not the author's
         lines = text.split("\n")
         filters, tags = [], []
         prefix = "# " if cell_type == "code" else ""
@@ -367,6 +392,8 @@ def notebook_to_master(nb: dict, store: FigStore, where: str) -> tuple[str, list
     colab = {k: v for k, v in nb.get("metadata", {}).get("colab", {}).items() if k in KEEP_COLAB_METADATA}
     if colab:
         meta["colab"] = colab
+    if solutions := nb.get("metadata", {}).get("iliad", {}).get(SOLUTIONS_KEY):
+        meta[SOLUTIONS_KEY] = check_solutions_path(solutions, where)
     return serialize_master(meta, cells), warnings
 
 
@@ -401,7 +428,19 @@ def master_to_local_notebook(text: str, slug_dir: Path, where: str) -> str:
         if cell.cell_type == "code":
             c.update(execution_count=None, outputs=[])
         out.append(c)
-    return nb_json(out, meta, {"iliad": {"base": sha(text)}})
+    if (slug_dir / "support").is_dir() or meta.get(SOLUTIONS_KEY):
+        # So the local notebook can import the support modules and the solutions
+        # module: both sit in build/notebooks/<slug>/ once published (which every
+        # run of this tool does). Marked, and skipped when syncing back.
+        published = Path("..", "..", "build", "notebooks", slug_dir.name).as_posix()
+        out.insert(0, {"cell_type": "code", "id": "iliad-path", "execution_count": None, "outputs": [],
+                       "metadata": {"iliad": {"generated": True}},
+                       "source": [LOCAL_PATH_MARK, "import sys", f'sys.path.insert(0, "{published}")']})
+    iliad = {"base": sha(text), **({SOLUTIONS_KEY: meta[SOLUTIONS_KEY]} if meta.get(SOLUTIONS_KEY) else {})}
+    return nb_json(out, colab_meta(meta), {"iliad": iliad})
+
+
+LOCAL_PATH_MARK = "# Added by tex/gen_notebooks.py so this local notebook finds its support modules; not synced."
 
 
 # ------------------------------------------------ published notebooks ----
@@ -532,10 +571,12 @@ def md_cell(source):
     return {"cell_type": "markdown", "metadata": {}, "source": source}
 
 
-def publish_cells(cells: list[Cell], slug: str, name: str, slug_dir: Path) -> tuple[list[dict], list[dict], bool]:
-    """Master cells -> (nosol cells, sol cells, has_split)."""
+def publish_cells(cells: list[Cell], slug: str, name: str, slug_dir: Path
+                  ) -> tuple[list[dict], list[dict], bool, list[str]]:
+    """Master cells -> (nosol cells, sol cells, has_split, solutions-module lines)."""
     has_split = any(is_exercise_cell(c) for c in cells)
     ex, sol = [], []
+    py = ["# %%\n\n"]  # ARENA's solutions module: code cells as the "python" output, # %%-separated
     dropdown = None  # the last exercise's solution, waiting for the next markdown cell
     prev_was_code = False
     titled = False
@@ -562,6 +603,11 @@ def publish_cells(cells: list[Cell], slug: str, name: str, slug_dir: Path) -> tu
             if "master-comment" in cell.tags:
                 files = {n: [s.removeprefix("# ") for s in f] if f else None for n, f in files.items()}
             keep_main = "keep-main" in cell.tags
+            if files["python"]:
+                lines = (["if MAIN:"] + ["    " + s for s in files["python"]]) if "main" in cell.tags else files["python"]
+                lines = [s for s in (tidy(lines, strip_main=False) or []) if "# COLAB-SPLIT" not in s]
+                if lines:
+                    py += lines + ["\n# %%\n"]
             for key, out in (("colab-ex", ex), ("colab-soln", sol)):
                 src = tidy(files[key], strip_main=not keep_main)
                 if not src:
@@ -627,7 +673,7 @@ def publish_cells(cells: list[Cell], slug: str, name: str, slug_dir: Path) -> tu
                 src = src + ["", *objectives[stage]]
             out.append(md_cell(src))
         prev_was_code = False
-    return ex, sol, has_split
+    return ex, sol, has_split, py
 
 
 HEADER_TEMPLATE = TEX / "notebook-header.md"
@@ -669,6 +715,24 @@ def schedule_pages() -> dict[str, tuple[str, str]]:
     return pages
 
 
+def fetch_cell(slug: str) -> dict:
+    """On Colab, fetch this notebook's published folder (support modules, solutions module)
+    from the notebooks branch and put it on sys.path. The second cell of a published
+    notebook whose module has support/ or a solutions module; PR previews fetch their own."""
+    folder = f"{PREVIEW}{slug}"
+    return code_cell([
+        "# Fetch the modules this notebook imports (Colab only). Added by the build.",
+        "import os",
+        "import sys",
+        "",
+        'if "google.colab" in sys.modules:',
+        '    if not os.path.isdir("/content/iliad"):',
+        f"        !git clone -q --depth 1 -b {BRANCH} --filter=blob:none --sparse https://github.com/{REPO} /content/iliad",
+        f'        !cd /content/iliad && git sparse-checkout set "{folder}"',
+        f'    sys.path.insert(0, "/content/iliad/{folder}")',
+    ])
+
+
 def header_cell(slug: str, name: str, kind: str) -> dict:
     """The first cell of a published notebook: tex/notebook-header.md, filled in."""
     template = HEADER_TEMPLATE.read_text(encoding="utf-8")
@@ -688,11 +752,22 @@ def header_cell(slug: str, name: str, kind: str) -> dict:
 def publish_master(py: Path, slug: str, out_dir: Path) -> list[Path]:
     text = py.read_text(encoding="utf-8")
     meta, cells = parse_master(text, str(py.relative_to(ROOT)))
-    ex, sol, _ = publish_cells(cells, slug, py.stem, py.parent)
+    ex, sol, _, solutions = publish_cells(cells, slug, py.stem, py.parent)
     written = []
+    fetch = [fetch_cell(slug)] if (py.parent / "support").is_dir() or meta.get(SOLUTIONS_KEY) else []
+    if meta.get(SOLUTIONS_KEY):
+        path = out_dir / meta[SOLUTIONS_KEY]
+        path.parent.mkdir(parents=True, exist_ok=True)
+        blanks, lines = 0, []
+        for line in solutions:  # at most two blank lines in a row, as ARENA
+            blanks = blanks + 1 if not line.strip() else 0
+            if blanks <= 2:
+                lines.append(line)
+        path.write_text("\n".join(lines), encoding="utf-8")
+        written.append(path)
     for kind, out in (("nosol", ex), ("sol", sol)):
         path = out_dir / f"{py.stem}_{kind}.ipynb"
-        body = nb_json([header_cell(slug, py.stem, kind)] + out, meta)
+        body = nb_json([header_cell(slug, py.stem, kind)] + fetch + out, colab_meta(meta))
         # belt and braces: image_for_publish already refuses these
         leftover = re.search(r'(\]\(\s*<?|src=\\?["\'])(data:|attachment:|fig/)', body)
         if leftover:
@@ -889,7 +964,7 @@ def main() -> int:
                 if log:
                     print(f"▸ {d.name}\n" + "\n".join(log))
         n = publish(dirs)
-        print(f"{n} published notebook(s) in {BUILD.relative_to(ROOT)}/" + ("" if ok else " — with problems above"))
+        print(f"{n} published file(s) in {BUILD.relative_to(ROOT)}/" + ("" if ok else " — with problems above"))
         return 0 if ok else 1
     except ConvertError as e:
         print(f"✗ {e}", file=sys.stderr)

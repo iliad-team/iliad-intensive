@@ -19,3 +19,12 @@ tex/**/fig/*.pdf  filter=lfs diff=lfs merge=lfs -text
 tex/**/fig/**/*.png  filter=lfs diff=lfs merge=lfs -text
 tex/**/fig/**/*.jpg  filter=lfs diff=lfs merge=lfs -text
 tex/**/fig/**/*.pdf  filter=lfs diff=lfs merge=lfs -text
+
+# Notebook support modules (tex/<slug>/support/, docs/NOTEBOOKS.md) can carry data
+# files the modules load, e.g. D.2's sprites.png. Same rule as fig/: binaries go
+# through LFS. (notebooks.yml checks out with LFS so the published copies are real.)
+tex/**/support/**/*.png  filter=lfs diff=lfs merge=lfs -text
+tex/**/support/**/*.jpg  filter=lfs diff=lfs merge=lfs -text
+tex/**/support/**/*.jpeg filter=lfs diff=lfs merge=lfs -text
+tex/**/support/**/*.gif  filter=lfs diff=lfs merge=lfs -text
+tex/**/support/**/*.pdf  filter=lfs diff=lfs merge=lfs -text

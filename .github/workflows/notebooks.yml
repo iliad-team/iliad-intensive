@@ -60,9 +60,11 @@ jobs:
       group: notebooks-write
       cancel-in-progress: false
     steps:
-      # No LFS: publishing reads only the masters and checks that the fig/ files
-      # they link exist; the image bytes are the site build's business.
+      # LFS: support/ can hold binaries the modules load (D.2's sprites.png), and
+      # those are published as-is. (fig/ images are the site build's business.)
       - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - uses: actions/setup-python@v5
         with:

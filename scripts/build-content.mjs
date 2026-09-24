@@ -1024,11 +1024,11 @@ await Promise.all(Array.from({ length: Math.min(JOBS, slugs.length) }, worker));
 // reads, and a cached worksheet must still show a notebook added since.
 {
   const nbTitle = (text) => {
-    // The first "# " heading of a markdown cell, minus a "[E.3] "-style prefix.
+    // The first "# " heading of a markdown cell, minus a "[E.3] " / "[2.6] - " prefix.
     for (const cell of text.split(/^# ! CELL TYPE: /m).slice(1)) {
       if (!cell.startsWith("markdown")) continue;
       const m = cell.match(/^# (?!! )(.+)$/m);
-      if (m) return m[1].replace(/^\[[^\]]*\]\s*/, "").trim();
+      if (m) return m[1].replace(/^\[[^\]]*\]\s*(?:[-–—:]\s*)?/, "").trim();
     }
     return null;
   };
