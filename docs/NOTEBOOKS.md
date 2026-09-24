@@ -225,6 +225,11 @@ An `.ipynb` is imported only when it has no stamp, i.e. it was never generated h
   `\iliad@notebook` in the two `.sty` files. (Today's hard-coded links mix `blob/main`
   and `blob/build` across the day repos.)
 
+**On the page:** every notebook also gets a **Notebook** row in the page's downloads
+block, next to Slides, with a `colab ↗` link. It follows the "with solutions" checkbox
+like the worksheet downloads do. Several notebooks are labelled by their first heading.
+The build writes the list to `content/notebooks.json` on every run.
+
 Resolved link:
 `https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/notebooks/<slug>/<name>_{nosol,sol}.ipynb`
 
@@ -381,6 +386,19 @@ group, since two force-pushes at once would drop one's work.
 - Support modules reach Colab the way D.2's do today: a setup cell sparse-clones the
   `notebooks` branch and adds the slug's folder to `sys.path`.
 
+### The header cell
+
+Every published notebook, both versions, starts with one markdown cell built from
+[`tex/notebook-header.md`](../tex/notebook-header.md), a shared template: edit it to
+change every notebook. It links the worksheet page the notebook belongs to (the URL and
+day label come from `schedule.yaml`), the ILIAD Intensive site, and both versions of the
+notebook, and says which version this is. It is added at publish time only, so it never
+enters a master or the local editing notebook.
+
+`gen_notebooks.py` reads `schedule.yaml` with a small reader of its own, to stay
+standard-library only. It was checked against `scripts/schedule.mjs` for every scheduled
+worksheet (2026-09-23). If they ever disagree, fix the Python one.
+
 ### Images — the existing site build
 
 - `scripts/build-content.mjs` copies the `fig/` images the slug's masters reference into
@@ -445,8 +463,8 @@ about 1,970 lines, ported function by function), trimmed to the two Colab output
 `~…`, inline `FILTERS: … END FILTERS`), `EXERCISE`/`SOLUTION`/`HIDE` blocks, the
 solution dropdown placed in the next markdown cell, the `master-comment`, `main`,
 `keep-main` and `html` tags, `if MAIN:` and `FLAG_` stripping, `# COLAB-SPLIT`, the
-`(exercises)`/`(solutions)` title suffix plus a Colab links line under the first `# `
-heading (only when the master has a split), and learning objectives copied from a
+`(exercises)`/`(solutions)` title suffix on the first `# `
+heading (only when the master has a split; the header cell now carries the Colab links), and learning objectives copied from a
 "Content & Learning Objectives" cell under each section heading.
 
 **Dropped:** Streamlit pages, the solutions `.py`, ruff formatting, `config.yaml`, and

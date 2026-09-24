@@ -602,12 +602,10 @@ def publish_cells(cells: list[Cell], slug: str, name: str, slug_dir: Path) -> tu
             first = next((s for s in cell.source if s.strip()), "")
             if first.startswith("# "):
                 titled = True
-                links = (f"> **Colab: [exercises]({COLAB_URL.format(preview=PREVIEW, slug=slug, name=name, kind='nosol')}) | "
-                         f"[solutions]({COLAB_URL.format(preview=PREVIEW, slug=slug, name=name, kind='sol')})**")
                 for key, suffix in (("colab-ex", " (exercises)"), ("colab-soln", " (solutions)")):
                     if text[key]:
                         i = next(j for j, s in enumerate(text[key]) if s.strip())
-                        text[key] = text[key][:i] + [text[key][i] + suffix] + text[key][i + 1:] + ["", links]
+                        text[key] = text[key][:i] + [text[key][i] + suffix] + text[key][i + 1:]
         for key in text:
             if text[key]:
                 text[key] = map_images("\n".join(text[key]),
@@ -632,6 +630,61 @@ def publish_cells(cells: list[Cell], slug: str, name: str, slug_dir: Path) -> tu
     return ex, sol, has_split
 
 
+HEADER_TEMPLATE = TEX / "notebook-header.md"
+SITE = "https://iliad-intensive.org"
+
+
+def schedule_pages() -> dict[str, tuple[str, str]]:
+    """slug -> (day label, page path) from schedule.yaml, e.g. ("E.3 · Worst-Case
+    Interpretability", "/safety/worst-case-interp/").
+
+    A deliberately small reader for the file's one shape (clusters -> days ->
+    worksheets), so this script stays standard-library only. scripts/schedule.mjs
+    is the real parser and validates the file on every site build; if the two ever
+    disagree about a page's URL, it is this function that needs fixing.
+    """
+    pages = {}
+    cluster = code = title = None
+    in_sheets = None  # indentation of the current `worksheets:` key
+    for raw in (ROOT / "schedule.yaml").read_text(encoding="utf-8").splitlines():
+        line = re.sub(r"\s+#.*$", "", raw) if not raw.lstrip().startswith("#") else ""
+        if not line.strip():
+            continue
+        indent = len(line) - len(line.lstrip())
+        value = lambda m: m.group(1).strip().strip("\"'")
+        if in_sheets is not None and indent <= in_sheets:
+            in_sheets = None
+        if m := re.match(r"^\s*urlSlug:\s*(.+)$", line):
+            cluster = value(m)
+        elif m := re.match(r"^\s*-\s*code:\s*(.+)$", line):
+            code, title = value(m), None
+        elif m := re.match(r"^\s*title:\s*(.+)$", line):
+            title = value(m)
+        elif m := re.match(r"^(\s*)worksheets:\s*(\[.*\])?\s*$", line):
+            in_sheets = len(m.group(1))
+            for sheet in re.findall(r"[\w.-]+", m.group(2) or ""):
+                pages[sheet] = (f"{code} · {title}" if title else str(code), f"/{cluster}/{sheet}/")
+        elif in_sheets is not None and (m := re.match(r"^\s*-\s*([\w.-]+)\s*$", line)):
+            pages[m.group(1)] = (f"{code} · {title}" if title else str(code), f"/{cluster}/{m.group(1)}/")
+    return pages
+
+
+def header_cell(slug: str, name: str, kind: str) -> dict:
+    """The first cell of a published notebook: tex/notebook-header.md, filled in."""
+    template = HEADER_TEMPLATE.read_text(encoding="utf-8")
+    template = re.sub(r"^\s*<!--.*?-->\s*", "", template, flags=re.S)  # the template's own notes
+    label, page = schedule_pages().get(slug, (slug, f"/page/{slug}/"))  # unscheduled: /page/<slug>/
+    fields = {
+        "page_label": label,
+        "page_url": SITE + page,
+        "version": "with solutions" if kind == "sol" else "without solutions",
+        "nosol_url": COLAB_URL.format(preview=PREVIEW, slug=slug, name=name, kind="nosol"),
+        "sol_url": COLAB_URL.format(preview=PREVIEW, slug=slug, name=name, kind="sol"),
+    }
+    text = re.sub(r"\{(\w+)\}", lambda m: fields.get(m[1], m[0]), template.strip())
+    return md_cell(text.split("\n"))
+
+
 def publish_master(py: Path, slug: str, out_dir: Path) -> list[Path]:
     text = py.read_text(encoding="utf-8")
     meta, cells = parse_master(text, str(py.relative_to(ROOT)))
@@ -639,7 +692,7 @@ def publish_master(py: Path, slug: str, out_dir: Path) -> list[Path]:
     written = []
     for kind, out in (("nosol", ex), ("sol", sol)):
         path = out_dir / f"{py.stem}_{kind}.ipynb"
-        body = nb_json(out, meta)
+        body = nb_json([header_cell(slug, py.stem, kind)] + out, meta)
         # belt and braces: image_for_publish already refuses these
         leftover = re.search(r'(\]\(\s*<?|src=\\?["\'])(data:|attachment:|fig/)', body)
         if leftover:

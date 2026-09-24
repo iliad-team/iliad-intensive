@@ -30,6 +30,8 @@ on:
       - "tex/*/fig/**"
       - "tex/*/support/**"
       - "tex/gen_notebooks.py"
+      - "tex/notebook-header.md"     # the header cell every notebook starts with
+      - "schedule.yaml"              # the header's link back to the page
       - ".github/workflows/notebooks.yml"
       - ".github/notebooks-branch.sh"
   pull_request:

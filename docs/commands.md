@@ -345,6 +345,9 @@ them by name:
   module has no master `<name>.py`.
 - Every notebook publishes both versions, so both commands always work (a
   notebook without exercise markers publishes two identical files).
+- The page also lists each notebook in its downloads block (a **Notebook** row
+  next to Slides) without any command; that link follows the "with solutions"
+  checkbox.
 - MDX: `<NotebookNoSol name="compact_proofs" />`,
   `<NotebookSol name="compact_proofs">the worked solutions</NotebookSol>`.
 

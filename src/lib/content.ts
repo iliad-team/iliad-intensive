@@ -52,6 +52,7 @@ export type IndexEntry = {
 const CONTENT_DIR = path.join(process.cwd(), "content", "modules");
 const INDEX_FILE = path.join(process.cwd(), "content", "index.json");
 const DOWNLOADS_DIR = path.join(process.cwd(), "public", "downloads");
+const NOTEBOOKS_FILE = path.join(process.cwd(), "content", "notebooks.json");
 
 /**
  * Files available under public/downloads/<slug>/ — build artifacts from
@@ -73,6 +74,26 @@ export async function listDownloads(slug: string): Promise<string[]> {
  *  `#set document(title:)` (Typst), read off the staged source so a page
  *  with several decks can name each row. A LaTeX deck's `% title:` in its own
  *  `%--- iliad ---` block wins over its \title{}. */
+/** A module's Colab notebook (content/notebooks.json, written by build-content.mjs). */
+export type Notebook = {
+  name: string;
+  /** the master's first heading, for telling several notebooks apart */
+  title: string | null;
+  /** Colab URLs of the two published versions */
+  nosol: string;
+  sol: string;
+};
+
+/** The module's Colab notebooks, in name order; none if it has no master .py files. */
+export async function listNotebooks(slug: string): Promise<Notebook[]> {
+  try {
+    const all = JSON.parse(await readFile(NOTEBOOKS_FILE, "utf8")) as Record<string, Notebook[]>;
+    return all[slug] ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export type StagedDeck = {
   stem: string;
   title: string | null;

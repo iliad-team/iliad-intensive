@@ -5,6 +5,7 @@
  *
  *   content/modules/<slug>.mdx           the page body
  *   content/index.json                   homepage/sidebar listing
+ *   content/notebooks.json               each module's Colab notebooks (the page's Notebook row)
  *   public/uploads/<slug>/tikz-*.svg     diagrams (content-addressed)
  *   public/downloads/<slug>/…            pdf/tex/mdx, each ± solutions
  *                                        (MDX-authored sheets: mdx only — a
@@ -1015,6 +1016,34 @@ async function worker() {
 }
 const tally = { total: 0, cached: 0 };
 await Promise.all(Array.from({ length: Math.min(JOBS, slugs.length) }, worker));
+
+// ---------------------------- notebooks.json ---------------------------------
+// Every module's notebooks, for the page's Notebook row (DownloadsRow): name,
+// title and both Colab URLs, which already point at this PR's notebooks in a
+// preview build. Rewritten on every run and for every module — it is a few
+// reads, and a cached worksheet must still show a notebook added since.
+{
+  const nbTitle = (text) => {
+    // The first "# " heading of a markdown cell, minus a "[E.3] "-style prefix.
+    for (const cell of text.split(/^# ! CELL TYPE: /m).slice(1)) {
+      if (!cell.startsWith("markdown")) continue;
+      const m = cell.match(/^# (?!! )(.+)$/m);
+      if (m) return m[1].replace(/^\[[^\]]*\]\s*/, "").trim();
+    }
+    return null;
+  };
+  const all = {};
+  for (const slug of allWorksheets) {
+    const names = notebookMasters(slug);
+    if (names.length) all[slug] = names.map((name) => ({
+      name,
+      title: nbTitle(readFileSync(path.join(TEX, slug, `${name}.py`), "utf8")),
+      nosol: COLAB_URL(slug, name, "nosol"),
+      sol: COLAB_URL(slug, name, "sol"),
+    }));
+  }
+  writeFileSync(path.join(ROOT, "content", "notebooks.json"), JSON.stringify(all, null, 2) + "\n");
+}
 
 let moduleCount = null;
 // ---------------------------- index.json -----------------------------------

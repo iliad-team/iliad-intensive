@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Frontmatter, StagedDeck } from "@/lib/content";
+import type { Frontmatter, Notebook, StagedDeck } from "@/lib/content";
 
 const LABELS: Record<string, string> = { pdf: "PDF", tex: "LaTeX", mdx: "Markdown" };
 // A deck's source download, labelled by what it is written in.
@@ -57,6 +57,11 @@ function Box({
  * view · download · LaTeX it shows for a single-variant deck. The last box is
  * the deck's source, labelled LaTeX or Typst by what it was written in.
  *
+ * Then one Notebook row per Colab notebook built from the module's master .py
+ * files (docs/NOTEBOOKS.md). Unlike slides, a notebook comes in both variants,
+ * so its link follows the checkbox exactly as the worksheet rows do. Several
+ * notebooks are labelled by title, as decks are.
+ *
  * Server-rendered: the with/without-solutions swap is public/site.js reading
  * the data-sol/data-nosol pairs off each link — no React on the client.
  */
@@ -66,12 +71,14 @@ export function DownloadsRow({
   basePath,
   decks = [],
   slides,
+  notebooks = [],
 }: {
   slug: string;
   files: string[];
   basePath: string;
   decks?: StagedDeck[];
   slides?: Frontmatter["slides"];
+  notebooks?: Notebook[];
 }) {
   const href = (file: string) => `${basePath}/downloads/${slug}/${file}`;
   const exts = (["pdf", "tex", "mdx"] as const).filter((ext) => files.includes(`${slug}.${ext}`));
@@ -79,7 +86,7 @@ export function DownloadsRow({
   const external = typeof slides === "string" ? { url: slides, title: undefined } : slides?.url ? slides : null;
   const deckRows = (external ? 1 : 0) + decks.length;
 
-  if (exts.length === 0 && deckRows === 0) return null;
+  if (exts.length === 0 && deckRows === 0 && notebooks.length === 0) return null;
 
   const rowLabel = "w-20 shrink-0 uppercase tracking-wide text-zinc-500";
   const deckTitle = (title?: string | null) =>
@@ -87,7 +94,7 @@ export function DownloadsRow({
 
   return (
     <div className="mt-4 font-sans text-xs">
-      {exts.length > 0 && (
+      {(exts.length > 0 || notebooks.length > 0) && (
         <label className="mb-2.5 flex w-fit cursor-pointer select-none items-center gap-1.5 text-zinc-500">
           <input
             type="checkbox"
@@ -144,6 +151,14 @@ export function DownloadsRow({
               <Box href={href(`${slug}-${deck.stem}.${deck.source}`)} download>{DECK_SOURCE[deck.source]}</Box>
             )}
             {deckTitle(deck.title)}
+          </li>
+        ))}
+
+        {notebooks.map((nb) => (
+          <li key={nb.name} className="flex flex-wrap items-center gap-2">
+            <span className={rowLabel}>Notebook</span>
+            <Box href={nb.sol} sol={nb.sol} nosol={nb.nosol}>colab&nbsp;↗</Box>
+            {notebooks.length > 1 && nb.title && <span className="text-zinc-500">{nb.title}</span>}
           </li>
         ))}
       </ul>

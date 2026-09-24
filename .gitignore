@@ -21,6 +21,7 @@ content/modules/
 content/index.json
 # derived from schedule.yaml (committed) + what the build produced
 content/status.json
+content/notebooks.json
 public/uploads/
 public/downloads/
 
