@@ -49,6 +49,10 @@
  *   - "next change": steps through the removed / added / modified blocks in
  *     position order, scrolling each into view with an amber ring, and turns
  *     the diff on first if it is off.
+ *   - "show column edge" (off): a red line down the right edge of every
+ *     article column and a dashed outline on each display equation wider than
+ *     its column, with a count in the label. Independent of the diff: it works
+ *     on the plain preview page too, and survives the diff opening or closing.
  *   - "hide unchanged" (on): the article's top-level blocks — paragraphs,
  *     headings, whole exercise/theorem boxes, lists — that match on both sides
  *     fold away, one block of context kept beside each change, one strip per
@@ -63,6 +67,8 @@
   var syncBox = document.getElementById("diff-sync");
   var stretchBox = document.getElementById("diff-stretch");
   var hideBox = document.getElementById("diff-hide");
+  var edgeBox = document.getElementById("diff-edge");
+  var edgeCount = document.getElementById("diff-edge-count");
   var nextBtn = document.getElementById("diff-next");
   var status = document.getElementById("diff-status");
   var controls = document.getElementById("diff-controls");
@@ -76,6 +82,7 @@
   var SYNC_KEY = "iliad.diffSync";
   var STRETCH_KEY = "iliad.diffStretch";
   var HIDE_KEY = "iliad.diffHide";
+  var EDGE_KEY = "iliad.diffEdge";
 
   // Where the base version of THIS page lives: the same path, minus the
   // preview's base path, on the base origin ("" = this origin's root).
@@ -488,6 +495,7 @@
       pairs.sort(function (x, y) { return x[0].getBoundingClientRect().top - y[0].getBoundingClientRect().top; });
       settle(pairs, base, prose);
       settle(pairs, base, prose); // margins that stopped collapsing around new spacers
+      markOverflow(); // folds opened or closed change what is on view
     };
     var hidden = hideBox && hideBox.checked
       ? foldUnchanged(ops, A, B, pairs, function () { align(true); }, base, prose)
@@ -512,6 +520,33 @@
     stops = []; cur = -1; summary = "";
     root.classList.remove("diff-open");
     say("");
+    markOverflow();
+  }
+
+  // ------------------------------------------------------------ column edge
+  // "show column edge": globals.css draws the line (html.diff-edge); this marks
+  // every display equation whose box is wider than its column — the overflow
+  // scripts/check-overflow.mjs reports, which the .katex-display scroll box
+  // otherwise hides — and counts them in the checkbox's label. Measured over
+  // whatever is on view: the article alone, or both diff columns; a block
+  // folded away by "hide unchanged" has no width and is not counted until
+  // its strip is unfolded (align() re-marks).
+  function markOverflow() {
+    var on = edgeBox && edgeBox.checked;
+    var count = 0;
+    var scope = view || prose;
+    Array.prototype.forEach.call(scope.querySelectorAll(".katex-display"), function (el) {
+      var over = el.scrollWidth - el.clientWidth;
+      var bad = on && over > 1;
+      el.classList.toggle("diff-overflow", bad);
+      if (bad) { el.title = "overflows the column by " + over + "px"; count++; }
+      else if (el.title && el.title.indexOf("overflows the column") === 0) el.removeAttribute("title");
+    });
+    if (edgeCount) {
+      edgeCount.textContent = !on ? ""
+        : count ? " (" + count + " equation" + (count === 1 ? "" : "s") + " overflow" + (count === 1 ? "s" : "") + ")"
+        : " (nothing in view overflows)";
+    }
   }
 
   // ------------------------------------------------------------ next change
@@ -611,6 +646,24 @@
     if (load(HIDE_KEY) === "0") hideBox.checked = false;
     applyHide(false);
     hideBox.addEventListener("change", function () { applyHide(true); });
+  }
+
+  if (edgeBox) {
+    var applyEdge = function () {
+      root.classList.toggle("diff-edge", edgeBox.checked);
+      store(EDGE_KEY, edgeBox.checked ? "1" : "0");
+      markOverflow();
+    };
+    if (load(EDGE_KEY) === "1") edgeBox.checked = true;
+    applyEdge();
+    edgeBox.addEventListener("change", applyEdge);
+    // Widths settle with the web fonts, and change with the viewport.
+    (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(markOverflow);
+    var edgeTimer = null;
+    window.addEventListener("resize", function () {
+      clearTimeout(edgeTimer);
+      edgeTimer = setTimeout(markOverflow, 150);
+    });
   }
 
   if (nextBtn) nextBtn.addEventListener("click", nextChange);

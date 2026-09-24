@@ -190,6 +190,12 @@ scroll offset and the sidebar's sticky offset derive from). The second row:
   maths-heavy page; the pair is centred and the page scrolls sideways on a
   narrow viewport. On, the columns share the viewport and read more
   comfortably, but hide overflow.
+- **show column edge** (off by default) — a red line down the right edge of
+  every article column, and a dashed red outline on each display equation that
+  is wider than its column (the label counts them). That is the overflow
+  `scripts/check-overflow.mjs` reports, made visible: the equation's scroll box
+  otherwise clips it silently at the edge. Independent of the diff — it works on
+  the plain preview page too, and on `/dev/diff`.
 - **next change ▸** — steps through the removed, added and modified blocks in
   position order, scrolling each into view with an amber ring; if the diff is
   off it turns it on first.

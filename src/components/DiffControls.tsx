@@ -47,6 +47,15 @@ export function DiffControls({
         <input type="checkbox" id="diff-stretch" />
         allow stretched margins
       </label>
+      {/* Off by default, and independent of the diff: a red line down the
+          right edge of every article column, and a dashed red outline on each
+          display equation that is wider than the column, so an overflow is
+          seen rather than scrolled past (markOverflow in public/diff.js). */}
+      <label id="diff-edge-label" className="inline-flex cursor-pointer items-center gap-1">
+        <input type="checkbox" id="diff-edge" />
+        show column edge
+        <span id="diff-edge-count" className="text-amber-900/80" />
+      </label>
       {/* Steps through the changes in position order; turns the diff on
           first if it is off. */}
       <button type="button" id="diff-next" className={control}>

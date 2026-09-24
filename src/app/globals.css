@@ -376,6 +376,19 @@ html.diff-stretch .diff-col > .prose {
 .diff-col-base .katex-display.diff-modified { outline-color: #fca5a5; }
 .diff-col-pr   .katex-display.diff-modified { outline-color: #86efac; }
 
+/* "show column edge" (#diff-edge, public/diff.js): a red line down the right
+   edge of every article column — the page's own, or both diff columns' — so a
+   display cut off by its scroll box is seen to stop exactly at the edge, and a
+   dashed red outline on each display equation that is in fact wider than the
+   column (diff.js measures them). Off by default; diff open or closed. */
+html.diff-edge main article .prose {
+  box-shadow: 2px 0 0 0 #dc2626;
+}
+html.diff-edge .katex-display.diff-overflow {
+  outline: 2px dashed #dc2626;
+  outline-offset: 2px;
+}
+
 /* Word-level marks inside an edited block; inline maths is one token. */
 mark.diff-del { background: #fca5a5; color: inherit; text-decoration: line-through; text-decoration-color: #991b1b; }
 mark.diff-ins { background: #86efac; color: inherit; }
