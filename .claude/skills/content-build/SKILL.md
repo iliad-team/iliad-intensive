@@ -23,7 +23,7 @@ run Next 16. Every subcommand is an npm script in `package.json`.
 | `./run.sh content [slug…] [--check] [--no-cache] [--jobs N]` | `build-content.mjs` | the real thing: PDFs, decks, downloads |
 | `./run.sh watch [slug]` | `watch.mjs`: `build-content --check --quiet` on save + `next dev` | fast edit loop, **no browser auto-reload**, port 3000 |
 | `./run.sh preview [slug]` | `preview.mjs`: `build-content --check --no-gate` + scoped `next build` + static server with SSE reload | production-speed pages, auto-reload, port 4321 |
-| `./run.sh ci [slug…]` | `npm run ci` = content build (+`CI_SLUGS`) → `next build` → `strip-hydration` → `check-overflow` (advisory) | exactly what CI runs; exit 0 = CI green |
+| `./run.sh ci [slug…]` | `npm run ci` = content build (+`CI_SLUGS`) → `next build` → `strip-hydration` → `check-overflow` (advisory) | exactly what CI runs (CI runs `check-overflow` as its own job); exit 0 = CI green |
 | `./run.sh build` | `next build` only | static export → `out/` |
 | `./run.sh slugs` / `-i` | list slugs / pick with fzf | |
 | `node scripts/schedule.mjs` | validate + print `schedule.yaml` | after any schedule edit |
@@ -124,13 +124,19 @@ construct's number up by label name. Consequences:
 
 ## The cache (`tex/<slug>/.build-hash`)
 
+The decision lives in `scripts/worksheet-cache.mjs` (Node built-ins only), shared by
+`build-content.mjs` and `scripts/build-plan.mjs`. CI runs the plan before installing
+anything and skips TeX Live when no uncached sheet needs it (`needsTex`: a `main.tex`,
+a LaTeX deck or a `fig/*.pdf`); the build then gets `TEX_INSTALLED=false`, and a sheet
+that needs TeX anyway fails naming the disagreement instead of as "PDF build failed".
+
 A full build skips a sheet (`↷ cached`) when its stored hash matches AND every
 artifact it would stage is present (including every `/uploads/<slug>/…` path
 its MDX references, because `public/uploads` lives in a *separate* CI cache).
 
 Hashed: the sheet's own folder minus LaTeX artifacts (`fig/` hashed whole),
 `tex/iliad.sty`, `tex/alphaurl.bst`, `scripts/build-content.mjs`,
-`scripts/schedule.mjs`, all of `scripts/tex2mdx/`. **Not** hashed, on purpose:
+`scripts/worksheet-cache.mjs`, `scripts/schedule.mjs`, all of `scripts/tex2mdx/`. **Not** hashed, on purpose:
 `schedule.yaml` (moving a sheet to another day only changes two stamped lines,
 so a cache hit re-checks the stamp and rewrites it in place — `restampIfMoved`,
 which also refreshes the staged `.mdx` downloads) and the rest of `scripts/`
@@ -145,8 +151,11 @@ stamps, `.trash/`, `*.from-notebook.py` and `support/` (`isNotebookFile`). So ed
 notebook never recompiles a PDF. What *is* hashed, only for a sheet whose sources link a
 notebook (`linksNotebooks`): every master in the repo as `<slug>/<name>`, since
 `\notebooksol{…}` can name any module's notebook, so adding, renaming or deleting one
-re-checks every linking sheet; and the notebooks branch the links point at (`notebooks`,
-or `notebooks-pr-<N>` in a preview), so a preview and production never share that page.
+re-checks every linking sheet; and the notebooks branch the links point at
+(`nbBranchForSheet`): `notebooks-pr-<N>` in a preview only when the sheet links a notebook
+of a module the PR touches (`NOTEBOOK_PREVIEW_SLUGS`, `*` when the generator or header
+template changed; unset = all), else production's `notebooks`. So an untouched sheet that
+links notebooks keeps production's cached build in every preview.
 
 In CI the same artifacts are restored from `actions/cache` (key never hits,
 `restore-keys: worksheets-` pulls the newest), so an untouched day is not
@@ -163,7 +172,8 @@ build meets them three times:
    or what an MDX sheet writes) into plain Colab links. An unknown name is a build error.
    pdflatex gets `\def\iliadslug{<slug>}\def\iliadnbbranch{…}` ahead of the document
    (the `tex` helper), so the PDF links resolve too. In a same-repo PR preview,
-   `NOTEBOOK_PREVIEW_PR` points every link at the PR's own `notebooks-pr-<N>` branch.
+   `NOTEBOOK_PREVIEW_PR` points a sheet's links at the PR's own `notebooks-pr-<N>`
+   branch when it links a notebook the PR touches (see the cache section).
 2. **Images.** `stageNotebookImages` copies the `fig/` files the masters reference
    (images, and linked files like `fig/play.html`) to `public/uploads/<slug>/nb/`, on
    every build including cache hits. That's where published notebooks link them.

@@ -79,7 +79,7 @@ tex/
 A master edit must never recompile a PDF, and a `.tex` edit must never regenerate a
 notebook.
 
-- **Worksheet hash** (`worksheetHash` in `scripts/build-content.mjs`) skips: masters
+- **Worksheet hash** (`worksheetHash` in `scripts/worksheet-cache.mjs`) skips: masters
   (matched by their first line), `*.ipynb`, the tool's stamp files, and `support/`.
   Masters are matched by content rather than skipping all `*.py`, so a `.py` that a
   worksheet pulls in with `\inputminted` (none does today) would still count.
@@ -467,9 +467,14 @@ A same-repo PR previews its notebooks end to end:
   URLs (branch `notebooks-pr-<N>`, which its fetch cell also clones) and image URLs.
 - `site.yml` sets `NOTEBOOK_PREVIEW_PR` for a same-repo PR's build, so
   `build-content.mjs` points the site preview's notebook links at the PR's notebooks, and
-  pdflatex gets `\iliadnbbranch` (`notebooks-pr-<N>`) for the PDFs.
-- A sheet that links notebooks has the notebooks branch in its worksheet hash, so a
-  preview never reuses production's cached page, or the reverse. Sheets without notebook
+  pdflatex gets `\iliadnbbranch` (`notebooks-pr-<N>`) for the PDFs. Only for notebooks
+  the PR can have changed: `NOTEBOOK_PREVIEW_SLUGS` lists the modules it touches (`*`
+  when it changes `tex/gen_notebooks.py` or `tex/notebook-header.md`), and a sheet
+  linking none of their notebooks links production's, which is the same notebook.
+- A sheet that links notebooks has the branch it links in its worksheet hash, so a
+  preview linking the PR's notebooks never reuses production's cached page, or the
+  reverse — and one linking production's does. Before, every preview linked the PR's
+  branch from every sheet, so D.2's deck recompiled on every PR. Sheets without notebook
   links are unaffected and stay cached.
 - `scripts/prune-preview.mjs` keeps `uploads/<slug>/nb/` for every module, including
   ones the PR didn't touch. The preview's notebooks link every module's images under the
