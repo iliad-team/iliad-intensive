@@ -39,7 +39,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { availableParallelism } from "node:os";
 import { createHash } from "node:crypto";
-import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, copyFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, copyFileSync, rmSync } from "node:fs";
 import YAML from "yaml";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -327,6 +327,70 @@ const deckSources = (dir) => {
 // binary with TYPST=/path/to/typst.
 const TYPST = process.env.TYPST ?? "typst";
 
+// ------------------------------- notebooks ----------------------------------
+// A .py directly in tex/<slug>/ whose first line starts with "# ! " is a Colab
+// notebook master (docs/NOTEBOOKS.md). tex/gen_notebooks.py builds the notebooks
+// and .github/workflows/notebooks.yml publishes them; this script never does.
+// Masters matter here three ways:
+//   1. they are not worksheet inputs, so worksheetHash skips them (and the local
+//      .ipynb, sync stamps, trash and support/ that go with them) — a notebook
+//      edit never recompiles a PDF;
+//   2. \notebooksol{name} / \notebooknosol{name}, and <NotebookSol name="…"/> /
+//      <NotebookNoSol name="…"/> in an MDX sheet, resolve here to the notebook's
+//      Colab URL, and a name with no master is a build error;
+//   3. the fig/ images they show are staged under /uploads/<slug>/nb/, which is
+//      where the published notebooks link them.
+// COLAB_URL must match COLAB_URL in tex/gen_notebooks.py.
+const COLAB_URL = (slug, name, kind) =>
+  `https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/notebooks/${slug}/${name}_${kind}.ipynb`;
+const isMaster = (p) => {
+  if (!p.endsWith(".py")) return false;
+  try { return readFileSync(p, "utf8").startsWith("# ! "); } catch { return false; }
+};
+const notebookMasters = (slug) => {
+  const dir = path.join(TEX, slug);
+  if (!existsSync(dir)) return [];
+  return readdirSync(dir).filter((f) => isMaster(path.join(dir, f))).map((f) => f.slice(0, -3)).sort();
+};
+// The notebook side of a module folder, which the worksheet build ignores.
+const isNotebookFile = (dir, e) =>
+  e.name === "support" || e.name === ".trash" || /\.ipynb$/.test(e.name) || /^\..+\.sync$/.test(e.name)
+  || /\.from-notebook\.py$/.test(e.name) || (e.isFile() && isMaster(path.join(dir, e.name)));
+
+const NOTEBOOK_TAG = /<Notebook(Sol|NoSol)\s+name\s*=\s*"([^"]*)"\s*(?:\/>|>([\s\S]*?)<\/Notebook\1\s*>)/g;
+/** Replace notebook links in a built MDX page with plain Colab links. Returns the errors. */
+const resolveNotebookLinks = (mdxOut, slug) => {
+  const raw = readFileSync(mdxOut, "utf8");
+  const errors = [];
+  const out = raw.replace(NOTEBOOK_TAG, (m, kind, ref, text) => {
+    const [owner, name] = ref.includes("/") ? ref.split("/", 2) : [slug, ref];
+    const k = kind === "Sol" ? "sol" : "nosol";
+    if (!notebookMasters(owner).includes(name)) {
+      errors.push(`\\notebook${k}{${ref}}: no notebook master tex/${owner}/${name}.py`);
+      return m;
+    }
+    const label = (text ?? "").trim() || (k === "sol" ? "Open in Colab (solutions)" : "Open in Colab");
+    return `[${label}](${COLAB_URL(owner, name, k)})`;
+  });
+  if (out !== raw) writeFileSync(mdxOut, out);
+  return errors;
+};
+/** Copy the fig/ images a slug's notebook masters show to public/uploads/<slug>/nb/. */
+const stageNotebookImages = (slug) => {
+  const dir = path.join(TEX, slug);
+  const up = path.join(UPLOADS, slug, "nb");
+  rmSync(up, { recursive: true, force: true });
+  for (const name of notebookMasters(slug)) {
+    const text = readFileSync(path.join(dir, `${name}.py`), "utf8");
+    for (const m of text.matchAll(/(?:src\s*=\s*["']|\]\(\s*<?)fig\/([^\s"'<>)]+)/g)) {
+      const from = path.join(dir, "fig", m[1]);
+      if (!existsSync(from)) continue;   // gen_notebooks.py reports it
+      mkdirSync(path.dirname(path.join(up, m[1])), { recursive: true });
+      copyFileSync(from, path.join(up, m[1]));
+    }
+  }
+};
+
 const hashPath = (h, p) => {
   if (!existsSync(p)) return;
   h.update(path.basename(p));
@@ -339,6 +403,7 @@ function hashDir(h, root, all = false) {
     // pinned by the lockfiles anyway — never walk it.
     if (e.name === "node_modules" || e.isSymbolicLink()) continue;
     if (!all && (ARTIFACT_NAME.has(e.name) || ARTIFACT_EXT.test(e.name))) continue;
+    if (!all && isNotebookFile(root, e)) continue;
     if (e.isDirectory() ? GENERATED_DIR.test(e.name) : GENERATED_FILE.test(e.name)) continue;
     const p = path.join(root, e.name);
     h.update(e.name);
@@ -352,6 +417,7 @@ const worksheetHash = (slug) => {
   hashDir(h, path.join(TEX, slug));                    // the sheet's own sources
   hashPath(h, path.join(TEX, "iliad.sty"));            // shared worksheet contract
   hashPath(h, path.join(TEX, "alphaurl.bst"));         // vendored bibliography style
+  h.update(`notebooks:${notebookMasters(slug).join(",")}`);  // what \notebooksol{…} can resolve to
   // Only the scripts that can change a worksheet's ARTIFACTS. Hashing the whole
   // scripts/ tree was safe but far too wide: build-status.mjs writes nothing but
   // content/status.json, and preview.mjs / watch.mjs write nothing at all, yet
@@ -451,6 +517,8 @@ async function buildSlug(slug) {
   const t0 = Date.now();
   const notes = [];
   const stamp = path.join(dir, ".build-hash");
+  // Not part of the worksheet: runs on a cache hit too, so it can never go stale.
+  stageNotebookImages(slug);
   const done = (ok, headline = "") => {
     // Record the stamp only on a clean full build: a --check run produces no
     // artifacts, and a failed one must not look cached on the next attempt.
@@ -506,11 +574,20 @@ async function buildSlug(slug) {
   // means the distro package — texlive-bibtex-extra is installed for it (see
   // .github/workflows/site.yml), which is also why that 75 MB note above now
   // describes history rather than the current package set.
-  const tex = (...argv) =>
-    exec(argv[0], argv.slice(1), {
+  // pdflatex gets \iliadslug defined ahead of the document, which is how
+  // \notebooksol{name} (iliad.sty) finds this module's notebooks. The last
+  // argument is a file, or already TeX code (a handout deck's
+  // "\def\HANDOUT{}\input{slides}"), which the definition just goes in front of.
+  const tex = (...argv) => {
+    if (argv[0] === "pdflatex") {
+      const src = argv.at(-1);
+      argv = [...argv.slice(0, -1), `\\def\\iliadslug{${slug}}` + (src.startsWith("\\") ? src : `\\input{${src}}`)];
+    }
+    return exec(argv[0], argv.slice(1), {
       cwd: dir,
       env: { ...process.env, BSTINPUTS: `${TEX}:${process.env.BSTINPUTS ?? ""}` },
     });
+  };
   // bibtex, staying quiet about the ONE failure that is genuinely fine: a
   // document with no bibliography at all. Every other failure — a style file
   // that cannot be opened, an unreadable .bib — leaves no .bbl behind, and
@@ -742,6 +819,10 @@ async function buildSlug(slug) {
   // 2.4 stamp the schedule's answer for cluster + day into the generated page,
   //     before anything reads or ships it (render gate, downloads, index).
   stampSchedule(mdxOut, slug);
+
+  // 2.4b notebook links → Colab URLs (see "notebooks" above)
+  const nbErrors = resolveNotebookLinks(mdxOut, slug);
+  if (nbErrors.length) return done(false, nbErrors.join("\n  "));
 
   // 2.5 slides: compile every deck — slides.tex, slides-<label>.tex — to
   //     <stem>.pdf (same 3× pdflatex + bibtex ladder as the worksheet). No

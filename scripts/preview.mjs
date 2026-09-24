@@ -23,7 +23,7 @@ import { readFile } from "node:fs/promises";
 import http from "node:http";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { BUILD_ARTIFACT } from "./artifacts.mjs";
+import { BUILD_ARTIFACT, isNotebookSide } from "./artifacts.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const TEX = path.join(ROOT, "tex");
@@ -156,7 +156,7 @@ const ARTIFACT = BUILD_ARTIFACT;   // shared: see artifacts.mjs
 let timer = null;
 const pending = new Set();
 const watcher = watch(TEX, { recursive: true }, (_event, file) => {
-  if (!file || ARTIFACT.test(file)) return;
+  if (!file || ARTIFACT.test(file) || isNotebookSide(TEX, file)) return;
   const top = file.split(path.sep)[0];
   const isWorksheet = existsSync(path.join(TEX, top, "main.tex")) ||
                       existsSync(path.join(TEX, top, "main.mdx"));

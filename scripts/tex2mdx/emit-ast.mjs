@@ -93,6 +93,7 @@ const CONTRACT_MACROS = {
   crefrange: { signature: "m m" }, Crefrange: { signature: "m m" },
   href: { signature: "o m m" },   // \href[opts]{url}{text}
   youtube: { signature: "o m" },  // \youtube[Title]{VIDEO_ID}
+  notebooksol: { signature: "o m" }, notebooknosol: { signature: "o m" },  // \notebooksol[Text]{name}
   // cleveref config — unknown to unified-latex, so the parser needs the
   // signature or the three brace groups survive as literal text
   crefname: { signature: "m m m" }, Crefname: { signature: "m m m" },
@@ -814,6 +815,16 @@ function emitMacro(n) {
       if (!/^[A-Za-z0-9_-]{11}$/.test(id))
         warn(`\\youtube expects the 11-character video ID (the watch URL's v= value), got "${id}"`, id);
       return `\n\n<YouTube id="${id}"${title ? ` title="${title.replace(/"/g, "&quot;")}"` : ""} />\n\n`;
+    }
+    case "notebooksol": case "notebooknosol": {
+      // \notebooksol[Text]{name}: the name is the LAST arg. Emitted as the MDX
+      // tag an .mdx sheet would use; build-content.mjs resolves both into the
+      // Colab link (it knows which notebook masters exist).
+      const k = n.args ? n.args.length : 0;
+      const nb = ((k >= 1 ? argRaw(n, k - 1) : null) ?? "").trim();
+      const text = k >= 2 ? walkStr(argRaw(n, 0) ?? "").trim() : "";
+      const tag = name === "notebooksol" ? "NotebookSol" : "NotebookNoSol";
+      return text ? `<${tag} name="${nb}">${text}</${tag}>` : `<${tag} name="${nb}" />`;
     }
     case "hint": return `[*Hint:* ${walkArg(n, 0)}]`;
     case "note": return `[*Note:* ${walkArg(n, 0)}]`;

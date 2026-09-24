@@ -1,0 +1,83 @@
+# Colab notebooks: tex/<slug>/<name>.py masters -> the orphan `notebooks` branch.
+#
+# tex/gen_notebooks.py --publish builds every master's <name>_nosol.ipynb and
+# <name>_sol.ipynb into build/notebooks/<slug>/, next to a copy of the module's
+# support/. On a push to main that tree is force-pushed, as a single orphan
+# commit, to the `notebooks` branch, which is where Colab opens them from:
+#   https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/notebooks/<slug>/<name>_sol.ipynb
+# PRs build and check but do not publish. Nothing generated is ever committed
+# to main. See docs/NOTEBOOKS.md.
+#
+# Separate from site.yml on purpose: a worksheet edit never regenerates a
+# notebook and a notebook edit never runs the LaTeX ladder. The images the
+# notebooks show are NOT published here — the site build stages them under
+# /uploads/<slug>/nb/ (scripts/build-content.mjs), and the notebooks link there.
+name: notebooks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "tex/*/*.py"
+      - "tex/*/fig/**"
+      - "tex/*/support/**"
+      - "tex/gen_notebooks.py"
+      - ".github/workflows/notebooks.yml"
+  pull_request:
+    paths:
+      - "tex/*/*.py"
+      - "tex/*/fig/**"
+      - "tex/*/support/**"
+      - "tex/gen_notebooks.py"
+      - ".github/workflows/notebooks.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: notebooks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # No LFS: publishing reads only the masters and checks that the fig/ files
+      # they link exist; the image bytes are the site build's business.
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Standard library only — nothing to install. Fails on any master that
+      # doesn't convert, or links an image outside fig/.
+      - name: Build the notebooks
+        run: python3 tex/gen_notebooks.py --publish
+
+      - name: Check the published tree
+        run: |
+          set -euo pipefail
+          cd build/notebooks
+          find . -type f | sort
+          for nb in $(find . -name '*.ipynb'); do
+            python3 -c "import json, sys; json.load(open(sys.argv[1]))" "$nb"
+            if grep -qE '(\]\(|src=\\")(data:|attachment:|fig/)' "$nb"; then
+              echo "::error::$nb still has an embedded or relative image"; exit 1
+            fi
+          done
+
+      - name: Publish to the `notebooks` branch (main only)
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          cd build/notebooks
+          git init -q -b notebooks
+          git add -A
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -q -m "notebooks @ ${GITHUB_SHA}"
+          git push -f -q "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" notebooks

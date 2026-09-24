@@ -36,6 +36,22 @@ for path in $(git diff --cached --name-only --diff-filter=ACMR); do
 done
 unset IFS
 
+# Notebooks are built from their master .py (docs/NOTEBOOKS.md) and never
+# committed: an .ipynb is a diff nobody can review, and a copy that drifts from
+# its master. (.gitignore already hides the local ones; this catches `git add -f`.)
+nb=$(git diff --cached --name-only --diff-filter=ACMR -- 'tex/*.ipynb' 'tex/**/*.ipynb')
+if [ -n "$nb" ]; then
+  echo ""
+  echo "✗ commit rejected: notebooks are never committed — commit the master .py instead."
+  echo ""
+  printf '%s\n' "$nb" | sed 's/^/    /'
+  echo ""
+  echo "  Sync your notebook edits into the .py with:  ./run.sh notebooks <slug>"
+  echo "  then:  git rm --cached <file>.ipynb"
+  echo ""
+  exit 1
+fi
+
 if [ -n "$bad" ]; then
   echo ""
   echo "✗ commit rejected: binary assets must be committed via Git LFS, not directly."

@@ -26,6 +26,9 @@ Usage:
                         (slugs = build only those worksheets' content, then the
                         whole site from whatever content/ already holds)
   ./run.sh build           static-export the site -> out/
+  ./run.sh notebooks [slug ...]  sync each notebook master (<name>.py) with its
+                        local <name>.ipynb, then build the Colab notebooks into
+                        build/notebooks/ (no slug = every module with notebooks)
   ./run.sh slugs           list every worksheet slug, one per line
   ./run.sh <script>        any other script from package.json
 
@@ -75,6 +78,8 @@ pick_slugs() {
 case "${1:-}" in
   -h|--help|help) usage; exit 0 ;;
   slugs) list_slugs; exit 0 ;;
+  # Python, not Node: no nvm needed. See docs/NOTEBOOKS.md.
+  notebooks) shift; exec python3 "$here/tex/gen_notebooks.py" "$@" ;;
 esac
 
 # Load nvm.
