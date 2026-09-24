@@ -212,9 +212,13 @@ def scenarios(tmp: Path) -> None:
     check("...which is not synced back (second run a no-op)", code == 0 and "←" not in out, out)
     code, out = box.run("--publish", "--preview", "7", "s")
     sol = json.loads((built / "split_sol.ipynb").read_text())
-    check("--preview: links and fetch cell point at pr-preview/pr-7/",
-          code == 0 and "pr-preview/pr-7/s" in "".join(sol["cells"][1]["source"])
-          and "blob/notebooks/pr-preview/pr-7/s/split_nosol.ipynb" in "".join(sol["cells"][0]["source"]), out)
+    check("--preview: links and fetch cell use the PR's own notebooks-pr-7 branch",
+          code == 0 and "-b notebooks-pr-7 " in "".join(sol["cells"][1]["source"])
+          and "blob/notebooks-pr-7/s/split_nosol.ipynb" in "".join(sol["cells"][0]["source"])
+          and "blob/notebooks/" not in json.dumps(sol), out)
+    demo = json.loads((built / "demo_sol.ipynb").read_text())
+    check("--preview: images come from the PR's site preview",
+          "iliad-intensive.org/pr-preview/pr-7/uploads/s/nb/" in json.dumps(demo))
 
     (S / "demo.py").unlink()
     code, out = run()

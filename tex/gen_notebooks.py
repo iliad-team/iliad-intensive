@@ -43,16 +43,21 @@ TEX = Path(__file__).resolve().parent
 ROOT = TEX.parent
 BUILD = ROOT / "build" / "notebooks"
 
-# Where published notebooks and their images are served from. Change these two
-# lines, and nothing else here, if the branch, repo or domain ever moves
+# Where published notebooks and their images are served from. Change these lines,
+# and nothing else here, if the branch, repo or domain ever moves
 # (scripts/build-content.mjs and the two .sty files build the same Colab URL).
-# {preview} is "" for production and "pr-preview/pr-<N>/" for a PR preview (--preview N):
-# the PR's notebooks sit under that folder of the `notebooks` branch, and their
-# images under the same folder of the site preview.
-REPO, BRANCH = "iliad-team/iliad-intensive", "notebooks"
-COLAB_URL = f"https://colab.research.google.com/github/{REPO}/blob/{BRANCH}/{{preview}}{{slug}}/{{name}}_{{kind}}.ipynb"
+# Production notebooks live on the `notebooks` branch; PR <N>'s preview (--preview N)
+# on its own `notebooks-pr-<N>` branch, so a PR can never write production's. Images
+# come from the site: production's, or the PR's site preview (pr-preview/pr-<N>/).
+REPO = "iliad-team/iliad-intensive"
+BRANCH = "notebooks"  # set to notebooks-pr-<N> by --preview
+SITE_PREVIEW = ""  # set to pr-preview/pr-<N>/ by --preview
+COLAB_URL = "https://colab.research.google.com/github/{repo}/blob/{branch}/{slug}/{name}_{kind}.ipynb"
 IMAGE_URL = "https://iliad-intensive.org/{preview}uploads/{slug}/nb/{path}"
-PREVIEW = ""  # set from --preview
+
+
+def colab_url(slug: str, name: str, kind: str) -> str:
+    return COLAB_URL.format(repo=REPO, branch=BRANCH, slug=slug, name=name, kind=kind)
 
 CELL_HEADER = "# ! CELL TYPE:"
 NOTEBOOK_HEADER = "# ! NOTEBOOK:"
@@ -364,7 +369,7 @@ def image_for_publish(src: str, slug: str, slug_dir: Path, where: str) -> str:
     if src.startswith("fig/"):
         if not (slug_dir / src).is_file():
             raise ConvertError(f"{where}: {src} does not exist")
-        return IMAGE_URL.format(preview=PREVIEW, slug=slug, path=src[len("fig/"):])
+        return IMAGE_URL.format(preview=SITE_PREVIEW, slug=slug, path=src[len("fig/"):])
     raise ConvertError(f"{where}: image {src[:60]!r} is not in fig/ — published notebooks may only "
                        "show images from fig/ or the web")
 
@@ -744,19 +749,20 @@ def schedule_pages() -> dict[str, tuple[str, str]]:
 
 def fetch_cell(slug: str) -> dict:
     """On Colab, fetch this notebook's published folder (support modules, solutions module)
-    from the notebooks branch and put it on sys.path. The second cell of a published
-    notebook whose module has support/ or a solutions module; PR previews fetch their own."""
-    folder = f"{PREVIEW}{slug}"
+    from its branch and put it on sys.path. The second cell of a published notebook whose
+    module has support/ or a solutions module; a PR preview fetches from its own branch.
+    Cloned into /content/<branch>, so production and a preview can share one runtime."""
+    clone = f"/content/{BRANCH}"
     return code_cell([
         "# Fetch the modules this notebook imports (Colab only). Added by the build.",
         "import os",
         "import sys",
         "",
         'if "google.colab" in sys.modules:',
-        '    if not os.path.isdir("/content/iliad"):',
-        f"        !git clone -q --depth 1 -b {BRANCH} --filter=blob:none --sparse https://github.com/{REPO} /content/iliad",
-        f'        !cd /content/iliad && git sparse-checkout set "{folder}"',
-        f'    sys.path.insert(0, "/content/iliad/{folder}")',
+        f'    if not os.path.isdir("{clone}"):',
+        f"        !git clone -q --depth 1 -b {BRANCH} --filter=blob:none --sparse https://github.com/{REPO} {clone}",
+        f'        !cd {clone} && git sparse-checkout set "{slug}"',
+        f'    sys.path.insert(0, "{clone}/{slug}")',
     ])
 
 
@@ -769,8 +775,8 @@ def header_cell(slug: str, name: str, kind: str) -> dict:
         "page_label": label,
         "page_url": SITE + page,
         "version": "with solutions" if kind == "sol" else "without solutions",
-        "nosol_url": COLAB_URL.format(preview=PREVIEW, slug=slug, name=name, kind="nosol"),
-        "sol_url": COLAB_URL.format(preview=PREVIEW, slug=slug, name=name, kind="sol"),
+        "nosol_url": colab_url(slug, name, "nosol"),
+        "sol_url": colab_url(slug, name, "sol"),
     }
     text = re.sub(r"\{(\w+)\}", lambda m: fields.get(m[1], m[0]), template.strip())
     return md_cell(text.split("\n"))
@@ -970,7 +976,8 @@ def main() -> int:
                     help="print this script's slug -> page path table as JSON and exit "
                          "(scripts/schedule.mjs --check compares it with the real parser)")
     ap.add_argument("--preview", metavar="PR", type=int,
-                    help="with --publish: build PR <PR>'s preview (links and images under pr-preview/pr-<PR>/)")
+                    help="with --publish: build PR <PR>'s preview (notebooks on the notebooks-pr-<PR> branch, "
+                         "images from the pr-preview/pr-<PR>/ site preview)")
     args = ap.parse_args()
     if args.page_map:
         print(json.dumps({slug: page for slug, (_, page) in schedule_pages().items()}, sort_keys=True))
@@ -979,8 +986,8 @@ def main() -> int:
         if args.preview is not None:
             if not args.publish:
                 raise ConvertError("--preview only goes with --publish")
-            global PREVIEW
-            PREVIEW = f"pr-preview/pr-{args.preview}/"
+            global BRANCH, SITE_PREVIEW
+            BRANCH, SITE_PREVIEW = f"notebooks-pr-{args.preview}", f"pr-preview/pr-{args.preview}/"
         dirs = slug_dirs(args.slugs)
         ok = True
         if not args.publish:

@@ -344,14 +344,15 @@ const TYPST = process.env.TYPST ?? "typst";
 // COLAB_URL must match COLAB_URL in tex/gen_notebooks.py.
 //
 // A PR preview links the PR's own notebooks: .github/workflows/notebooks.yml
-// publishes them under pr-preview/pr-<N>/ of the `notebooks` branch, and
-// site.yml sets NOTEBOOK_PREVIEW_PR for the preview build (same-repo PRs only —
-// a fork's PR gets no notebook preview, so its site preview links production's).
-const NB_PREVIEW = /^\d+$/.test(process.env.NOTEBOOK_PREVIEW_PR ?? "")
-  ? `pr-preview/pr-${process.env.NOTEBOOK_PREVIEW_PR}/` : "";
+// publishes them to the PR's own `notebooks-pr-<N>` branch (never to
+// `notebooks`, which only main writes), and site.yml sets NOTEBOOK_PREVIEW_PR for
+// the preview build (same-repo PRs only — a fork's PR gets no notebook preview,
+// so its site preview links production's).
+const NB_BRANCH = /^\d+$/.test(process.env.NOTEBOOK_PREVIEW_PR ?? "")
+  ? `notebooks-pr-${process.env.NOTEBOOK_PREVIEW_PR}` : "notebooks";
 const COLAB_URL = (slug, name, kind) =>
-  `https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/notebooks/${NB_PREVIEW}${slug}/${name}_${kind}.ipynb`;
-// Does any of a module's sources link a notebook? Then NB_PREVIEW is an input to its build.
+  `https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/${NB_BRANCH}/${slug}/${name}_${kind}.ipynb`;
+// Does any of a module's sources link a notebook? Then NB_BRANCH is an input to its build.
 const NB_LINK = /\\notebook(?:no)?sol\b|<Notebook(?:No)?Sol\b/;
 const linksNotebooks = (dir) => readdirSync(dir, { withFileTypes: true }).some((e) =>
   e.isDirectory()
@@ -443,7 +444,7 @@ const worksheetHash = (slug) => {
   // share such a sheet's cached page. Sheets without notebook links hash neither.
   if (linksNotebooks(path.join(TEX, slug))) {
     h.update(`notebooks:${allNotebookMasters().join(",")}`);
-    h.update(`nb-preview:${NB_PREVIEW}`);
+    h.update(`nb-branch:${NB_BRANCH}`);
   }
   // Only the scripts that can change a worksheet's ARTIFACTS. Hashing the whole
   // scripts/ tree was safe but far too wide: build-status.mjs writes nothing but
@@ -601,7 +602,7 @@ async function buildSlug(slug) {
   // means the distro package — texlive-bibtex-extra is installed for it (see
   // .github/workflows/site.yml), which is also why that 75 MB note above now
   // describes history rather than the current package set.
-  // pdflatex gets \iliadslug (and \iliadnbpreview, empty outside a PR preview)
+  // pdflatex gets \iliadslug (and \iliadnbbranch, the notebooks branch to link)
   // defined ahead of the document, which is how \notebooksol{name} (iliad.sty)
   // finds this module's notebooks. The last
   // argument is a file, or already TeX code (a handout deck's
@@ -609,7 +610,7 @@ async function buildSlug(slug) {
   const tex = (...argv) => {
     if (argv[0] === "pdflatex") {
       const src = argv.at(-1);
-      argv = [...argv.slice(0, -1), `\\def\\iliadslug{${slug}}\\def\\iliadnbpreview{${NB_PREVIEW}}`
+      argv = [...argv.slice(0, -1), `\\def\\iliadslug{${slug}}\\def\\iliadnbbranch{${NB_BRANCH}}`
         + (src.startsWith("\\") ? src : `\\input{${src}}`)];
     }
     return exec(argv[0], argv.slice(1), {

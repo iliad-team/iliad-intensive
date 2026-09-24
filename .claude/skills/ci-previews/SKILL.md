@@ -29,10 +29,11 @@ path unpublished — that is why the production deploy deletes everything at the
 root *except* `pr-preview/`, and why appending history was abandoned (5.4 GB
 across 90 commits). Clones exclude the branch with a negative refspec (README).
 
-A second branch, **`notebooks`**, is laid out the same way for the Colab notebooks
-(production `<slug>/…` at the root, `pr-preview/pr-<N>/<slug>/…` per same-repo PR, one
-orphan commit). It's written only by `.github/workflows/notebooks.yml`, through
-`.github/notebooks-branch.sh`. See the section on it below and `docs/NOTEBOOKS.md`.
+The Colab notebooks live on their own orphan branches, one commit each: **`notebooks`**
+(production, written only from main) and **`notebooks-pr-<N>`** (a same-repo PR's
+preview, written only by that PR, deleted on close). So a PR never writes production,
+and no branch has two writers. They're written only by `.github/workflows/notebooks.yml`,
+through `.github/notebooks-branch.sh`. See the section below and `docs/NOTEBOOKS.md`.
 
 ## `.github/workflows/site.yml`
 
@@ -127,13 +128,13 @@ Builds the Colab notebooks from the `tex/<slug>/<name>.py` masters with
 from `site.yml` so neither build triggers the other.
 
 - **Push to main** (path-filtered: masters, `fig/`, `support/`, the generator, the header
-  template, `schedule.yaml`) → `notebooks-branch.sh production build/notebooks`.
+  template, `schedule.yaml`) → `notebooks-branch.sh production build/notebooks` → `notebooks`.
 - **Every same-repo PR**, with no path filter because the PR's site preview links these
-  notebooks → `--preview <N>`, `notebooks-branch.sh preview <N>`, and a
+  notebooks → `--preview <N>`, `notebooks-branch.sh preview <N>` → `notebooks-pr-<N>`, and a
   `<!-- notebook-preview -->` comment with the Colab links. Fork PRs build but can't
   publish; their site preview links production's notebooks.
-- **PR closed** (`pull_request_target`, checks out `main` only) → `remove <N>`.
-  **Weekly** → `sweep`.
+- **PR closed** (`pull_request_target`, checks out `main` only) → `remove <N>` deletes
+  `notebooks-pr-<N>`. **Weekly** → `sweep` deletes those of closed PRs.
 - Checkout uses LFS: `support/` binaries (D.2's `sprites.png`) are published as files.
 - `site.yml` passes `NOTEBOOK_PREVIEW_PR` to a same-repo PR's build, so its notebook
   links (web and PDF) open that PR's notebooks. The notebook images come from the
@@ -230,9 +231,9 @@ python3 -m http.server 4499 --directory out
 | apt step stalls or fails | Ubuntu mirror incident; re-run. If `apt-packages.txt` changed, the first run is cold by design |
 | a day nobody touched recompiles | cache miss: `worksheets-` entry expired (7 days idle) or the hash inputs changed (converter, `iliad.sty`, `build-content.mjs`) |
 | `git push` rejected locally | the pre-push hook ran the ladder; fix the printed error, or `--no-verify` after `git lfs push` |
-| a notebook link 404s in Colab | `notebooks` run for that push/PR (`gh run list --workflow notebooks`); `gh api repos/iliad-team/iliad-intensive/git/trees/notebooks?recursive=1` shows what is published |
+| a notebook link 404s in Colab | `notebooks` run for that push/PR (`gh run list --workflow notebooks`); `gh api repos/iliad-team/iliad-intensive/git/trees/<notebooks or notebooks-pr-N>?recursive=1` shows what is published |
 | notebook images broken | they load from the *site* (`/uploads/<slug>/nb/`), so check the site deploy, not the notebooks run |
-| a notebook's `support/` import fails on Colab | its fetch cell clones `<slug>/` (or `pr-preview/pr-<N>/<slug>/`) from `notebooks`; a PNG there as a ~130-byte LFS pointer means the checkout lost `lfs: true` |
+| a notebook's `support/` import fails on Colab | its fetch cell sparse-clones `<slug>/` from `notebooks` (or `notebooks-pr-<N>`) into `/content/<branch>`; a PNG there as a ~130-byte LFS pointer means the checkout lost `lfs: true` |
 | custom domain gone | `public/CNAME` was deleted or not staged; the UI-written CNAME is wiped by every orphan publish |
 
 ## Rules when editing the workflows
@@ -251,8 +252,7 @@ python3 -m http.server 4499 --directory out
    hash — no version suffix to bump. Mirror any package change in `setup.sh`.
 7. `workflow_run`/`pull_request_target` changes are only exercised after
    merge; say so in the PR.
-8. Every `notebooks` writer goes through `.github/notebooks-branch.sh`, which fetches
-   the tree, edits only its own part and pushes the whole of it with
-   `--force-with-lease`, retrying if another writer got there first. Don't put the
-   writers in one shared concurrency group: GitHub cancels an older *pending* run in a
-   group, so a production publish could be silently dropped.
+8. Notebook branches are written only through `.github/notebooks-branch.sh`: PRs write
+   `notebooks-pr-<N>`, main writes `notebooks`, never crossed. Keep one writer per
+   branch, and don't put the writers in one shared concurrency group: GitHub cancels
+   an older *pending* run in a group, so a production publish could be silently dropped.

@@ -377,35 +377,46 @@ including copies students saved, and that is accepted.
 
 ## Publishing
 
-### The `notebooks` branch
+### The notebook branches
 
-Laid out like `gh-pages`, and like it kept at a single orphan commit:
+Build output only, each kept at a single orphan commit (every publish replaces it):
 
 ```
-<slug>/<name>_{nosol,sol}.ipynb           production, from main
-<slug>/<support modules>
-pr-preview/pr-<N>/<slug>/…               PR <N>'s preview, removed when the PR closes
+notebooks          <slug>/<name>_{nosol,sol}.ipynb, <slug>/<support modules>
+                   production: written only by a push to main
+notebooks-pr-<N>   the same layout, PR <N>'s preview: written only by that PR's
+                   runs, deleted when the PR closes
 ```
+
+**A PR never writes production.** PR workflows run the PR's own code, including its
+own copy of the publish script, so under a shared branch a buggy PR could damage the
+live notebooks before review. Here a PR can only ever touch its own branch. The script
+also refuses `production` unless the run is on `main`. That guards against mistakes, not
+malice: anyone who can push a branch here can already edit workflows.
+
+**No branch has two writers,** so there is no locking and no retrying: a run just
+force-pushes its branch. Concurrency groups are per PR (a newer push supersedes an older
+one) and one for `main`. Deliberately not one group shared by all: GitHub cancels an
+older *pending* run in a group, which could silently drop a production publish.
 
 Every write goes through `.github/notebooks-branch.sh` (`production`, `preview <N>`,
-`remove <N>`, `sweep`): fetch the current tree, change only the part it owns, force-push
-the whole tree as one orphan commit. The push uses `--force-with-lease` on the commit it
-fetched, and starts over if another writer pushed first, so simultaneous writers can't
-drop each other's work. There is deliberately no shared concurrency group: GitHub cancels
-an older *pending* run in a group, which could silently drop a production publish.
+`remove <N>`, `sweep`). Deleting a branch doesn't free space at once: GitHub
+garbage-collects unreferenced objects in its own time. The branches are small anyway
+(about 500 KB of notebooks), and clones skip them (README: `^refs/heads/notebooks*`).
 
 ### Notebooks — `.github/workflows/notebooks.yml`
 
 - **Push to `main`** (path-filtered to masters, `fig/`, `support/`, the generator):
-  `gen_notebooks.py --publish`, checks, then `notebooks-branch.sh production`.
+  `gen_notebooks.py --publish`, checks, then `notebooks-branch.sh production` → `notebooks`.
 - **Every same-repo PR** (no path filter): `gen_notebooks.py --publish --preview <N>`,
-  checks, `notebooks-branch.sh preview <N>`, and one upserted PR comment listing each
+  checks, `notebooks-branch.sh preview <N>` → `notebooks-pr-<N>`, and one upserted PR comment listing each
   notebook's Colab links. It runs for every PR, not only notebook ones, because the
   PR's site preview links these notebooks either way. It takes seconds.
 - **Fork PRs** build and check but cannot publish (read-only token). Their site preview
   links production's notebooks instead.
-- **PR closed** (`pull_request_target`, checks out `main` only, never the PR): `remove <N>`.
-- **Weekly** (Mondays): `sweep` removes previews of PRs that are no longer open, the
+- **PR closed** (`pull_request_target`, checks out `main` only, never the PR): `remove <N>`
+  deletes `notebooks-pr-<N>`.
+- **Weekly** (Mondays): `sweep` deletes the `notebooks-pr-*` branches of PRs that are no longer open, the
   backstop for a missed close event.
 - `--publish` only reads `.py` files and writes `build/notebooks/`; it never touches a
   local `.ipynb`, so CI cannot destroy anything. Checks: every notebook parses as JSON,
@@ -446,16 +457,16 @@ A same-repo PR previews its notebooks end to end:
 
 | | Production | PR `<N>` preview |
 |---|---|---|
-| Notebooks (Colab) | `…/blob/notebooks/<slug>/…` | `…/blob/notebooks/pr-preview/pr-<N>/<slug>/…` |
+| Notebooks (Colab) | `…/blob/notebooks/<slug>/…` | `…/blob/notebooks-pr-<N>/<slug>/…` |
 | Images | `iliad-intensive.org/uploads/<slug>/nb/…` | `iliad-intensive.org/pr-preview/pr-<N>/uploads/<slug>/nb/…` |
 | Worksheet links (`\notebooksol`, web and PDF) | production notebooks | the PR's notebooks |
 
-- `gen_notebooks.py --preview <N>` builds the PR's notebooks with the preview's Colab and
-  image URLs.
+- `gen_notebooks.py --preview <N>` builds the PR's notebooks with the preview's Colab
+  URLs (branch `notebooks-pr-<N>`, which its fetch cell also clones) and image URLs.
 - `site.yml` sets `NOTEBOOK_PREVIEW_PR` for a same-repo PR's build, so
   `build-content.mjs` points the site preview's notebook links at the PR's notebooks, and
-  pdflatex gets `\iliadnbpreview` (`pr-preview/pr-<N>/`) for the PDFs.
-- A sheet that links notebooks has the preview prefix in its worksheet hash, so a
+  pdflatex gets `\iliadnbbranch` (`notebooks-pr-<N>`) for the PDFs.
+- A sheet that links notebooks has the notebooks branch in its worksheet hash, so a
   preview never reuses production's cached page, or the reverse. Sheets without notebook
   links are unaffected and stay cached.
 - `scripts/prune-preview.mjs` keeps `uploads/<slug>/nb/` for every module, including

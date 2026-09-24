@@ -142,10 +142,11 @@ artifact. The stamp is written only after a clean full build.
 **Notebook files are not worksheet inputs.** The hash skips, at the module's top level,
 notebook masters (a `.py` whose first line starts `# ! `), `*.ipynb`, the `.<name>.sync`
 stamps, `.trash/`, `*.from-notebook.py` and `support/` (`isNotebookFile`). So editing a
-notebook never recompiles a PDF. What *is* hashed: the list of master names, because
-`\notebooksol{name}` must resolve against it; and, on a PR preview build only, the
-preview prefix, for a sheet whose sources link a notebook (`linksNotebooks`), so a
-preview and production never share that sheet's cached page.
+notebook never recompiles a PDF. What *is* hashed, only for a sheet whose sources link a
+notebook (`linksNotebooks`): every master in the repo as `<slug>/<name>`, since
+`\notebooksol{…}` can name any module's notebook, so adding, renaming or deleting one
+re-checks every linking sheet; and the notebooks branch the links point at (`notebooks`,
+or `notebooks-pr-<N>` in a preview), so a preview and production never share that page.
 
 In CI the same artifacts are restored from `actions/cache` (key never hits,
 `restore-keys: worksheets-` pulls the newest), so an untouched day is not
@@ -160,10 +161,9 @@ build meets them three times:
 1. **Links.** Right after the schedule stamp (step 2.4b), `resolveNotebookLinks` turns
    `<NotebookSol name="x"/>` / `<NotebookNoSol …/>` (what `\notebooksol{x}` converts to,
    or what an MDX sheet writes) into plain Colab links. An unknown name is a build error.
-   pdflatex gets `\def\iliadslug{<slug>}\def\iliadnbpreview{…}` ahead of the document
+   pdflatex gets `\def\iliadslug{<slug>}\def\iliadnbbranch{…}` ahead of the document
    (the `tex` helper), so the PDF links resolve too. In a same-repo PR preview,
-   `NOTEBOOK_PREVIEW_PR` points every link at `pr-preview/pr-<N>/` of the `notebooks`
-   branch.
+   `NOTEBOOK_PREVIEW_PR` points every link at the PR's own `notebooks-pr-<N>` branch.
 2. **Images.** `stageNotebookImages` copies the `fig/` files the masters reference
    (images, and linked files like `fig/play.html`) to `public/uploads/<slug>/nb/`, on
    every build including cache hits. That's where published notebooks link them.

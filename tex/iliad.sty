@@ -437,7 +437,7 @@
 % `other-slug/name` another module's. The build defines \iliadslug and checks the
 % name exists; on the web the converter emits the same link.
 \providecommand*{\iliadslug}{}
-\providecommand*{\iliadnbpreview}{}% pr-preview/pr-<N>/ in a PR preview build
+\providecommand*{\iliadnbbranch}{notebooks}% notebooks-pr-<N> in a PR preview build
 \newcommand{\iliad@notebook}[3]{% #1 = sol|nosol, #2 = link text, #3 = name
   \in@{/}{#3}%
   \ifin@\edef\iliad@nbpath{\detokenize{#3}}%
@@ -446,8 +446,8 @@
     \PackageWarning{iliad}{\string\notebook#1{#3}: module unknown outside the
       build; write \string\notebook#1{<slug>/#3}}%
   \fi\fi
-  \edef\iliad@nburl{\detokenize{https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/notebooks/}%
-    \iliadnbpreview\iliad@nbpath\detokenize{_#1.ipynb}}%
+  \edef\iliad@nburl{\detokenize{https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/}%
+    \iliadnbbranch/\iliad@nbpath\detokenize{_#1.ipynb}}%
   \href{\iliad@nburl}{#2}%
 }
 \newcommand{\notebooknosol}[2][Open in Colab]{\iliad@notebook{nosol}{#1}{#2}}

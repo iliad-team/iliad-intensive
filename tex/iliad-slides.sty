@@ -65,7 +65,7 @@
 % there, and docs/NOTEBOOKS.md). Copied rather than shared because a deck may
 % not load iliad.sty; keep the two in step.
 \providecommand*{\iliadslug}{}
-\providecommand*{\iliadnbpreview}{}% pr-preview/pr-<N>/ in a PR preview build
+\providecommand*{\iliadnbbranch}{notebooks}% notebooks-pr-<N> in a PR preview build
 \newcommand{\iliad@notebook}[3]{%
   \in@{/}{#3}%
   \ifin@\edef\iliad@nbpath{\detokenize{#3}}%
@@ -74,8 +74,8 @@
     \PackageWarning{iliad-slides}{\string\notebook#1{#3}: module unknown outside the
       build; write \string\notebook#1{<slug>/#3}}%
   \fi\fi
-  \edef\iliad@nburl{\detokenize{https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/notebooks/}%
-    \iliadnbpreview\iliad@nbpath\detokenize{_#1.ipynb}}%
+  \edef\iliad@nburl{\detokenize{https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/}%
+    \iliadnbbranch/\iliad@nbpath\detokenize{_#1.ipynb}}%
   \href{\iliad@nburl}{#2}%
 }
 \newcommand{\notebooknosol}[2][Open in Colab]{\iliad@notebook{nosol}{#1}{#2}}
