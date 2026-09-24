@@ -347,23 +347,39 @@ including copies students saved, and that is accepted.
 
 ## Publishing
 
+### The `notebooks` branch
+
+Laid out like `gh-pages`, and like it kept at a single orphan commit:
+
+```
+<slug>/<name>_{nosol,sol}.ipynb           production, from main
+<slug>/<support modules>
+pr-preview/pr-<N>/<slug>/…               PR <N>'s preview, removed when the PR closes
+```
+
+Every write goes through `.github/notebooks-branch.sh` (`production`, `preview <N>`,
+`remove <N>`, `sweep`): fetch the current tree, change only the part it owns, force-push
+the whole tree as one orphan commit. All callers share the `notebooks-write` concurrency
+group, since two force-pushes at once would drop one's work.
+
 ### Notebooks — `.github/workflows/notebooks.yml`
 
-- Triggered by push to `main`, pull requests, and manual dispatch, with the path filter
-  above. Its own concurrency group, separate from `site.yml`.
-- Checks out with LFS, runs `python3 tex/gen_notebooks.py --publish` over every slug.
-  The generator only rearranges text, so a full run takes seconds; no per-notebook cache.
-  `--publish` only reads `.py` files and writes `build/notebooks/`; it never touches a
-  local `.ipynb`, so CI cannot destroy anything.
-- Assembles `publish/<slug>/`: the `_nosol`/`_sol` notebooks for every master, plus the
-  slug's `support/`.
-- Checks: every notebook parses as JSON; no `data:` URI, relative image path or
-  `attachment:` remains; no ARENA clone URL leaked.
-- On push to `main` only, force-pushes an orphan commit to the **`notebooks`** branch.
-  PRs build and check but do not publish.
+- **Push to `main`** (path-filtered to masters, `fig/`, `support/`, the generator):
+  `gen_notebooks.py --publish`, checks, then `notebooks-branch.sh production`.
+- **Every same-repo PR** (no path filter): `gen_notebooks.py --publish --preview <N>`,
+  checks, `notebooks-branch.sh preview <N>`, and one upserted PR comment listing each
+  notebook's Colab links. It runs for every PR, not only notebook ones, because the
+  PR's site preview links these notebooks either way. It takes seconds.
+- **Fork PRs** build and check but cannot publish (read-only token). Their site preview
+  links production's notebooks instead.
+- **PR closed** (`pull_request_target`, checks out `main` only, never the PR): `remove <N>`.
+- **Weekly** (Mondays): `sweep` removes previews of PRs that are no longer open, the
+  backstop for a missed close event.
+- `--publish` only reads `.py` files and writes `build/notebooks/`; it never touches a
+  local `.ipynb`, so CI cannot destroy anything. Checks: every notebook parses as JSON,
+  and no `data:`, `attachment:` or `fig/` image source remains.
 - Support modules reach Colab the way D.2's do today: a setup cell sparse-clones the
-  `notebooks` branch (`--depth 1 --filter=blob:none --sparse`, just `<slug>/`) and adds it
-  to `sys.path`.
+  `notebooks` branch and adds the slug's folder to `sys.path`.
 
 ### Images — the existing site build
 
@@ -376,6 +392,28 @@ including copies students saved, and that is accepted.
 - The two workflows run independently, so for a few minutes after a merge a new
   notebook may point at an image the site has not deployed yet. It fixes itself when
   the site deploy finishes.
+
+### PR previews
+
+A same-repo PR previews its notebooks end to end:
+
+| | Production | PR `<N>` preview |
+|---|---|---|
+| Notebooks (Colab) | `…/blob/notebooks/<slug>/…` | `…/blob/notebooks/pr-preview/pr-<N>/<slug>/…` |
+| Images | `iliad-intensive.org/uploads/<slug>/nb/…` | `iliad-intensive.org/pr-preview/pr-<N>/uploads/<slug>/nb/…` |
+| Worksheet links (`\notebooksol`, web and PDF) | production notebooks | the PR's notebooks |
+
+- `gen_notebooks.py --preview <N>` builds the PR's notebooks with the preview's Colab and
+  image URLs.
+- `site.yml` sets `NOTEBOOK_PREVIEW_PR` for a same-repo PR's build, so
+  `build-content.mjs` points the site preview's notebook links at the PR's notebooks, and
+  pdflatex gets `\iliadnbpreview` (`pr-preview/pr-<N>/`) for the PDFs.
+- A sheet that links notebooks has the preview prefix in its worksheet hash, so a
+  preview never reuses production's cached page, or the reverse. Sheets without notebook
+  links are unaffected and stay cached.
+- `scripts/prune-preview.mjs` keeps `uploads/<slug>/nb/` for every module, including
+  ones the PR didn't touch. The preview's notebooks link every module's images under the
+  preview, and it's only a few PNGs per module.
 
 ## Migration
 
@@ -436,7 +474,5 @@ existing figure. All pass. Worth turning into a CI test.
   conflict (safe, but not smooth).
 - **`solutions.py`:** ARENA emitted it next to the notebooks, and D.2's tests may import
   it. Not produced yet; decide when moving D.2.
-- **PR previews for notebooks:** publish PR builds under `pr-<N>/` on the `notebooks`
-  branch. Not needed for a first version.
 - **Where C.3's generator fits:** a second step in `notebooks.yml`, or ported onto the
   master format.

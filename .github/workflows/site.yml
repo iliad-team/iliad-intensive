@@ -410,6 +410,11 @@ jobs:
           # (src/lib/preview.ts) — production can never come out partial.
           PREVIEW_CHANGED_SLUGS: ${{ steps.cfg.outputs.changed }}
           PREVIEW_FULL: ${{ steps.cfg.outputs.full }}
+          # A same-repo PR's preview links the PR's own Colab notebooks, which
+          # notebooks.yml publishes under pr-preview/pr-<N>/ of the `notebooks`
+          # branch (scripts/build-content.mjs). A fork's PR cannot publish them,
+          # so its preview links production's. Empty on main.
+          NOTEBOOK_PREVIEW_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.number || '' }}
         run: npm run ci
 
       # A GitHub Pages branch source runs Jekyll by default, which drops

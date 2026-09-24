@@ -341,8 +341,21 @@ const TYPST = process.env.TYPST ?? "typst";
 //   3. the fig/ images they show are staged under /uploads/<slug>/nb/, which is
 //      where the published notebooks link them.
 // COLAB_URL must match COLAB_URL in tex/gen_notebooks.py.
+//
+// A PR preview links the PR's own notebooks: .github/workflows/notebooks.yml
+// publishes them under pr-preview/pr-<N>/ of the `notebooks` branch, and
+// site.yml sets NOTEBOOK_PREVIEW_PR for the preview build (same-repo PRs only —
+// a fork's PR gets no notebook preview, so its site preview links production's).
+const NB_PREVIEW = /^\d+$/.test(process.env.NOTEBOOK_PREVIEW_PR ?? "")
+  ? `pr-preview/pr-${process.env.NOTEBOOK_PREVIEW_PR}/` : "";
 const COLAB_URL = (slug, name, kind) =>
-  `https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/notebooks/${slug}/${name}_${kind}.ipynb`;
+  `https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/notebooks/${NB_PREVIEW}${slug}/${name}_${kind}.ipynb`;
+// Does any of a module's sources link a notebook? Then NB_PREVIEW is an input to its build.
+const NB_LINK = /\\notebook(?:no)?sol\b|<Notebook(?:No)?Sol\b/;
+const linksNotebooks = (dir) => readdirSync(dir, { withFileTypes: true }).some((e) =>
+  e.isDirectory()
+    ? !/^(\.|_minted|node_modules$|support$)/.test(e.name) && !e.isSymbolicLink() && linksNotebooks(path.join(dir, e.name))
+    : /\.(tex|mdx)$/.test(e.name) && NB_LINK.test(readFileSync(path.join(dir, e.name), "utf8")));
 const isMaster = (p) => {
   if (!p.endsWith(".py")) return false;
   try { return readFileSync(p, "utf8").startsWith("# ! "); } catch { return false; }
@@ -418,6 +431,9 @@ const worksheetHash = (slug) => {
   hashPath(h, path.join(TEX, "iliad.sty"));            // shared worksheet contract
   hashPath(h, path.join(TEX, "alphaurl.bst"));         // vendored bibliography style
   h.update(`notebooks:${notebookMasters(slug).join(",")}`);  // what \notebooksol{…} can resolve to
+  // A preview build links the PR's notebooks, production its own: a sheet with
+  // notebook links must never be served from the other's cache.
+  if (NB_PREVIEW && linksNotebooks(path.join(TEX, slug))) h.update(`nb-preview:${NB_PREVIEW}`);
   // Only the scripts that can change a worksheet's ARTIFACTS. Hashing the whole
   // scripts/ tree was safe but far too wide: build-status.mjs writes nothing but
   // content/status.json, and preview.mjs / watch.mjs write nothing at all, yet
@@ -574,14 +590,16 @@ async function buildSlug(slug) {
   // means the distro package — texlive-bibtex-extra is installed for it (see
   // .github/workflows/site.yml), which is also why that 75 MB note above now
   // describes history rather than the current package set.
-  // pdflatex gets \iliadslug defined ahead of the document, which is how
-  // \notebooksol{name} (iliad.sty) finds this module's notebooks. The last
+  // pdflatex gets \iliadslug (and \iliadnbpreview, empty outside a PR preview)
+  // defined ahead of the document, which is how \notebooksol{name} (iliad.sty)
+  // finds this module's notebooks. The last
   // argument is a file, or already TeX code (a handout deck's
   // "\def\HANDOUT{}\input{slides}"), which the definition just goes in front of.
   const tex = (...argv) => {
     if (argv[0] === "pdflatex") {
       const src = argv.at(-1);
-      argv = [...argv.slice(0, -1), `\\def\\iliadslug{${slug}}` + (src.startsWith("\\") ? src : `\\input{${src}}`)];
+      argv = [...argv.slice(0, -1), `\\def\\iliadslug{${slug}}\\def\\iliadnbpreview{${NB_PREVIEW}}`
+        + (src.startsWith("\\") ? src : `\\input{${src}}`)];
     }
     return exec(argv[0], argv.slice(1), {
       cwd: dir,

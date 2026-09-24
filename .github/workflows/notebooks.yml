@@ -2,16 +2,24 @@
 #
 # tex/gen_notebooks.py --publish builds every master's <name>_nosol.ipynb and
 # <name>_sol.ipynb into build/notebooks/<slug>/, next to a copy of the module's
-# support/. On a push to main that tree is force-pushed, as a single orphan
-# commit, to the `notebooks` branch, which is where Colab opens them from:
-#   https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/notebooks/<slug>/<name>_sol.ipynb
-# PRs build and check but do not publish. Nothing generated is ever committed
-# to main. See docs/NOTEBOOKS.md.
+# support/. Colab opens them from the `notebooks` branch, which is laid out like
+# gh-pages (.github/notebooks-branch.sh does every write):
+#   <slug>/...                  production, from main
+#   pr-preview/pr-<N>/<slug>/... PR <N>'s preview (removed when the PR closes)
+# e.g. https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/notebooks/<slug>/<name>_sol.ipynb
+# Nothing generated is ever committed to main. See docs/NOTEBOOKS.md.
 #
 # Separate from site.yml on purpose: a worksheet edit never regenerates a
 # notebook and a notebook edit never runs the LaTeX ladder. The images the
 # notebooks show are NOT published here — the site build stages them under
-# /uploads/<slug>/nb/ (scripts/build-content.mjs), and the notebooks link there.
+# /uploads/<slug>/nb/ (scripts/build-content.mjs), production's at the site root
+# and a preview's under /pr-preview/pr-<N>/, and the notebooks link there.
+#
+# PR previews: EVERY same-repo PR publishes its notebooks (seconds of work),
+# because its site preview's \notebooksol links point at them (site.yml sets
+# NOTEBOOK_PREVIEW_PR) whether or not the PR touched a notebook. A fork's PR
+# gets no notebook preview — its token is read-only — and its site preview links
+# production's notebooks instead.
 name: notebooks
 
 on:
@@ -23,25 +31,32 @@ on:
       - "tex/*/support/**"
       - "tex/gen_notebooks.py"
       - ".github/workflows/notebooks.yml"
+      - ".github/notebooks-branch.sh"
   pull_request:
-    paths:
-      - "tex/*/*.py"
-      - "tex/*/fig/**"
-      - "tex/*/support/**"
-      - "tex/gen_notebooks.py"
-      - ".github/workflows/notebooks.yml"
+    types: [opened, synchronize, reopened]
+  # PR close only: removes the PR's preview. Safe on pull_request_target (write
+  # token even for forks) ONLY because that job never checks out or runs
+  # anything from the PR — see preview-cleanup.
+  pull_request_target:
+    types: [closed]
+  # Backstop for preview-cleanup, which gets one chance per PR.
+  schedule:
+    - cron: '23 4 * * 1'
   workflow_dispatch:
 
 permissions:
   contents: write
-
-concurrency:
-  group: notebooks-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  pull-requests: write
 
 jobs:
   build:
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    # Every writer of the `notebooks` branch holds this lock: each publish
+    # force-pushes the whole tree, so two at once would drop one's work.
+    concurrency:
+      group: notebooks-write
+      cancel-in-progress: false
     steps:
       # No LFS: publishing reads only the masters and checks that the fig/ files
       # they link exist; the image bytes are the site build's business.
@@ -54,7 +69,13 @@ jobs:
       # Standard library only — nothing to install. Fails on any master that
       # doesn't convert, or links an image outside fig/.
       - name: Build the notebooks
-        run: python3 tex/gen_notebooks.py --publish
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            python3 tex/gen_notebooks.py --publish --preview "${{ github.event.number }}"
+          else
+            python3 tex/gen_notebooks.py --publish
+          fi
+          mkdir -p build/notebooks
 
       - name: Check the published tree
         run: |
@@ -68,16 +89,80 @@ jobs:
             fi
           done
 
-      - name: Publish to the `notebooks` branch (main only)
+      - name: Publish production (main only)
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          cd build/notebooks
-          git init -q -b notebooks
-          git add -A
-          git -c user.name="github-actions[bot]" \
-              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-              commit -q -m "notebooks @ ${GITHUB_SHA}"
-          git push -f -q "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" notebooks
+        run: .github/notebooks-branch.sh production build/notebooks
+
+      - name: Publish this PR's preview
+        if: >-
+          github.event_name == 'pull_request'
+          && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: .github/notebooks-branch.sh preview "${{ github.event.number }}" build/notebooks
+
+      # One marked comment per PR, upserted, listing the preview's notebooks.
+      # Best-effort: an API blip must not fail a good publish.
+      - name: Comment notebook links
+        if: >-
+          github.event_name == 'pull_request'
+          && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs'), path = require('path');
+            const pr = context.issue.number;
+            const marker = '<!-- notebook-preview -->';
+            const colab = (p) => `https://colab.research.google.com/github/${context.repo.owner}/${context.repo.repo}/blob/notebooks/pr-preview/pr-${pr}/${p}`;
+            const root = 'build/notebooks';
+            const rows = [];
+            for (const slug of fs.readdirSync(root).sort()) {
+              for (const f of fs.readdirSync(path.join(root, slug)).sort()) {
+                const m = f.match(/^(.*)_nosol\.ipynb$/);
+                if (m) rows.push(`- \`${slug}/${m[1]}\`: [without solutions](${colab(`${slug}/${f}`)}) · [with solutions](${colab(`${slug}/${m[1]}_sol.ipynb`)})`);
+              }
+            }
+            const head = context.payload.pull_request.head.sha.slice(0, 7);
+            const body = rows.length
+              ? `${marker}\n📓 **Notebook preview** (opens in Colab), built from \`${head}\`. Removed automatically when this PR closes.\n\n${rows.join('\n')}`
+              : `${marker}\n📓 No notebooks in this PR's tree.`;
+            const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: pr });
+            const existing = comments.find((c) => c.body && c.body.includes(marker));
+            if (existing) await github.rest.issues.updateComment({ ...context.repo, comment_id: existing.id, body });
+            else await github.rest.issues.createComment({ ...context.repo, issue_number: pr, body });
+
+  # When a PR closes, delete its notebook preview. Checks out main only — never
+  # the PR — which is what makes pull_request_target safe here.
+  preview-cleanup:
+    if: github.event_name == 'pull_request_target' && github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: notebooks-write
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Remove the PR's notebook preview
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: .github/notebooks-branch.sh remove "${{ github.event.number }}"
+
+  preview-sweep:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: notebooks-write
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Remove notebook previews whose PR is no longer open
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: .github/notebooks-branch.sh sweep

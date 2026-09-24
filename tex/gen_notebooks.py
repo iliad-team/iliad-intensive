@@ -7,6 +7,7 @@ It is the only thing committed; every notebook is built from it.
 
     python3 tex/gen_notebooks.py [slug ...]            sync, then build the published notebooks
     python3 tex/gen_notebooks.py --publish [slug ...]  CI: build published notebooks only
+    python3 tex/gen_notebooks.py --publish --preview N  CI: the same, for PR N's preview
 
 Sync, per master <name>.py and its local <name>.ipynb (gitignored), works out which
 side changed since the last run and carries the change across. When both changed it
@@ -43,9 +44,14 @@ ROOT = TEX.parent
 BUILD = ROOT / "build" / "notebooks"
 
 # Where published notebooks and their images are served from. Change these two
-# lines, and nothing else, if the branch, repo or domain ever moves.
-COLAB_URL = "https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/notebooks/{slug}/{name}_{kind}.ipynb"
-IMAGE_URL = "https://iliad-intensive.org/uploads/{slug}/nb/{path}"
+# lines, and nothing else here, if the branch, repo or domain ever moves
+# (scripts/build-content.mjs and the two .sty files build the same Colab URL).
+# {preview} is "" for production and "pr-preview/pr-<N>/" for a PR preview (--preview N):
+# the PR's notebooks sit under that folder of the `notebooks` branch, and their
+# images under the same folder of the site preview.
+COLAB_URL = "https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/notebooks/{preview}{slug}/{name}_{kind}.ipynb"
+IMAGE_URL = "https://iliad-intensive.org/{preview}uploads/{slug}/nb/{path}"
+PREVIEW = ""  # set from --preview
 
 CELL_HEADER = "# ! CELL TYPE:"
 NOTEBOOK_HEADER = "# ! NOTEBOOK:"
@@ -314,7 +320,7 @@ def image_for_publish(src: str, slug: str, slug_dir: Path, where: str) -> str:
     if src.startswith("fig/"):
         if not (slug_dir / src).is_file():
             raise ConvertError(f"{where}: {src} does not exist")
-        return IMAGE_URL.format(slug=slug, path=src[len("fig/"):])
+        return IMAGE_URL.format(preview=PREVIEW, slug=slug, path=src[len("fig/"):])
     raise ConvertError(f"{where}: image {src[:60]!r} is not in fig/ — published notebooks may only "
                        "link images from fig/ or the web")
 
@@ -596,8 +602,8 @@ def publish_cells(cells: list[Cell], slug: str, name: str, slug_dir: Path) -> tu
             first = next((s for s in cell.source if s.strip()), "")
             if first.startswith("# "):
                 titled = True
-                links = (f"> **Colab: [exercises]({COLAB_URL.format(slug=slug, name=name, kind='nosol')}) | "
-                         f"[solutions]({COLAB_URL.format(slug=slug, name=name, kind='sol')})**")
+                links = (f"> **Colab: [exercises]({COLAB_URL.format(preview=PREVIEW, slug=slug, name=name, kind='nosol')}) | "
+                         f"[solutions]({COLAB_URL.format(preview=PREVIEW, slug=slug, name=name, kind='sol')})**")
                 for key, suffix in (("colab-ex", " (exercises)"), ("colab-soln", " (solutions)")):
                     if text[key]:
                         i = next(j for j, s in enumerate(text[key]) if s.strip())
@@ -805,8 +811,15 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("slugs", nargs="*", help="modules under tex/ (default: every module with notebooks)")
     ap.add_argument("--publish", action="store_true", help="only build published notebooks (CI)")
+    ap.add_argument("--preview", metavar="PR", type=int,
+                    help="with --publish: build PR <PR>'s preview (links and images under pr-preview/pr-<PR>/)")
     args = ap.parse_args()
     try:
+        if args.preview is not None:
+            if not args.publish:
+                raise ConvertError("--preview only goes with --publish")
+            global PREVIEW
+            PREVIEW = f"pr-preview/pr-{args.preview}/"
         dirs = slug_dirs(args.slugs)
         ok = True
         if not args.publish:
