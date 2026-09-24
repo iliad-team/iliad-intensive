@@ -202,7 +202,7 @@ r'''
 
 Here is a picture of an environment called "pottery shop".
 
-<img src="https://raw.githubusercontent.com/matomatical/reward-lab/main/environment.png" width="480">
+<img src="fig/environment.png" width="480">
 
 Pottery shop is an example of a grid-world environment, where everything plays out on a finite grid of positions (in this case, a 6 by 6 grid).
 
