@@ -438,3 +438,74 @@ html.diff-unsync .diff-col {
   overflow-y: auto;
   padding-right: 0.5rem;
 }
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BEGIN content-visibility (performance)
+   ═══════════════════════════════════════════════════════════════════════════
+
+   TO TURN OFF: set `LAZY_LAYOUT = false` in src/lib/perf-flags.ts and rebuild.
+   Every selector below is scoped to `.prose.lazy-layout`; the worksheet page
+   only emits that class when the flag is true, so with it false these rules
+   match nothing and the page renders exactly as before the feature existed.
+   TO REMOVE: delete this block, src/lib/perf-flags.ts, the import + className
+   logic in src/app/[cluster]/[slug]/page.tsx, and the docs/INTERNALS.md row.
+   Nothing else in the codebase refers to any of it. Added in PR #152.
+
+   WHAT: `content-visibility: auto` lets the browser skip layout and paint for
+   a block until it scrolls near the viewport. The maths-heavy worksheets are
+   30k–70k DOM elements of KaTeX markup (SLT: 1,955 formulas, 69k elements);
+   without this the browser lays out all of it before first paint. Measured on
+   SLT in headless Chrome on one core at 6x CPU throttle: main-thread work
+   2.98s → 1.58s, load 2.65s → 1.53s, layout 1084ms → 232ms. Bytes and DOM
+   node count are unchanged.
+
+   `contain-intrinsic-size: auto 120px` is the placeholder height of a block
+   that has never been rendered; `auto` remembers the real size once seen, so
+   the scrollbar settles after the first pass.
+
+   WHERE, and why the selector is a whitelist rather than `.prose > *`:
+   content-visibility implies CSS containment, and a contained block's margins
+   no longer collapse with its children's. On a block with no padding whose
+   children carry margins — ul/ol (li), blockquote (p), and the bare <div id=…>
+   wrappers the converter emits around labelled examples and equations — that
+   adds visible space (measured: +2.4% page height, headings up to 680px lower).
+   So the rule is applied only to blocks whose children's margins never
+   collapsed through them anyway, because they have padding or only inline
+   children: paragraphs, headings, the padded boxes (section, details, classed
+   div), figures and display equations — and, inside a bare wrapper div, to its
+   padded/inline children instead of the wrapper. Lists and blockquotes are
+   left alone (15 of SLT's 372 blocks, about 1% of its formulas).
+
+   A zero-height block — a paragraph holding only a \gdef macro formula — is
+   also excluded: containment would stop its top and bottom margins collapsing
+   through it, adding one paragraph gap.
+
+   VERIFIED 2026-09-16 (headless Chrome, SLT): with every <details> opened and
+   the page fully scrolled, all 68,877 element boxes (top, left, width, height)
+   are identical to the page without this block; deep links land at the same
+   offset. Print forces everything visible so a PDF export is never partial.
+
+   KNOWN COST: scrolling UP through never-visited blocks jumps slightly as
+   placeholders take their real size (first pass only). Browsers without
+   support (Safari < 18, Firefox < 125) ignore the property and get the old
+   behaviour. */
+.prose.lazy-layout > :is(p, h2, h3, h4, section, details, figure, div[class], .katex-display),
+.prose.lazy-layout > div:not([class]) > :is(p, div[class], .katex-display) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}
+
+/* Zero-height formula-only blocks (\gdef macro paragraphs) — see WHERE above. */
+.prose.lazy-layout p:has(> .katex:only-child > .katex-html:empty),
+.prose.lazy-layout .katex-display:has(> .katex-html:empty) {
+  content-visibility: visible;
+}
+
+@media print {
+  .prose.lazy-layout > *,
+  .prose.lazy-layout > * > * {
+    content-visibility: visible;
+  }
+}
+/* ═══ END content-visibility (performance) ══════════════════════════════════ */

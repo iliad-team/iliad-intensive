@@ -71,7 +71,7 @@ Routes (`src/app/`):
 | `intensives/[intensive]/page.tsx` | one programme's calendar: a row per day (date · code · linked material). Material comes from `index.json`, so it lists what was actually built; a day whose worksheets aren't ported says so |
 | `page.tsx` | homepage: hero paragraph + modules grouped by cluster from `index.json`, then by teaching day within a cluster — a day taught in several parts gets a heading (code + title, an anchor a part page links back to) and nests its parts; a one-worksheet day stays a flat row |
 | `[cluster]/[slug]/page.tsx` | the module page. `generateStaticParams` enumerates every MDX module; renders header (title/cluster/day/summary/contributors), `DownloadsRow`, the MDX body, and a "Built <date> from <source>" footer. `dynamicParams = false` — anything not prerendered 404s |
-| `globals.css` | Tailwind 4 + `prose` typography tweaks |
+| `globals.css` | Tailwind 4 + `prose` typography tweaks. Ends with the `content-visibility` performance block (between `BEGIN`/`END` markers), switched by `LAZY_LAYOUT` in `src/lib/perf-flags.ts` — set it `false` to turn the feature off |
 | `icon.svg` | favicon |
 
 Libraries (`src/lib/`):
