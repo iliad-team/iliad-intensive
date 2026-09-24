@@ -341,7 +341,8 @@
   // that holds the other half of any matched leaf pair inside it; a top is
   // foldable when nothing in it changed. Runs of foldable tops keep CONTEXT
   // blocks beside each change and fold the rest, one strip per section (a
-  // heading starts a new strip and names it). Returns the number of tops
+  // heading starts a new strip and names it). The article's two ends have no
+  // change beyond them, so they keep no context. Returns the number of tops
   // hidden; the strips are pushed onto `pairs` so settle() keeps them level.
   function foldUnchanged(ops, A, B, pairs, realign, rootA, rootB) {
     var CHANGED = ".diff-removed, .diff-added, .diff-modified";
@@ -357,7 +358,7 @@
     };
     var idxA = new Map();
     tops(rootA).forEach(function (t, i) { idxA.set(t, i); });
-    var hidden = 0, run = [], lastA = -1;
+    var hidden = 0, run = [], lastA = -1, sawChange = false;
 
     var foldSegment = function (seg) {                 // seg: [[prTop, baseTop], …]
       var head = isHeading(seg[0][0]) ? seg[0][0].textContent.replace(/\s+/g, " ").trim() : null;
@@ -393,13 +394,13 @@
       pairs.push([fa, fb]);
       hidden += seg.length;
     };
-    var flush = function () {
+    var flush = function (atEnd) {
       // Context after a change is worth keeping when it is prose; a heading
       // there only names the next section, which its strip does already, so
       // it folds with its section. Context BEFORE a change stays whatever it
       // is — a heading there says which section the change sits in.
-      var lead = run.length && isHeading(run[0][0]) ? 0 : CONTEXT;
-      var inner = run.slice(lead, run.length - CONTEXT);
+      var lead = !sawChange || (run.length && isHeading(run[0][0])) ? 0 : CONTEXT;
+      var inner = run.slice(lead, run.length - (atEnd ? 0 : CONTEXT));
       run = [];
       if (!inner.length) return;
       var seg = [];
@@ -418,10 +419,11 @@
         lastA = idxA.get(ta);
         return;
       }
-      flush();
+      flush(false);
+      sawChange = true;
       if (ta && idxA.has(ta)) lastA = Math.max(lastA, idxA.get(ta));
     });
-    flush();
+    flush(true);
     return hidden;
   }
 
