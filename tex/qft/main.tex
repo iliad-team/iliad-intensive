@@ -417,7 +417,10 @@ This is an uncontrolled approximation for a lattice in low dimension, where a sp
 since a state with magnetization $m$ has exactly $\frac{1+m}{2}N$ spins up. Stirling's formula gives
 %
 \begin{equation}
-    \frac{1}{N}\log\Omega(m) \;\xrightarrow{N\to\infty}\; h(m) := \log 2 - \frac{1-m}{2}\log(1-m) - \frac{1+m}{2}\log(1+m)\,, \label{ising-entropy}
+\begin{aligned}
+    \frac{1}{N}\log\Omega(m) \;&\xrightarrow{N\to\infty}\; h(m)\,, \\
+    h(m) &:= \log 2 - \frac{1-m}{2}\log(1-m) - \frac{1+m}{2}\log(1+m)\,,
+\end{aligned} \label{ising-entropy}
 \end{equation}
 %
 the \emph{entropy} per site at magnetization $m$: the log of the number of microscopic states compatible with the macroscopic value $m$. It is largest at $m=0$, where $h = \log 2$ and almost all of the $2^N$ states live, and it vanishes at $m=\pm1$, where exactly one state lives. Replacing the sum over $m$ by an integral (the spacing is $2/N$), the partition function becomes a one-dimensional integral,
@@ -822,9 +825,10 @@ which in turn means (formally) that
 a generating function of cumulants. The original $S[f]$ is the inverse Legendre transform of $\log Z[J]$ (by definition of $Z[J]$). Expanded as a formal series in the cumulants (assuming they are small), and assuming $\E[f(x)]=0$ for simplicity, it takes the form
 %
 \begin{align} S[f] = &\; \frac{1}{2} \int dx^1\, dx^2\, \kappa_2^{-1}(x^1,x^2) f(x^1)f(x^2) \notag \\
- & - \int dx^1 dx^2 dx^3\, dy^1 dy^2 dy^3\; \kappa_2^{-1}(x^1,y^1)\,\kappa_2^{-1}(x^2,y^2)\,\kappa_2^{-1}(x^3,y^3) \notag \\
- & \hspace{1.6in} \times\, \kappa_3(y^1,y^2,y^3)\,f(x^1)f(x^2)f(x^3) \notag \\
- &- \int dx^1 dx^2 dx^3 dx^4\, (\kappa_2^{-1})^4\big[ \kappa_4 - \kappa_3\kappa_2^{-1} \kappa_3\;\;\text{terms}\big] f(x^1)f(x^2)f(x^3)f(x^4)\; - \ldots\end{align}
+ & - \int dx^1 dx^2 dx^3\, dy^1 dy^2 dy^3\; \kappa_2^{-1}(x^1,y^1)\,\kappa_2^{-1}(x^2,y^2) \notag \\
+ & \hspace{1in} \times\, \kappa_2^{-1}(x^3,y^3)\,\kappa_3(y^1,y^2,y^3)\,f(x^1)f(x^2)f(x^3) \notag \\
+ &- \int dx^1 dx^2 dx^3 dx^4\, (\kappa_2^{-1})^4\big[ \kappa_4 - \kappa_3\kappa_2^{-1} \kappa_3\;\;\text{terms}\big] \notag \\
+ & \hspace{1in} \times\, f(x^1)f(x^2)f(x^3)f(x^4)\; - \ldots\end{align}
 %
 Physicists might recognize this as a sum of Feynman diagrams, with cumulants giving the vertices.
 A key structure is that the $p$-th order term in the effective action contains only $\kappa_p$ and lower cumulants. In particular, $f$ is a Gaussian process if and only if $S[f]$ is quadratic; and small deviations from Gaussianity, measured by cumulants, provide the higher-order terms in $S[f]$.
@@ -892,9 +896,10 @@ with $\bar K^{L+1}(x,x')$ ultimately governing a GP for the network function $f(
 For a few special activation functions, the Gaussian expectation in \eqref{Kbar-rec} can be evaluated in closed form, giving explicit NNGP kernels. Write $K_{11}=\bar K^{(\ell-1)}(x,x)$, $K_{22}=\bar K^{(\ell-1)}(x',x')$ and $K_{12}=\bar K^{(\ell-1)}(x,x')$ for the previous layer's kernel values. For ReLU, $\phi(u)=\max(u,0)$, one finds the \emph{arc-cosine kernel} of Cho and Saul \cite{cho2009kernel},
 %
 \begin{equation} \label{relu-kernel}
-    \bar K^{(\ell)}(x,x') = \frac{\sigma_w}{2\pi}\,\sqrt{K_{11}K_{22}}\;\Big(\sin\vartheta + (\pi - \vartheta)\cos\vartheta\Big)\,,
-    \qquad
-    \cos\vartheta = \frac{K_{12}}{\sqrt{K_{11}K_{22}}}\,,
+\begin{aligned}
+    \bar K^{(\ell)}(x,x') &= \frac{\sigma_w}{2\pi}\,\sqrt{K_{11}K_{22}}\;\Big(\sin\vartheta + (\pi - \vartheta)\cos\vartheta\Big)\,, \\
+    \cos\vartheta &= \frac{K_{12}}{\sqrt{K_{11}K_{22}}}\,,
+\end{aligned}
 \end{equation}
 %
 and for the sigmoid-like activation $\phi = \mathrm{erf}$ Williams \cite{williams1997computing} found
@@ -947,12 +952,13 @@ Here the $z_i(x)$ are \emph{arbitrary} functions of $x$, and are only tied to th
 and then do the exact Gaussian integral over $a$'s, and then over $\tilde z$'s:
 %
 \begin{align}
-    P(c,z) &= \frac{1}{Z} \int da\,D\tilde z\, e^{\textstyle -\frac{1}{2\sigma_w}|c|^2-\sum_i \frac{1}{2\sigma_w} |a_i|^2 + i \sum_i \int dx\, \tilde z_i(x)(z_i(x)-\frac{1}{\sqrt d}a_i\cdot x)} \\
+    P(c,z) &= \frac{1}{Z} \int da\,D\tilde z\, \exp\bigg[\textstyle -\frac{1}{2\sigma_w}|c|^2-\sum_i \frac{1}{2\sigma_w} |a_i|^2 \notag \\
+     & \hspace{1.5in} \textstyle + i \sum_i \int dx\, \tilde z_i(x)(z_i(x)-\frac{1}{\sqrt d}a_i\cdot x)\bigg] \\
      &= \frac{1}{Z} \int da\,D\tilde z\, \exp\bigg[\textstyle -\frac{1}{2\sigma_w}|c|^2+\sum_i\Big[- \frac{1}{2\sigma_w} \big(a_i+\frac{i\sigma_w}{\sqrt d}\int dx\,\tilde z_i(x) x\big)^2 \notag \\
      & \hspace{.4in} \textstyle-\frac{\sigma_w}{2d}\int dx\,dx'\, \tilde z_i(x) (x\cdot x') \tilde z_i(x') + i  \int dx\, \tilde z_i(x)z_i(x)\Big]\bigg] \\
      & = \frac{1}{Z'} \int D\tilde z\,\exp\bigg[\textstyle -\frac{1}{2\sigma_w}|c|^2-\frac{\sigma_w}{2d}\sum_i\int dx\,dx'\, \tilde z_i(x) (x\cdot x') \tilde z_i(x') \notag \\
      & \hspace{1.5in} \textstyle + i  \sum_i\int dx\, \tilde z_i(x)z_i(x)\bigg] \\
-     & = \frac{1}{Z''} e^{\textstyle  -\frac{1}{2\sigma_w}|c|^2 - \frac{1}{2\sigma_w} \sum_i \int dx\,dx'\, z_i(x) \big(\frac{x\cdot x'}{d}\big)^{-1}z_i(x')}\,.
+     & = \frac{1}{Z''} \exp\bigg[\textstyle  -\frac{1}{2\sigma_w}|c|^2 - \frac{1}{2\sigma_w} \sum_i \int dx\,dx'\, z_i(x) \big(\frac{x\cdot x'}{d}\big)^{-1}z_i(x')\bigg]\,.
 \end{align}
 %
 We clearly see the first-layer GP kernel $K^{(1)}(x,x') = \frac{\sigma_w}{d} x\cdot x'$ appearing.
@@ -960,10 +966,11 @@ We clearly see the first-layer GP kernel $K^{(1)}(x,x') = \frac{\sigma_w}{d} x\c
 To push-forward to the network outputs $f = \frac{1}{\sqrt N}c\cdot \phi(z)$, we just do this again:
 \begin{align}
     P(f) &= \int dc\,Dz\, P(c,z)\, \delta\Big(f(x)-\tfrac{1}{\sqrt N}c\cdot \phi(z(x))\Big) \\
-     & = \frac{1}{Z''} \int dc\,Dz\,D\tilde f\, e^{\textstyle  \Big[-\frac{1}{2\sigma_w}|c|^2 - \frac{1}{2\sigma_w} \sum_i \int dx\,dx'\, z_i(x) \big(\frac{x\cdot x'}{d}\big)^{-1}z_i(x')} \notag \\
-     & \hspace{1.5in} {}^{\textstyle + i\int dx \tilde f(x)(f(x)-\frac{1}{\sqrt N}c\cdot \phi(z(x))) \Big]} \\
-     & \hspace{-.2in} = \frac{1}{Z'''} \int Dz\,D\tilde f\, e^{\textstyle \Big[- \frac{1}{2\sigma_w} \int dx\,dx'\,  \big(\frac{x\cdot x'}{d}\big)^{-1}z(x)\cdot z(x') \Big.} \notag \\
-     & \hspace{1.1in} {}^{\textstyle - \frac{\sigma_w}{2N} \int dx\,dx' \tilde f(x)[\phi(z(x))\cdot \phi(z(x'))]\tilde f(x') +i\int dx\, \tilde f(x) f(x)\Big]}
+     & = \frac{1}{Z''} \int dc\,Dz\,D\tilde f\, \exp\bigg[\textstyle -\frac{1}{2\sigma_w}|c|^2 \notag \\
+     & \hspace{1in} \textstyle - \frac{1}{2\sigma_w} \sum_i \int dx\,dx'\, z_i(x) \big(\frac{x\cdot x'}{d}\big)^{-1}z_i(x') \notag \\
+     & \hspace{1in} \textstyle + i\int dx \tilde f(x)(f(x)-\frac{1}{\sqrt N}c\cdot \phi(z(x)))\bigg] \\
+     & \hspace{-.2in} = \frac{1}{Z'''} \int Dz\,D\tilde f\, \exp\bigg[\textstyle - \frac{1}{2\sigma_w} \int dx\,dx'\,  \big(\frac{x\cdot x'}{d}\big)^{-1}z(x)\cdot z(x') \notag \\
+     & \hspace{.3in} \textstyle - \frac{\sigma_w}{2N} \int dx\,dx' \tilde f(x)[\phi(z(x))\cdot \phi(z(x'))]\tilde f(x') +i\int dx\, \tilde f(x) f(x)\bigg]
 \end{align}
 %
 The problem is that it's now impossible to do the integral over the $z$'s exactly, because (for general activation function $\phi$) the action is no longer quadratic in them. However, as $N\to \infty$, we can treat $\exp\big[- \frac{\sigma_w}{2N} \int dx\,dx' \tilde f(x)[\phi(z(x))\cdot \phi(z(x'))]\tilde f(x')\big]$ as a perturbation, and approximate the \emph{exponent} $[\phi(z(x))\cdot \phi(z(x'))]$ by its expectation value under the Gaussian measure $\exp\big[- \frac{1}{2\sigma_w} \int dx\,dx'\,  \big(\frac{x\cdot x'}{d}\big)^{-1}z(x)\cdot z(x')\big]$ (with kernel $K^{(1)}$) on the $z$'s. To be clear, the approximation that's happening is of the form
@@ -979,8 +986,9 @@ Up to $O(1/N)$ corrections, that produces the deterministic kernel of the previo
 and we get
 %
 \begin{align}
-    P(f) &= \frac{1}{Z''''} \int D\tilde f\, e^{\textstyle -\frac{1}{2} \int dx\, dx'\, \tilde f(x) \bar K^{(2)}(x,x') \tilde f(x') + i\int dx\, \tilde f(x) f(x)} + O\Big(\frac{1}{N}\Big) \\
-     &= \frac{1}{Z'''''} e^{\textstyle -\frac{1}{2} \int dx\, dx'\, f(x) \bar K^{(2)}(x,x')^{-1}  f(x')} +O\Big(\frac{1}{N}\Big) \,.
+    P(f) &= \frac{1}{Z''''} \int D\tilde f\, \exp\bigg[\textstyle -\frac{1}{2} \int dx\, dx'\, \tilde f(x) \bar K^{(2)}(x,x') \tilde f(x') \notag \\
+     & \hspace{1.5in} \textstyle + i\int dx\, \tilde f(x) f(x)\bigg] + O\Big(\frac{1}{N}\Big) \\
+     &= \frac{1}{Z'''''} \exp\bigg[\textstyle -\frac{1}{2} \int dx\, dx'\, f(x) \bar K^{(2)}(x,x')^{-1}  f(x')\bigg] +O\Big(\frac{1}{N}\Big) \,.
 \end{align}
 
 
@@ -996,7 +1004,12 @@ Even with $\sigma_w$ tuned, according to the activation function, so that on ave
 
 This behavior is analyzed in Chapters 3-4 of \cite{roberts2022principles} using functional-integral methods. In particular, Chapter 3 considers the simple example of DLN's, and produces exact recursion relations for higher cumulants of preactivations in each layer. It is shown that in a network of constant hidden width $N$, the leading non-Gaussianity is
 %
-\begin{equation} \kappa_4^{(L+1)} = \Big[ \Big(1+\frac{2}{N}\Big)^L-1\Big](\kappa_2^{(L+1)})^2 = \Big[(e^{2L/N}-1)-\frac{1}{N}\frac{2L}{N}e^{2L/N}+O(N^{-2})\Big](\kappa_2^{(L+1)})^2\,, \end{equation}
+\begin{equation}
+\begin{aligned}
+\kappa_4^{(L+1)} &= \Big[ \Big(1+\frac{2}{N}\Big)^L-1\Big](\kappa_2^{(L+1)})^2 \\
+&= \Big[(e^{2L/N}-1)-\frac{1}{N}\frac{2L}{N}e^{2L/N}+O(N^{-2})\Big](\kappa_2^{(L+1)})^2\,,
+\end{aligned}
+\end{equation}
 %
 where the expansion on the RHS is at finite $L/N$ and $L,N\to\infty$. For small $L/N$, the non-Gaussianity remains small but finite, of size $L/N$. For large $L/N$, $\kappa_4^{(L+1)}$ blows up, as do all the other cumulants. The network outputs will fluctuate chaotically from one instantiation to another, and the network again becomes untrainable.
 
@@ -1004,7 +1017,10 @@ Here's a more direct analysis, in a special case, following \cite[Lecture 2]{han
 Consider a DLN of length $L$ with input and hidden layers all of width $N$:
 %
 \begin{equation}
-    z^{(\ell)} = \frac{1}{\sqrt N}\,w^{(\ell)}z^{(\ell-1)}\,,\qquad z^{(0)}=x\,,\qquad  f(x)=z^{(L+1)}=N^{-\frac{L+1}{2}}\,w^{(L+1)}\cdots w^{(1)}x\,,
+\begin{aligned}
+    z^{(\ell)} &= \frac{1}{\sqrt N}\,w^{(\ell)}z^{(\ell-1)}\,,\qquad z^{(0)}=x\,, \\
+    f(x) &= z^{(L+1)}=N^{-\frac{L+1}{2}}\,w^{(L+1)}\cdots w^{(1)}x\,,
+\end{aligned}
 \end{equation}
 %
 with $w_{ij}^{(\ell)}\sim \CN(0,1)$, i.e.\ $\sigma_w=1$ (and input dimension $d=N$).
@@ -1215,7 +1231,7 @@ A rigorous derivation is somewhat technical, and we refer the reader to \cite{du
 
 We'll simplify life by setting biases to zero, so the network becomes
 %
-\begin{equation}  f_\theta(x) = z^{(L+1)}(x)\,,\qquad z^{(\ell)}_i = \frac{1}{\sqrt{N_{\ell-1}}}\sum_j w_{ij}^{(\ell)} \phi(z_j^{(\ell-1)})\,,\qquad w^{(\ell)}_{ij}\sim\CN(0,\sigma_w)\,,
+\begin{equation}  f_\theta(x) = z^{(L+1)}(x)\,,\quad z^{(\ell)}_i = \frac{1}{\sqrt{N_{\ell-1}}}\sum_j w_{ij}^{(\ell)} \phi(z_j^{(\ell-1)})\,,\quad w^{(\ell)}_{ij}\sim\CN(0,\sigma_w)\,,
 \end{equation}
 %
 in the fan-in normalization of \cref{sec:basicscaling}, with order-one weights.
@@ -1676,9 +1692,10 @@ With \eqref{mf-lr}, the flow $\dot\theta = -\eta\nabla_\theta\CL$ becomes, per n
 where $\Delta^\mu = f_{\rho_N}(x^\mu)-y^\mu$ is the residual of \cref{sec:NTK}. Equivalently, in the potential form \eqref{mf-Psi},
 %
 \begin{equation} \label{mf-eom-Psi}
-    \dot\theta_i = -\tilde\eta\,\nabla_\theta\, \Psi(\theta_i;\rho_N)\,,
-    \qquad
-    \Psi(\theta;\rho) = V(\theta)+\int U(\theta,\theta')d\rho(\theta') = \sum_{\mu=1}^n \Delta^\mu_\rho \; c\,\phi(a\cdot x^\mu)\,,
+\begin{aligned}
+    \dot\theta_i &= -\tilde\eta\,\nabla_\theta\, \Psi(\theta_i;\rho_N)\,, \\
+    \Psi(\theta;\rho) &= V(\theta)+\int U(\theta,\theta')d\rho(\theta') = \sum_{\mu=1}^n \Delta^\mu_\rho \; c\,\phi(a\cdot x^\mu)\,,
+\end{aligned}
 \end{equation}
 %
 with $\Delta_\rho^\mu = f_\rho(x^\mu)-y^\mu$.
@@ -1686,20 +1703,22 @@ with $\Delta_\rho^\mu = f_\rho(x^\mu)-y^\mu$.
 As anticipated, the velocity of neuron $i$ depends on its own state $(c_i,a_i)$, and on all the other neurons only through the average $f_{\rho_N} = \frac{1}{N}\sum_j c_j\phi(a_j\cdot{}\cdot)$, via the residual $\Delta^\mu$. %Every neuron independently performs gradient descent on its own alignment with a \emph{shared, collectively-generated} residual field --- and that field is updated self-consistently as the population moves. 
 The network function $f$ is the mean field here!  We arrive at a dictionary:
 %
-\begin{equation} \label{mf-dictionary}
-\begin{array}{l|l}
-    \text{Curie--Weiss} & \text{one-hidden-layer network, mean-field scaling} \\\hline
-    \text{spin } s_i\in\{\pm1\} & \text{neuron } \theta_i=(c_i,a_i)\in\R^{d+1} \\
-    \text{magnetization } m=\frac{1}{N}\sum_j s_j & \text{network function } f_{\rho}=\frac{1}{N}\sum_j c_j\phi(a_j\cdot{}\cdot) \\
-    \text{external field } B & \text{data term } V \text{ (the targets } y^\mu\text{)} \\
-    \text{pair coupling } -\tfrac{1}{N} s_is_j & \text{neuron-neuron interaction } \tfrac{1}{N} U(\theta_i,\theta_j) \\
-    \text{effective field } m+B & \text{residual } \Delta^\mu_\rho = f_\rho(x^\mu)-y^\mu \\
-    \text{extensive energy } E_N & N\CL \quad(\text{the loss is intensive}) \\
-    \text{zero-temperature dynamics} & \text{gradient flow} \\
-    \text{Langevin at temperature } T & \text{noisy training, \cref{sec:Bayes}} \\
-    m = \tanh(\beta(m+B)) & \text{self-consistent Gibbs measure, \cref{mf-gibbs} below}
-\end{array}
-\end{equation}
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{l|l}
+    Curie--Weiss & one-hidden-layer network, mean-field scaling \\\hline
+    spin $s_i\in\{\pm1\}$ & neuron $\theta_i=(c_i,a_i)\in\R^{d+1}$ \\
+    magnetization $m=\frac{1}{N}\sum_j s_j$ & network function $f_{\rho}=\frac{1}{N}\sum_j c_j\phi(a_j\cdot{}\cdot)$ \\
+    external field $B$ & data term $V$ (the targets $y^\mu$) \\
+    pair coupling $-\tfrac{1}{N} s_is_j$ & neuron-neuron interaction $\tfrac{1}{N} U(\theta_i,\theta_j)$ \\
+    effective field $m+B$ & residual $\Delta^\mu_\rho = f_\rho(x^\mu)-y^\mu$ \\
+    extensive energy $E_N$ & $N\CL$ (the loss is intensive) \\
+    zero-temperature dynamics & gradient flow \\
+    Langevin at temperature $T$ & noisy training, \cref{sec:Bayes} \\
+    $m = \tanh(\beta(m+B))$ & self-consistent Gibbs measure, \cref{mf-gibbs} below
+\end{tabular}
+\end{center}
 %
 %One refinement of the analogy: for spins the mean field is a single scalar, while here it is a whole \emph{function} $f_\rho(\cdot)$ --- one order parameter per input $x$, or a single function-space-valued order parameter. This is the first hint that the right state variable for the limit is not a number but a measure.
 
@@ -1722,7 +1741,10 @@ We now pass to the $N\to\infty$ limit, in distinct steps.
 The expectation of a smooth test function $g$ obeys
 %
 \begin{equation}
-    \frac{d}{dt}\int g\,d\rho_t = \frac{d}{dt}\,\E\big[g(\theta_t)\big] = \E\big[\nabla g(\theta_t)\cdot v_t(\theta_t)\big] = \int \nabla g\cdot v_t\, d\rho_t = -\int g\;\nabla\!\cdot\!(\rho_t v_t)\,,
+\begin{aligned}
+    \frac{d}{dt}\int g\,d\rho_t &= \frac{d}{dt}\,\E\big[g(\theta_t)\big] = \E\big[\nabla g(\theta_t)\cdot v_t(\theta_t)\big] \\
+    &= \int \nabla g\cdot v_t\, d\rho_t = -\int g\;\nabla\!\cdot\!(\rho_t v_t)\,,
+\end{aligned}
 \end{equation}
 %
 integrating by parts in the last step. Since $g$ was arbitrary,
@@ -1801,7 +1823,10 @@ In \Cref{fig:mf-transport} we instead solve the system by simply training a netw
 Continue the lab of \cref{ex:ntk-lab}: same data, same teacher $y(x) = 2\tanh(3x)-\frac{3}{2}\tanh(x)$, same student \eqref{lab-student}, but now with the mean-field exponent $\gamma = 1$ and the rescaled updates \eqref{mf-eom},
 %
 \begin{equation}
-    c_i \mathrel{-}= \Delta\tau\sum_\mu\Delta^\mu\tanh(a_ix^\mu)\,,\qquad a_i \mathrel{-}= \Delta\tau\,c_i\sum_\mu\Delta^\mu\big(1-\tanh^2(a_ix^\mu)\big)x^\mu\,,
+\begin{aligned}
+    c_i &\mathrel{-}= \Delta\tau\sum_\mu\Delta^\mu\tanh(a_ix^\mu)\,, \\
+    a_i &\mathrel{-}= \Delta\tau\,c_i\sum_\mu\Delta^\mu\big(1-\tanh^2(a_ix^\mu)\big)x^\mu\,,
+\end{aligned}
 \end{equation}
 %
 with $\Delta\tau = 5\times10^{-4}$ for $4\times10^4$ steps, so that the rescaled time $\tau = \tilde\eta\, t$ runs to $20$. Note that there is no $1/N$ in these updates: that is the required $O(N)$ learning rate \eqref{mf-lr}, already built in ($\eta = N\,\Delta\tau$). Monitor the NTK \eqref{lab-ntk} with $\gamma=1$.
@@ -1858,14 +1883,16 @@ It's quite instructive to look at an entire one-parameter family of scalings, wh
 %
 where $c_i, a_{ij}\sim \CN(0,1)$. For each $\gamma$, as $N\to\infty$, the learning rate must be simultaneously be scaled as $\eta = N^{2\gamma-1}\tilde\eta$ so that the function-space dynamics stays $O(1)$ (one can derive that from $\Theta\sim N^{1-2\gamma}$). Repeating the estimates above gives (see \cref{ex:gamma}):
 %
-\begin{equation}
-\begin{array}{c|c|c|c}
-    & f_{\theta_0} \text{ at init} & \text{per-neuron motion} & \text{limit} \\\hline
-    \gamma=\tfrac{1}{2} & O(1) \text{ (GP, CLT)} & O(N^{-1/2}) & \text{lazy: \cref{sec:init,sec:train}} \\
-    \tfrac{1}{2}<\gamma<1 & O(N^{\frac{1}{2}-\gamma})\to 0 & O(N^{\gamma-1})\to 0 & \text{lazy (frozen kernel, zero init)} \\
-    \gamma=1 & O(N^{-1/2})\to 0 & O(1) & \text{mean-field: this section}
-\end{array}
-\end{equation}
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.25}
+\begin{tabular}{c|c|c|c}
+    & $f_{\theta_0}$ at init & per-neuron motion & limit \\\hline
+    $\gamma=\tfrac{1}{2}$ & $O(1)$ (GP, CLT) & $O(N^{-1/2})$ & lazy: \cref{sec:init,sec:train} \\
+    $\tfrac{1}{2}<\gamma<1$ & $O(N^{\frac{1}{2}-\gamma})\to 0$ & $O(N^{\gamma-1})\to 0$ & lazy (frozen kernel, zero init) \\
+    $\gamma=1$ & $O(N^{-1/2})\to 0$ & $O(1)$ & mean-field: this section
+\end{tabular}
+\end{center}
 %
 Notably, every intermediate $\gamma$ collapses onto the kernel limit: the initialization GP is scaled away, but the neurons still move vanishingly little, so training is again linear in an (appropriately rescaled) frozen kernel \cite{chizat2019lazy,mei2018mean}. Mean-field, $\gamma=1$, is the \emph{unique} scaling in this family with both a well-defined limit and order-one feature movement; it's the ``maximal update'' that one can take without blowing up. This uniqueness can be generalized from one hidden layer to arbitrary depth (where consistency forces \emph{layer-dependent} learning-rate and initialization scalings), and is known as the Maximal Update Parametrization, $\mu$P, in Yang and Hu's line of work on tensor programs \cite{yang2021tensor}. In particular, mean-field scaling is $\mu$P for $L=1$.
 
@@ -2029,9 +2056,10 @@ Finally, we can use the Fourier representation of the delta, introducing an auxi
 The final step is the payoff: the noise now appears \emph{linearly} in the exponent, so the Gaussian average over $\xi$ can be done exactly, $\big\langle e^{-i\int dt\, \tilde x\, \xi}\big\rangle_\xi = e^{-\frac{D}{2}\int dt\, \tilde x^2}$, leaving the \textbf{MSRJD functional integral}
 %
 \begin{equation} \label{msrjd-action}
-    \expval{\mathcal{A}[x]} = \int \mathcal{D} x\, \mathcal{D} \tilde{x}\; \mathcal{A}[x]\; e^{-S[x,\tilde x]}\,,
-    \qquad
-    S[x,\tilde x] = \int dt\, \Big[ -i\,\tilde{x}\, \big(\partial_t x - f(x)\big) + \frac{D}{2}\, \tilde x^2 \Big]\,.
+\begin{aligned}
+    \expval{\mathcal{A}[x]} &= \int \mathcal{D} x\, \mathcal{D} \tilde{x}\; \mathcal{A}[x]\; e^{-S[x,\tilde x]}\,, \\
+    S[x,\tilde x] &= \int dt\, \Big[ -i\,\tilde{x}\, \big(\partial_t x - f(x)\big) + \frac{D}{2}\, \tilde x^2 \Big]\,.
+\end{aligned}
 \end{equation}
 %
 Four structural comments, each of which does real work later:
@@ -2107,7 +2135,10 @@ Z_{\mathrm{dyn}} = \int \mathcal{D} \hat{\boldsymbol{w}}(t)\, \prod_{i=1}^d \del
 \end{equation}
 We want to highlight the general structure of this equation as a path integral over an action with sources coupled to both the "physical" parameter fields and the response fields, 
 \begin{equation}
-Z_{\operatorname{d y n}}[\mathbf{j}, \tilde{\mathbf{j}}]=\left\langle\int \mathcal{D}  \hat{\boldsymbol{w}}(t) \mathcal{D} {\tilde{\boldsymbol{w}}}(t) \exp{\left(S_{\operatorname{d y n}}+\sum_{i=1}^P \int \tilde{j}_i(t) \hat{w}_i(t) d t+\sum_{i=1}^n \int j_i(t) \tilde{w}_i(t) d t\right)}\right\rangle, \\
+\begin{aligned}
+Z_{\operatorname{d y n}}[\mathbf{j}, \tilde{\mathbf{j}}]=\Big\langle\int \mathcal{D}  \hat{\boldsymbol{w}}(t) \mathcal{D} {\tilde{\boldsymbol{w}}}(t) \exp\Big(S_{\operatorname{d y n}} &+\sum_{i=1}^P \int \tilde{j}_i(t) \hat{w}_i(t) d t \\
+&+\sum_{i=1}^n \int j_i(t) \tilde{w}_i(t) d t\Big)\Big\rangle,
+\end{aligned}
 \end{equation}
 which is a very common object to see in statistical field theory!  In general $S_\text{dyn}$ will hold all of the microscopic details of the theory, and this is a unique case with a fairly tractable model.  In general we are not so lucky. The expectation value denoted by angled brackets is averaging over the input dataset $\{\mathbf{x}^\mu\}_{\mu=1}^{n}$, the initial condition $\hat{\boldsymbol{w}}(0)$, the stochastic sampling  $s_{\mu}(t)$, and the added label noise $\{\epsilon^\mu\}_{\mu=1}^{n}$. For comedic relief we also write their full dynamical function integrated over quenched disorder:
 \begin{equation}
@@ -2597,8 +2628,10 @@ The strategy is to compute $\E Z^Q$ for \emph{integer} $Q$, where it has a trans
 The data average is easy, because the inputs are Gaussian. For fixed replicas and teacher, each example enters only through the $Q+1$ numbers $u^a = \theta^a\cdot x^\mu/\sqrt N$ and $v = \theta^*\cdot x^\mu/\sqrt N$, which are exactly jointly Gaussian (they are linear in $x^\mu$), with mean zero and a covariance determined entirely by the \emph{overlap matrix}
 %
 \begin{equation}
-    q^{ab} = \frac{\theta^a\cdot\theta^b}{N}\,,\qquad R^a = \frac{\theta^a\cdot\theta^*}{N}\,:\qquad
-    \E[u^au^b] = q^{ab}\,,\quad \E[u^av] = R^a\,,\quad \E[v^2] = 1\,. \label{overlap-matrix}
+\begin{aligned}
+    q^{ab} &= \frac{\theta^a\cdot\theta^b}{N}\,,\qquad R^a = \frac{\theta^a\cdot\theta^*}{N}\,: \\
+    \E[u^au^b] &= q^{ab}\,,\quad \E[u^av] = R^a\,,\quad \E[v^2] = 1\,.
+\end{aligned} \label{overlap-matrix}
 \end{equation}
 %
 The product of step functions asks that every $u^a$ have the sign of $v$, and the probability of that event is some function $e^{-e(q,R)}$ of the overlaps alone: a Gaussian orthant probability in $Q+1$ dimensions. Since the examples are independent, the data average of the product over $\mu$ is the $n$-th power, $e^{-n\,e(q,R)} = e^{-\alpha N\,e(q,R)}$. For $Q=1$ the only overlap is $R$, the orthant is a wedge, and $e(R) = -\log(1-\varepsilon(R))$ is the energy term of \cref{sec:ising}.
@@ -2652,8 +2685,10 @@ normalized so that individual weights stay of order one, and let the prior be th
 Repeating the annealed calculation of \cref{ex:ising-pushforward} with this entropy gives
 %
 \begin{equation}
-    \E_{\rm data}Z \approx \int_{-1}^1 dR\; e^{-N\,S_{\rm ann}(R)}\,,\qquad
-    S_{\rm ann}(R) := \underbrace{-\tfrac{1}{2}\log(1-R^2)}_{\text{entropy}}\;\underbrace{-\;\alpha\log\big(1-\varepsilon(R)\big)}_{\text{energy}}\,, \label{annealed-integral}
+\begin{aligned}
+    \E_{\rm data}Z &\approx \int_{-1}^1 dR\; e^{-N\,S_{\rm ann}(R)}\,, \\
+    S_{\rm ann}(R) &:= \underbrace{-\tfrac{1}{2}\log(1-R^2)}_{\text{entropy}}\;\underbrace{-\;\alpha\log\big(1-\varepsilon(R)\big)}_{\text{energy}}\,,
+\end{aligned} \label{annealed-integral}
 \end{equation}
 %
 and the annealed free-energy density is
@@ -2862,8 +2897,10 @@ To solve \eqref{app-minnorm}, introduce Lagrange multipliers $\alpha\in\R^n$ for
 This is the key structural fact: however large $P$ is, the minimum-norm solution lies in the $n$-dimensional subspace of $\R^P$ spanned by the feature vectors of the training inputs, and is described by $n$ numbers. (In the language of \cref{sec:features}, $\theta_*$ lies in the row space of the Jacobian.) The constraint $\Psi\theta_* = Y$ then becomes $\Psi\Psi^T\alpha = Y$, an $n\times n$ linear system. Define the \emph{kernel} and its \emph{Gram matrix} on the training set,
 %
 \begin{equation}
-    K(x,x') := \psi(x)\cdot\psi(x') = \sum_{i=1}^P \psi_i(x)\psi_i(x')\,,\qquad
-    \hat K^{\mu\nu} := K(x^\mu,x^\nu) = (\Psi\Psi^T)^{\mu\nu}\,. \label{app-kernel}
+\begin{aligned}
+    K(x,x') &:= \psi(x)\cdot\psi(x') = \sum_{i=1}^P \psi_i(x)\psi_i(x')\,, \\
+    \hat K^{\mu\nu} &:= K(x^\mu,x^\nu) = (\Psi\Psi^T)^{\mu\nu}\,.
+\end{aligned} \label{app-kernel}
 \end{equation}
 %
 The kernel is an inner product of feature vectors: a notion of \emph{similarity} between inputs, fixed once $\psi$ is fixed, and involving no labels. The Gram matrix is symmetric and positive semidefinite, since $c^T\hat K c = |\Psi^Tc|^2\geq 0$; it is positive definite exactly when $\Psi$ has full row rank, which we assumed. Then $\alpha = \hat K^{-1}Y$, and the prediction at an arbitrary input $x$ is
@@ -3127,9 +3164,11 @@ Representative numbers at the time of writing (take the width $N$ to be the mode
 \begin{solution}[ex:ntk-direct]
 By the chain rule and the gradient-flow equation,
 \begin{equation*}
-    \frac{d}{dt} f^\mu = \nabla_\theta f^\mu \cdot \dot\theta = -\eta\, \nabla_\theta f^\mu \cdot \nabla_\theta \CL
-    = -\eta\, \nabla_\theta f^\mu \cdot \sum_\nu \nabla_\theta f^\nu\, \frac{\pd \CL^{(f)}}{\pd f^\nu}
+\begin{aligned}
+    \frac{d}{dt} f^\mu &= \nabla_\theta f^\mu \cdot \dot\theta = -\eta\, \nabla_\theta f^\mu \cdot \nabla_\theta \CL \\
+    &= -\eta\, \nabla_\theta f^\mu \cdot \sum_\nu \nabla_\theta f^\nu\, \frac{\pd \CL^{(f)}}{\pd f^\nu}
     = -\eta\, \Theta^{\mu\nu}\, \frac{\pd \CL^{(f)}}{\pd f^\nu}\,,
+\end{aligned}
 \end{equation*}
 using in the middle step that $\CL$ depends on $\theta$ only through the function values $f^\nu$.
 \end{solution}
@@ -3297,7 +3336,7 @@ The six steps are their own outline; we record only the checkpoints. (Step 2) Co
 %
 \begin{equation*}
     \frac{R}{1-R^2} = \frac{\alpha}{\pi\sqrt{1-R^2}\,\big(1-\varepsilon(R)\big)}
-    \qquad\Longleftrightarrow\qquad
+    \quad\Longleftrightarrow\quad
     \frac{R}{\sqrt{1-R^2}} = \frac{\alpha}{\pi\,(1-\varepsilon(R))}\,.
 \end{equation*}
 %
