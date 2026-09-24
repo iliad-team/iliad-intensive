@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { listDecks, listDownloads, listIndex, listSlugs, readModuleMdx } from "@/lib/content";
+import { listDecks, listDownloads, listIndex, listNotebooks, listSlugs, readModuleMdx } from "@/lib/content";
 import { clusterUrlSlug, dayCode } from "@/lib/clusters";
 import { listClusters, listDays } from "@/lib/cluster-store";
 import { MdxBody } from "@/lib/mdx";
@@ -46,12 +46,13 @@ export default async function ModulePage({
 }) {
   const { cluster: clusterParam, slug } = await params;
 
-  const [mod, modules, clusterList, days, downloads] = await Promise.all([
+  const [mod, modules, clusterList, days, downloads, notebooks] = await Promise.all([
     readModuleMdx(slug),
     listIndex(),
     listClusters(),
     listDays(),
     listDownloads(slug),
+    listNotebooks(slug),
   ]);
   // Compiled decks among the downloads, labelled from their own \title{}.
   const decks = await listDecks(slug, downloads);
@@ -119,6 +120,7 @@ export default async function ModulePage({
             basePath={process.env.NEXT_PUBLIC_BASE_PATH ?? ""}
             decks={decks}
             slides={fm.slides}
+            notebooks={notebooks}
           />
         </header>
         <div className="prose">

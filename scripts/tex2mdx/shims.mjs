@@ -198,7 +198,7 @@ export const CONTRACT_NAMES = new Set([
   "authorname", "affiliation",
   "definition", "theorem", "lemma", "proposition", "corollary", "fact", "example",
   "label", "cref", "Cref", "hint", "note", "important", "solutionbox", "exercisebox", "ifsolutions",
-  "solutionsonly", "pdfonly", "teachingnote", "youtube",
+  "solutionsonly", "pdfonly", "teachingnote", "youtube", "notebooksol", "notebooknosol",
 ]);
 
 // Frontmatter describes the WORKSHEET. Where it sits in the course — its

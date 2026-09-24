@@ -16,6 +16,8 @@ cd iliad-intensive
 git config --unset-all remote.origin.fetch
 git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
 git config --add remote.origin.fetch '^refs/heads/gh-pages'
+git config --add remote.origin.fetch '^refs/heads/notebooks'
+git config --add remote.origin.fetch '^refs/heads/notebooks-pr-*'
 git fetch origin
 chmod +x setup.sh
 ./setup.sh
@@ -25,8 +27,10 @@ chmod +x setup.sh
 just the one it checks out. `gh-pages` is one of them, and it holds the built
 website plus a complete copy of it for each open PR preview — ~700 MB today,
 growing with every preview publish. None of it is anything you would ever open.
-The `git config` lines add a negative refspec that excludes `gh-pages` for good,
-so later `git fetch` and `git pull` keep skipping it; `--single-branch` is there
+The `git config` lines add negative refspecs that exclude `gh-pages` for good,
+along with the built Colab notebooks (`notebooks`, plus one `notebooks-pr-<N>`
+branch per open PR; see `docs/NOTEBOOKS.md`), so later `git fetch` and `git pull`
+keep skipping them; `--single-branch` is there
 only to stop the *first* fetch pulling it before that config exists. You still
 get every other branch. Measured: **42 MB instead of 136 MB**.
 

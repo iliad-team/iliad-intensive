@@ -25,6 +25,7 @@ Static Next.js site that renders the Iliad Intensive worksheets. **LaTeX is the 
 - [`commands.md`](docs/commands.md) — authoring reference: every supported worksheet construct.
 - [`iliad-sty.md`](docs/iliad-sty.md) — the `iliad.sty` worksheet contract (macros/environments).
 - [`LINKS.md`](docs/LINKS.md) — Google-Doc tab link for each day.
+- [`NOTEBOOKS.md`](docs/NOTEBOOKS.md) — Colab notebooks: master `.py` files in `tex/<slug>/`, `tex/gen_notebooks.py`, the `notebooks` branch, `\notebooksol`.
 
 ## Agent skills — `.claude/skills/`
 

@@ -327,6 +327,30 @@ An aside in the mathematical register.
   Prerequisites (see "Front matter opens the sheet"). A video illustrating
   one point sits wherever that point is — that's fine too.
 
+## Notebooks
+
+A module's Colab notebooks are built from master `.py` files sitting next to
+`main.tex` (`tex/<slug>/<name>.py`); see [`NOTEBOOKS.md`](NOTEBOOKS.md). Link
+them by name:
+
+```latex
+\notebooknosol{compact_proofs}                        % without solutions: "Open in Colab"
+\notebooksol[the worked solutions]{compact_proofs}    % with solutions, own link text
+\notebooknosol{worst-case-interp/compact_proofs}      % another module's notebook
+```
+
+- Inline: a link, usable mid-sentence, in worksheets and in decks that load
+  `iliad-slides.sty`.
+- The build resolves the name to the notebook's Colab URL and **fails** if the
+  module has no master `<name>.py`.
+- Every notebook publishes both versions, so both commands always work (a
+  notebook without exercise markers publishes two identical files).
+- The page also lists each notebook in its downloads block (a **Notebook** row
+  next to Slides) without any command; that link follows the "with solutions"
+  checkbox.
+- MDX: `<NotebookNoSol name="compact_proofs" />`,
+  `<NotebookSol name="compact_proofs">the worked solutions</NotebookSol>`.
+
 ## Slides
 
 A worksheet folder may carry optional slide decks:

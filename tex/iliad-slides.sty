@@ -61,4 +61,24 @@
 \newcommand{\citev}[1]{\begingroup\hypersetup{linkcolor=cyan}\cite{#1}\endgroup}
 \urlstyle{same}
 
+% Notebook links — the same \notebooknosol / \notebooksol as iliad.sty (see
+% there, and docs/NOTEBOOKS.md). Copied rather than shared because a deck may
+% not load iliad.sty; keep the two in step.
+\providecommand*{\iliadslug}{}
+\providecommand*{\iliadnbbranch}{notebooks}% notebooks-pr-<N> in a PR preview build
+\newcommand{\iliad@notebook}[3]{%
+  \in@{/}{#3}%
+  \ifin@\edef\iliad@nbpath{\detokenize{#3}}%
+  \else\edef\iliad@nbpath{\iliadslug/\detokenize{#3}}\fi
+  \ifx\iliadslug\@empty\ifin@\else
+    \PackageWarning{iliad-slides}{\string\notebook#1{#3}: module unknown outside the
+      build; write \string\notebook#1{<slug>/#3}}%
+  \fi\fi
+  \edef\iliad@nburl{\detokenize{https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/}%
+    \iliadnbbranch/\iliad@nbpath\detokenize{_#1.ipynb}}%
+  \href{\iliad@nburl}{#2}%
+}
+\newcommand{\notebooknosol}[2][Open in Colab]{\iliad@notebook{nosol}{#1}{#2}}
+\newcommand{\notebooksol}[2][Open in Colab (solutions)]{\iliad@notebook{sol}{#1}{#2}}
+
 \endinput

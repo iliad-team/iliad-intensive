@@ -21,6 +21,7 @@ content/modules/
 content/index.json
 # derived from schedule.yaml (committed) + what the build produced
 content/status.json
+content/notebooks.json
 public/uploads/
 public/downloads/
 
@@ -104,3 +105,13 @@ token.json
 
 # Working notes carried in the Overleaf project, not part of the built chapter
 tex/qft/Claude_notes.tex
+
+# Notebooks (docs/NOTEBOOKS.md): only the master .py files are committed. The
+# local notebook, the sync state, the conflict copies and the published build
+# are all made by tex/gen_notebooks.py.
+tex/*/*.ipynb
+tex/*/.*.sync
+tex/*/.trash/
+tex/*/*.from-notebook.py
+/build/notebooks/
+__pycache__/

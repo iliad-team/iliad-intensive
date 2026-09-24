@@ -83,8 +83,16 @@ if (partial) {
     for (const kind of ["downloads", "uploads"]) {
       const dir = path.join(OUT, kind, slug);
       if (!existsSync(dir)) continue;
-      bytes += sizeOf(dir);
-      rmSync(dir, { recursive: true, force: true });
+      // uploads/<slug>/nb/ stays: it holds the images the PR's preview
+      // notebooks link (docs/NOTEBOOKS.md), and they link every module's
+      // images under this preview, touched or not. A few PNGs per module.
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        if (kind === "uploads" && e.name === "nb" && e.isDirectory()) continue;
+        const p = path.join(dir, e.name);
+        bytes += e.isDirectory() ? sizeOf(p) : statSync(p).size;
+        rmSync(p, { recursive: true, force: true });
+      }
+      if (readdirSync(dir).length === 0) rmSync(dir, { recursive: true, force: true });
       removed++;
     }
   }

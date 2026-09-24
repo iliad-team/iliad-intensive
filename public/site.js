@@ -12,7 +12,8 @@
  * Everything is feature-detected off ids, so the file is safe (and inert) on
  * pages without a sidebar or downloads row, /admin/status included. If JS is
  * disabled entirely the page still reads fine: the sidebar stays in its
- * pre-paint state and the downloads default to the with-solutions files.
+ * pre-paint state and the downloads default to the files without solutions
+ * (the checkbox starts unticked).
  */
 (function () {
   "use strict";
@@ -63,12 +64,16 @@
 
   var solutions = document.getElementById("solutions-toggle");
   if (solutions) {
-    solutions.addEventListener("change", function () {
+    var sync = function () {
       var links = document.querySelectorAll("a[data-sol]");
       for (var i = 0; i < links.length; i++) {
         var a = links[i];
         a.setAttribute("href", solutions.checked ? a.dataset.sol : a.dataset.nosol);
       }
-    });
+    };
+    solutions.addEventListener("change", sync);
+    // Once on load too: a browser restoring form state (back/forward) can tick
+    // the box without firing "change", leaving the links on the other variant.
+    sync();
   }
 })();

@@ -10,6 +10,12 @@ https://iliad-intensive.org/pr-preview/pr-<N>/
 A bot comments that URL on the PR automatically, and updates it on every push.
 When the PR is closed or merged, the preview is torn down.
 
+A same-repo PR also previews its **Colab notebooks**: `notebooks.yml` publishes
+them to the PR's own `notebooks-pr-<N>` branch (deleted when it closes; production's
+`notebooks` branch is written only from main), comments their Colab links on the
+PR, and the site preview's notebook links open them. See
+[`NOTEBOOKS.md`](NOTEBOOKS.md#pr-previews).
+
 ## How it works
 
 The site is a static export (`output: "export"` → `out/`). Everything is served

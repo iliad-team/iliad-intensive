@@ -18,10 +18,16 @@
  * a cluster by accident.
  *
  * Usage: import { loadSchedule } — or run it to validate and print the order.
+ * `--check` validates without printing the order: the first step of `./run.sh ci`
+ * (and so of every CI build), so a bad schedule.yaml fails before anything
+ * compiles, with one loud message. It also checks that tex/gen_notebooks.py's
+ * own small schedule reader agrees on every worksheet's page URL (the link back
+ * each Colab notebook's header carries; docs/NOTEBOOKS.md).
  */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { spawnSync } from "node:child_process";
 import YAML from "yaml";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -188,8 +194,52 @@ export function loadSchedule() {
   return { clusters, days, bySlug, order };
 }
 
+/**
+ * tex/gen_notebooks.py reads schedule.yaml with a few lines of its own (it stays
+ * standard-library only), to link each notebook back to its page. Compare its
+ * slug → page path table with this parser's; returns the disagreements. No
+ * python3 on PATH: skipped with a note (every CI runner has it).
+ */
+function notebookReaderDisagreements(s) {
+  const r = spawnSync("python3", [path.join(ROOT, "tex", "gen_notebooks.py"), "--page-map"], { encoding: "utf8" });
+  if (r.error) return { skipped: "python3 not found — notebook page-link check skipped" };
+  if (r.status !== 0) return { problems: [`tex/gen_notebooks.py --page-map failed: ${(r.stderr || r.stdout).trim()}`] };
+  const theirs = JSON.parse(r.stdout);
+  const urlSlug = Object.fromEntries(s.clusters.map((c) => [c.id, c.urlSlug]));
+  const problems = [];
+  for (const [slug, v] of s.bySlug) {
+    const want = `/${urlSlug[v.cluster]}/${slug}/`;
+    if (theirs[slug] !== want) problems.push(`${slug}: schedule.mjs says ${want}, gen_notebooks.py says ${theirs[slug] ?? "(not found)"}`);
+  }
+  for (const slug of Object.keys(theirs)) if (!s.bySlug.has(slug)) problems.push(`${slug}: only gen_notebooks.py sees it`);
+  return { problems };
+}
+
 // CLI: validate and print the curriculum order — what the site will present.
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  if (process.argv.includes("--check")) {
+    const loud = (lines) => {
+      console.error(["", "✗✗✗ schedule.yaml check failed — nothing was built", ...lines.map((l) => `    ${l}`), ""].join("\n"));
+      process.exit(1);
+    };
+    let s;
+    try {
+      s = loadSchedule();
+    } catch (e) {
+      loud([e instanceof ScheduleError ? e.message : String(e)]);
+    }
+    const nb = notebookReaderDisagreements(s);
+    if (nb.problems?.length) {
+      loud([
+        "tex/gen_notebooks.py reads schedule.yaml differently from scripts/schedule.mjs,",
+        "so a notebook's header would link the wrong page. Fix schedule_pages() there:",
+        ...nb.problems,
+      ]);
+    }
+    console.log(`✓ schedule.yaml: ${s.clusters.length} clusters, ${s.days.length} days, ${s.order.length} worksheets`
+      + (nb.skipped ? ` (${nb.skipped})` : ""));
+    process.exit(0);
+  }
   try {
     const s = loadSchedule();
     for (const c of s.clusters) {
