@@ -129,7 +129,7 @@ def scenarios(tmp: Path) -> None:
     check("published notebook links images on the site",
           "https://iliad-intensive.org/uploads/s/nb/a-green-square.png" in json.dumps(pub))
     check("published notebook opens with the header cell",
-          "This is the version **with solutions**" in "".join(pub["cells"][0]["source"]))
+          "**Solutions** | Open in Colab" in "".join(pub["cells"][0]["source"]))
     body = lambda k: json.loads((built / f"demo_{k}.ipynb").read_text())["cells"][1:]  # noqa: E731
     check("no exercise split: both versions identical after the header", body("sol") == body("nosol"))
 
