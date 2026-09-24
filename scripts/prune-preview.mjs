@@ -18,11 +18,25 @@
  * disagree about which pages exist:
  *   NEXT_PUBLIC_PREVIEW_PR   set → this is a preview build (else: no-op)
  *   PREVIEW_CHANGED_SLUGS    comma-separated worksheets the PR touched
- *   PREVIEW_FULL             "true" → shared inputs changed; keep everything
+ *   PREVIEW_FULL             "true" → shared inputs changed; keep every page
+ *   NEXT_PUBLIC_BASE_PATH    the preview's own path, /pr-preview/pr-<N>
+ *   PREVIEW_PROD_ASSETS      optional: `git ls-tree -r gh-pages -- downloads
+ *                            uploads` — production's files and their blob ids
+ *
+ * Then, for EVERY preview, full or partial: a download or figure that is
+ * byte-identical to production's file at the same path (same git blob id) is
+ * not published again. The file is deleted and every link to it in the
+ * preview's HTML is pointed at production's copy — the root path, which on
+ * this same origin is that file. A full preview (any PR touching scripts/,
+ * src/ or schedule.yaml) used to publish all ~90 MB of PDFs and figures again,
+ * and every GitHub Pages deploy re-uploads every preview. A PR that changes a
+ * PDF still publishes that PDF: its bytes differ. The one trade: if main later
+ * changes such a file, the preview shows main's new copy.
  *
  * A production build never reaches the pruning branch: it has no
  * NEXT_PUBLIC_PREVIEW_PR, and the manifest is only written for previews.
  */
+import { createHash } from "node:crypto";
 import { existsSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -98,12 +112,61 @@ if (partial) {
   }
 }
 
+// ---- files identical to production's (see the header) ----
+const BASE = (process.env.NEXT_PUBLIC_BASE_PATH ?? "").replace(/\/$/, "");
+const PROD = process.env.PREVIEW_PROD_ASSETS;
+let shared = [], sharedBytes = 0;
+if (BASE && PROD && existsSync(PROD)) {
+  const prod = new Map();
+  for (const line of readFileSync(PROD, "utf8").split("\n")) {
+    const m = /^\d+ blob ([0-9a-f]{40})\t(.+)$/.exec(line);   // ls-tree: "<mode> blob <id>\t<path>"
+    if (m) prod.set(m[2], m[1]);
+  }
+  const blobId = (buf) => createHash("sha1").update(`blob ${buf.length}\0`).update(buf).digest("hex");
+  const walk = (rel) => {
+    for (const e of readdirSync(path.join(OUT, rel), { withFileTypes: true })) {
+      const r = `${rel}/${e.name}`;
+      // The preview's notebooks link their images under this preview.
+      if (e.isDirectory()) { if (!/^uploads\/[^/]+\/nb$/.test(r)) walk(r); continue; }
+      if (!prod.has(r)) continue;
+      const buf = readFileSync(path.join(OUT, r));
+      if (blobId(buf) !== prod.get(r)) continue;
+      rmSync(path.join(OUT, r));
+      shared.push(r);
+      sharedBytes += buf.length;
+    }
+  };
+  for (const kind of ["downloads", "uploads"]) if (existsSync(path.join(OUT, kind))) walk(kind);
+  if (shared.length) {
+    // "<base>/<file>" wherever a link or src names it, raw or URL-encoded, and
+    // only as a whole path (followed by a quote, ?, # or ")").
+    const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const forms = [...new Set(shared.flatMap((r) => [r, encodeURI(r)]))].sort((a, b) => b.length - a.length);
+    const re = new RegExp(`${esc(BASE)}/(${forms.map(esc).join("|")})(?=["'?#)])`, "g");
+    const html = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+      e.isDirectory() ? (/^(downloads|uploads|_next)$/.test(e.name) && dir === OUT ? [] : html(path.join(dir, e.name)))
+        : e.name.endsWith(".html") ? [path.join(dir, e.name)] : []);
+    for (const f of html(OUT)) {
+      const before = readFileSync(f, "utf8");
+      const after = before.replace(re, "/$1");
+      if (after !== before) writeFileSync(f, after);
+    }
+    for (const kind of ["downloads", "uploads"]) {
+      // Directories emptied by the removal go too.
+      const prune = (d) => { for (const e of readdirSync(d, { withFileTypes: true })) if (e.isDirectory()) prune(path.join(d, e.name));
+        if (d !== OUT && readdirSync(d).length === 0) rmSync(d, { recursive: true }); };
+      if (existsSync(path.join(OUT, kind))) prune(path.join(OUT, kind));
+    }
+  }
+}
+
 const kept = modules.filter((m) => changed.has(m.slug));
 const manifest = {
   pr: PR,
   full: !partial,
   changed: kept,
   published: partial ? kept.map((m) => m.slug) : modules.map((m) => m.slug),
+  linkedToProduction: shared.length,
 };
 writeFileSync(path.join(OUT, "preview-manifest.json"), JSON.stringify(manifest, null, 2) + "\n");
 
@@ -112,4 +175,8 @@ if (!partial) {
 } else {
   console.log(`prune-preview: partial preview — kept ${kept.length ? kept.map((m) => m.slug).join(", ") : "no worksheet pages"}; ` +
     `removed ${removed} asset dir${removed === 1 ? "" : "s"} (${(bytes / 1048576).toFixed(1)} MB) for unchanged worksheets`);
+}
+if (PROD) {
+  console.log(`prune-preview: ${shared.length} download/figure file${shared.length === 1 ? "" : "s"} identical to production's ` +
+    `linked there instead of copied (${(sharedBytes / 1048576).toFixed(1)} MB)`);
 }

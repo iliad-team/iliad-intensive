@@ -107,8 +107,8 @@ serves "There isn't a GitHub Pages site here"); starts ACME issuance; makes
 `public/CNAME` (one line, `iliad-intensive.org`) → copied verbatim to `out/CNAME`
 by the static export → `gh-pages:/CNAME`.
 
-It must live in the repo because `.github/publish-gh-pages.sh` force-pushes
-`.deploy/` as a fresh **orphan** commit that *is* the whole branch: a `CNAME`
+It must live in the repo because `.github/publish-gh-pages.sh` force-pushes each
+production build as the root of a fresh **orphan** commit: a `CNAME`
 written only by Settings → Pages is gone on the next deploy, un-claiming the
 domain and dead-ending the `.com` redirect. **Do not delete it.**
 

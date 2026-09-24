@@ -102,7 +102,9 @@ Worksheet pages are documents. After `next build`, `scripts/strip-hydration.mjs`
 deletes every inline `self.__next_f.push(...)` flight script and every
 `<script src=…/_next/…>` / `<link as="script">` from every page **except
 `out/admin/`** (the status page hydrates), and fails loudly if any framework
-script survives. `index.txt` flight files are kept for that page's router.
+script survives. It also deletes each stripped page's `index.txt` and
+`__next.*.txt` flight files (79 MB per copy of the site); `out/admin/` keeps its
+own for its router.
 Roughly 62% of a worksheet's bytes were the flight payload.
 
 So all client behaviour lives in `public/site.js` (~60 lines, vanilla,

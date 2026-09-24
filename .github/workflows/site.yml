@@ -18,9 +18,9 @@
 #
 # History: gh-pages keeps NONE. Every publish force-pushes a single orphan
 # commit via .github/publish-gh-pages.sh, so the branch is always exactly one
-# commit deep. Because production and previews share the branch, each job stages
-# the COMPLETE tree in .deploy/ (checkout gh-pages, edit only its own subtree)
-# and lets the script replace the branch with it.
+# commit deep. Because production and previews share the branch, each writer
+# changes only its own subtree of the CURRENT branch (built from its trees, never
+# a checkout) and pushes with a lease, retrying if another writer got in first.
 name: site
 
 on:
@@ -301,6 +301,22 @@ jobs:
           npm ci
           npm ci --prefix scripts/tex2mdx
 
+      # Production's downloads and figures, with their git blob ids, so a
+      # preview can link any file identical to production's rather than publish
+      # it again (scripts/prune-preview.mjs). Trees only — no file contents are
+      # fetched — so it costs a second or two. Best-effort: without the list the
+      # preview simply carries every file, as it always did.
+      - name: List production's files (previews link identical ones)
+        if: github.event_name == 'pull_request'
+        run: |
+          if git fetch -q --depth=1 --filter=blob:none origin +gh-pages:refs/remotes/origin/gh-pages \
+             && git ls-tree -r refs/remotes/origin/gh-pages -- downloads uploads > "$RUNNER_TEMP/prod-assets.txt"; then
+            echo "PREVIEW_PROD_ASSETS=$RUNNER_TEMP/prod-assets.txt" >> "$GITHUB_ENV"
+            echo "production has $(wc -l < "$RUNNER_TEMP/prod-assets.txt") downloads/figures"
+          else
+            echo "::warning::could not list production's files — this preview publishes every download and figure"
+          fi
+
       # The SAME command developers and the pre-push hook run locally
       # (./run.sh ci) — one definition in package.json, no drift. The base path
       # is the only thing that varies between production and a preview.
@@ -410,11 +426,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    # Serialize ALL writes to gh-pages (production + every preview) so
-    # simultaneous deploys queue instead of racing / clobbering each other.
-    concurrency:
-      group: gh-pages-write
-      cancel-in-progress: false
+    # No `concurrency:` lock. Writers used to share one (gh-pages-write), but
+    # GitHub keeps only one PENDING job per group and cancels the older one, so
+    # a burst of three writers silently lost the middle one. The publish script
+    # changes only its own part of the current branch and pushes with a lease,
+    # retrying if another writer got in first (.github/publish-gh-pages.sh).
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -426,25 +442,13 @@ jobs:
       # incident), which would publish an empty site.
       - name: Guard against an empty artifact
         run: test -f out/index.html || { echo "::error::empty artifact — refusing to deploy (would wipe the live site)"; exit 1; }
-      - uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: .deploy
-      # gh-pages is disposable build output, so every publish force-pushes ONE
-      # orphan commit instead of appending (see "History" in the header). That
-      # makes the commit we push the entire site — there is no previous state to
-      # merge with — so the live previews must be carried into it explicitly.
-      # Deleting them here is what "keep the root fresh" used to mean when the
-      # branch had history; now it would unpublish 12 open PRs' previews.
-      - name: Stage the site (fresh root + live previews)
-        run: |
-          set -euo pipefail
-          find .deploy -mindepth 1 -maxdepth 1 \
-            ! -name .git ! -name pr-preview -exec rm -rf {} +
-          cp -a out/. .deploy/
+      # The built site becomes the root of gh-pages; every live preview under
+      # pr-preview/ is carried over from the current branch by the script.
       - name: Publish
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          .github/publish-gh-pages.sh "Deploy ${{ github.sha }}"
+          .github/publish-gh-pages.sh production out "Deploy ${{ github.sha }}"
 
   # Preview: publish the built site to gh-pages/pr-preview/pr-<N>/ and comment
   # the URL on the PR. Only runs after `build` succeeds — i.e. the PR passed the
@@ -462,36 +466,26 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    concurrency:
-      group: gh-pages-write
-      cancel-in-progress: false
+    # No `concurrency:` lock. Writers used to share one (gh-pages-write), but
+    # GitHub keeps only one PENDING job per group and cancels the older one, so
+    # a burst of three writers silently lost the middle one. The publish script
+    # changes only its own part of the current branch and pushes with a lease,
+    # retrying if another writer got in first (.github/publish-gh-pages.sh).
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: site
           path: out
-      - uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: .deploy
-      # Swap in THIS PR's subfolder and leave everything else — production root
-      # and the other previews — exactly as checked out. The force-push
-      # publishes the whole tree, so anything missing here is anything
-      # unpublished; touching only our own directory is what keeps the blast
-      # radius to this PR.
-      - name: Stage this PR's preview
-        run: |
-          set -euo pipefail
-          DIR=".deploy/pr-preview/pr-${{ github.event.number }}"
-          rm -rf "$DIR"
-          mkdir -p "$DIR"
-          cp -a out/. "$DIR"/
-      # Block scalar, not a plain one: in an unquoted YAML scalar " #" opens a
-      # comment and would truncate the message mid-quote.
+      # Replaces THIS PR's pr-preview/pr-<N>/ and nothing else — production and
+      # the other previews are carried over from the current branch, so the
+      # blast radius stays this PR. Block scalar, not a plain one: in an unquoted
+      # YAML scalar " #" opens a comment and would truncate the message.
       - name: Publish
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          .github/publish-gh-pages.sh "Preview for PR #${{ github.event.number }}"
+          .github/publish-gh-pages.sh preview "${{ github.event.number }}" out "Preview for PR #${{ github.event.number }}"
       # Best-effort comment with the URL. continue-on-error so a GitHub API
       # blip can't fail an otherwise-successful deploy (the URL is deterministic
       # anyway). Upserts a single marked comment rather than spamming.
@@ -536,9 +530,11 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    concurrency:
-      group: gh-pages-write
-      cancel-in-progress: false
+    # No `concurrency:` lock. Writers used to share one (gh-pages-write), but
+    # GitHub keeps only one PENDING job per group and cancels the older one, so
+    # a burst of three writers silently lost the middle one. The publish script
+    # changes only its own part of the current branch and pushes with a lease,
+    # retrying if another writer got in first (.github/publish-gh-pages.sh).
     steps:
       # Pin to main for the publish script. The default checkout would resolve
       # refs/pull/<N>/merge, which is already deleted by the time a MERGED PR
@@ -546,17 +542,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: .deploy
+      # A PR with no preview leaves the branch as it is ("nothing to publish").
       - name: Remove PR preview
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-          DIR=".deploy/pr-preview/pr-${{ github.event.number }}"
-          if [ ! -d "$DIR" ]; then echo "no preview at $DIR — nothing to remove"; exit 0; fi
-          rm -rf "$DIR"
-          .github/publish-gh-pages.sh "Remove preview for PR #${{ github.event.number }}"
+          .github/publish-gh-pages.sh remove "Remove preview for PR #${{ github.event.number }}" "${{ github.event.number }}"
       - name: Update comment (preview removed)
         continue-on-error: true
         uses: actions/github-script@v7
@@ -581,30 +572,27 @@ jobs:
     permissions:
       contents: write
       pull-requests: read
-    # Same lock the other two gh-pages writers take: publishing force-pushes the
-    # whole branch, so two writers racing would silently drop one's work.
-    concurrency:
-      group: gh-pages-write
-      cancel-in-progress: false
+    # No `concurrency:` lock. Writers used to share one (gh-pages-write), but
+    # GitHub keeps only one PENDING job per group and cancels the older one, so
+    # a burst of three writers silently lost the middle one. The publish script
+    # changes only its own part of the current branch and pushes with a lease,
+    # retrying if another writer got in first (.github/publish-gh-pages.sh).
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - uses: actions/checkout@v4
-        with:
-          ref: gh-pages
-          path: .deploy
       - name: Remove previews whose PR is no longer open
         env:
           GH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          shopt -s nullglob
           removed=()
           unknown=0
-          for dir in .deploy/pr-preview/pr-*/; do
-            n=$(basename "$dir"); n=${n#pr-}
-            case "$n" in ''|*[!0-9]*) echo "skipping unexpected dir: $dir"; continue ;; esac
+          # Assigned first, so a failed listing fails the job (a failure inside
+          # `for n in $(…)` would just sweep nothing).
+          previews=$(.github/publish-gh-pages.sh list)
+          for n in $previews; do
             # Delete ONLY on a definitive CLOSED/MERGED. `gh pr view` fails the
             # same way for "no such PR" as for a rate limit, a network blip or a
             # bad token, so treating every failure as sweepable would delete a
@@ -614,8 +602,7 @@ jobs:
             case "$state" in
               CLOSED|MERGED)
                 echo "sweep  pr-$n ($state)"
-                rm -rf "$dir"
-                removed+=("#$n")
+                removed+=("$n")
                 ;;
               OPEN)
                 echo "keep   pr-$n (OPEN)"
@@ -633,6 +620,4 @@ jobs:
             echo "nothing to sweep"
             exit 0
           fi
-          # publish-gh-pages.sh treats .deploy/ as the WHOLE branch, so the root
-          # site and the surviving previews republish untouched alongside this.
-          .github/publish-gh-pages.sh "Sweep previews for closed PRs: ${removed[*]}"
+          .github/publish-gh-pages.sh remove "Sweep previews for closed PRs: ${removed[*]/#/#}" "${removed[@]}"

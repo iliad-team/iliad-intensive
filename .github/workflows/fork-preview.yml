@@ -9,8 +9,8 @@
 # The trust model, and the lines that must never be crossed:
 # - This workflow NEVER checks out or executes anything from the PR. The only
 #   PR-derived input is the built site, downloaded as an inert artifact and
-#   copied into gh-pages/pr-preview/pr-<N>/. Checkouts here are main (for the
-#   publish script) and gh-pages. Keep it that way: one `npm ci` of the PR's
+#   published as gh-pages/pr-preview/pr-<N>/. The only checkout here is main
+#   (for the publish script). Keep it that way: one `npm ci` of the PR's
 #   tree in this file hands a write token to the internet.
 # - Publishing still means serving PR-author-controlled HTML from
 #   iliad-intensive.org — the production site's own origin. So it is gated on
@@ -50,11 +50,11 @@ jobs:
       contents: write        # push gh-pages
       pull-requests: write   # upsert the preview-URL comment
       actions: read          # download the site artifact from the triggering run
-    # Same lock every gh-pages writer takes: publishing force-pushes the whole
-    # branch, so two writers racing would silently drop one's work.
-    concurrency:
-      group: gh-pages-write
-      cancel-in-progress: false
+    # No `concurrency:` lock. Writers used to share one (gh-pages-write), but
+    # GitHub keeps only one PENDING job per group and cancels the older one, so
+    # a burst of three writers silently lost the middle one. The publish script
+    # changes only its own part of the current branch and pushes with a lease,
+    # retrying if another writer got in first (.github/publish-gh-pages.sh).
     steps:
       # Default checkout in a workflow_run context is the DEFAULT branch, and
       # that is the point: the publish script comes from main, never from
@@ -109,26 +109,14 @@ jobs:
         if: steps.pr.outputs.trusted == 'true'
         run: test -f out/index.html || { echo "::error::empty artifact — refusing to publish"; exit 1; }
 
-      - uses: actions/checkout@v4
-        if: steps.pr.outputs.trusted == 'true'
-        with:
-          ref: gh-pages
-          path: .deploy
-      # Swap in THIS PR's subfolder and leave everything else — production
-      # root and the other previews — exactly as checked out (the force-push
-      # publishes the whole tree; see site.yml's preview-deploy).
-      - name: Stage this PR's preview
-        if: steps.pr.outputs.trusted == 'true'
-        run: |
-          set -euo pipefail
-          DIR=".deploy/pr-preview/pr-${{ steps.pr.outputs.number }}"
-          rm -rf "$DIR"
-          mkdir -p "$DIR"
-          cp -a out/. "$DIR"/
+      # Replaces THIS PR's pr-preview/pr-<N>/ and nothing else (see site.yml's
+      # preview-deploy). The script is main's, from the checkout above.
       - name: Publish
         if: steps.pr.outputs.trusted == 'true'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
-          .github/publish-gh-pages.sh "Preview for PR #${{ steps.pr.outputs.number }} (fork)"
+          .github/publish-gh-pages.sh preview "${{ steps.pr.outputs.number }}" out "Preview for PR #${{ steps.pr.outputs.number }} (fork)"
 
       # Same marker + upsert as site.yml's comment, so a PR only ever carries
       # one preview comment whichever workflow wrote it. For an untrusted
