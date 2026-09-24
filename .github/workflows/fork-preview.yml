@@ -14,10 +14,11 @@
 #   tree in this file hands a write token to the internet.
 # - Publishing still means serving PR-author-controlled HTML from
 #   iliad-intensive.org — the production site's own origin. So it is gated on
-#   WHO, not just on green checks: org members, collaborators, and anyone
-#   with a previously MERGED PR here (per David, 2026-08-28: no manual
-#   allowlist — contributor status IS the approval). A stranger's first PR
-#   gets no preview until something of theirs is merged.
+#   WHO, not just on green checks: org members, collaborators, and the fork
+#   contributors listed in .github/trusted-contributors on main (.github/
+#   trust.sh). Having a PR merged no longer counts by itself (David,
+#   2026-09-24, replacing the 2026-08-28 "contributor status is the approval"
+#   rule: a merged typo fix must not unlock previews of a later PR).
 # - The PR number (it names the directory the publish overwrites) is resolved
 #   from the GitHub API by the triggering run's head SHA — never read from
 #   the artifact, whose contents the PR author controls.
@@ -88,14 +89,9 @@ jobs:
           # NUMBER names the gh-pages directory the publish overwrites, so
           # insist on a bare integer even though it came from the API.
           [[ "$NUMBER" =~ ^[0-9]+$ ]] || { echo "::error::PR number '$NUMBER' is not numeric"; exit 1; }
-          trusted=false
-          # CONTRIBUTOR = has at least one PR merged into this repo. Trusting
-          # it mirrors GitHub's own Actions-approval gate, which also stops
-          # prompting after a first merge — so merging someone's PR is the
-          # single "approve once" that unlocks both. The flip side is
-          # deliberate too: merging ANY PR of theirs (even a one-line typo
-          # fix) grants preview publishing forever.
-          case "$ASSOC" in OWNER|MEMBER|COLLABORATOR|CONTRIBUTOR) trusted=true ;; esac
+          # Org members, collaborators, or listed in .github/trusted-contributors
+          # on main — read from main by trust.sh, never from the PR.
+          trusted=$(.github/trust.sh "$LOGIN" "$ASSOC")
           echo "PR #$NUMBER by $LOGIN ($ASSOC): trusted=$trusted"
           { echo "number=$NUMBER"; echo "login=$LOGIN"; echo "trusted=$trusted"; } >> "$GITHUB_OUTPUT"
 
@@ -153,7 +149,7 @@ jobs:
             const url = `https://iliad-intensive.org/pr-preview/pr-${pr}/`;
             const body = process.env.TRUSTED === 'true'
               ? `${marker}\n🔎 **Live preview:** ${url}\n\nUpdated for \`${headSha.slice(0, 7)}\`. Removed automatically when this PR closes.`
-              : `${marker}\n🔒 No live preview: fork PRs publish previews only once their author has a merged PR in this repo. @${process.env.PR_LOGIN} becomes trusted — permanently, for all future PRs — when any PR of theirs is merged.`;
+              : `${marker}\n🔒 No live preview: fork PRs publish previews only for trusted contributors. A maintainer can add @${process.env.PR_LOGIN} to \`.github/trusted-contributors\` (it takes effect once that change is on main); reviewers can still build the branch locally.`;
             const { data: comments } = await github.rest.issues.listComments({ ...context.repo, issue_number: pr });
             const existing = comments.find((c) => c.body && c.body.includes(marker));
             if (existing) {
