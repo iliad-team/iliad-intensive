@@ -145,10 +145,14 @@ jobs:
             # the preview is full: one that quietly misses a changed page is
             # the failure this must never have.
             full=false
+            nb_all=false
             declare -A seen=()
             if files=$(gh pr diff "${{ github.event.number }}" --name-only --repo "$GITHUB_REPOSITORY"); then
               while IFS= read -r f; do
                 [ -n "$f" ] || continue
+                # The generator and the header template change every notebook,
+                # so every sheet then links the PR's (NOTEBOOK_PREVIEW_SLUGS).
+                case "$f" in tex/gen_notebooks.py|tex/notebook-header.md) nb_all=true ;; esac
                 case "$f" in
                   tex/*/*)
                     s=${f#tex/}; s=${s%%/*}
@@ -161,11 +165,18 @@ jobs:
             else
               echo "::warning::could not list this PR's files — building a full preview"
               full=true
+              nb_all=true
             fi
             changed=$(IFS=,; echo "${!seen[*]}")
             echo "changed=$changed" >> "$GITHUB_OUTPUT"
             echo "full=$full" >> "$GITHUB_OUTPUT"
-            echo "preview scope: full=$full changed=${changed:-none}"
+            # Which modules' notebooks the preview links on the PR's own
+            # notebooks branch; every other sheet links production's, which for
+            # a notebook the PR did not touch is the same notebook — and keeps
+            # that sheet's cached build (scripts/worksheet-cache.mjs).
+            if [ "$nb_all" = true ]; then nb="*"; else nb=$changed; fi
+            echo "nb=$nb" >> "$GITHUB_OUTPUT"
+            echo "preview scope: full=$full changed=${changed:-none} notebooks=${nb:-none}"
           else
             echo "base=" >> "$GITHUB_OUTPUT"
             echo "pr=" >> "$GITHUB_OUTPUT"
@@ -173,9 +184,20 @@ jobs:
             echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
             echo "changed=" >> "$GITHUB_OUTPUT"
             echo "full=" >> "$GITHUB_OUTPUT"
+            echo "nb=" >> "$GITHUB_OUTPUT"
           fi
 
-      # The .deb downloads for the step below — ~207 MB across ~130 packages —
+      # First, because build-plan.mjs below needs Node before anything is
+      # installed; its npm cache restore is a couple of seconds.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            scripts/tex2mdx/package-lock.json
+
+      # The .deb downloads for the TeX install (.github/install-tex.sh) — ~207 MB across ~130 packages —
       # plus a `manifest` file recording the package list they satisfy (written
       # only by a run that installed it successfully; it is what lets the next
       # run skip apt entirely). Lives in GitHub Actions cache, NOT in the
@@ -200,161 +222,6 @@ jobs:
           restore-keys: |
             apt-tex-${{ runner.os }}-
             apt-tex-v1-${{ runner.os }}
-
-      - name: TeX Live + poppler
-        # The package set (and every per-package why) lives in
-        # .github/apt-packages.txt — one definition, shared with ./setup.sh
-        # and hashed into the cache key above. Add packages THERE, not here.
-        #
-        # Two paths, because the Ubuntu mirrors cannot be trusted with the
-        # critical path. On 2026-08-19 azure.archive.ubuntu.com (the runners'
-        # preferred mirror) went down, every runner fell back to
-        # archive.ubuntu.com, and `apt-get update` trickled its index fetch
-        # for 19m41s — under the Acquire timeouts, which catch a dead socket,
-        # not a slow one — until the 20-minute job cap killed it. Six builds
-        # died that way, two of them production deploys, and the warm .deb
-        # cache could not help because apt insists on fetching fresh indexes
-        # before it will even look at /var/cache/apt/archives.
-        #
-        # WARM (the norm): install straight from the cached .debs with
-        #   `dpkg -i`, which reads only local files — no `apt-get update`, no
-        #   index fetch, no mirror anywhere. Gated by the cache's manifest so
-        #   a partial or foreign cache can never skip the real install.
-        # COLD (first run, 7-day eviction, list change, or any warm-path
-        #   surprise): real apt, with wall-clock `timeout`s so a trickling
-        #   mirror fails in minutes with a clear message instead of eating
-        #   the whole job budget. A successful cold run reseeds the cache
-        #   and writes the manifest, making the next run warm.
-        run: |
-          set -euo pipefail
-
-          # The wanted set, from the one definition (strip comments/blanks).
-          PKGS=$(grep -vE '^\s*(#|$)' .github/apt-packages.txt | xargs)
-
-          # Every wanted package installed AND configured?
-          satisfied() {
-            local p
-            for p in $PKGS; do
-              [ "$(dpkg-query -W -f '${db:Status-Status}' "$p" 2>/dev/null)" = installed ] || return 1
-            done
-          }
-
-          # ── Warm path ──────────────────────────────────────────────────────
-          warm_install() {
-            [ -f "$HOME/apt-debs/manifest" ] \
-              || { echo "cache: no manifest — cold path"; return 1; }
-            [ "$(cat "$HOME/apt-debs/manifest")" = "$PKGS" ] \
-              || { echo "cache: manifest is for a different package list — cold path"; return 1; }
-            compgen -G "$HOME/apt-debs/*.deb" > /dev/null \
-              || { echo "cache: manifest but no .debs — cold path"; return 1; }
-
-            # Pick the newest cached .deb per package (the cache accretes
-            # superseded versions), then skip anything the runner image
-            # already has at >= that version — handed an older .deb, dpkg
-            # would happily DOWNGRADE a library the image has since upgraded.
-            declare -A ver deb
-            local d p v
-            for d in "$HOME"/apt-debs/*.deb; do
-              p=$(dpkg-deb -f "$d" Package); v=$(dpkg-deb -f "$d" Version)
-              if [ -z "${ver[$p]:-}" ] || dpkg --compare-versions "$v" gt "${ver[$p]}"; then
-                ver[$p]=$v; deb[$p]=$d
-              fi
-            done
-            local todo=()
-            for p in "${!deb[@]}"; do
-              v=$(dpkg-query -W -f '${Version}' "$p" 2>/dev/null || true)
-              if [ -z "$v" ] || dpkg --compare-versions "$v" lt "${ver[$p]}"; then
-                todo+=("${deb[$p]}")
-              fi
-            done
-            echo "warm: installing ${#todo[@]} cached .debs with dpkg (no apt, no mirror)"
-            if [ "${#todo[@]}" -gt 0 ]; then
-              # All in one call: dpkg unpacks everything, then configures in
-              # dependency order itself, so the set needs no ordering from us.
-              sudo dpkg -i "${todo[@]}" > /dev/null || return 1
-            fi
-            satisfied
-          }
-
-          if ! warm_install; then
-            # ── Cold path ────────────────────────────────────────────────────
-            # A failed warm path may leave packages unpacked-but-unconfigured,
-            # which apt refuses to work around; repair before it runs.
-            sudo dpkg --configure -a || true
-
-            APT_OPTS="-o Acquire::Retries=3
-                      -o Acquire::http::Timeout=20
-                      -o Acquire::https::Timeout=20"
-
-            # Seed apt's archive from whatever the cache had (possibly a
-            # previous package list, via restore-keys). apt matches a .deb by
-            # name, size and hash and silently skips re-downloading it, so
-            # this is a pure download cache and staleness only means
-            # "download the few that changed". --update=none so a cached file
-            # never clobbers a newer one apt just fetched.
-            if compgen -G "$HOME/apt-debs/*.deb" > /dev/null; then
-              echo "cache: $(ls "$HOME"/apt-debs/*.deb | wc -l) .deb files restored"
-              sudo cp --update=none "$HOME"/apt-debs/*.deb /var/cache/apt/archives/ || true
-            else
-              echo "cache: empty — everything will be downloaded"
-            fi
-
-            # Two layers of timeout, for two failure modes. The Acquire
-            # options catch a DEAD connection (idle socket). `timeout` is a
-            # wall-clock cap for the mirror that keeps trickling — apt has no
-            # minimum-throughput setting, so a slow-but-alive transfer
-            # otherwise runs forever (that is the 19m41s incident above).
-            # Budgets: a healthy update is <40s, a healthy cold install ~330s;
-            # both caps clear the 20-minute job budget with the ~4-minute
-            # build behind them.
-            sudo timeout 300 apt-get update -q $APT_OPTS \
-              || { echo "::error::apt-get update failed or stalled — likely an Ubuntu mirror incident; re-run this job"; exit 1; }
-            # --fix-broken: also finish/repair anything a failed warm path
-            # left behind, in the same resolver run.
-            sudo timeout 600 apt-get install -y --fix-broken --no-install-recommends $APT_OPTS $PKGS \
-              || { echo "::error::apt-get install failed or stalled — likely an Ubuntu mirror incident; re-run this job"; exit 1; }
-
-            # Hand what apt fetched back to the cache for the next warm run.
-            mkdir -p "$HOME/apt-debs"
-            cp --update=none /var/cache/apt/archives/*.deb "$HOME/apt-debs/" 2>/dev/null || true
-            echo "cache: $(ls "$HOME"/apt-debs/*.deb 2>/dev/null | wc -l) .deb files kept ($(du -sh "$HOME/apt-debs" | cut -f1))"
-          fi
-
-          # The warm-path gate. Written LAST, and only on success (set -e), so
-          # it can only ever describe a set this very run proved installable.
-          mkdir -p "$HOME/apt-debs"
-          printf '%s\n' "$PKGS" > "$HOME/apt-debs/manifest"
-          # The slides ladder picks bibtex or biber from the deck's own source
-          # (scripts/build-content.mjs).
-          # contributor LaTeX is untrusted: never enable shell-escape
-
-      # Typst, for decks written as tex/<slug>/slides*.typ. One pinned static
-      # binary, checksum-verified by scripts/install-typst.sh (the same script
-      # ./setup.sh runs). Cached on that script's hash: bumping the version
-      # there re-keys the cache by itself. Not apt — Ubuntu 24.04 has no
-      # typst package.
-      - name: Restore Typst
-        uses: actions/cache@v4
-        with:
-          path: ~/.local/bin/typst
-          key: typst-${{ runner.os }}-${{ hashFiles('scripts/install-typst.sh') }}
-      - name: Typst
-        run: |
-          scripts/install-typst.sh "$HOME/.local/bin"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: |
-            package-lock.json
-            scripts/tex2mdx/package-lock.json
-
-      - name: Install deps
-        run: |
-          npm ci
-          npm ci --prefix scripts/tex2mdx
 
       # Diagrams are content-addressed (tikz-<sha>.svg): restoring the cache
       # means unchanged diagrams are never recompiled.
@@ -390,6 +257,50 @@ jobs:
           key: worksheets-${{ github.sha }}
           restore-keys: worksheets-
 
+      # Will anything compile? A worksheet whose inputs are unchanged since its
+      # cached build compiles nothing, so a PR that touches only MDX sheets,
+      # notebooks, the site or the docs needs no TeX Live at all — and the
+      # install is the slowest step of a warm run (~70 s). Same check the build
+      # makes (scripts/worksheet-cache.mjs), run before anything is installed;
+      # it has to see the same notebook environment, which is part of the hash.
+      - name: Plan (does this build need TeX?)
+        id: plan
+        env:
+          NOTEBOOK_PREVIEW_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.number || '' }}
+          NOTEBOOK_PREVIEW_SLUGS: ${{ steps.cfg.outputs.nb }}
+        run: node scripts/build-plan.mjs
+
+      # .github/install-tex.sh — the package set, the warm .deb path, the
+      # mirror-proof cold path and the pdflatex-only formats are all explained
+      # there. Started in the background so it overlaps Typst, `npm ci` and the
+      # rest; "Build" waits for it. (A step's background processes live until
+      # the job ends.)
+      - name: TeX Live + poppler (in the background)
+        if: steps.plan.outputs.tex == 'true'
+        run: |
+          nohup bash -c '.github/install-tex.sh; echo $? > "$RUNNER_TEMP/tex.status"' \
+            > "$RUNNER_TEMP/tex.log" 2>&1 &
+
+      # Typst, for decks written as tex/<slug>/slides*.typ. One pinned static
+      # binary, checksum-verified by scripts/install-typst.sh (the same script
+      # ./setup.sh runs). Cached on that script's hash: bumping the version
+      # there re-keys the cache by itself. Not apt — Ubuntu 24.04 has no
+      # typst package.
+      - name: Restore Typst
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/bin/typst
+          key: typst-${{ runner.os }}-${{ hashFiles('scripts/install-typst.sh') }}
+      - name: Typst
+        run: |
+          scripts/install-typst.sh "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Install deps
+        run: |
+          npm ci
+          npm ci --prefix scripts/tex2mdx
+
       # The SAME command developers and the pre-push hook run locally
       # (./run.sh ci) — one definition in package.json, no drift. The base path
       # is the only thing that varies between production and a preview.
@@ -411,11 +322,31 @@ jobs:
           PREVIEW_CHANGED_SLUGS: ${{ steps.cfg.outputs.changed }}
           PREVIEW_FULL: ${{ steps.cfg.outputs.full }}
           # A same-repo PR's preview links the PR's own Colab notebooks, which
-          # notebooks.yml publishes under pr-preview/pr-<N>/ of the `notebooks`
-          # branch (scripts/build-content.mjs). A fork's PR cannot publish them,
-          # so its preview links production's. Empty on main.
+          # notebooks.yml publishes to the `notebooks-pr-<N>` branch — for the
+          # modules in NOTEBOOK_PREVIEW_SLUGS; the rest link production's
+          # (scripts/worksheet-cache.mjs). A fork's PR cannot publish them, so
+          # its preview links production's. Empty on main.
           NOTEBOOK_PREVIEW_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.number || '' }}
-        run: npm run ci
+          NOTEBOOK_PREVIEW_SLUGS: ${{ steps.cfg.outputs.nb }}
+          # "false" when the plan skipped TeX Live: a sheet that turns out to
+          # need it then fails with the reason (scripts/build-content.mjs).
+          TEX_INSTALLED: ${{ steps.plan.outputs.tex }}
+          # The overflow check runs as its own job (`overflow` below), beside
+          # the deploy instead of ahead of it — it is advisory, and took ~28 s.
+          SKIP_OVERFLOW_CHECK: '1'
+        run: |
+          if [ "$TEX_INSTALLED" = true ]; then
+            # 900 s clears the install's own apt caps (300 s + 600 s would not
+            # both run in full; a healthy cold install is ~330 s).
+            waited=0
+            until [ -f "$RUNNER_TEMP/tex.status" ] || [ $waited -ge 900 ]; do sleep 1; waited=$((waited + 1)); done
+            echo "::group::TeX Live + poppler (waited ${waited}s for the background install)"
+            cat "$RUNNER_TEMP/tex.log"
+            echo "::endgroup::"
+            [ "$(cat "$RUNNER_TEMP/tex.status" 2>/dev/null)" = 0 ] \
+              || { echo "::error::TeX Live install failed or timed out — log in the group above"; exit 1; }
+          fi
+          npm run ci
 
       # A GitHub Pages branch source runs Jekyll by default, which drops
       # directories that start with "_" (killing Next's _next/ assets) — so mark
@@ -435,6 +366,41 @@ jobs:
           path: out
           include-hidden-files: true   # keep .nojekyll in the artifact
           retention-days: 1
+      # check-overflow.mjs's list of pages; not part of the site itself.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: content-index
+          path: content/index.json
+          retention-days: 1
+
+  # Advisory, like it always was: headless Chrome over every built page, looking
+  # for content past the column edge (scripts/check-overflow.mjs). It used to be
+  # the last ~28 s of `npm run ci`, so every deploy waited on a check that can
+  # never block one; as its own job it runs beside the deploy instead. Never
+  # fails: an overflow is a warning in this job's log, as before.
+  overflow:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+      # For schedule.mjs's YAML parser. Chrome is on the runner image already.
+      - run: npm ci
+      - uses: actions/download-artifact@v4
+        with:
+          name: site
+          path: out
+      - uses: actions/download-artifact@v4
+        with:
+          name: content-index
+          path: content
+      - name: Check for overflow past the column edge
+        run: node scripts/check-overflow.mjs || echo '(overflow check unavailable — advisory only)'
 
   # Production: publish the built site to the ROOT of gh-pages. clean-exclude
   # keeps every active PR preview in place (they live under pr-preview/).
