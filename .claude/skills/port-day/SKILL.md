@@ -110,8 +110,9 @@ build. Validate with `node scripts/schedule.mjs`. `/admin/status` then shows
 
 ## Reading day → `main.mdx`
 
-`docs/commands.md` §"Writing in MDX instead" is the authoring contract for the
-file itself: heading levels (`##` is the top, never `#`), `{/* … */}` comments,
+`tex/example-mdx/main.mdx` is the canonical template (the day skeleton with
+every component used once); `docs/commands.md` §"Writing in MDX instead" is
+the authoring contract for the file itself: heading levels (`##` is the top, never `#`), `{/* … */}` comments,
 frontmatter rules, and the check commands. Read it before writing the file.
 
 ```mdx
@@ -171,7 +172,7 @@ material. `docs/LINKS.md` has the Doc tab URL for each day.
 
 Assemble one self-contained `tex/<slug>/main.tex` (+ `biblo.bib`, + `fig/`),
 inlining any `\input`-ed section files. The canonical template is
-`tex/example/main.tex`; `docs/iliad-sty.md` and `docs/commands.md` are the full
+`tex/example-tex/main.tex`; `docs/iliad-sty.md` and `docs/commands.md` are the full
 contract. In outline:
 
 - First lines are the YAML comment block: `%--- iliad ---` / `% title: …` /
@@ -210,7 +211,7 @@ For a large LaTeX day the mechanical assembly suits a `general-purpose`
 subagent scoped to `<worktree>/tex/<slug>/`. Set up the worktree and branch
 **first**, so the subagent can never touch `main`. Give it the verbatim mandate,
 the framework contract above (or point it at `docs/commands.md`,
-`docs/iliad-sty.md`, `tex/example/main.tex`), the build-until-clean loop, and the
+`docs/iliad-sty.md`, `tex/example-tex/main.tex`), the build-until-clean loop, and the
 location of the source clone (`_src_repo/` at the worktree root, put there by
 `new-worktree.sh --src`). It is gitignored, so it needs no cleanup — but it must
 never be staged.

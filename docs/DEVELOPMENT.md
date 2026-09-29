@@ -91,8 +91,8 @@ together define the authoring contract.
   A `--check` run stamps `checkOnly` into the file and the page says so, since
   no PDFs were compiled.
 - An `unlisted: true` frontmatter key builds the page but keeps it out of
-  `content/index.json` — reachable by URL, linked from nowhere (the example
-  sheet uses this).
+  `content/index.json` — reachable by URL, linked from nowhere (the two
+  example sheets, `tex/example-tex` and `tex/example-mdx`, use this).
 - Every deck in `tex/<slug>/` — `slides.tex`, plus `slides-<label>.tex` for a
   day with more than one lecture — is compiled (same pdflatex+bibtex ladder) to
   `<stem>.pdf` and staged as `<slug>-<stem>.pdf`/`.tex`; never converted to
