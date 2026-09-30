@@ -79,7 +79,7 @@ Read \cref{sec:questions,sec:conditions} after the first lecture, then work on
 \crefrange{ex:bits}{ex:duplicates}. After the second lecture, read
 \cref{sec:correspondence,sec:why} and complete
 \crefrange{ex:witness}{ex:induction} and \cref{ex:scope}. These nine exercises
-form the core route. \Cref{ex:blocks,ex:scores} are optional extensions.
+form the core route. \Cref{ex:fullsupport,ex:blocks,ex:scores} are optional extensions.
 
 \subsection{Information theory reference}
 \label{sec:it-reference}
@@ -424,7 +424,7 @@ singleton-copy model $Y_{\{i\}}=X_i$, with constant top.
 That bound pins one end of a trade-off: exact reconstruction forces a Markov
 defect of at least $1-h_2(q)$, and tolerating some reconstruction error buys
 part of it back. When no perfect condensation exists, which is the usual
-situation, the latent models of a given observable law trace out a Pareto
+situation (\cref{ex:fullsupport}), the latent models of a given observable law trace out a Pareto
 frontier between reconstruction defect and Markov defect. The useful question
 is then whether some point on that frontier has both low \emph{enough} for the
 correspondence bound of \cref{sec:correspondence} to say something.
@@ -434,6 +434,41 @@ One could instead ask for the model minimizing the conditioned score of
 \cref{sec:why}. The score is defined per observation block, however, and
 there is not always a single model minimizing it everywhere.
 \end{remark}
+
+\begin{exercise}[Full support; optional, 10 minutes]
+\label{ex:fullsupport}
+The argument for the noisy pair used only two facts: every combination of
+values has positive probability, and the observables are dependent.
+Generalize it. Suppose every combination of values that $X_1,\ldots,X_n$ can
+individually take has positive probability.
+\begin{enumerate}
+\item Show that in any perfect condensation, every slot at an address with at
+least two elements is constant.
+\item For disjoint nonempty blocks $B,C$, apply the Markov condition to
+$\mathcal{J}_B$ and $\mathcal{J}_C$ to show that $X_B$ and $X_C$ are
+independent. Conclude that a perfect condensation exists exactly when the
+observables are mutually independent.
+\end{enumerate}
+\end{exercise}
+\begin{solution}[ex:fullsupport]
+\begin{enumerate}
+\item Let $A$ contain $i\ne j$. Reconstruction gives $Y_A=f(X_i)=g(X_j)$
+almost surely. Every pair of values $(x_i,x_j)$ has positive probability, so
+$f(x_i)=g(x_j)$ for all of them, and $f$ and $g$ are the same constant.
+\item Every address in $\mathcal{J}_B\cap\mathcal{J}_C$ meets both disjoint
+blocks, so it has at least two elements and its slot is constant. The Markov
+condition therefore makes $Y_{\mathcal{J}_B}$ and $Y_{\mathcal{J}_C}$
+independent, and by LVM $X_B$ and $X_C$ are functions of them. Taking
+$B=\{1,\ldots,k-1\}$ and $C=\{k\}$ for $k=2,\ldots,n$ factorizes the joint law
+into its marginals. Conversely, if the observables are mutually independent,
+the singleton-copy model $Y_{\{i\}}=X_i$ is a perfect condensation: LVM and
+reconstruction are immediate, and the Markov condition holds because all its
+nonconstant slots are mutually independent, as for the overlapping-bit model.
+\end{enumerate}
+In particular, a perfect condensation of any full-support law with dependent
+observables is impossible, which is why the approximate theorem is the one
+that applies to noisy data.
+\end{solution}
 
 \begin{exercise}[Collections, not individual slots; 15 minutes]
 \label{ex:duplicates}\important
@@ -1180,6 +1215,8 @@ Reconstruction is different. All the kernels have full support, so any
 finite observation block leaves several parameter configurations with positive
 posterior probability. For example, $H(M_{gc}\mid X_i)>0$. The model's joint
 law satisfies the Markov condition exactly, but it is not a perfect condensation.
+Since every combination of points has positive probability and the points are
+dependent, no latent model of this law is (\cref{ex:fullsupport}).
 
 For a nonempty block $B$, the general score-gap identity \eqref{eq:score} is
 \[
