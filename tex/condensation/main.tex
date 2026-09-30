@@ -1280,6 +1280,24 @@ a latent model.
 
 \subsection{Connections to prior work}
 \label{sec:context-connections}
+\subsubsection{Natural latents}
+Wentworth and Lorell ask when one agent's latent is guaranteed to be a
+function of another's~\citep{wentworth2025natural}. A latent $\Lambda$ over
+observables $X_1,\ldots,X_n$ is a \emph{mediator} if the $X_i$ are independent
+given $\Lambda$, and a \emph{redund} if it is determined by each $X_i$
+individually; a \emph{natural latent} is both. Their first theorem, that a
+mediator determines any redund, is for two observations the two-witness lemma
+(\cref{lem:witness}) with the observations as witnesses. Two natural latents
+over the same observables therefore determine one another.
+
+For two observations, the top slot of a perfect condensation is a natural
+latent: reconstruction makes $Y_{\{1,2\}}$ a redund, and the Markov condition
+with LVM makes $X_1,X_2$ independent given it. Condensation asks for a latent
+at every address rather than one latent for the whole family, and its
+correspondence theorem compares all the towers at once. Gillen and Chiang show
+that natural-latent agreement is a special case of condensation's agreement
+theorem~\citep{gillen2026summary}.
+
 \subsubsection{Sufficient statistics}
 For a fixed joint law of $(X,V)$, a statistic $T=f(X)$ is sufficient for predicting
 $V$ when
@@ -1433,12 +1451,15 @@ two models of the same observables.
 \item \textbf{Concepts of actual agents.} To apply that result, we need to
 identify suitable variables in actual agents and establish the relevant
 conditions, including how their observables relate. The theorem does not show
-that learning procedures produce such models.
+that learning procedures produce such models. That many kinds of agents
+learn such concepts is a version of the natural abstraction
+hypothesis~\citep{wentworth2021testing}.
 \item \textbf{A usable translation.} Informational correspondence could support
 identifying which of an AI's latents carries something humans care about. We
 must still find
 the correspondence with available data and computation, and connect it to the
-particular human distinction of interest.
+particular human distinction of interest. This is the ontology-identification
+problem at the heart of eliciting latent knowledge~\citep{christiano2021elk}.
 \item \textbf{Interpretation and specification.} A usable translation could help
 interpret predictions or express objectives in an AI's world model. This requires
 preserving relevant distinctions when circumstances or models change.
@@ -1560,6 +1581,9 @@ coverage qualification
 \emph{Elements of Information Theory}~\citep{cover2006elements}; Lauritzen, \emph{Graphical Models}~\citep{lauritzen1996graphical};
 Shalizi and Crutchfield, \emph{Computational Mechanics: Pattern and Prediction,
 Structure and Simplicity} (2001)~\citep{shalizi2001computational}.
+\item For the closest alignment work: John Wentworth and David Lorell,
+\emph{Natural Latents: Latent Variables Stable Across
+Ontologies}~\citep{wentworth2025natural}.
 \end{itemize}
 
 \subsection{Condensation in context}
