@@ -956,9 +956,9 @@ version of the Markov condition, which is equivalent to it.
 A shared parameter need not be recoverable from a single observation. For
 example, take $n\ge2$, let $C$ be a fair bit, and set
 $X_i=C\mathbin{\oplus}N_i$, where the
-$N_i$ are independent Bernoulli$(p)$ noises with $0<p<1/2$, independent of
+$N_i$ are independent Bernoulli$(q)$ noises with $0<q<1/2$, independent of
 $C$. The model $Y_I=C$, $Y_{\{i\}}=X_i$ satisfies LVM and the
-Markov condition exactly, but $H(C\mid X_i)=h_2(p)>0$, where
+Markov condition exactly, but $H(C\mid X_i)=h_2(q)>0$, where
 $h_2$ is the binary entropy function of \cref{sec:existence}.
 Larger observation blocks can reveal more about $C$. To use them in the proof,
 replace $\Up\{i\}$ by $\mathcal{J}_B$.
@@ -1507,9 +1507,9 @@ $(1-p)^m$. Large informational contributions can be absent from a small
 dataset.
 
 Conversely, suppose a variable $T$ records $E$, and records the value of a fair
-bit $B$, independent of $E$, only when $E=0$. Then
+bit $D$, independent of $E$, only when $E=0$. Then
 \[
- H(B\mid T)=p.
+ H(D\mid T)=p.
 \]
 The average uncertainty is small, but conditional on the rare event $E=1$, the
 bit is entirely unknown. If that event is a critical decision, its importance
@@ -1582,7 +1582,7 @@ link}. The questions are reproduced here because the form cannot typeset
 mathematics.
 
 \subsection{Questions}
-Use base-two logarithms. Throughout, $S,P,Q$ are independent fair bits and
+Use base-two logarithms. In questions 1--3, $S,P,Q$ are independent fair bits and
 $X_1=(S,P)$, $X_2=(S,Q)$, $X_3=(P,Q)$, with latents $Y_{\{1,2\}}=S$,
 $Y_{\{1,3\}}=P$ and $Y_{\{2,3\}}=Q$.
 
