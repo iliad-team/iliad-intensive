@@ -1415,15 +1415,14 @@ If $W$ is both separately recoverable and screens off dependence, then
 \]
 Moreover, every common function $K$ is determined by $W$: the two-witness lemma,
 with witnesses $X_1,X_2$ and common part $W$, gives $H(K\mid W)=0$.
-Thus this special case is closely connected to common information in the sense
-of G\'acs and K\"orner.
+So $W$ is the G\'acs--K\"orner common part, and the three quantities coincide:
+the G\'acs--K\"orner common information, Wyner's common information and
+$I(X_1;X_2)$ all equal $H(W)$. For two observations, the top slot of a perfect
+condensation is such a $W$.
 
-It is restrictive. If $X$ is a fair bit and $V=X\mathbin{\oplus}N$ for independent
-$N\sim\operatorname{Bernoulli}(p)$, $0<p<1/2$, all four pairs have positive
-probability. Any common function must therefore be constant, although
-$I(X;V)=1-h_2(p)>0$, where
-$h_2$ is the binary entropy function of \cref{sec:existence}. Recoverable common information and
-mutual information differ.
+It is restrictive: for the noisy pair of \cref{sec:existence}, every common
+function is constant although $I(X_1;X_2)=1-h_2(q)>0$. Recoverable common
+information and mutual information differ.
 
 Common/private source coding already studies structured organization
 of information. Condensation's particular focus is a family of subset-addressed
