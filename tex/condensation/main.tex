@@ -79,7 +79,8 @@ Read \cref{sec:questions,sec:conditions} after the first lecture, then work on
 \crefrange{ex:bits}{ex:duplicates}. After the second lecture, read
 \cref{sec:correspondence,sec:why} and complete
 \crefrange{ex:witness}{ex:induction} and \cref{ex:scope}. These nine exercises
-form the core route. \Cref{ex:fullsupport,ex:blocks,ex:scores} are optional extensions.
+form the core route. \Cref{ex:fullsupport,ex:blocks,ex:scores,ex:organizations} are optional
+extensions.
 
 \subsection{Information theory reference}
 \label{sec:it-reference}
@@ -1233,7 +1234,8 @@ sums the charges of all slots whose addresses meet $B$.
 
 \paragraph{One global tuple.}
 Put $Z_I=X_I$ and make every other slot constant. The global slot determines
-each observation. For every nonempty $B$,
+each observation. This is the top-slot model of \cref{ex:failed} at scale: it
+satisfies the Markov condition but fails reconstruction. For every nonempty $B$,
 \[
  \chi_{\mathrm{global}}(B)=H(X_I),\qquad
  \chi_{\mathrm{global}}(B)-H(X_B)=H(X_I\mid X_B).
@@ -1269,6 +1271,43 @@ smaller than the other scores for every block. In particular, for $B=I$ it
 exceeds $H(X_I)$ by the remaining parameter uncertainty, whereas both baseline
 constructions attain $H(X_I)$. Fitting the observable law does not by itself
 settle which organization is preferable across queries.
+
+\begin{exercise}[The three organizations and the conditions; optional, 10 minutes]
+\label{ex:organizations}
+\begin{enumerate}
+\item Show that the global and chain models satisfy the Markov condition. Why
+is it automatic for the chain?
+\item For a single point $X_i$, describe the reconstruction error
+$H(Z_{\Up\{i\}}\mid X_i)$ in each of the three models. How does it depend on
+$i$ in the chain, and on the number of observations in each model?
+\item None of the three models is a perfect condensation. Which comes closest
+to satisfying the conditions with a small tolerance?
+\end{enumerate}
+\end{exercise}
+\begin{solution}[ex:organizations]
+\begin{enumerate}
+\item In the global model every nonempty upward-closed family contains the
+top address, whose slot is the only nonconstant one, so every Markov term
+conditions on everything, as in \cref{ex:failed}. In the chain, the
+nonconstant addresses $\{j,\ldots,36\}$ are nested, so an upward-closed family
+contains exactly those with $j$ up to some bound: its nonconstant slots are
+$X_1,\ldots,X_a$ for some $a$. Of two such families, one's nonconstant slots
+are then those of the intersection, and the Markov term vanishes.
+\item In the global model the tower above $\{i\}$ is $X_I$, so the error is
+$H(X_I\mid X_i)$: the uncertainty about all other points, which grows with
+their number. In the chain the tower is $(X_1,\ldots,X_i)$, so the error is
+$H(X_1,\ldots,X_{i-1}\mid X_i)$: zero for the first point and growing along
+the ordering. In the structured model the tower is $(S,G_g,M_{gc},X_i)$, so
+the error is $H(S,G_g,M_{gc}\mid X_i)$: the parameter uncertainty a single
+point leaves, which does not grow with the number of observations.
+\item The structured model. It satisfies the Markov condition exactly, and
+its reconstruction errors are bounded by the parameter uncertainty one point
+leaves, uniformly in $i$ and in the number of points. With a tolerance of that
+size, or a smaller one using block witnesses (\cref{sec:blocks}), it
+satisfies the approximate conditions; the other two models' errors grow with
+the number of points.
+\end{enumerate}
+\end{solution}
 
 \subsection{Why blocks help recover parameters}
 For nonempty $B$ inside a fixed cluster $(g,c)$, set $\Theta=(S,G_g,M_{gc})$. The
