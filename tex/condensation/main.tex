@@ -1488,10 +1488,13 @@ the correspondence entropy is zero, yet a learner with few examples cannot
 predict an unseen pairing. These are different probability models: one fixes
 the permutation; the other describes uncertainty about it.
 
-A separate question concerns computation even when a transformation has a short
-known description. Entropic bounds alone give no running-time bound for an
-inverse. Establishing computational difficulty requires an additional argument
-or assumption; it does not follow from this permutation example.
+Computation is a separate question, even when a transformation has a short
+known description. Fix a large prime $p$ and a generator $g$ of the
+multiplicative group modulo $p$, and let $Y=g^X \bmod p$ for $X$ uniform on
+$\{1,\ldots,p-1\}$. Then $X$ and $Y$ determine one another, and the map has a
+one-line description that is fast to compute. Inverting it is the
+discrete-logarithm problem, believed to be hard for suitable $p$. Entropy does
+not see the difference.
 
 \subsubsection{Rare events and average error}
 Let $E\sim\operatorname{Bernoulli}(p)$. Define $R=0$ when $E=0$ and, when
