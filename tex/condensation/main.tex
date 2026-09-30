@@ -52,6 +52,8 @@ a collection of latents.
 \begin{itemize}
 \item Construct a latent model and distinguish LVM from reconstruction.
 \item Explain what the Markov condition excludes, using a concrete example.
+\item Explain why a single agent would want its latents to satisfy the two
+conditions.
 \item Prove correspondence between collections of latents, first exactly and
 then with explicit error terms.
 \item Distinguish the correspondence theorem from claims about learning,
@@ -75,8 +77,9 @@ computational mechanics, and graphical models.
 \subsection*{How to use this sheet}
 Read \cref{sec:questions,sec:conditions} after the first lecture, then work on
 \crefrange{ex:bits}{ex:duplicates}. After the second lecture, read
-\cref{sec:correspondence} and complete \crefrange{ex:witness}{ex:induction}. These eight exercises form the
-core route. \Cref{ex:blocks,ex:scores} are optional extensions.
+\cref{sec:correspondence,sec:why} and complete
+\crefrange{ex:witness}{ex:induction} and \cref{ex:scope}. These nine exercises
+form the core route. \Cref{ex:blocks,ex:scores} are optional extensions.
 
 \subsection{Information theory reference}
 \label{sec:it-reference}
@@ -445,7 +448,7 @@ correspondence bound of \cref{sec:correspondence} to say something.
 
 \begin{remark}
 One could instead ask for the model minimizing the conditioned score of
-\cref{sec:scores}. The score is defined per observation block, however, and
+\cref{sec:why}. The score is defined per observation block, however, and
 there is not always a single model minimizing it everywhere.
 \end{remark}
 
@@ -809,6 +812,129 @@ single budget. The theorem states its hypothesis in terms of tower errors to
 avoid this ambiguity.
 \end{solution}
 
+\subsection{Why an agent would want these conditions}
+\label{sec:why}
+The correspondence theorem is meant to show when the latents of different
+agents correspond, so the conditions should not be motivated by correspondence
+itself. They should serve a single agent's own interests. This section gives
+two such readings.
+
+\paragraph{The conditioned score.}
+Suppose an agent stores each latent given the more general ones, and answers a
+query about an observation block $B$ by reading every latent addressed to $B$,
+most general first. Its expected description length is the \emph{conditioned
+score}
+\[
+ \chi(B)=\sum_{A\in\mathcal{J}_B}H(Y_A\mid Y_{\Up A\setminus\{A\}}).
+\]
+Every strict superset of an address meeting $B$ also meets $B$, so the
+conditioning is available when reading in reverse inclusion order. Put
+$V_B=\chi(B)-H(Y_{\mathcal{J}_B})$. Then
+\begin{equation}
+ \chi(B)-H(X_B)=V_B+H(Y_{\mathcal{J}_B}\mid X_B),\qquad V_B\ge0.
+ \label{eq:score}
+\end{equation}
+The second term charges latent information not recoverable from $X_B$.
+The first charges dependence not accounted for by the inclusion hierarchy.
+It vanishes under the ordered Markov condition. \Cref{ex:scores} proves the
+decomposition.
+
+An agent that answers queries about a block $B$ pays $\chi(B)$, and no
+latent model does better than $H(X_B)$. The gap splits into exactly our two
+defects. Short descriptions for the queries an agent cares about \emph{are}
+small defects. Taking $B=\{i\}$, where $\mathcal{J}_{\{i\}}=\Up\{i\}$, gives
+for $i\in A$
+\[
+ H(Y_{\Up A}\mid X_i)\le H(Y_{\Up\{i\}}\mid X_i)\le\chi(\{i\})-H(X_i),
+\]
+which is exactly the reconstruction hypothesis of \cref{thm:correspondence}.
+So the conditions need not be assumed as a coincidence: efficient agents buy
+them. Efficiency is relative to the blocks an agent actually queries.
+
+\paragraph{Reconstruction: no dead weight.}
+The concept at $A$ is used whenever any observation in $A$ is. Information
+that only some of those circumstances can use is stored where it is dead
+weight most of the time the concept is used. The reconstruction error
+$H(Y_{\Up A}\mid X_i)$ measures exactly the part of the concept that a query
+about $X_i$ pays for but cannot pin down. In the top-slot model of
+\cref{ex:failed}, $Y_{\{1,2,3\}}=(S,P,Q)$ carries the bit $Q$, which is dead
+weight whenever the concept is used for $X_1$.
+
+\paragraph{Markov: local inference.}
+The Markov term also has a reading that does not mention description length.
+Once the more general concepts are known, a concept should bear only on the
+observations in its own scope:
+\begin{equation}
+ I\bigl(Y_A;X_{I\setminus A}\mid Y_{\Up A\setminus\{A\}}\bigr)=0
+ \qquad\text{for every }A\in\PI.
+ \label{eq:scope}
+\end{equation}
+Then when the agent learns or revises something about the concept at $A$, it
+never has to revise its beliefs about observations outside $A$, except
+through $A$'s more general context. Given LVM and reconstruction,
+\eqref{eq:scope} holds for every address exactly when the ordered Markov
+condition does.
+
+\begin{exercise}[Local inference; 15 minutes]
+\label{ex:scope}\important
+\begin{enumerate}
+\item In the singleton-copy model of \cref{ex:failed}, compute the left side
+of \eqref{eq:scope} for $A=\{1\}$.
+\item Let $I=\{1,2,3\}$, let $U$ be a fair bit, and set $X_1=X_2=X_3=U$. File
+$U$ at every pair address, $Y_{\{1,2\}}=Y_{\{1,3\}}=Y_{\{2,3\}}=U$, with every
+other slot constant. Check LVM and reconstruction. Compute the left side of
+\eqref{eq:scope} for $A=\{1,2\}$, and find upward-closed families violating
+the Markov condition. Where should $U$ be filed instead?
+\item Prove that the ordered Markov condition implies \eqref{eq:scope}. Apply
+\cref{def:markov} to $\mathcal{F}=\Up A$ and $\mathcal{G}=\mathcal{J}_{I\setminus A}$,
+and identify their intersection.
+\item Assume reconstruction. Show that $Y_{\mathcal{J}_{I\setminus A}}$ and
+$X_{I\setminus A}$ determine one another. Conclude that \eqref{eq:scope} for
+every $A$ is the local version of the Markov condition stated after
+\cref{def:markov}.
+\end{enumerate}
+\end{exercise}
+\begin{solution}[ex:scope]
+\begin{enumerate}
+\item Here $Y_{\{1\}}=X_1=(S,P)$ and every strict superset of $\{1\}$ holds a
+constant, so the left side is $I(X_1;X_2,X_3)$. The pair $(X_2,X_3)$
+determines $S,P,Q$, hence $X_1$, so this is $H(X_1)=2$. The concept at
+$\{1\}$ carries two bits about observations outside its scope that no more
+general concept accounts for.
+\item Each observation equals a latent assigned to it, for example
+$X_1=Y_{\{1,2\}}$, so LVM holds. Every nonconstant latent equals $U=X_i$ for
+each $i$ in its address, so reconstruction holds. The only strict superset of
+$\{1,2\}$ is $\{1,2,3\}$, whose slot is constant, so the left side is
+$I(U;U)=1$. For $\mathcal{F}=\Up\{1,2\}$ and $\mathcal{G}=\Up\{1,3\}$ the
+intersection is $\{\{1,2,3\}\}$, and
+$I(Y_{\mathcal{F}};Y_{\mathcal{G}}\mid Y_{\{1,2,3\}})=I(U;U)=1$. The bit $U$ is
+shared by all three observations, so it belongs at the top address:
+$Y_{\{1,2,3\}}=U$ with every other slot constant is a perfect condensation.
+\item An address $C$ meets $I\setminus A$ exactly when $C\not\subseteq A$.
+So $\Up A\cap\mathcal{J}_{I\setminus A}$ consists of the addresses that contain
+$A$ but are not contained in it: the strict supersets of $A$. Both families
+are upward closed, so the Markov condition gives
+\[
+ I\bigl(Y_{\Up A};Y_{\mathcal{J}_{I\setminus A}}\mid Y_{\Up A\setminus\{A\}}\bigr)=0.
+\]
+The tuple $Y_A$ is part of $Y_{\Up A}$, and by LVM $X_{I\setminus A}$ is a
+function of $Y_{\mathcal{J}_{I\setminus A}}$, which contains $Y_{\Up\{j\}}$ for
+every $j\notin A$. Conditional mutual information cannot increase when either
+side is replaced by a function of it, so the left side of \eqref{eq:scope} is
+zero.
+\item Every $C\in\mathcal{J}_{I\setminus A}$ contains some $j\notin A$, and
+reconstruction makes $Y_C$ a function of $X_j$. So
+$Y_{\mathcal{J}_{I\setminus A}}$ is a function of $X_{I\setminus A}$, and the previous part
+gave the converse. The left side of \eqref{eq:scope} therefore equals
+$I(Y_A;Y_{\mathcal{J}_{I\setminus A}}\mid Y_{\Up A\setminus\{A\}})$. The family
+$\mathcal{J}_{I\setminus A}$ consists of the strict supersets of $A$, on which
+we condition, and the addresses incomparable with $A$. So the quantity
+vanishes exactly when $Y_A$ is conditionally independent of the incomparable
+slots given its strict supersets. Required for every $A$, this is the local
+version of the Markov condition, which is equivalent to it.
+\end{enumerate}
+\end{solution}
+
 \subsection{Optional: several observations as one witness}
 \label{sec:blocks}
 A shared parameter need not be recoverable from a single observation. For
@@ -887,29 +1013,15 @@ It also changes which receiver the proof isolates, as \cref{ex:blocks} shows. Th
 bound with singleton witnesses does not follow from an arbitrary positive
 threshold $r$.
 
-\subsection{Optional: the conditioned score}
+\subsection{Optional: more on the conditioned score}
 \label{sec:scores}
-The conditions also have a description-length interpretation. For an
-observation block $B$, compare
+Compare the conditioned score of \cref{sec:why} with the simple score
 \[
- \sigma(B)=\sum_{A\in\mathcal{J}_B}H(Y_A),\qquad
- \chi(B)=\sum_{A\in\mathcal{J}_B}H(Y_A\mid Y_{\Up A\setminus\{A\}}).
+ \sigma(B)=\sum_{A\in\mathcal{J}_B}H(Y_A),
 \]
-The simple score $\sigma$ charges each active slot separately. The conditioned
-score $\chi$ charges its additional information given strict supersets.
-Those supersets are also active for $B$. Encoding in reverse inclusion order
-makes this conditioning available. These are ideal expected description-length
+which charges each latent addressed to $B$ separately, ignoring what the more
+general latents already say. Both are ideal expected description-length
 quantities; they do not measure computational retrieval time.
-
-Both scores are at least $H(X_B)$. More precisely, put
-$V_B=\chi(B)-H(Y_{\mathcal{J}_B})$. Then
-\begin{equation}
- \chi(B)-H(X_B)=V_B+H(Y_{\mathcal{J}_B}\mid X_B),\qquad V_B\ge0.
- \label{eq:score}
-\end{equation}
-The second term charges latent information not recoverable from $X_B$.
-The first charges dependence not accounted for by the inclusion hierarchy.
-It vanishes under the ordered Markov condition.
 
 For a graphical-model expression, define
 \[
