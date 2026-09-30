@@ -41,7 +41,7 @@ have base two.
 %This reading follows the condensation worksheet.
 \item We use conditional entropy,
 conditional independence, and the distinction between an individual latent and
-a collection of latents.
+a family of latents.
 %All variables in the examples have finite alphabets;
 %logarithms are base two.
 \end{enumerate}
@@ -54,7 +54,7 @@ a collection of latents.
 \item Explain what the Markov condition excludes, using a concrete example.
 \item Explain why a single agent would want its latents to satisfy the two
 conditions.
-\item Prove correspondence between collections of latents, first exactly and
+\item Prove correspondence between families of latents, first exactly and
 then with explicit error terms.
 \item Distinguish the correspondence theorem from claims about learning,
 computationally finding a translation, or choosing observables.
@@ -131,7 +131,7 @@ determine one another.
 Fix jointly distributed observables $X_1,\ldots,X_n$. We look for latent
 variables, each assigned to a set of observations, such that the latents
 assigned to an observation determine it.
-We will give conditions under which corresponding latent collections in two
+We will give conditions under which corresponding families of latents in two
 such models determine one another, and bound the remaining conditional entropy
 when the conditions hold approximately. We take the joint distributions as given.
 
@@ -158,11 +158,11 @@ assigned to it. Each of these latents can also be recovered from either
 observation to which it is assigned.
 \end{example}
 
-\subsubsection{Addresses and collections}
+\subsubsection{Addresses and families}
 Let $I=\{1,\ldots,n\}$ and write $\PI$ for its nonempty subsets.
 An \emph{address} $A\in\PI$ specifies which observations receive a latent
-$Y_A$. The collection of addresses is a partially ordered set under inclusion.
-We use one slot for each nonempty subset, setting unused slots to constants.
+$Y_A$. The set of addresses is partially ordered by inclusion.
+We use one latent for each nonempty subset, setting unused ones to constants.
 
 \begin{definition}[Latent model]
 \label{def:model}
@@ -179,9 +179,9 @@ $\mathcal{F}\subseteq\PI$.
 
 We call \eqref{eq:forward} the \emph{latent variable model condition}, or
 \emph{LVM}. The contributing latents, taken together, determine the
-observation. This is not a claim that an agent knows their realized values. Some slots may represent residual noise.
+observation. This is not a claim that an agent knows their realized values. Some latents may represent residual noise.
 Also, an address need not be minimal: being assigned to an observation does not
-assert that a slot makes a nonredundant or causal contribution to it.
+assert that a latent makes a nonredundant or causal contribution to it.
 
 For nonempty $A\subseteq I$ and $B\subseteq I$, define two different families:
 \[
@@ -190,18 +190,40 @@ For nonempty $A\subseteq I$ and $B\subseteq I$, define two different families:
 \]
 The tuple $Y_{\Up A}$ is the \emph{tower above $A$}. The tuple
 $Y_{\mathcal{J}_B}$ contains all latents contributing to at least one observation
-in $B$, and therefore determines $X_B=(X_i)_{i\in B}$.
+in $B$; we call these latents \emph{active} for $B$. They determine
+$X_B=(X_i)_{i\in B}$.
 In particular $\Up\{i\}=\mathcal{J}_{\{i\}}$ is the family of addresses
 contributing to $X_i$, so \eqref{eq:forward} reads $H(X_i\mid Y_{\Up\{i\}})=0$.
 For a larger $A$, $\Up A$ and $\mathcal{J}_A$ generally differ.
 
+\paragraph{Glossary.} The sheet uses a small fixed vocabulary.
+\begin{description}
+\item[Address] A nonempty $A\subseteq I$. The model has one \emph{latent}
+$Y_A$ at each address; unused ones are constant.
+\item[Block] A nonempty set $B\subseteq I$ of observations, with
+$X_B=(X_i)_{i\in B}$.
+\item[Family] A set $\mathcal{F}$ of addresses, and the corresponding
+family of latents $Y_{\mathcal{F}}$.
+\item[Contributing] $Y_A$ contributes to $X_i$ when $i\in A$. The
+contributing family of $X_i$ is $\Up\{i\}$.
+\item[Tower] The family of latents $Y_{\Up A}$ at $A$ and every address
+containing it.
+\item[Active] $Y_A$ is active for a block $B$ when $A\cap B\ne\varnothing$,
+that is, when it contributes to some observation in $B$. The active family is
+$\mathcal{J}_B$.
+\item[Upward closed] A family containing every superset of each of its
+addresses (\cref{sec:conditions}).
+\item[Witness] A variable from which a target is recoverable
+(\cref{sec:correspondence}).
+\end{description}
+
 \begin{exercise}[Overlapping bits; 15 minutes]
 \label{ex:bits}\important
-Use \cref{eg:bits}, with all unmentioned slots constant.
+Use \cref{eg:bits}, with all unmentioned latents constant.
 \begin{enumerate}
 \item Compute $H(X_1)$, $H(X_1,X_2,X_3)$, and $I(X_1;X_2)$.
 \item List $\Up\{1\}$, $\Up\{2\}$, and $\Up\{1,2\}$, including
-constant slots. Which tuple determines $X_1$? Which of the three is
+constant latents. Which tuple determines $X_1$? Which of the three is
 $\Up\{1\}\cap\Up\{2\}$?
 \item Give explicit functions recovering $X_1$ from its contributing latents
 and recovering $Y_{\{1,2\}}$ from $X_1$.
@@ -220,7 +242,7 @@ The pair $(X_1,X_2)$ already determines all three bits, hence
  I(X_1;X_2)=H(X_1)+H(X_2)-H(X_1,X_2)=2+2-3=1.
 \]
 Its shared bit is $S$.
-\item The families, including constant slots, are
+\item The families, including constant latents, are
 \[
 \begin{split}
  \Up\{1\}&=\{\{1\},\{1,2\},\{1,3\},\{1,2,3\}\},\\
@@ -243,7 +265,7 @@ other. Thus the contribution pattern need not form a nested tree.
 \label{sec:conditions}
 LVM is not one of the two conditions below. It is part of the definition of a
 latent model, and every observable law admits one by construction: put a copy
-of each $X_i$ in its singleton slot, or the entire tuple $X$ in the top slot
+of each $X_i$ in its singleton latent, or the entire tuple $X$ in the top latent
 $Y_I$, and LVM holds either way. Satisfying it therefore says nothing about how
 information is shared. The two conditions below constrain these alternatives in
 different ways.
@@ -254,18 +276,18 @@ A latent model has exact reconstruction if
 \[
  H(Y_A\mid X_i)=0\qquad\text{whenever }i\in A.
 \]
-Equivalently, $H(Y_{\Up A}\mid X_i)=0$ whenever $i\in A$: every slot
+Equivalently, $H(Y_{\Up A}\mid X_i)=0$ whenever $i\in A$: every latent
 in that finite tuple can be recovered from $X_i$.
 \end{definition}
 
 The equivalence in this definition uses exact zero errors. In approximate
 statements we will bound the entropy of the \emph{whole tower}; separately small
-errors for its individual slots could add up.
+errors for its individual latents could add up.
 
 A family $\mathcal{F}\subseteq\PI$ is \emph{upward closed} if
 $A\in\mathcal{F}$ and $A\subseteq C$ imply $C\in\mathcal{F}$.
 For example, $\Up A$ and $\mathcal{J}_B$ are upward closed. Taking a
-collection together with every slot above it prevents us from omitting higher
+family together with every address above it prevents us from omitting higher
 variables on which it may depend.
 
 \begin{definition}[Ordered Markov condition and defect]
@@ -286,15 +308,15 @@ Its quantitative defect is
 The conditioning family $\mathcal{F}\cap\mathcal{G}$ is an intersection of
 \emph{address families}, not a quantity inferred to be common by inspecting
 their values. The condition says that the latents at those shared addresses
-account for the dependence between the two collections. It does not require
+account for the dependence between the two families. It does not require
 every latent to be independent of every other latent. In the two-observable
 case, its only potentially nonzero requirement is
 \[
  I(Y_{\{1\}};Y_{\{2\}}\mid Y_{\{1,2\}})=0.
 \]
 This is a graphical-model condition for the inclusion order. The equivalent
-local version says that each slot is conditionally independent of all
-incomparable slots given its strict supersets.
+local version says that each latent is conditionally independent of all
+incomparable latents given its strict supersets.
 
 \begin{definition}[Perfect condensation]
 \label{def:perfect}
@@ -304,20 +326,20 @@ and satisfies the ordered Markov condition.
 This is equivalent to Eisenstat's definition by optimal conditioned scores
 \citep[Theorem~5.10]{eisenstat2025condensation}. \Cref{sec:scores} explains that connection.
 The overlapping-bit model in \cref{eg:bits} is a perfect condensation. All
-nonconstant slots are mutually independent, so disjoint subcollections are
+nonconstant latents are mutually independent, so disjoint subfamilies are
 independent, including after conditioning on the remaining common
-subcollection. Reconstruction follows from coordinate projections.
+subfamily. Reconstruction follows from coordinate projections.
 
 \begin{exercise}[Two failed models; 20 minutes]
 \label{ex:failed}\important
 Keep the observables of \cref{eg:bits}. Consider two alternative models.
 \begin{enumerate}
-\item Set $Y_{\{i\}}=X_i$ for $i=1,2,3$ and every other slot constant.
+\item Set $Y_{\{i\}}=X_i$ for $i=1,2,3$ and every other latent constant.
 Check LVM and reconstruction. Take
 $\mathcal{F}=\Up\{1\}$ and $\mathcal{G}=\Up\{2\}$.
 Calculate the conditional mutual information in \cref{def:markov}.
-Which information is duplicated across singleton slots?
-\item Instead set $Y_{\{1,2,3\}}=(S,P,Q)$ and every other slot constant.
+Which information is duplicated across singleton latents?
+\item Instead set $Y_{\{1,2,3\}}=(S,P,Q)$ and every other latent constant.
 Check LVM and the Markov condition. Compute
 $H(Y_{\{1,2,3\}}\mid X_1)$. Which condition fails?
 \item Explain why LVM, reconstruction, and the
@@ -338,14 +360,14 @@ of the two larger tuples are $X_1$ and $X_2$. Consequently
  I(Y_{\mathcal{F}};Y_{\mathcal{G}}\mid Y_{\mathcal{F}\cap\mathcal{G}})
  =I(X_1;X_2)=1.
 \]
-Both singleton slots determine $S$, while their common ancestor slots are
+Both singleton latents determine $S$, while their common ancestor latents are
 constant. This violates the Markov condition. It is enough to
 exhibit this one pair of upward-closed families; finding the maximum defect
 is unnecessary.
 \item With only $Y_{\{1,2,3\}}=(S,P,Q)$ nonconstant, each observation is
 obtained by projection, so LVM holds. Every nonempty
 upward-closed family contains the top address. If both families are nonempty,
-their intersection contains that top slot and determines all latent variables;
+their intersection contains that top latent and determines all latent variables;
 the conditional mutual information is zero. If either is empty it is zero as
 well. Thus the Markov condition holds.
 
@@ -357,9 +379,9 @@ Reconstruction fails.
 \item LVM requires enough latent information to determine
 each observation. Reconstruction excludes information placed at a shared
 address that an individual contributing observation cannot recover. The Markov
-condition excludes dependence between address collections not accounted for
-by their common slots. The singleton model satisfies the second requirement but
-fails the third; the top-slot model satisfies the third but fails the second.
+condition excludes dependence between families not accounted for
+by their common latents. The singleton model satisfies the second requirement but
+fails the third; the top-latent model satisfies the third but fails the second.
 \end{enumerate}
 
 \end{solution}
@@ -385,19 +407,19 @@ The joint law is
 \]
 Every one of the four outcomes has positive probability, because $0<q<1/2$;
 and $X_1,X_2$ are dependent, because the two rows differ.
-Suppose a perfect condensation existed, and consider its top slot
+Suppose a perfect condensation existed, and consider its top latent
 $Y_{\{1,2\}}$.
 
 With two observations there are only three addresses, so the whole model is
-three slots:
+three latents:
 \[
 \begin{array}{r|ccc}
  \text{address} & \{1\} & \{1,2\} & \{2\}\\
- \text{slot} & Y_{\{1\}} & Y_{\{1,2\}} & Y_{\{2\}}
+ \text{latent} & Y_{\{1\}} & Y_{\{1,2\}} & Y_{\{2\}}
 \end{array}
 \]
 LVM says $X_1$ is determined by $(Y_{\{1\}},Y_{\{1,2\}})$ and $X_2$ by
-$(Y_{\{2\}},Y_{\{1,2\}})$. The top slot $Y_{\{1,2\}}$ is the only one assigned to both
+$(Y_{\{2\}},Y_{\{1,2\}})$. The top latent $Y_{\{1,2\}}$ is the only one assigned to both
 observations, so it is the only place shared information can sit.
 
 Reconstruction would give $Y_{\{1,2\}}=f(X_1)=g(X_2)$ almost surely. Because
@@ -407,7 +429,7 @@ all four observable pairs have positive probability, these equalities force
 \]
 Thus $Y_{\{1,2\}}$ is constant. The Markov condition would then require
 $Y_{\{1\}}$ and $Y_{\{2\}}$ to be independent. LVM
-makes each $X_i$ a function of its singleton slot and the constant $Y_{\{1,2\}}$.
+makes each $X_i$ a function of its singleton latent and the constant $Y_{\{1,2\}}$.
 Functions of independent variables are independent, contradicting the chosen
 observable law. No perfect condensation exists for this pair.
 
@@ -419,7 +441,7 @@ gives
 \]
 where $h_2(q)=-q\log q-(1-q)\log(1-q)$ is the binary entropy function.
 Dependence between the observables must remain as a Markov defect when their
-separately recoverable top slot is constant. The bound is attained by the
+separately recoverable top latent is constant. The bound is attained by the
 singleton-copy model $Y_{\{i\}}=X_i$, with constant top.
 
 That bound pins one end of a trade-off: exact reconstruction forces a Markov
@@ -443,7 +465,7 @@ values has positive probability, and the observables are dependent.
 Generalize it. Suppose every combination of values that $X_1,\ldots,X_n$ can
 individually take has positive probability.
 \begin{enumerate}
-\item Show that in any perfect condensation, every slot at an address with at
+\item Show that in any perfect condensation, every latent at an address with at
 least two elements is constant.
 \item For disjoint nonempty blocks $B,C$, apply the Markov condition to
 $\mathcal{J}_B$ and $\mathcal{J}_C$ to show that $X_B$ and $X_C$ are
@@ -457,21 +479,21 @@ observables are mutually independent.
 almost surely. Every pair of values $(x_i,x_j)$ has positive probability, so
 $f(x_i)=g(x_j)$ for all of them, and $f$ and $g$ are the same constant.
 \item Every address in $\mathcal{J}_B\cap\mathcal{J}_C$ meets both disjoint
-blocks, so it has at least two elements and its slot is constant. The Markov
+blocks, so it has at least two elements and its latent is constant. The Markov
 condition therefore makes $Y_{\mathcal{J}_B}$ and $Y_{\mathcal{J}_C}$
 independent, and by LVM $X_B$ and $X_C$ are functions of them. Taking
 $B=\{1,\ldots,k-1\}$ and $C=\{k\}$ for $k=2,\ldots,n$ factorizes the joint law
 into its marginals. Conversely, if the observables are mutually independent,
 the singleton-copy model $Y_{\{i\}}=X_i$ is a perfect condensation: LVM and
 reconstruction are immediate, and the Markov condition holds because all its
-nonconstant slots are mutually independent, as for the overlapping-bit model.
+nonconstant latents are mutually independent, as for the overlapping-bit model.
 \end{enumerate}
 In particular, a perfect condensation of any full-support law with dependent
 observables is impossible, which is why the approximate theorem is the one
 that applies to noisy data.
 \end{solution}
 
-\begin{exercise}[Collections, not individual slots; 15 minutes]
+\begin{exercise}[Families, not individual latents; 15 minutes]
 \label{ex:duplicates}\important
 For this exercise let $I=\{1,2\}$, take independent fair bits $C,R,T$, and set
 $X_1=(C,R)$, $X_2=(C,T)$. Compare
@@ -486,18 +508,18 @@ $X_1=(C,R)$, $X_2=(C,T)$. Compare
 \item Compute $H(Z_{\{1\}}\mid Y_{\{1\}})$.
 \item Show that $Y_{\Up\{1\}}$ and $Z_{\Up\{1\}}$ determine one
 another. Explain why correspondence between these tuples is a different
-claim from correspondence between the singleton slots.
+claim from correspondence between the singleton latents.
 \end{enumerate}
 \end{exercise}
 \begin{solution}[ex:duplicates]
-Here $C,R,T$ are independent fair bits. In model $Y$ the three slots are
+Here $C,R,T$ are independent fair bits. In model $Y$ the three latents are
 $C,R,T$; in model $Z$ they are $C,(C,R),(C,T)$.
 \begin{enumerate}
-\item Both contributing families determine their observations. All slots are
+\item Both contributing families determine their observations. All latents are
 recoverable from each observation to which they contribute. For example,
 $C$ is the first coordinate of either $X_1$ or $X_2$, and $Z_{\{1\}}=X_1$.
 For two observables the only nontrivial Markov requirement is independence of
-the two singleton slots given the top slot. For $Y$ this is
+the two singleton latents given the top latent. For $Y$ this is
 $I(R;T\mid C)=0$. For $Z$ it is
 \[
  I((C,R);(C,T)\mid C)=I(R;T\mid C)=0.
@@ -506,8 +528,8 @@ Both are therefore perfect condensations.
 \item $H(Z_{\{1\}}\mid Y_{\{1\}})=H(C,R\mid R)=H(C)=1$.
 \item The $Y$ tower at $\{1\}$ consists of $(R,C)$, and the $Z$ tower
 consists of $((C,R),C)$. Each is a deterministic function of the other. A copy
-of the higher-address information can appear in a lower slot without changing
-the tower's total information. Thus the individual slots need not correspond
+of the higher-address information can appear in a lower latent without changing
+the tower's total information. Thus the individual latents need not correspond
 even when the relevant towers do.
 \end{enumerate}
 \end{solution}
@@ -573,11 +595,11 @@ address $A$ determine one another almost surely:
 \]
 \end{corollary}
 
-The forward bound uses reconstruction in the sender $Y$, LVM in the receiver
-$Z$, and the Markov defect of $Z$.
+The forward bound uses reconstruction in $Y$, LVM in $Z$, and the Markov
+defect of $Z$.
 It does not use the Markov condition of $Y$ until we reverse the argument.
-The result concerns corresponding collections. \Cref{ex:duplicates} shows why we cannot simply
-replace those collections by individual slots.
+The result concerns corresponding families. \Cref{ex:duplicates} shows why we cannot simply
+replace those families by individual latents.
 
 This proof is a specialization of Eisenstat's approximate correspondence
 theorem \citep[Theorem~6.8]{eisenstat2025condensation}, using the two-witness
@@ -592,8 +614,8 @@ The theorem has three steps.
 common part, that common part determines the target. Entropy gives a version
 with errors.
 \item Each observation $X_i$ is determined by its contributing $Z$-latents.
-Anything recoverable from $X_i$ is therefore recoverable from that collection.
-\item Intersect these contributing collections over $i\in A$. Exactly the
+Anything recoverable from $X_i$ is therefore recoverable from that family.
+\item Intersect these contributing families over $i\in A$. Exactly the
 addresses containing all of $A$ survive. Each intersection costs at most one
 Markov error term.
 \end{enumerate}
@@ -695,7 +717,7 @@ that conditioning tuple changes no information. Hence
  \le H(U\mid X_i).
 \]
 The inequality is conditioning monotonicity. It does not assume that $U$ and
-the receiver tuple are conditionally independent given $X_i$. They can share
+$Z_{\Up\{i\}}$ are conditionally independent given $X_i$. They can share
 additional information beyond $X_i$.
 \end{solution}
 
@@ -767,7 +789,7 @@ case $k=1$ explicitly.
 \item Deduce \cref{cor:exact}, including the reverse direction. Name the
 assumption used at each step of the proof.
 \item Suppose instead that $H(Y_C\mid X_i)\le\varepsilon$ separately for
-all relevant slots $C$. Why does this not by itself supply the tower error
+all relevant addresses $C$. Why does this not by itself supply the tower error
 budget $H(Y_{\Up A}\mid X_i)\le\varepsilon$?
 \end{enumerate}
 \end{exercise}
@@ -819,14 +841,14 @@ forward direction. Interchanging $Y,Z$, using reconstruction in $Z$
 and $\eta_Y=0$, proves the reverse direction. Zero conditional entropy is
 almost-sure deterministic recoverability in our finite setting.
 
-The proof uses LVM in $Z$ for \cref{ex:transfer}, the sender's reconstruction to bound those errors, and the receiver's Markov condition
+The proof uses LVM in $Z$ for \cref{ex:transfer}, reconstruction in $Y$ to bound those errors, and the Markov condition of $Z$
 at intersections. It needs no cross-model independence, and its finite
 coupling preserves all marginal conditions used.
 
-Finally, approximate slotwise errors do not directly give the same error for
+Finally, approximate errors for individual latents do not directly give the same error for
 a tuple. For example, if two independent fair bits $R,T$ remain unknown given
 a constant observation, each conditional entropy is one bit but the tuple's
-is two bits. Conditional subadditivity gives a sum of the slot budgets, not a
+is two bits. Conditional subadditivity gives a sum of the individual budgets, not a
 single budget. The theorem states its hypothesis in terms of tower errors to
 avoid this ambiguity.
 \end{solution}
@@ -840,7 +862,7 @@ two such readings.
 
 \paragraph{The conditioned score.}
 Suppose an agent stores each latent given the more general ones, and answers a
-query about an observation block $B$ by reading every latent addressed to $B$,
+query about an observation block $B$ by reading every latent active for $B$,
 most general first. Its expected description length is the \emph{conditioned
 score}
 \[
@@ -872,7 +894,7 @@ The concept at $A$ is used whenever any observation in $A$ is. Information
 that only some of those circumstances can use is stored where it is dead
 weight most of the time the concept is used. The reconstruction error
 $H(Y_{\Up A}\mid X_i)$ measures exactly the part of the concept that a query
-about $X_i$ pays for but cannot pin down. In the top-slot model of
+about $X_i$ pays for but cannot pin down. In the top-latent model of
 \cref{ex:failed}, $Y_{\{1,2,3\}}=(S,P,Q)$ carries the bit $Q$, which is dead
 weight whenever the concept is used for $X_1$.
 
@@ -898,7 +920,7 @@ condition does.
 of \eqref{eq:scope} for $A=\{1\}$.
 \item Let $I=\{1,2,3\}$, let $U$ be a fair bit, and set $X_1=X_2=X_3=U$. File
 $U$ at every pair address, $Y_{\{1,2\}}=Y_{\{1,3\}}=Y_{\{2,3\}}=U$, with every
-other slot constant. Check LVM and reconstruction. Compute the left side of
+other latent constant. Check LVM and reconstruction. Compute the left side of
 \eqref{eq:scope} for $A=\{1,2\}$, and find upward-closed families violating
 the Markov condition. Where should $U$ be filed instead?
 \item Prove that the ordered Markov condition implies \eqref{eq:scope}. Apply
@@ -920,12 +942,12 @@ general concept accounts for.
 \item Each observation equals a latent assigned to it, for example
 $X_1=Y_{\{1,2\}}$, so LVM holds. Every nonconstant latent equals $U=X_i$ for
 each $i$ in its address, so reconstruction holds. The only strict superset of
-$\{1,2\}$ is $\{1,2,3\}$, whose slot is constant, so the left side is
+$\{1,2\}$ is $\{1,2,3\}$, whose latent is constant, so the left side is
 $I(U;U)=1$. For $\mathcal{F}=\Up\{1,2\}$ and $\mathcal{G}=\Up\{1,3\}$ the
 intersection is $\{\{1,2,3\}\}$, and
 $I(Y_{\mathcal{F}};Y_{\mathcal{G}}\mid Y_{\{1,2,3\}})=I(U;U)=1$. The bit $U$ is
 shared by all three observations, so it belongs at the top address:
-$Y_{\{1,2,3\}}=U$ with every other slot constant is a perfect condensation.
+$Y_{\{1,2,3\}}=U$ with every other latent constant is a perfect condensation.
 \item An address $C$ meets $I\setminus A$ exactly when $C\not\subseteq A$.
 So $\Up A\cap\mathcal{J}_{I\setminus A}$ consists of the addresses that contain
 $A$ but are not contained in it: the strict supersets of $A$. Both families
@@ -946,7 +968,7 @@ $I(Y_A;Y_{\mathcal{J}_{I\setminus A}}\mid Y_{\Up A\setminus\{A\}})$. The family
 $\mathcal{J}_{I\setminus A}$ consists of the strict supersets of $A$, on which
 we condition, and the addresses incomparable with $A$. So the quantity
 vanishes exactly when $Y_A$ is conditionally independent of the incomparable
-slots given its strict supersets. Required for every $A$, this is the local
+latents given its strict supersets. Required for every $A$, this is the local
 version of the Markov condition, which is equivalent to it.
 \end{enumerate}
 \end{solution}
@@ -970,7 +992,7 @@ replace $\Up\{i\}$ by $\mathcal{J}_B$.
 most $\delta$ given each of $X_{\{1,2\}}$, $X_{\{1,3\}}$, and
 $X_{\{2,3\}}$. Which addresses survive the intersection
 $\mathcal{J}_{\{1,2\}}\cap\mathcal{J}_{\{1,3\}}\cap\mathcal{J}_{\{2,3\}}$?
-Prove a bound on the entropy of $U$ given the surviving $Z$-slots.
+Prove a bound on the entropy of $U$ given the surviving $Z$-latents.
 \item More generally, let $\mathcal{W}$ be a nonempty finite family of nonempty
 observation blocks. Adapt \cref{ex:induction} to show
 \[
@@ -980,7 +1002,7 @@ observation blocks. Adapt \cref{ex:induction} to show
 \]
 \item Fix an integer $0\le r<|A|$ and take every $(r+1)$-element subset of $A$ as a
 witness. Show that $C\in\mathcal{R}$ exactly when $|A\setminus C|\le r$.
-What does this give for $r=0$? Why is the receiver generally larger for $r>0$?
+What does this give for $r=0$? Why is $\mathcal{R}$ generally larger for $r>0$?
 \end{enumerate}
 \end{exercise}
 \begin{solution}[ex:blocks]
@@ -989,13 +1011,13 @@ What does this give for $r=0$? Why is the receiver generally larger for $r>0$?
 $\{1,2\},\{1,3\},\{2,3\}$ precisely when $|C|\ge2$.
 A singleton misses the complementary pair; every address with at least two
 elements meets every pair. Thus the surviving tuple consists of the three
-pair slots and the top slot. Applying the two-witness lemma twice, after
+pair latents and the top latent. Applying the two-witness lemma twice, after
 observable transfer for each block, gives
 \[
  H(U\mid Z_{\{C:|C|\ge2\}})\le3\delta+2\eta_Z.
 \]
-It does not isolate the top slot alone.
-\item For each block $B$, the collection $Z_{\mathcal{J}_B}$ determines
+It does not isolate the top latent alone.
+\item For each block $B$, the family $Z_{\mathcal{J}_B}$ determines
 $X_B$: for every $i\in B$ it contains $Z_{\Up\{i\}}$. \Cref{ex:transfer} therefore
 extends to $H(U\mid Z_{\mathcal{J}_B})\le H(U\mid X_B)$.
 Each $\mathcal{J}_B$ is upward closed. Enumerate
@@ -1013,7 +1035,7 @@ so the induction and the intersection count apply.
 $A\setminus C$ contains at least $r+1$ elements. Thus it meets every such
 subset exactly when $|A\setminus C|\le r$. For $r=0$ this says
 $A\subseteq C$, recovering the tower. For $r>0$ an address can survive even
-if it misses some elements of $A$; the receiver is a larger tuple.
+if it misses some elements of $A$; $\mathcal{R}$ is a larger family.
 If every witness error is at most $\delta$, write
 $N=\binom{|A|}{r+1}$ to obtain the explicit bound
 $N\delta+(N-1)\eta_Z$. The restriction $r<|A|$ ensures witnesses exist.
@@ -1023,9 +1045,9 @@ $N\delta+(N-1)\eta_Z$. The restriction $r<|A|$ ensures witnesses exist.
 Eisenstat's later almost-perfect-condensation formulation
 \citep{eisenstat2025condensation} bounds the tower
 reconstruction error whenever $|A\cap B|>r$, the Markov defect, and the number
-of active slots. The threshold allows small slots to account for local noise
-without requiring every such slot to be recovered from every relevant block.
-It also changes which receiver the proof isolates, as \cref{ex:blocks} shows. The exact-tower
+of active latents. The threshold allows small latents to account for local noise
+without requiring every such latent to be recovered from every relevant block.
+It also changes which family of $Z$-latents the proof isolates, as \cref{ex:blocks} shows. The exact-tower
 bound with singleton witnesses does not follow from an arbitrary positive
 threshold $r$.
 
@@ -1035,7 +1057,7 @@ Compare the conditioned score of \cref{sec:why} with the simple score
 \[
  \sigma(B)=\sum_{A\in\mathcal{J}_B}H(Y_A),
 \]
-which charges each latent addressed to $B$ separately, ignoring what the more
+which charges each latent active for $B$ separately, ignoring what the more
 general latents already say. Both are ideal expected description-length
 quantities; they do not measure computational retrieval time.
 
@@ -1059,7 +1081,7 @@ and conditioning inequality to prove $\chi(B)\ge H(Y_{\mathcal{J}_B})$.
 $H(Y_{\mathcal{J}_B})-H(X_B)=H(Y_{\mathcal{J}_B}\mid X_B)$, hence
 \eqref{eq:score}.
 \item For both models in \cref{ex:duplicates}, calculate $\sigma(\{1,2\})$ and
-$\chi(\{1,2\})$. Why is copying the top variable into a lower slot free
+$\chi(\{1,2\})$. Why is copying the top variable into a lower latent free
 under one score but not the other?
 \item If $A\cap B\ne\varnothing$, show that
 $H(Y_{\Up A}\mid X_B)\le\chi(B)-H(X_B)$.
@@ -1115,7 +1137,7 @@ partition $\PI$ into
  \mathcal{R}=\PI\setminus(\mathcal{F}\cup\mathcal{G}).
 \]
 Order these blocks $\mathcal{C},\mathcal{P},\mathcal{Q},\mathcal{R}$, internally
-by reverse inclusion. Upward closure ensures this order is valid and no slot
+by reverse inclusion. Upward closure ensures this order is valid and no latent
 in $\mathcal{Q}$ has a strict superset in $\mathcal{P}$, or conversely.
 Conditioning inequalities and chain rules within each block imply
 \begin{align*}
@@ -1130,16 +1152,16 @@ Hence $\eta_Y\le V_I$.
 
 If all score gaps vanish, the decomposition forces $V_I=0$, giving the Markov
 condition. The singleton gap at $B=\{i\}$ forces the contributing tuple,
-and therefore each slot at an address containing $i$, to be determined by
+and therefore each latent at an address containing $i$, to be determined by
 $X_i$. This gives reconstruction.
 
 Conversely, suppose reconstruction and the Markov condition hold.
-For every $B$, each active slot $Y_A$ is determined by some $X_i$ with
+For every $B$, each active latent $Y_A$ is determined by some $X_i$ with
 $i\in A\cap B$, and hence by $X_B$. Therefore
 $H(Y_{\mathcal{J}_B}\mid X_B)=0$.
-In a reverse-inclusion order, the earlier slots consist of all strict
-supersets of the current slot and some incomparable slots. The global
-Markov condition implies that conditioning on these extra earlier slots does
+In a reverse-inclusion order, the earlier latents consist of all strict
+supersets of the current latent and some incomparable latents. The global
+Markov condition implies that conditioning on these extra earlier latents does
 not reduce its entropy beyond conditioning on strict supersets: apply the
 condition to the upward cone of the current address and the upward-closed
 family of earlier addresses. Their intersection is the strict-superset
@@ -1152,7 +1174,7 @@ Eisenstat defines perfect condensation by $\chi(B)=H(X_B)$ for every $B$.
 The equivalence with the characterization above is his Theorem 5.10.
 The decomposition above also explains why small score gaps imply strong
 reconstruction conditions. The converse for positive-threshold almost-perfect
-condensation requires additional reconstruction coverage: some active slots
+condensation requires additional reconstruction coverage: some active latents
 may never meet that threshold. Do not identify the two approximate criteria
 without checking these quantifiers.
 
@@ -1203,10 +1225,10 @@ $A_{gc}$ the nine indices of cluster $(g,c)$. Assign
  Y_I=S,\qquad Y_{A_g}=G_g,\qquad Y_{A_{gc}}=M_{gc},\qquad
  Y_{\{i\}}=X_i,
 \]
-and make every other slot constant. The joint law factorizes in the address
+and make every other latent constant. The joint law factorizes in the address
 inclusion order, so its ordered Markov defect is zero.
 
-The singleton slot supplies the sampled point itself. Thus
+The singleton latent supplies the sampled point itself. Thus
 $H\bigl(X_i\mid Y_{\{A\,:\,i\in A\}}\bigr)=0$ exactly. The cluster center and shape alone
 specify a conditional distribution for the point; they do not determine its
 realized coordinates. The residual conditional entropy is
@@ -1230,11 +1252,11 @@ remaining uncertain after observing the queried block.
 
 \subsection{Three organizations of the same observable law}
 For a nonempty queried \emph{observation block} $B$, the conditioned score
-sums the charges of all slots whose addresses meet $B$.
+sums the charges of all latents active for $B$.
 
 \paragraph{One global tuple.}
-Put $Z_I=X_I$ and make every other slot constant. The global slot determines
-each observation. This is the top-slot model of \cref{ex:failed} at scale: it
+Put $Z_I=X_I$ and make every other latent constant. The global latent determines
+each observation. This is the top-latent model of \cref{ex:failed} at scale: it
 satisfies the Markov condition but fails reconstruction. For every nonempty $B$,
 \[
  \chi_{\mathrm{global}}(B)=H(X_I),\qquad
@@ -1245,8 +1267,8 @@ query incurs the entire tuple's entropy in this score.
 
 \paragraph{An ordered chain.}
 Choose an ordering $X_1,\ldots,X_{36}$. Set
-$Z_{\{j,j+1,\ldots,36\}}=X_j$ and make other slots constant. The contributing
-slots for $X_i$ contain $X_1,\ldots,X_i$. The charge for slot $j$ is
+$Z_{\{j,j+1,\ldots,36\}}=X_j$ and make other latents constant. The contributing
+latents for $X_i$ contain $X_1,\ldots,X_i$. The charge for the latent holding $X_j$ is
 $H(X_j\mid X_1,\ldots,X_{j-1})$, hence
 \[
  \chi_{\mathrm{chain}}(B)=H(X_1,\ldots,X_{\max B}).
@@ -1287,11 +1309,11 @@ to satisfying the conditions with a small tolerance?
 \begin{solution}[ex:organizations]
 \begin{enumerate}
 \item In the global model every nonempty upward-closed family contains the
-top address, whose slot is the only nonconstant one, so every Markov term
+top address, whose latent is the only nonconstant one, so every Markov term
 conditions on everything, as in \cref{ex:failed}. In the chain, the
 nonconstant addresses $\{j,\ldots,36\}$ are nested, so an upward-closed family
-contains exactly those with $j$ up to some bound: its nonconstant slots are
-$X_1,\ldots,X_a$ for some $a$. Of two such families, one's nonconstant slots
+contains exactly those with $j$ up to some bound: its nonconstant latents are
+$X_1,\ldots,X_a$ for some $a$. Of two such families, one's nonconstant latents
 are then those of the intersection, and the Markov term vanishes.
 \item In the global model the tower above $\{i\}$ is $X_I$, so the error is
 $H(X_I\mid X_i)$: the uncertainty about all other points, which grows with
@@ -1338,7 +1360,7 @@ illustration, and exact score comparisons above are this course's adaptation.
 LVM alone leaves considerable freedom. The additional reconstruction
 and Markov conditions constrain where shared information can reside. The
 correspondence theorem compares two models satisfying these conditions, that
-is, two joint laws extending the same observable law: their collections above
+is, two joint laws extending the same observable law: their towers at
 the same address determine one another, exactly or with a controlled
 conditional-entropy error. The theorem does not give a learning algorithm, and
 a perfect condensation need not exist, as \cref{sec:existence} shows.
@@ -1366,7 +1388,7 @@ mediator determines any redund, is for two observations the two-witness lemma
 (\cref{lem:witness}) with the observations as witnesses. Two natural latents
 over the same observables therefore determine one another.
 
-For two observations, the top slot of a perfect condensation is a natural
+For two observations, the top latent of a perfect condensation is a natural
 latent: reconstruction makes $Y_{\{1,2\}}$ a redund, and the Markov condition
 with LVM makes $X_1,X_2$ independent given it. Condensation asks for a latent
 at every address rather than one latent for the whole family, and its
@@ -1389,7 +1411,7 @@ Both formulations ask which distinctions must be retained for an inference task.
 
 Predictive sufficiency does not say that $T$ determines the realized value of
 $V$. Condensation's LVM condition does demand determination, using the whole
-contributing collection, including residual variables. A sufficient
+contributing family, including residual variables. A sufficient
 statistic can itself be a vector or another structured object.
 
 A sufficient statistic is by construction a function of $X$. A latent need not
@@ -1417,7 +1439,7 @@ Moreover, every common function $K$ is determined by $W$: the two-witness lemma,
 with witnesses $X_1,X_2$ and common part $W$, gives $H(K\mid W)=0$.
 So $W$ is the G\'acs--K\"orner common part, and the three quantities coincide:
 the G\'acs--K\"orner common information, Wyner's common information and
-$I(X_1;X_2)$ all equal $H(W)$. For two observations, the top slot of a perfect
+$I(X_1;X_2)$ all equal $H(W)$. For two observations, the top latent of a perfect
 condensation is such a $W$.
 
 It is restrictive: for the noisy pair of \cref{sec:existence}, every common
@@ -1438,7 +1460,7 @@ characterizing such a construction through informational requirements.
 
 The present setup starts from a family of jointly distributed questions rather
 than a distinguished past/future split, and its formulation is static: time
-and learning are not required. It characterizes latent collections
+and learning are not required. It characterizes families of latents
 associated with different observable subsets.
 See \citet{shalizi2001computational}.
 
@@ -1524,7 +1546,7 @@ all three.
 \label{sec:context-safety}
 \begin{enumerate}
 \item \textbf{Corresponding information.} Under the reconstruction and Markov
-conditions, the theorem gives correspondence between specified collections in
+conditions, the theorem gives correspondence between specified families of latents in
 two models of the same observables.
 \item \textbf{Concepts of actual agents.} To apply that result, we need to
 identify suitable variables in actual agents and establish the relevant
@@ -1603,7 +1625,7 @@ $Y_{\{1,3\}}=P$ and $Y_{\{2,3\}}=Q$.
 \item $2$
 \end{itemize}
 
-\item Now put $Y_{\{i\}}=X_i$ at each singleton address, with every other slot
+\item Now put $Y_{\{i\}}=X_i$ at each singleton address, with every other latent
 constant. Which condition fails?
 \begin{itemize}
 \item the latent variable model condition (LVM)
@@ -1631,13 +1653,13 @@ $H(Y_{\Up A}\mid Z_{\Up A})$?
 \item $2k\varepsilon$
 \end{itemize}
 
-\item Two corresponding latent collections satisfy $H(U\mid V)=H(V\mid U)=0$.
+\item Two corresponding families of latents satisfy $H(U\mid V)=H(V\mid U)=0$.
 Which of these does that \emph{not} establish?
 \begin{itemize}
-\item each collection is a function of the other almost everywhere
-\item neither collection retains uncertainty about the other
+\item each family is a function of the other almost everywhere
+\item neither family retains uncertainty about the other
 \item an efficient procedure for translating between them
-\item the two collections carry the same information
+\item the two families carry the same information
 \end{itemize}
 \end{enumerate}
 
