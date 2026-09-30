@@ -161,8 +161,8 @@ observation to which it is assigned.
 \subsubsection{Addresses and families}
 Let $I=\{1,\ldots,n\}$ and write $\PI$ for its nonempty subsets.
 An \emph{address} $A\in\PI$ specifies which observations receive a latent
-$Y_A$. The set of addresses is partially ordered by inclusion.
-We use one latent for each nonempty subset, setting unused ones to constants.
+$Y_A$. We use one latent for each nonempty subset, setting unused ones to
+constants, and order the addresses by inclusion.
 
 \begin{definition}[Latent model]
 \label{def:model}
@@ -179,7 +179,7 @@ $\mathcal{F}\subseteq\PI$.
 
 We call \eqref{eq:forward} the \emph{latent variable model condition}, or
 \emph{LVM}. The contributing latents, taken together, determine the
-observation. Some latents may represent residual noise.
+observation; some of them may represent residual noise.
 
 For nonempty $A\subseteq I$ and $B\subseteq I$, define two different families:
 \[
@@ -1222,11 +1222,9 @@ $A_{gc}$ the nine indices of cluster $(g,c)$. Assign
 and make every other latent constant. The joint law factorizes in the address
 inclusion order, so its Markov defect is zero.
 
-The singleton latent supplies the sampled point itself. Thus
-$H\bigl(X_i\mid Y_{\{A\,:\,i\in A\}}\bigr)=0$ exactly. The cluster center and shape alone
-specify a conditional distribution for the point; they do not determine its
-realized coordinates. The residual conditional entropy is
-$H(X_i\mid M_{gc},S)$.
+LVM holds exactly because the singleton latent supplies the sampled point
+itself. The cluster center and shape alone only specify a distribution for the
+point, leaving residual conditional entropy $H(X_i\mid M_{gc},S)$.
 
 Reconstruction is different. All the kernels have full support, so any
 finite observation block leaves several parameter configurations with positive
@@ -1355,11 +1353,11 @@ the same address determine one another, exactly or with a controlled
 conditional-entropy error. The theorem does not give a learning algorithm, and
 a perfect condensation need not exist, as \cref{sec:existence} shows.
 
-This provides a conditional sense of objectivity. Once the observables and the
-conditions are fixed, agreement in information content need not come from a
-shared vocabulary. It follows from each model's relationship to the observations.
-The theorem does not choose the observables. Changing the questions changes the
-problem, and may change the information that must correspond.
+This provides a conditional sense of objectivity: once the observables and the
+conditions are fixed, agreement in information content follows from each
+model's relationship to the observations, not from a shared vocabulary. The
+theorem does not choose the observables, and changing them may change the
+information that must correspond.
 
 \subsection{Connections to prior work}
 \label{sec:context-connections}
