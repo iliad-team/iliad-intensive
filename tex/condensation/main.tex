@@ -431,12 +431,6 @@ frontier between reconstruction defect and Markov defect. The useful question
 is then whether some point on that frontier has both low \emph{enough} for the
 correspondence bound of \cref{sec:correspondence} to say something.
 
-\begin{remark}
-One could instead ask for the model minimizing the conditioned score of
-\cref{sec:why}. The score is defined per observation block, however, and
-there is not always a single model minimizing it everywhere.
-\end{remark}
-
 \begin{exercise}[Full support; optional, 10 minutes]
 \label{ex:fullsupport}
 The argument for the noisy pair used only two facts: every combination of
@@ -855,7 +849,8 @@ small defects. For $i\in A$, the singleton gap $\chi(\{i\})-H(X_i)$ bounds
 $H(Y_{\Up A}\mid X_i)$, the reconstruction hypothesis of
 \cref{thm:correspondence} (\cref{ex:scores}).
 So the conditions need not be assumed as a coincidence: efficient agents buy
-them. Efficiency is relative to the blocks an agent actually queries.
+them. Efficiency is relative to the blocks an agent actually queries, and there is
+not always a single model minimizing the score for every block.
 
 \paragraph{Reconstruction: no dead weight.}
 The concept at $A$ is used whenever any observation in $A$ is. Information
