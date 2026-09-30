@@ -236,9 +236,6 @@ projecting onto its first coordinate.
 \item Addresses $\{1,2\}$ and $\{1,3\}$ overlap but neither contains the
 other. Thus the contribution pattern need not form a nested tree.
 \end{enumerate}
-The original model also satisfies the Markov condition. All nonconstant slots
-are mutually independent, so disjoint subcollections are independent, including
-after conditioning on the remaining common subcollection. Reconstruction follows from the indicated coordinate projections.
 \end{solution}
 
 \subsection{Two conditions on a latent model}
@@ -305,7 +302,10 @@ and satisfies the ordered Markov condition.
 \end{definition}
 This is equivalent to Eisenstat's definition by optimal conditioned scores
 \citep[Theorem~5.10]{eisenstat2025condensation}. \Cref{sec:scores} explains that connection.
-The overlapping-bit model in \cref{eg:bits} is a perfect condensation.
+The overlapping-bit model in \cref{eg:bits} is a perfect condensation. All
+nonconstant slots are mutually independent, so disjoint subcollections are
+independent, including after conditioning on the remaining common
+subcollection. Reconstruction follows from coordinate projections.
 
 \begin{exercise}[Two failed models; 20 minutes]
 \label{ex:failed}\important
@@ -361,24 +361,6 @@ by their common slots. The singleton model satisfies the second requirement but
 fails the third; the top-slot model satisfies the third but fails the second.
 \end{enumerate}
 
-\textbf{Check on the existence example.}
-\Cref{sec:existence} is a proved example, not an
-additional exercise. For a binary pair with full support, a top slot determined
-by each observable must be constant: writing it as $f(X_1)=g(X_2)$, each of the
-four pairs imposes an equality between the corresponding function values.
-With a constant top, LVM makes $X_1$ a function of
-$Y_{\{1\}}$ and $X_2$ a function of $Y_{\{2\}}$. Thus data processing yields
-\[
- I(X_1;X_2)\le I(Y_{\{1\}};Y_{\{2\}})=\eta_Y.
-\]
-The equality holds because, on the two-observable address poset, the only
-pair of incomparable nonempty upward-closed families consists of the two
-singleton towers. Every other Markov term is zero. For the noisy fair-bit
-pair, $H(X_2)=1$ and $H(X_2\mid X_1)=h_2(q)$, proving the stated lower bound.
-It is attained by the singleton-copy model $Y_{\{i\}}=X_i$, with constant top.
-This model has both exact reconstruction directions but a positive Markov
-defect. Setting that defect to zero is impossible. The argument does not bound
-the trade-off when reconstruction is allowed to be inexact.
 \end{solution}
 
 \subsubsection{Existence is a separate question}
@@ -436,7 +418,8 @@ gives
 \]
 where $h_2(q)=-q\log q-(1-q)\log(1-q)$ is the binary entropy function.
 Dependence between the observables must remain as a Markov defect when their
-separately recoverable top slot is constant.
+separately recoverable top slot is constant. The bound is attained by the
+singleton-copy model $Y_{\{i\}}=X_i$, with constant top.
 
 That bound pins one end of a trade-off: exact reconstruction forces a Markov
 defect of at least $1-h_2(q)$, and tolerating some reconstruction error buys
@@ -1044,6 +1027,8 @@ $\chi(\{1,2\})$. Why is copying the top variable into a lower slot free
 under one score but not the other?
 \item If $A\cap B\ne\varnothing$, show that
 $H(Y_{\Up A}\mid X_B)\le\chi(B)-H(X_B)$.
+\item Prove that a latent model is a perfect condensation exactly when
+$\chi(B)=H(X_B)$ for every nonempty block $B$, which is Eisenstat's definition.
 \end{enumerate}
 \end{exercise}
 \begin{solution}[ex:scores]
@@ -1085,13 +1070,7 @@ Thus $Y_{\Up A}$ is a subtuple of $Y_{\mathcal{J}_B}$ and
  \le\chi(B)-H(X_B),
 \]
 where the last inequality uses the nonnegative score decomposition.
-\end{enumerate}
-
-\textbf{Additional check: equivalence of the perfect definitions.}
-This argument is available for students who want to connect the two definitions
-completely; it is not an extra required exercise.
-
-Let $V_I=\chi(I)-H(Y_{\PI})$. For upward-closed $\mathcal{F},\mathcal{G}$,
+\item Let $V_I=\chi(I)-H(Y_{\PI})$. For upward-closed $\mathcal{F},\mathcal{G}$,
 partition $\PI$ into
 \[
  \mathcal{C}=\mathcal{F}\cap\mathcal{G},\quad
@@ -1130,6 +1109,7 @@ condition to the upward cone of the current address and the upward-closed
 family of earlier addresses. Their intersection is the strict-superset
 family. Thus the score's chain-rule inequality is an equality, $V_B=0$.
 The decomposition gives $\chi(B)=H(X_B)$ for all $B$.
+\end{enumerate}
 \end{solution}
 
 Eisenstat defines perfect condensation by $\chi(B)=H(X_B)$ for every $B$.
