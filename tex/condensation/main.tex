@@ -842,12 +842,9 @@ decomposition.
 An agent that answers queries about a block $B$ pays $\chi(B)$, and no
 latent model does better than $H(X_B)$. The gap splits into exactly our two
 defects. Short descriptions for the queries an agent cares about \emph{are}
-small defects. Taking $B=\{i\}$, where $\mathcal{J}_{\{i\}}=\Up\{i\}$, gives
-for $i\in A$
-\[
- H(Y_{\Up A}\mid X_i)\le H(Y_{\Up\{i\}}\mid X_i)\le\chi(\{i\})-H(X_i),
-\]
-which is exactly the reconstruction hypothesis of \cref{thm:correspondence}.
+small defects. For $i\in A$, the singleton gap $\chi(\{i\})-H(X_i)$ bounds
+$H(Y_{\Up A}\mid X_i)$, the reconstruction hypothesis of
+\cref{thm:correspondence} (\cref{ex:scores}).
 So the conditions need not be assumed as a coincidence: efficient agents buy
 them. Efficiency is relative to the blocks an agent actually queries.
 
