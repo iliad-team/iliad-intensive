@@ -123,7 +123,7 @@ this which many different kinds of agents will converge on?
 
 We will propose two conditions that we think are normative for agents in
 general: conditions an agent will want its own organization of information to
-satisfy. Under those conditions, corresponding latent collections in two models
+satisfy. Under those conditions, corresponding families of latents in two models
 determine one another.
 
 \subsection{A family of questions}
@@ -290,9 +290,9 @@ For example, $\Up A$ and $\mathcal{J}_B$ are upward closed. Taking a
 family together with every address above it prevents us from omitting higher
 variables on which it may depend.
 
-\begin{definition}[Ordered Markov condition and defect]
+\begin{definition}[Markov condition and defect]
 \label{def:markov}
-The ordered Markov condition is
+The Markov condition is
 \[
  I(Y_{\mathcal{F}};Y_{\mathcal{G}}\mid
  Y_{\mathcal{F}\cap\mathcal{G}})=0
@@ -321,7 +321,7 @@ incomparable latents given its strict supersets.
 \begin{definition}[Perfect condensation]
 \label{def:perfect}
 A latent model is a perfect condensation if it has exact reconstruction
-and satisfies the ordered Markov condition.
+and satisfies the Markov condition.
 \end{definition}
 This is equivalent to Eisenstat's definition by optimal conditioned scores
 \citep[Theorem~5.10]{eisenstat2025condensation}. \Cref{sec:scores} explains that connection.
@@ -877,7 +877,7 @@ $V_B=\chi(B)-H(Y_{\mathcal{J}_B})$. Then
 \end{equation}
 The second term charges latent information not recoverable from $X_B$.
 The first charges dependence not accounted for by the inclusion hierarchy.
-It vanishes under the ordered Markov condition. \Cref{ex:scores} proves the
+It vanishes under the Markov condition. \Cref{ex:scores} proves the
 decomposition.
 
 An agent that answers queries about a block $B$ pays $\chi(B)$, and no
@@ -910,7 +910,7 @@ observations in its own scope:
 Then when the agent learns or revises something about the concept at $A$, it
 never has to revise its beliefs about observations outside $A$, except
 through $A$'s more general context. Given LVM and reconstruction,
-\eqref{eq:scope} holds for every address exactly when the ordered Markov
+\eqref{eq:scope} holds for every address exactly when the Markov
 condition does.
 
 \begin{exercise}[Local inference; 15 minutes]
@@ -923,7 +923,7 @@ $U$ at every pair address, $Y_{\{1,2\}}=Y_{\{1,3\}}=Y_{\{2,3\}}=U$, with every
 other latent constant. Check LVM and reconstruction. Compute the left side of
 \eqref{eq:scope} for $A=\{1,2\}$, and find upward-closed families violating
 the Markov condition. Where should $U$ be filed instead?
-\item Prove that the ordered Markov condition implies \eqref{eq:scope}. Apply
+\item Prove that the Markov condition implies \eqref{eq:scope}. Apply
 \cref{def:markov} to $\mathcal{F}=\Up A$ and $\mathcal{G}=\mathcal{J}_{I\setminus A}$,
 and identify their intersection.
 \item Assume reconstruction. Show that $Y_{\mathcal{J}_{I\setminus A}}$ and
@@ -1226,7 +1226,7 @@ $A_{gc}$ the nine indices of cluster $(g,c)$. Assign
  Y_{\{i\}}=X_i,
 \]
 and make every other latent constant. The joint law factorizes in the address
-inclusion order, so its ordered Markov defect is zero.
+inclusion order, so its Markov defect is zero.
 
 The singleton latent supplies the sampled point itself. Thus
 $H\bigl(X_i\mid Y_{\{A\,:\,i\in A\}}\bigr)=0$ exactly. The cluster center and shape alone
@@ -1465,7 +1465,7 @@ associated with different observable subsets.
 See \citet{shalizi2001computational}.
 
 \subsubsection{Graphical models and the information bottleneck}
-The ordered Markov condition in condensation is a graphical-model condition.
+The Markov condition in condensation is a graphical-model condition.
 A subset-ordered directed graph places larger addresses above smaller ones.
 Under the corresponding factorization, the latent joint law is
 \[
@@ -1630,7 +1630,7 @@ constant. Which condition fails?
 \begin{itemize}
 \item the latent variable model condition (LVM)
 \item the reconstruction condition
-\item the ordered Markov condition
+\item the Markov condition
 \item none of them fails
 \end{itemize}
 
