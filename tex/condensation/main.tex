@@ -490,6 +490,36 @@ even when the relevant towers do.
 \end{enumerate}
 \end{solution}
 
+\subsubsection{Why we ask for the conditions only approximately}
+\Cref{fig:hierarchy} shows a hierarchical model of 36 labelled points, worked
+through in \cref{sec:clustering}. A global shape is assigned to every point, a
+group center $G_g$ to the 18 points of its group, and a cluster center $M_{gc}$
+to the nine points of its cluster.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=\linewidth]{fig/hierarchical-points.pdf}
+\caption{One draw from the finite model. The left panel shows the 36 points;
+the right panel shows which set of observations receives each parameter, and is
+not a graph inferred from the points. The global shape $S$ is available to every
+observation.}
+\label{fig:hierarchy}
+\end{figure}
+
+The cluster center specifies a distribution for its points, not the points
+themselves, so a point does not determine the center it was drawn from:
+\[
+ H(M_{gc}\mid X_i)>0.
+\]
+Every kernel here has full support: no finite set of points pins a parameter.
+LVM and the Markov condition hold exactly here. The reconstruction condition
+holds only approximately. So we ask for reconstruction up to a defect: for
+$i\in A$,
+\[
+ H(Y_{\Up A}\mid X_i)\le\delta,
+\]
+and prove a correspondence whose error grows with $\delta$ and $\eta$.
+
 \subsection{The correspondence theorem}
 \label{sec:correspondence}
 Take two latent models of the same observable tuple $X$. To compare them,
@@ -1002,26 +1032,17 @@ may never meet that threshold. Do not identify the two approximate criteria
 without checking these quantifiers.
 
 \section{A hierarchical clustering example}
+\label{sec:clustering}
 \subsection{Thirty-six observations}
 There are two groups, each containing two clusters, each with nine observations.
 Write $X_{gcj}$ for the $j$th two-dimensional point in cluster $c$ of group $g$.
 The labels $(g,c,j)$ and memberships are fixed. We are comparing models of this
 labeled family, not inferring an unknown partition of an unlabeled cloud.
 
-\begin{figure}[ht]
-\centering
-\includegraphics[width=\linewidth]{fig/hierarchical-points.pdf}
-\caption{One draw from the finite model. The left panel shows the 36 points;
-the right panel shows which set of observations receives each parameter, and is
-not a graph inferred from the points. The global shape $S$ is available to every
-observation.}
-\label{fig:hierarchy}
-\end{figure}
-
 The parameters are a global shape $S$, group centers $G_1,G_2$, and cluster
 centers $M_{gc}$. Given these parameters, the 36 observations are independent.
 Marginalizing over shared parameters generally makes observations dependent.
-The plotted cloud is one realization; the random variables and their entropies
+The plotted cloud in \cref{fig:hierarchy} is one realization; the random variables and their entropies
 refer to the joint law across realizations.
 
 \subsection{An explicit finite law}
