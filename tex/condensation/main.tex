@@ -747,22 +747,22 @@ Upward closure is needed to invoke the bound $\eta_Z$.
 
 \begin{exercise}[Complete the correspondence proof; 25 minutes]
 \label{ex:induction}\important
-Fix $A=\{i_1,\ldots,i_k\}$, set
-$\mathcal{G}_j=\bigcap_{\ell=1}^{j}\Up\{i_\ell\}$.
+Fix $A=\{i_1,\ldots,i_k\}$ and set
+$\mathcal{G}_j=\bigcap_{\ell=1}^{j}\Up\{i_\ell\}$. We prove, for $1\le j\le k$,
+\begin{equation}
+ H(Y_{\Up A}\mid Z_{\mathcal{G}_j})\le
+ \sum_{\ell=1}^{j}H(Y_{\Up A}\mid X_{i_\ell})+(j-1)\eta_Z.
+ \label{eq:induction}
+\end{equation}
 \begin{enumerate}
-\item Use \cref{ex:transfer} to prove the bound at $j=1$.
+\item Use \cref{ex:transfer} to prove \eqref{eq:induction} at $j=1$.
 \item Use \cref{ex:intersections} to show, for $j\ge2$,
 \[
  H(Y_{\Up A}\mid Z_{\mathcal{G}_j})\le
  H(Y_{\Up A}\mid Z_{\mathcal{G}_{j-1}})+H(Y_{\Up A}\mid Z_{\Up\{i_j\}})+\eta_Z.
 \]
-\item Prove by induction that
-\[
- H(Y_{\Up A}\mid Z_{\mathcal{G}_j})\le
- \sum_{\ell=1}^{j}H(Y_{\Up A}\mid X_{i_\ell})+(j-1)\eta_Z.
-\]
-Evaluate this at $j=k$ to prove \cref{thm:correspondence}. Check the
-case $k=1$ explicitly.
+\item Conclude \eqref{eq:induction} by induction. Evaluate it at $j=k$ to
+prove \cref{thm:correspondence}, and check the case $k=1$ explicitly.
 \item Deduce \cref{cor:exact}, including the reverse direction. Name the
 assumption used at each step of the proof.
 \item Suppose instead that $H(Y_C\mid X_i)\le\varepsilon$ separately for
@@ -774,19 +774,13 @@ budget $H(Y_{\Up A}\mid X_i)\le\varepsilon$?
 Fix a nonempty $A=\{i_1,\ldots,i_k\}$, put
 $\mathcal{G}_j=\bigcap_{\ell=1}^{j}\Up\{i_\ell\}$.
 Every $\Up\{i\}$ is upward closed, as is every $\mathcal{G}_j$ by \cref{ex:intersections}.
-We prove
-\begin{equation}
- H(Y_{\Up A}\mid Z_{\mathcal{G}_j})\le
- \sum_{\ell=1}^{j}H(Y_{\Up A}\mid X_{i_\ell})+(j-1)\eta_Z
- \label{eq:induction-sol}
-\end{equation}
-for $1\le j\le k$.
+We prove \eqref{eq:induction} for $1\le j\le k$.
 
 For $j=1$, $\mathcal{G}_1=\Up\{i_1\}$, and \cref{ex:transfer} gives
 $H(Y_{\Up A}\mid Z_{\mathcal{G}_1})\le H(Y_{\Up A}\mid X_{i_1})$. This is the claimed
 bound with zero intersection terms.
 
-Suppose \eqref{eq:induction-sol} holds for $j-1$, where $2\le j\le k$.
+Suppose \eqref{eq:induction} holds for $j-1$, where $2\le j\le k$.
 Apply \cref{ex:intersections} to the upward-closed families $\mathcal{G}_{j-1}$ and
 $\Up\{i_j\}$. Their intersection is $\mathcal{G}_j$, so
 \begin{align*}
