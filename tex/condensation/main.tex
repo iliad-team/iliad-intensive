@@ -261,12 +261,10 @@ other. Thus the contribution pattern need not form a nested tree.
 
 \subsection{Two conditions on a latent model}
 \label{sec:conditions}
-LVM is not one of the two conditions below. It is part of the definition of a
-latent model, and every observable law admits one by construction: put a copy
-of each $X_i$ in its singleton latent, or the entire tuple $X$ in the top latent
-$Y_I$, and LVM holds either way. Satisfying it therefore says nothing about how
-information is shared. The two conditions below constrain these alternatives in
-different ways.
+Every observable law has trivial latent models: put a copy of each $X_i$ in its
+singleton latent, or the entire tuple $X$ in the top latent $Y_I$, and LVM
+holds either way. So LVM alone says nothing about how information is shared.
+Two further conditions do.
 
 \begin{definition}[Reconstruction]
 \label{def:reconstruction}
@@ -284,9 +282,9 @@ errors for its individual latents could add up.
 
 A family $\mathcal{F}\subseteq\PI$ is \emph{upward closed} if
 $A\in\mathcal{F}$ and $A\subseteq C$ imply $C\in\mathcal{F}$.
-For example, $\Up A$ and $\mathcal{J}_B$ are upward closed. Taking a
-family together with every address above it prevents us from omitting higher
-variables on which it may depend.
+For example, $\Up A$ and $\mathcal{J}_B$ are upward closed. Upward closure
+makes a family include every more general latent that its members may depend
+on.
 
 \begin{definition}[Markov condition and defect]
 \label{def:markov}
@@ -376,8 +374,9 @@ Reconstruction fails.
 each observation. Reconstruction excludes information placed at a shared
 address that an individual contributing observation cannot recover. The Markov
 condition excludes dependence between families not accounted for
-by their common latents. The singleton model satisfies the second requirement but
-fails the third; the top-latent model satisfies the third but fails the second.
+by their common latents. The singleton model satisfies reconstruction but
+fails the Markov condition; the top-latent model satisfies the Markov condition
+but fails reconstruction.
 \end{enumerate}
 
 \end{solution}
@@ -401,8 +400,8 @@ The joint law is
  x_1=1 & \dfrac{q}{2} & \dfrac{1-q}{2}
 \end{array}
 \]
-Every one of the four outcomes has positive probability, because $0<q<1/2$;
-and $X_1,X_2$ are dependent, because the two rows differ.
+All four outcomes have positive probability, and $X_1,X_2$ are dependent
+because the two rows differ ($q\ne1/2$).
 Suppose a perfect condensation existed, and consider its top latent
 $Y_{\{1,2\}}$.
 
@@ -599,7 +598,6 @@ replace those families by individual latents.
 This proof is a specialization of Eisenstat's approximate correspondence
 theorem \citep[Theorem~6.8]{eisenstat2025condensation}, using the two-witness
 inequality \citep[Lemma~6.4]{eisenstat2025condensation}.
-Its tower presentation follows the exposition listed in \cref{sec:reading}.
 The exercises below give the full argument without additional machinery.
 
 \subsubsection{Proof roadmap}
@@ -1036,14 +1034,9 @@ $N\delta+(N-1)\eta_Z$. The restriction $r<|A|$ ensures witnesses exist.
 \end{enumerate}
 \end{solution}
 
-Eisenstat's later almost-perfect-condensation formulation
-\citep{eisenstat2025condensation} bounds the tower
-reconstruction error whenever $|A\cap B|>r$, the Markov defect, and the number
-of active latents. The threshold allows small latents to account for local noise
-without requiring every such latent to be recovered from every relevant block.
-It also changes which family of $Z$-latents the proof isolates, as \cref{ex:blocks} shows. The exact-tower
-bound with singleton witnesses does not follow from an arbitrary positive
-threshold $r$.
+Eisenstat's almost-perfect condensation \citep{eisenstat2025condensation}
+builds in block witnesses of this kind, with a threshold $r$ on $|A\cap B|$
+that lets small latents absorb local noise.
 
 \subsection{Optional: more on the conditioned score}
 \label{sec:scores}
@@ -1164,13 +1157,9 @@ The decomposition gives $\chi(B)=H(X_B)$ for all $B$.
 \end{enumerate}
 \end{solution}
 
-Eisenstat defines perfect condensation by $\chi(B)=H(X_B)$ for every $B$.
-The equivalence with the characterization above is his Theorem 5.10.
-The decomposition above also explains why small score gaps imply strong
-reconstruction conditions. The converse for positive-threshold almost-perfect
-condensation requires additional reconstruction coverage: some active latents
-may never meet that threshold. Do not identify the two approximate criteria
-without checking these quantifiers.
+Small score gaps therefore force small defects. The converse for Eisenstat's
+positive-threshold version needs extra reconstruction
+coverage~\citep{benson2026relating}.
 
 \section{A hierarchical clustering example}
 \label{sec:clustering}
