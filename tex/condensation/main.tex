@@ -136,9 +136,9 @@ such models determine one another, and bound the remaining conditional entropy
 when the conditions hold approximately. We take the joint distributions as given.
 
 \begin{remark}[Choosing the observables]
-One can write $X_i=f_i(S)$ for an underlying variable $S$ representing sense
-data or a physical state. This introduces no restriction: $S$ could simply be
-the tuple of all observations. An observable distinguishes outcomes by
+One can think of each $X_i$ as a function of a single underlying variable
+representing sense data or a physical state. This introduces no restriction:
+that variable could simply be the tuple of all observations. An observable distinguishes outcomes by
 partitioning them into its possible answers; random-variable values label those
 parts. Information quantities do not depend on bijective relabeling of answers.
 The choice of which observables to include, and their joint law, remains part
@@ -954,13 +954,13 @@ version of the Markov condition, which is equivalent to it.
 \subsection{Optional: several observations as one witness}
 \label{sec:blocks}
 A shared parameter need not be recoverable from a single observation. For
-example, take $n\ge2$, let $C$ be a fair bit, and set
-$X_i=C\mathbin{\oplus}N_i$, where the
+example, take $n\ge2$, let $L$ be a fair bit, and set
+$X_i=L\mathbin{\oplus}N_i$, where the
 $N_i$ are independent Bernoulli$(q)$ noises with $0<q<1/2$, independent of
-$C$. The model $Y_I=C$, $Y_{\{i\}}=X_i$ satisfies LVM and the
-Markov condition exactly, but $H(C\mid X_i)=h_2(q)>0$, where
+$L$. The model $Y_I=L$, $Y_{\{i\}}=X_i$ satisfies LVM and the
+Markov condition exactly, but $H(L\mid X_i)=h_2(q)>0$, where
 $h_2$ is the binary entropy function of \cref{sec:existence}.
-Larger observation blocks can reveal more about $C$. To use them in the proof,
+Larger observation blocks can reveal more about $L$. To use them in the proof,
 replace $\Up\{i\}$ by $\mathcal{J}_B$.
 
 \begin{exercise}[Block witnesses; optional, 25 minutes]
