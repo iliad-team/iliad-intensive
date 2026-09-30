@@ -55,12 +55,15 @@ a translation.
 \end{learningoutcomes}
 
 \subsection*{How to use this sheet}
-Read \cref{sec:questions,sec:conditions} after the first lecture, then work on
-\crefrange{ex:bits}{ex:duplicates}. After the second lecture, read
-\cref{sec:correspondence,sec:why} and complete
-\crefrange{ex:witness}{ex:induction} and \cref{ex:scope}. These nine exercises
-form the core route. \Cref{ex:fullsupport,ex:blocks,ex:scores,ex:organizations} are optional
-extensions.
+After the first lecture, read \cref{sec:questions,sec:conditions} and work
+\cref{ex:bits,ex:failed,ex:duplicates}. After the second lecture, read
+\cref{sec:correspondence,sec:why} and work
+\cref{ex:witness,ex:dependence,ex:transfer,ex:intersections,ex:induction,ex:scope}.
+These nine starred exercises, about 140 minutes in all, are the core route.
+Then read \cref{sec:clustering,sec:context}, take the discussion prompts in
+\cref{sec:discussion} to your group, and finish with the quiz in
+\cref{sec:quiz}. \Cref{ex:fullsupport,ex:blocks,ex:scores,ex:organizations}
+are optional.
 
 \subsection{Information theory reference}
 \label{sec:it-reference}
@@ -654,7 +657,7 @@ itself; exact independence is the case where the third error is zero.
 \end{solution}
 
 \begin{exercise}[The dependence term is needed; 5 minutes]
-\label{ex:dependence}
+\label{ex:dependence}\important
 Let $U=P=Q$ be a fair bit and let $M$ be constant. Evaluate every term in
 \eqref{eq:witness}. What would go wrong if the mutual-information term were
 omitted? How does this example resemble the singleton-copy model in \cref{ex:failed}?
@@ -1314,6 +1317,7 @@ Condensation and its relation to Natural Latents}~\citep{gillen2026summary}, \S1
 illustration, and exact score comparisons above are this course's adaptation.
 
 \section{Condensation in context}
+\label{sec:context}
 \subsection{What the result says}
 LVM alone leaves considerable freedom. The additional reconstruction
 and Markov conditions constrain where shared information can reside. The
@@ -1517,6 +1521,7 @@ state a research program and the additional work required to connect it to
 safety.
 
 \subsection{Discussion}
+\label{sec:discussion}
 \begin{enumerate}
 \item \textbf{Comparing with prior work.} Choose a comparison from
 \cref{sec:context-connections}. State one mathematical similarity and
@@ -1543,6 +1548,7 @@ and state what additional evidence would address it.
 \end{enumerate}
 
 \section{Quiz}
+\label{sec:quiz}
 Take the quiz at
 \href{https://docs.google.com/forms/d/e/1FAIpQLSdTAs3Dq6dOeoju0TsyfaVcEcRdZaNgpAe_FMC7rCR3fohOSw/viewform}{this
 link}. The questions are reproduced here because the form cannot typeset
