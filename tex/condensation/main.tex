@@ -24,52 +24,32 @@
 \section{Prerequisites}
 \label{sec:prerequisites}
 \begin{enumerate}
-
-\item We use probability on finite sets, conditional probability, and elementary
-proofs.
-\item All random variables in this sheet have finite ranges.
-\item All logarithms
-have base two.
-
-% \item We use the latent-model definition and conditional
-% entropy from the main worksheet.
-%The example adapts the hierarchy in Jeremy Gillen and Daniel
-%Chiang's \emph{A summary of Condensation and its relation to Natural Latents},
-%\S1.1.1. The construction and figure here are new; we do not use their numerical
-%entropy estimates.
-
-%This reading follows the condensation worksheet.
-\item We use conditional entropy,
-conditional independence, and the distinction between an individual latent and
-a family of latents.
-%All variables in the examples have finite alphabets;
-%logarithms are base two.
+\item Probability on finite sets, conditional probability, and elementary proofs.
+\item Conditional entropy and conditional independence;
+\cref{sec:it-reference} collects what we use.
 \end{enumerate}
 
 
 \begin{learningoutcomes}
 \subsection*{Condensation}
 \begin{itemize}
-\item Construct a latent model and distinguish LVM from reconstruction.
-\item Explain what the Markov condition excludes, using a concrete example.
-\item Explain why a single agent would want its latents to satisfy the two
-conditions.
+\item Construct latent models and check the three conditions on them: the
+latent variable model condition, reconstruction, and the Markov condition.
+\item Explain why a single agent would want its latents to satisfy the last two.
 \item Prove correspondence between families of latents, first exactly and
 then with explicit error terms.
-\item Distinguish the correspondence theorem from claims about learning,
-computationally finding a translation, or choosing observables.
 \end{itemize}
 \subsection*{A hierarchical clustering example}
 \begin{itemize}
-\item Distinguish LVM, where the latents assigned to an observation determine
-it, from reconstruction, where an observation recovers those latents.
-\item Compare the information charged by different latent models for the same query.
+\item Compare how different latent models of the same law meet the conditions,
+and what the conditioned score charges each for a query.
 \end{itemize}
 \subsection*{Condensation in context}
 \begin{itemize}
-\item Relate condensation to sufficient statistics, common information,
-computational mechanics, and graphical models.
-\item Separate informational correspondence from finding and using a translation.
+\item Relate condensation to natural latents, sufficient statistics, common
+information, computational mechanics, and graphical models.
+\item Separate informational correspondence from learning, finding, and using
+a translation.
 \item Identify which additional claims would connect correspondence to AI safety.
 \end{itemize}
 \end{learningoutcomes}
@@ -84,6 +64,7 @@ extensions.
 
 \subsection{Information theory reference}
 \label{sec:it-reference}
+All random variables have finite ranges and all logarithms are base two.
 For a finite-valued variable $U$,
 \[
  H(U)=-\sum_u p(u)\log p(u),\qquad
