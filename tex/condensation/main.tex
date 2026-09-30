@@ -627,23 +627,21 @@ The desired difference contains a conditional mutual information
 and a conditional entropy.
 \end{hint}
 \begin{solution}[ex:witness]
-For arbitrary finite $U,M,P,Q$, the exact identity is
+For arbitrary finite $U,M,P,Q$, expand the two conditional mutual
+informations in entropies and regroup the terms in pairs:
+\begin{align*}
+ &I(P;Q\mid M)-I(P;Q\mid U,M)\\
+ &\quad=\bigl[H(P\mid M)-H(P\mid U,M)\bigr]+\bigl[H(Q\mid M)-H(Q\mid U,M)\bigr]\\
+ &\qquad-\bigl[H(P,Q\mid M)-H(P,Q\mid U,M)\bigr]\\
+ &\quad=I(U;P\mid M)+I(U;Q\mid M)-I(U;P,Q\mid M)\\
+ &\quad=H(U\mid M)-H(U\mid P,M)-H(U\mid Q,M)+H(U\mid P,Q,M).
+\end{align*}
+Rearranging gives
 \begin{align*}
  &H(U\mid M,P)+H(U\mid M,Q)+I(P;Q\mid M)-H(U\mid M)\\
  &\hspace{15mm}=I(P;Q\mid U,M)+H(U\mid M,P,Q).
 \end{align*}
-For a direct verification, first subtract the two conditional mutual
-information terms using their entropy definitions:
-\begin{align*}
- &I(P;Q\mid M)-I(P;Q\mid U,M)\\
- &\quad=H(P\mid M)+H(Q\mid M)-H(P,Q\mid M)\\
- &\qquad-H(P\mid U,M)-H(Q\mid U,M)+H(P,Q\mid U,M)\\
- &\quad=I(U;P\mid M)+I(U;Q\mid M)-I(U;P,Q\mid M)\\
- &\quad=H(U\mid M)-H(U\mid P,M)-H(U\mid Q,M)\\
- &\qquad+H(U\mid P,Q,M).
-\end{align*}
-Rearrangement gives the displayed slack identity. Its right side is
-nonnegative, proving the lemma.
+Its right side is nonnegative, which proves the lemma.
 
 If $H(U\mid M,P)=H(U\mid M,Q)=I(P;Q\mid M)=0$, the inequality and
 nonnegativity imply $H(U\mid M)=0$. Thus a target recoverable from each
