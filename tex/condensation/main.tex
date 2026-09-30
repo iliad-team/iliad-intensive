@@ -986,64 +986,6 @@ condensation requires additional reconstruction coverage: some active slots
 may never meet that threshold. Do not identify the two approximate criteria
 without checking these quantifiers.
 
-\subsection{What the result says, and connections}
-\label{sec:meaning}
-The theorem compares two joint laws extending the same observable law. Under
-the exact conditions, the two latent towers at each address determine one
-another almost surely; under the quantitative hypotheses, their conditional
-entropies satisfy the stated bounds. The theorem does not select the observable
-family or give a learning algorithm. A perfect condensation need not exist,
-as the full-support example in \cref{sec:existence} shows.
-
-\subsubsection{Connections to established questions}
-In statistics, a statistic is sufficient for a parameter when it
-retains the data's information relevant to that parameter. Predictive
-sufficiency instead concerns retaining information about a target to be
-predicted. Condensation studies the organization of information across an
-indexed family of observations, with explicit contribution addresses and a
-correspondence result. It shares questions about information retention with
-sufficiency, but these are not identical definitions or claims.
-
-Graphical models supply the language of conditional independence and
-factorization used by the ordered Markov condition. The graph here is fixed by
-inclusion of addresses; its edges do not by themselves have a causal meaning.
-Common-information questions also ask what two variables share. Our
-correspondence argument applies across a family of overlapping address
-collections, using the same entropy calculus rather than a new information
-measure. Computational mechanics studies predictive states obtained from
-histories with the same conditional future law. Condensation's formulation is
-static: time, learning, and a prescribed past/future split are not required.
-None of these comparisons implies that earlier frameworks cannot study
-structured or modular organizations of information.
-
-\subsubsection{Limits of information-theoretic correspondence}
-If $V=f(U)$ for a bijection $f$, then
-$H(U\mid V)=H(V\mid U)=0$. This remains true when describing or discovering
-$f$ is expensive. The theorem does not provide an efficient translation
-algorithm or account for the description length of the probability law.
-
-Small conditional entropy is an average guarantee. If $E$ is Bernoulli$(p)$,
-$D$ is an independent fair bit, $U=(E,ED)$, and $V=E$, then $H(U\mid V)=p$.
-On the rare event $E=1$, the missing bit is still completely unknown.
-Conversely, a rare event with an enormous number of outcomes can dominate an
-entropy. A safety application needs to say which failures matter, not just
-report an average information budget.
-
-\subsubsection{Discussion prompts}
-\begin{enumerate}
-\item Choose a comparison from
-\cref{sec:context-connections}. State one mathematical similarity and
-one difference in what is being characterized. If it relates to one of the
-condensation conditions, say how.
-\item Corresponding latent collections in two models determine one another with
-zero conditional entropy. What does this establish, and what else might be
-needed to find and use the translation between them?
-\item Where might a correspondence like this matter for AI safety? Trace one
-chain from the theorem to something you would want, and say where it breaks:
-which steps does the theorem not establish?
-\Cref{sec:context-safety} sets out one such chain.
-\end{enumerate}
-
 \section{A hierarchical clustering example}
 \subsection{Thirty-six observations}
 There are two groups, each containing two clusters, each with nine observations.
@@ -1191,17 +1133,14 @@ Condensation and its relation to Natural Latents}~\citep{gillen2026summary}, \S1
 illustration, and exact score comparisons above are this course's adaptation.
 
 \section{Condensation in context}
-\subsection{What is being characterized?}
-Fix jointly distributed observables $X_1,\ldots,X_n$. We organize information
-into latents $Y_A$, indexed by nonempty subsets $A$ of the observable indices.
-The address specifies which observations the latent is assigned to. Each $X_i$
-is determined by its contributing collection $(Y_A:i\in A)$.
-
+\subsection{What the result says}
 LVM alone leaves considerable freedom. The additional reconstruction
 and Markov conditions constrain where shared information can reside. The
-correspondence theorem compares two models satisfying these conditions: their
-collections above the same address determine one another, exactly or with a
-controlled conditional-entropy error.
+correspondence theorem compares two models satisfying these conditions, that
+is, two joint laws extending the same observable law: their collections above
+the same address determine one another, exactly or with a controlled
+conditional-entropy error. The theorem does not give a learning algorithm, and
+a perfect condensation need not exist, as \cref{sec:existence} shows.
 
 This provides a conditional sense of objectivity. Once the observables and the
 conditions are fixed, agreement in information content need not come from a
@@ -1280,7 +1219,8 @@ minimality, and uniqueness properties. This is an important precedent for
 characterizing such a construction through informational requirements.
 
 The present setup starts from a family of jointly distributed questions rather
-than a distinguished past/future split. It characterizes latent collections
+than a distinguished past/future split, and its formulation is static: time
+and learning are not required. It characterizes latent collections
 associated with different observable subsets.
 See \citet{shalizi2001computational}.
 
@@ -1387,6 +1327,10 @@ safety.
 
 \subsection{Discussion}
 \begin{enumerate}
+\item \textbf{Comparing with prior work.} Choose a comparison from
+\cref{sec:context-connections}. State one mathematical similarity and
+one difference in what is being characterized. If it relates to one of the
+condensation conditions, say how.
 \item \textbf{Choosing the questions.} Consider two agents describing the same
 physical system, one using local measurements and another using a different
 collection of measurements. What would have to be established before applying
@@ -1401,7 +1345,8 @@ internals, or a known decoder. Which part of the permutation example would
 that access resolve?
 \item \textbf{From correspondence to oversight.} Choose one human distinction
 that matters for evaluating an AI's behavior. Trace the steps from a
-correspondence theorem to an oversight procedure that uses that distinction.
+correspondence theorem to an oversight procedure that uses that distinction,
+using the chain in \cref{sec:context-safety}; say where it breaks.
 Name a failure that could occur despite exact informational correspondence,
 and state what additional evidence would address it.
 \end{enumerate}
