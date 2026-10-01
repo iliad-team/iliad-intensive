@@ -227,7 +227,7 @@ from the observations.
 where $Q_B(y)=\prod_{A\in\mathcal J_B}P(y_A\mid y_{\Upstrict A})$.
 \end{frame}
 
-\begin{frame}{The score separates models the conditions do not}
+\begin{frame}{The score ranks models by the queries they serve}
 Three latent models of the clustering example, all satisfying LVM and the
 Markov condition. Take $B$ to be a few points inside one cluster.
 \begin{itemize}
@@ -235,14 +235,14 @@ Markov condition. Take $B$ to be a few points inside one cluster.
 for all 36 points.
 \item A chain, with $X_j$ carried at the address $\{j,\ldots,36\}$:
 $\chi(B)=H(X_1,\ldots,X_{\max B})$. Cheap only for early points.
-\item The hierarchy, with the scale, the group and the cluster centers above
+\item The hierarchy, with the shape, the group and the cluster centers above
 the points: writing $\Theta$ for the parameters $B$ sits under,
 $\chi(B)=H(\Theta)+\sum_{i\in B}H(X_i\mid\Theta)$.
 \end{itemize}
 Only the hierarchy charges a local query locally, and its gap is
 $\chi(B)-H(X_B)=H(\Theta\mid X_B)$, the parameter uncertainty a finite block
-leaves. At $B=I$ all three pay $H(X)$: the ranking is relative to the blocks
-actually queried.
+leaves. At $B=I$ the two baselines pay exactly $H(X)$ and the hierarchy pays
+$H(\Theta\mid X)$ more: the ranking is relative to the blocks actually queried.
 \end{frame}
 
 \begin{frame}{Why expect agents to satisfy these conditions?}
