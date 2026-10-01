@@ -1594,10 +1594,30 @@ $H(Y_{\Up A}\mid Z_{\Up A})$?
 \item Two corresponding families of latents satisfy $H(U\mid V)=H(V\mid U)=0$.
 Which of these does that \emph{not} establish?
 \begin{itemize}
-\item each family is a function of the other almost everywhere
+\item each family is a function of the other almost surely
 \item neither family retains uncertainty about the other
 \item an efficient procedure for translating between them
 \item the two families carry the same information
+\end{itemize}
+
+\item Let $X_1$ be a fair bit and $X_2=X_1\mathbin{\oplus}N$ with
+$N\sim\operatorname{Bernoulli}(q)$, $0<q<1/2$. Does this pair admit a perfect
+condensation?
+\begin{itemize}
+\item yes: put $(X_1,X_2)$ in the top latent
+\item yes: put each $X_i$ in its singleton latent
+\item no: the top latent must be constant, so the Markov condition would force
+$X_1,X_2$ to be independent
+\item only for small enough $q$
+\end{itemize}
+
+\item $Y$ and $Z$ are perfect condensations of the same observables. Which must
+determine one another?
+\begin{itemize}
+\item $Y_{\{1\}}$ and $Z_{\{1\}}$
+\item the towers $Y_{\Up\{1\}}$ and $Z_{\Up\{1\}}$
+\item $Y_{\{1,2\}}$ and $Z_{\{1\}}$
+\item nothing, in general
 \end{itemize}
 \end{enumerate}
 
