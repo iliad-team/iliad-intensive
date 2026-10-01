@@ -175,6 +175,17 @@
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{example}[theorem]{Example}
 
+% The family shares the theorem counter, so cleveref recorded every label in it
+% as type "theorem": \cref to a definition printed "Theorem 2.4", on the PDF and,
+% via the .aux, on the web. Inside each environment, alias the shared counter to
+% the environment's own name so a label there carries the right type.
+\crefname{fact}{Fact}{Facts}
+\Crefname{fact}{Fact}{Facts}
+\@for\iliad@thm:={lemma,proposition,corollary,fact,definition,example}\do{%
+  \edef\iliad@tmp{\noexpand\AddToHook{env/\iliad@thm/begin}%
+    {\noexpand\crefalias{theorem}{\iliad@thm}}}%
+  \iliad@tmp}
+
 % Colours mirror the web components each environment converts to: the
 % theorem/lemma/proposition/corollary family is one violet box there (no
 % per-kind shade), fact and remark render as the blue note callout, and
