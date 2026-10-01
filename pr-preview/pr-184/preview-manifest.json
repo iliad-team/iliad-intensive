@@ -1,0 +1,15 @@
+{
+  "pr": "184",
+  "full": false,
+  "changed": [
+    {
+      "slug": "condensation",
+      "title": "Condensation",
+      "code": "C.4",
+      "path": "/interpretability/condensation/"
+    }
+  ],
+  "published": [
+    "condensation"
+  ]
+}
