@@ -175,10 +175,13 @@
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{example}[theorem]{Example}
 
-% The family shares the theorem counter, so cleveref recorded every label in it
-% as type "theorem": \cref to a definition printed "Theorem 2.4", on the PDF and,
-% via the .aux, on the web. Inside each environment, alias the shared counter to
-% the environment's own name so a label there carries the right type.
+% On LaTeX >= 2024-11-01, hyperref no longer calls \H@refstepcounter, where
+% cleveref (2018) sets a theorem's label type. The kernel's cleveref first aid
+% instead recomputes the type at every \label from \@currentcounter, which for
+% this family is the shared "theorem" counter: \cref to a definition printed
+% "Theorem 2.4", on the PDF and, via the .aux, on the web. Older TeX was not
+% affected. The first aid honours \crefalias, so inside each environment alias
+% the shared counter to the environment's own name.
 \crefname{fact}{Fact}{Facts}
 \Crefname{fact}{Fact}{Facts}
 \@for\iliad@thm:={lemma,proposition,corollary,fact,definition,example}\do{%
