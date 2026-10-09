@@ -54,3 +54,101 @@ Follow the provided link, and then through to the exercises on colab.
 
 Work through the provided <NotebookNoSol name="goal_misgeneralisation">colab notebook</NotebookNoSol> on Goal Misgeneralisation.
 * The network is again small, but some of the later runs might be slow without a GPU, so we would recommend against running this locally unless you have a GPU in your laptop.
+
+### Potential shaping
+
+The notebook shapes the reward with a potential function. These exercises show this cannot change the optimal policy.
+
+<Definition id="def-potential">
+
+**Definition (Potential shaping).** Take an MDP with states $\mathcal{S}$, reward $R(s,a,s')$ and discount $\gamma \in [0,1)$. A *potential* is a bounded $\Phi : \mathcal{S} \to \mathbb{R}$. The *shaped reward* is
+
+$$
+R^\Phi(s,a,s') = R(s,a,s') + \gamma\,\Phi(s') - \Phi(s).
+$$
+
+</Definition>
+
+For a trajectory $s_0, a_0, s_1, \ldots$ write $r_t = R(s_t,a_t,s_{t+1})$, $r^\Phi_t = R^\Phi(s_t,a_t,s_{t+1})$, $G = \sum_t \gamma^t r_t$ and $G^\Phi = \sum_t \gamma^t r^\Phi_t$.
+
+<Exercise id="ex-shaping-telescope">
+
+**Exercise 1.** Show that
+
+$$
+\sum_{t=0}^{T-1} \gamma^t \big( \gamma\,\Phi(s_{t+1}) - \Phi(s_t) \big) = \gamma^T \Phi(s_T) - \Phi(s_0).
+$$
+
+</Exercise>
+
+<Solution>
+
+With $x_t = \gamma^t \Phi(s_t)$ the summand is $x_{t+1} - x_t$, so the sum telescopes to $x_T - x_0$.
+
+</Solution>
+
+<Exercise id="ex-shaping-return">
+
+**Exercise 2.** Show that $G^\Phi = G - \Phi(s_0)$. Where are boundedness of $\Phi$ and $\gamma < 1$ used?
+
+</Exercise>
+
+<Solution>
+
+By [Exercise 1](#ex-shaping-telescope), the return truncated at $T$ is
+
+$$
+\sum_{t=0}^{T-1} \gamma^t r^\Phi_t = \sum_{t=0}^{T-1} \gamma^t r_t + \gamma^T \Phi(s_T) - \Phi(s_0).
+$$
+
+If $|\Phi| \le M$ then $|\gamma^T \Phi(s_T)| \le \gamma^T M \to 0$. Let $T \to \infty$.
+
+</Solution>
+
+<Exercise id="ex-shaping-q">
+
+**Exercise 3.** Show that $Q^\pi_{R^\Phi}(s,a) = Q^\pi_R(s,a) - \Phi(s)$ for every policy $\pi$.
+
+</Exercise>
+
+<Solution>
+
+Take $\mathbb{E}_\pi[\,\cdot \mid s_0 = s, a_0 = a\,]$ of [Exercise 2](#ex-shaping-return). $\Phi(s_0) = \Phi(s)$ is constant under the conditioning.
+
+</Solution>
+
+<Exercise id="ex-shaping-optimal">
+
+**Exercise 4.** Show that $Q^*_{R^\Phi}(s,a) = Q^*_R(s,a) - \Phi(s)$, and hence that $R$ and $R^\Phi$ have the same optimal policies.
+
+</Exercise>
+
+<Solution>
+
+$\Phi(s)$ does not depend on $\pi$, so taking $\sup_\pi$ in [Exercise 3](#ex-shaping-q) gives the first claim. In each state $s$ every action's value shifts by the same $\Phi(s)$, so
+
+$$
+\arg\max_{a} Q^*_{R^\Phi}(s,a) = \arg\max_{a} Q^*_R(s,a).
+$$
+
+For episodic tasks the same holds if $\Phi = 0$ at terminal states.
+
+</Solution>
+
+<Exercise id="ex-shaping-pottery">
+
+**Exercise 5.** In the notebook, $\Phi = 0.5$ while holding a shard and $0$ otherwise. What shaping bonus does picking up a shard and dropping it again earn? What if we instead paid $+0.5$ per `PICKUP`?
+
+</Exercise>
+
+<Solution>
+
+With $\Phi(s) = 0$, $\Phi(s') = 0.5$:
+
+$$
+\big( \gamma\,\Phi(s') - \Phi(s) \big) + \gamma \big( \gamma\,\Phi(s) - \Phi(s') \big) = 0.
+$$
+
+Paying $+0.5$ per pickup makes the cycle worth $+0.5$ each time, so the optimal agent repeats it forever instead of binning.
+
+</Solution>
