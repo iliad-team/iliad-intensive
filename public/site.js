@@ -1,7 +1,7 @@
 /**
  * The site's entire client-side behaviour. Worksheet pages ship no framework
  * (scripts/strip-hydration.mjs removes Next's bundles after the build), so the
- * three interactions React used to own live here instead:
+ * interactions live here instead:
  *
  *   1. the sidebar toggle — a `nav-open` class on <html>, persisted in
  *      localStorage and restored pre-paint by the inline script in layout.tsx
@@ -9,7 +9,7 @@
  *   3. the downloads "with solutions" checkbox — swaps each link between the
  *      hrefs carried in its data-sol / data-nosol attributes
  *
- * Everything is feature-detected off ids, so the file is safe (and inert) on
+ *   4. the light/dark theme toggle — persisted and restored before paint\n *\n * Everything is feature-detected off ids, so the file is safe on
  * pages without a sidebar or downloads row, /admin/status included. If JS is
  * disabled entirely the page still reads fine: the sidebar stays in its
  * pre-paint state and the downloads default to the files without solutions
@@ -19,6 +19,16 @@
   "use strict";
   var KEY = "iliad.navOpen";
   var root = document.documentElement;
+
+  var themeToggle = document.getElementById("theme-toggle");
+  if (themeToggle) {
+    themeToggle.setAttribute("aria-pressed", String(root.classList.contains("dark")));
+    themeToggle.addEventListener("click", function () {
+      var dark = root.classList.toggle("dark");
+      themeToggle.setAttribute("aria-pressed", String(dark));
+      try { localStorage.setItem("iliad.theme", dark ? "dark" : "light"); } catch (e) {}
+    });
+  }
 
   function store(open) {
     try { localStorage.setItem(KEY, open ? "1" : "0"); } catch (e) {}
