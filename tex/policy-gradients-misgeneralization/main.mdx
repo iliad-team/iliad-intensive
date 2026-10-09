@@ -69,7 +69,7 @@ $$
 
 </Definition>
 
-For a trajectory $s_0, a_0, s_1, \ldots$ write $r_t = R(s_t,a_t,s_{t+1})$, $r^\Phi_t = R^\Phi(s_t,a_t,s_{t+1})$, $G = \sum_t \gamma^t r_t$ and $G^\Phi = \sum_t \gamma^t r^\Phi_t$.
+For a trajectory $s_0, a_0, r_1, s_1, a_1, r_2, \ldots$, taking action $a_t$ in state $s_t$ returns the next state $s_{t+1}$ and reward $r_{t+1} = R(s_t,a_t,s_{t+1})$. Write $r^\Phi_{t+1} = R^\Phi(s_t,a_t,s_{t+1})$, $G = \sum_{t=0}^\infty \gamma^t r_{t+1}$ and $G^\Phi = \sum_{t=0}^\infty \gamma^t r^\Phi_{t+1}$.
 
 <Exercise id="ex-shaping-telescope">
 
@@ -108,9 +108,9 @@ $$
 Truncate at $T$ and apply [Exercise 1](#ex-shaping-telescope):
 
 $$
-\sum_{t=0}^{T-1} \gamma^t r^\Phi_t
-= \sum_{t=0}^{T-1} \gamma^t r_t + \sum_{t=0}^{T-1} \gamma^t \big( \gamma\,\Phi(s_{t+1}) - \Phi(s_t) \big)
-= \sum_{t=0}^{T-1} \gamma^t r_t + \gamma^T \Phi(s_T) - \Phi(s_0).
+\sum_{t=0}^{T-1} \gamma^t r^\Phi_{t+1}
+= \sum_{t=0}^{T-1} \gamma^t r_{t+1} + \sum_{t=0}^{T-1} \gamma^t \big( \gamma\,\Phi(s_{t+1}) - \Phi(s_t) \big)
+= \sum_{t=0}^{T-1} \gamma^t r_{t+1} + \gamma^T \Phi(s_T) - \Phi(s_0).
 $$
 
 If $|\Phi| \le M$ then $|\gamma^T \Phi(s_T)| \le \gamma^T M \to 0$ as $T \to \infty$, since $\gamma < 1$. Letting $T \to \infty$ gives $G^\Phi = G - \Phi(s_0)$. (An unbounded $\Phi$ could grow like $\gamma^{-T}$, and the boundary term would not vanish.)
