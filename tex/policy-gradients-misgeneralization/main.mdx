@@ -138,28 +138,27 @@ $$
 
 <Exercise id="ex-shaping-optimal">
 
-**Exercise 4.** Show that $Q^*_{R^\Phi}(s,a) = Q^*_R(s,a) - \Phi(s)$, and hence that $R$ and $R^\Phi$ have the same optimal policies.
+**Exercise 4.** Assume $\mathcal{S}$ and the action set $\mathcal{A}$ are finite, so an optimal policy exists ([D.1.2, Exercise 3.7](https://iliad-intensive.org/agency/reinforcement-learning/#prob-optimality)). Show that $R$ and $R^\Phi$ have the same optimal policies, and that $Q^*_{R^\Phi}(s,a) = Q^*_R(s,a) - \Phi(s)$.
 
 </Exercise>
 
 <Solution>
 
-Since $\Phi(s)$ does not depend on $\pi$, by [Exercise 3](#ex-shaping-q)
+Averaging [Exercise 3](#ex-shaping-q) over $a \sim \pi(\cdot \mid s)$ gives $V^\pi_{R^\Phi}(s) = V^\pi_R(s) - \Phi(s)$. The shift $\Phi(s)$ is the same for every policy, so for all policies $\pi, \pi'$ and states $s$
 
 $$
-Q^*_{R^\Phi}(s,a)
-= \sup_\pi Q^\pi_{R^\Phi}(s,a)
-= \sup_\pi \big( Q^\pi_R(s,a) - \Phi(s) \big)
-= Q^*_R(s,a) - \Phi(s).
+V^\pi_{R^\Phi}(s) \ge V^{\pi'}_{R^\Phi}(s) \iff V^\pi_R(s) \ge V^{\pi'}_R(s).
 $$
 
-$\Phi(s)$ is also constant in $a$, so in every state
+A policy is optimal if its value is at least that of every other policy in every state, so $\pi$ is optimal for $R$ iff it is optimal for $R^\Phi$.
+
+Now take an optimal policy $\pi^*$ for $R$, which exists by D.1.2. It is also optimal for $R^\Phi$, so by [Exercise 3](#ex-shaping-q)
 
 $$
-\arg\max_{a} Q^*_{R^\Phi}(s,a) = \arg\max_{a} \big( Q^*_R(s,a) - \Phi(s) \big) = \arg\max_{a} Q^*_R(s,a).
+Q^*_{R^\Phi}(s,a) = Q^{\pi^*}_{R^\Phi}(s,a) = Q^{\pi^*}_R(s,a) - \Phi(s) = Q^*_R(s,a) - \Phi(s).
 $$
 
-A policy is optimal iff in every state it only takes actions in $\arg\max_a Q^*(s,a)$, so the optimal policies coincide. (For episodic tasks the same holds if $\Phi = 0$ at terminal states, so the boundary term in [Exercise 2](#ex-shaping-return) vanishes.)
+(For episodic tasks the same holds if $\Phi = 0$ at terminal states, so the boundary term in [Exercise 2](#ex-shaping-return) vanishes.)
 
 </Solution>
 
