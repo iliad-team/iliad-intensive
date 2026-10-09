@@ -4,6 +4,7 @@
 /* LessWrong-inspired type system: serif body, generous line-height,
    slightly off-white background, slightly off-black text. */
 :root {
+  color-scheme: light;
   --background: #fcfcfa;
   --foreground: #0c0c0c;
   --muted: #5a5a55;
@@ -33,12 +34,117 @@
     Charter, Cambria, Georgia, serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* keep light mode only — LW-style isn't dark */
-    --background: #fcfcfa;
-    --foreground: #0c0c0c;
-  }
+/* A saved preference controls the whole site, including existing Tailwind
+   utilities in worksheet callouts, navigation, calendars and status tables. */
+html.dark {
+  color-scheme: dark;
+  --background: #18181b;
+  --foreground: #eeeeeb;
+  --muted: #b8b8b0;
+  --rule: #414147;
+  --link: #9bbcff;
+  --link-hover: #c4d7ff;
+  --color-white: #222225;
+  --color-black: #eeeeeb;
+  --color-amber-100: oklch(0.28 0.08 80);
+  --color-amber-200: oklch(0.34 0.08 80);
+  --color-amber-300: oklch(0.48 0.08 80);
+  --color-amber-400: oklch(0.62 0.08 80);
+  --color-amber-50: oklch(0.23 0.08 80);
+  --color-amber-500: oklch(0.68 0.08 80);
+  --color-amber-600: oklch(0.76 0.08 80);
+  --color-amber-700: oklch(0.8 0.08 80);
+  --color-amber-800: oklch(0.84 0.08 80);
+  --color-amber-900: oklch(0.89 0.08 80);
+  --color-amber-950: oklch(0.94 0.08 80);
+  --color-blue-600: oklch(0.76 0.08 255);
+  --color-emerald-100: oklch(0.28 0.08 160);
+  --color-emerald-200: oklch(0.34 0.08 160);
+  --color-emerald-300: oklch(0.48 0.08 160);
+  --color-emerald-50: oklch(0.23 0.08 160);
+  --color-emerald-500: oklch(0.68 0.08 160);
+  --color-emerald-700: oklch(0.8 0.08 160);
+  --color-emerald-900: oklch(0.89 0.08 160);
+  --color-green-700: oklch(0.8 0.08 145);
+  --color-indigo-300: oklch(0.48 0.08 275);
+  --color-indigo-50: oklch(0.23 0.08 275);
+  --color-orange-300: oklch(0.48 0.08 55);
+  --color-orange-50: oklch(0.23 0.08 55);
+  --color-red-700: oklch(0.8 0.08 25);
+  --color-rose-200: oklch(0.34 0.08 15);
+  --color-rose-300: oklch(0.48 0.08 15);
+  --color-rose-900: oklch(0.89 0.08 15);
+  --color-sky-200: oklch(0.34 0.08 235);
+  --color-sky-300: oklch(0.48 0.08 235);
+  --color-sky-50: oklch(0.23 0.08 235);
+  --color-sky-500: oklch(0.68 0.08 235);
+  --color-sky-900: oklch(0.89 0.08 235);
+  --color-violet-200: oklch(0.34 0.08 300);
+  --color-violet-300: oklch(0.48 0.08 300);
+  --color-violet-50: oklch(0.23 0.08 300);
+  --color-violet-500: oklch(0.68 0.08 300);
+  --color-violet-600: oklch(0.76 0.08 300);
+  --color-violet-800: oklch(0.84 0.08 300);
+  --color-violet-900: oklch(0.89 0.08 300);
+  --color-violet-950: oklch(0.94 0.08 300);
+  --color-zinc-100: #29292d;
+  --color-zinc-200: #38383e;
+  --color-zinc-300: #62626b;
+  --color-zinc-400: #a1a1aa;
+  --color-zinc-50: #222225;
+  --color-zinc-500: #a1a1aa;
+  --color-zinc-600: #b8b8c0;
+  --color-zinc-700: #d4d4d8;
+  --color-zinc-800: #e4e4e7;
+  --color-zinc-900: #f4f4f5;
+}
+
+#theme-toggle:focus-visible {
+  outline: 2px solid var(--link);
+  outline-offset: 2px;
+}
+#theme-toggle .theme-sun,
+html.dark #theme-toggle .theme-moon {
+  display: none;
+}
+html.dark #theme-toggle .theme-sun {
+  display: block;
+}
+
+html.dark .prose {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: var(--muted);
+  --tw-prose-links: var(--link);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--muted);
+  --tw-prose-bullets: var(--muted);
+  --tw-prose-hr: var(--rule);
+  --tw-prose-quotes: var(--foreground);
+  --tw-prose-quote-borders: var(--rule);
+  --tw-prose-captions: var(--muted);
+  --tw-prose-kbd: var(--foreground);
+  --tw-prose-kbd-shadows: 238 238 235;
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: #222225;
+  --tw-prose-th-borders: var(--rule);
+  --tw-prose-td-borders: var(--rule);
+}
+html.dark .prose a {
+  text-decoration-color: var(--link);
+}
+html.dark .prose code {
+  background: rgb(255 255 255 / 0.07);
+}
+html.dark .prose pre {
+  background: #222225;
+  color: var(--foreground);
+}
+/* Keep diagrams with transparent backgrounds and dark lettering readable;
+   never invert the colours of course figures. */
+html.dark .prose figure img {
+  background: #fff;
 }
 
 html {
@@ -451,4 +557,25 @@ html.diff-unsync .diff-col {
   height: 100%;
   overflow-y: auto;
   padding-right: 0.5rem;
+}
+
+/* Preview diff annotations also need readable foreground/background pairs. */
+html.dark .diff-col-head { color: var(--muted); border-color: var(--rule); }
+html.dark .diff-col-base .diff-col-head { color: #fca5a5; }
+html.dark .diff-col-pr .diff-col-head { color: #86efac; }
+html.dark .diff-removed { background: #452326; box-shadow: 0 0 0 4px #452326; }
+html.dark .diff-added { background: #193b28; box-shadow: 0 0 0 4px #193b28; }
+html.dark .diff-col-base .diff-modified { background: #352125; box-shadow: 0 0 0 4px #352125; }
+html.dark .diff-col-pr .diff-modified { background: #203127; box-shadow: 0 0 0 4px #203127; }
+html.dark .katex-display.diff-removed,
+html.dark .katex-display.diff-added,
+html.dark .diff-col-base .katex-display.diff-modified,
+html.dark .diff-col-pr .katex-display.diff-modified { background: transparent; box-shadow: none; }
+html.dark mark.diff-del { background: #702b32; text-decoration-color: #fca5a5; }
+html.dark mark.diff-ins { background: #245536; }
+html.dark .diff-fold { background: #222225; color: var(--muted); border-color: var(--rule); }
+html.dark .diff-fold:hover,
+html.dark .diff-fold-open { background: #29292d; color: var(--foreground); }
+html.dark .diff-spacer.diff-gap {
+  background: repeating-linear-gradient(-45deg, transparent 0 6px, #29292d 6px 12px);
 }
