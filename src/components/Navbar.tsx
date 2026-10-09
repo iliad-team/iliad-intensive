@@ -15,6 +15,27 @@ export function Navbar() {
           <span className="hidden font-medium sm:inline">Iliad Intensive Curriculum</span>
           <span className="font-medium sm:hidden">Iliad</span>
         </Link>
+        <button
+          type="button"
+          id="theme-toggle"
+          aria-label="Dark mode"
+          aria-pressed={false}
+          title="Toggle light and dark mode"
+          suppressHydrationWarning
+          className="ml-auto shrink-0 rounded p-2 text-zinc-700 hover:bg-zinc-100"
+        >
+          <svg className="theme-moon" width={20} height={20} viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" strokeWidth={1.8}
+            strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M20.9 13A9 9 0 0 1 11 3.1 9 9 0 1 0 20.9 13Z" />
+          </svg>
+          <svg className="theme-sun" width={20} height={20} viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" strokeWidth={1.8}
+            strokeLinecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" />
+          </svg>
+        </button>
       </div>
     </header>
   );

@@ -51,13 +51,18 @@ const RESTORE_NAV =
   `try{if(localStorage.getItem("iliad.navOpen")==="1")` +
   `document.documentElement.classList.add("nav-open")}catch(e){}`;
 
+// Keep the existing light default; restore an explicit dark preference before paint.
+const RESTORE_THEME =
+  `try{if(localStorage.getItem("iliad.theme")==="dark")` +
+  `document.documentElement.classList.add("dark")}catch(e){}`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    // suppressHydrationWarning: RESTORE_NAV adds `nav-open` to <html> before
+    // suppressHydrationWarning: The restore scripts add `nav-open` / `dark` to <html> before
     // React hydrates (on the pages that still hydrate, i.e. /admin/status),
     // and the class is ours, not React's, so the mismatch is expected.
     <html
@@ -66,7 +71,7 @@ export default function RootLayout({
       className={`${sans.variable} ${serif.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-serif">
-        <script dangerouslySetInnerHTML={{ __html: RESTORE_NAV }} />
+        <script dangerouslySetInnerHTML={{ __html: RESTORE_NAV + RESTORE_THEME }} />
         {/* On a preview the banner and the navbar stick together at the top of
             the viewport, so the banner's controls (the diff view, "next
             change") stay in reach however far down a long worksheet the reader
@@ -81,7 +86,7 @@ export default function RootLayout({
           <Navbar />
         )}
         {children}
-        {/* The site's entire client-side behaviour (~1.5 KB): sidebar toggle,
+        {/* The site's entire client-side behaviour includes the theme and sidebar toggles,
             close-on-mobile, the downloads solutions swap. Worksheet pages ship
             this and nothing else — scripts/strip-hydration.mjs removes the
             framework bundles after the build. */}
