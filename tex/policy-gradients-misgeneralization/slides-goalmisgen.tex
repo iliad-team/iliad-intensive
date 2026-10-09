@@ -1,7 +1,7 @@
-% !TEX root = goalmisgen-slides.tex
-% goalmisgen-slides.tex - Specification Gaming & Goal Misgeneralisation (ILIAD Intensive).
+% !TEX root = slides-goalmisgen.tex
+% slides-goalmisgen.tex - Specification Gaming & Goal Misgeneralisation (ILIAD Intensive).
 % Written from the ARENA [2.6] master (master_2_6.py). Madrid/Beamer via arena_beamer.sty.
-% Build:  present -> pdflatex goalmisgen-slides.tex
+% Build:  present -> pdflatex slides-goalmisgen.tex
 %         handout -> pdflatex "\def\HANDOUT{}\input{slides-goalmisgen}"
 \input{arena_beamer.sty}
 
@@ -23,19 +23,25 @@
 We tell an RL agent what we want through a \textbf{reward function}. Two distinct failure modes:
 \begin{enumerate}
   \item[] \pause
-  \item \textbf{Goal misspecification} (reward hacking): the designer specified
-  a reward function that incentivises a behaviour that does not match what the designer intended.
-  The reward was optimised, but the desired goal was not internalised by the agent.
+  \item \textbf{Goal misspecification} (reward hacking): the reward function
+  did not perfectly align with the desired behaviour: The agent \emph{technically} 
+  did what I said, but not what I wanted.
   \pause
-  \item \textbf{Goal misgeneralisation}: the reward function matches the intended goal,
-  but the agent learns a goal that is perfectly correlated with the intended goal 
-  \emph{on the training distribution}, but which diverges on out-of-distribution environments.
-  The agent remains capable, but capably pursues the wrong thing.
+  \item \textbf{Goal misgeneralisation}: Even if the reward function was perfect,
+  aligns with the goal, and is un-reward-hackable, the agent internalizes a proxy 
+  of what I wanted, which diverges on out-of-distribution environments.
 \end{enumerate}
-\pause
+\end{frame}
+
+% -------------------------------------------------------------------
+\begin{frame}[plain]
+\centering
 \vfill
-Even with a \emph{perfectly specified} reward, it is possible for the agent 
-to still internalise the wrong goal.
+\makebox[\textwidth]{\includegraphics[width=\paperwidth]{fig/keyschests}}
+\vfill
+{\footnotesize Goal misgeneralisation on ``Keys and chests'' (Langosco et al., 2022, Fig.~5).
+\href{https://drive.google.com/drive/folders/1JcKfdI-5xH16BIaSGdYc49g36QlPvKQ9}{\textcolor{blue}{\underline{Play the video}}}.\par}
+\vfill
 \end{frame}
 
 % -------------------------------------------------------------------
@@ -110,33 +116,35 @@ Removing the reward from picking up shards makes the task very hard to learn.
 Over a trajectory the $\Phi$ terms \textbf{telescope}: total return changes only by a constant $-\Phi(s_0)$, so the ordering over policies (and the optimum) is unchanged. It is the \emph{only} shaping with this guarantee.
 \pause
 \vfill
-Here $\Phi(s) = 0.5$ while holding shards. A pickup advances $+\gamma\Phi$; a floor-drop gives it back. A \textbf{pickup-then-drop cycle nets exactly zero}: the loophole is closed, while also encouraging the agent
-to try picking up shards in the first place.
+Here $\Phi(s) = 0.5$ while holding shards. A \textbf{pickup-then-drop cycle nets exactly zero}.
+This patches the loophole, while also giving partial credit to the agent that holding shards is
+instrumentally useful for the goal.
 \end{frame}
 
-% -------------------------------------------------------------------
-\begin{frame}{Why shaping preserves the optimum}
-Write the return from time $t$ with $r_k := R(s_{k-1},a_{k-1},s_k)$:
-\[
-  G_t = r_{t+1} + \gamma\, r_{t+2} + \gamma^2 r_{t+3} + \cdots
-      = \sum_{k=t+1}^{\infty} \gamma^{\,k-(t+1)}\, r_k.
-\]
-\pause
-The shaped reward just adds a potential difference, $r_k^\Phi = r_k + \gamma\,\Phi(s_k) - \Phi(s_{k-1})$, so
-\[
-  G_t^\Phi = \sum_{k=t+1}^{\infty} \gamma^{\,k-(t+1)}\, r_k^\Phi
-           = G_t + \sum_{k=t+1}^{\infty} \gamma^{\,k-(t+1)}\big(\gamma\,\Phi(s_k) - \Phi(s_{k-1})\big).
-\]
-\pause
-Expanding the shaping sum, consecutive terms \textbf{telescope}:
-\[
-  \big(\gamma\Phi(s_{t+1}) - \Phi(s_t)\big)
-  + \gamma\big(\gamma\Phi(s_{t+2}) - \Phi(s_{t+1})\big)
-  + \cdots = -\Phi(s_t).
-\]
-\pause
-Hence $G_t^\Phi = G_t - \Phi(s_t)$. At $t=0$, $G_0^\Phi = G_0 - \Phi(s_0)$ differs from $G_0$ by a constant depending \emph{only on the start state}, not on the policy: so $\arg\max_\pi G_0^\Phi = \arg\max_\pi G_0$ and the optimum is unchanged.
-\end{frame}
+
+% % -------------------------------------------------------------------
+% \begin{frame}{Why shaping preserves the optimum}
+% Write the return from time $t$ with $r_k := R(s_{k-1},a_{k-1},s_k)$:
+% \[
+%   G_t = r_{t+1} + \gamma\, r_{t+2} + \gamma^2 r_{t+3} + \cdots
+%       = \sum_{k=t+1}^{\infty} \gamma^{\,k-(t+1)}\, r_k.
+% \]
+% \pause
+% The shaped reward just adds a potential difference, $r_k^\Phi = r_k + \gamma\,\Phi(s_k) - \Phi(s_{k-1})$, so
+% \[
+%   G_t^\Phi = \sum_{k=t+1}^{\infty} \gamma^{\,k-(t+1)}\, r_k^\Phi
+%            = G_t + \sum_{k=t+1}^{\infty} \gamma^{\,k-(t+1)}\big(\gamma\,\Phi(s_k) - \Phi(s_{k-1})\big).
+% \]
+% \pause
+% Expanding the shaping sum, consecutive terms \textbf{telescope}:
+% \[
+%   \big(\gamma\Phi(s_{t+1}) - \Phi(s_t)\big)
+%   + \gamma\big(\gamma\Phi(s_{t+2}) - \Phi(s_{t+1})\big)
+%   + \cdots = -\Phi(s_t).
+% \]
+% \pause
+% Hence $G_t^\Phi = G_t - \Phi(s_t)$. At $t=0$, $G_0^\Phi = G_0 - \Phi(s_0)$ differs from $G_0$ by a constant depending \emph{only on the start state}, not on the policy: so $\arg\max_\pi G_0^\Phi = \arg\max_\pi G_0$ and the optimum is unchanged.
+% \end{frame}
 
 % % -------------------------------------------------------------------
 % \begin{frame}{Fix 2: penalise smashing urns}
@@ -147,33 +155,33 @@ Hence $G_t^\Phi = G_t - \Phi(s_t)$. At $t=0$, $G_0^\Phi = G_0 - \Phi(s_0)$ diffe
 % % \]
 % \end{frame}
 
-% -------------------------------------------------------------------
-\begin{frame}[t]{Specification gaming fixed?}
-\begin{columns}[T]
-\begin{column}{0.5\textwidth}
-Shaping stops farming, but nothing yet discourages breaking urns to manufacture shards.
-\begin{itemize}
-  \item Add a $-2$ penalty for each urn smashed.
-  \item Binning the resulting shard recovers $\approx +1$ (discounted), against a $-2$ penalty: 
-  so breaking-then-cleaning is never worth it.
-\end{itemize}
-Retrained on \texttt{reward2}, the probes confirm the fix:
-\begin{itemize}
-  \item \texttt{reward\_drop} (farming) $\approx 0$,
-  \item \texttt{reward\_break} (smashing) $\approx 0$,
-  \item \texttt{reward\_bin} $> 0$: it actually cleans.
-\end{itemize}
+% % -------------------------------------------------------------------
+% \begin{frame}[t]{Specification gaming fixed?}
+% \begin{columns}[T]
+% \begin{column}{0.5\textwidth}
+% Shaping stops farming, but nothing yet discourages breaking urns to manufacture shards.
+% \begin{itemize}
+%   \item Add a $-2$ penalty for each urn smashed.
+%   \item Binning the resulting shard recovers $\approx +1$ (discounted), against a $-2$ penalty: 
+%   so breaking-then-cleaning is never worth it.
+% \end{itemize}
+% Retrained on \texttt{reward2}, the probes confirm the fix:
+% \begin{itemize}
+%   \item \texttt{reward\_drop} (farming) $\approx 0$,
+%   \item \texttt{reward\_break} (smashing) $\approx 0$,
+%   \item \texttt{reward\_bin} $> 0$: it actually cleans.
+% \end{itemize}
 
 
-\end{column}
-\begin{column}{0.5\textwidth}
-\centering
-\imgorplaceholder{0.55\linewidth}{hist_fixed}{fixed histogram}\\[1ex]
-\raggedright\footnotesize
+% \end{column}
+% \begin{column}{0.5\textwidth}
+% \centering
+% \imgorplaceholder{0.55\linewidth}{hist_fixed}{fixed histogram}\\[1ex]
+% \raggedright\footnotesize
 
-\end{column}
-\end{columns}
-\end{frame}
+% \end{column}
+% \end{columns}
+% \end{frame}
 
 
 % -------------------------------------------------------------------
@@ -181,10 +189,8 @@ Retrained on \texttt{reward2}, the probes confirm the fix:
 \begin{itemize}
   \item Why bother with the potential function at all? +1 reward for putting shards in
   the bin, and -2 for smashing urns, also is aligned with the intended goal.
-  \pause
   \item But the agent still has to learn from experience: the policy does not
   teleport to whatever maximises the sum of rewards.
-  \pause
   \item Leaving the potential function out robs the agent of useful feedback (that picking up
   and walking around with shards is instrumentally useful for putting them in the bin).
 \end{itemize}
@@ -200,9 +206,8 @@ Retrained on \texttt{reward2}, the probes confirm the fix:
 % -------------------------------------------------------------------
 \begin{frame}{Even perfectly specified reward isn't enough}
 A policy trained on a \emph{single} fixed layout can just memorise a trajectory: it never has to look at where the shards are.
-\pause
 \vfill
-So we train on \textbf{procedurally generated} layouts: random robot and item positions every episode. \\
+Train on \textbf{procedurally generated} layouts: random robot and item positions every episode. \\
 As a toy example of insufficent training environment diversity, suppose that the bin is always in the top-left corner.
 %\vspace{-0.6cm}
 \begin{center}
@@ -214,54 +219,56 @@ As a toy example of insufficent training environment diversity, suppose that the
 \begin{frame}{Goal misgeneralisation: defining it}
 \textbf{Langosco et al. (2022)}~\citev{Langosco:22goalmisgen}: an agent trained to maximise $R$ is deployed 
 under distribution shift. \emph{Goal misgeneralisation} occurs if it now gets \textbf{low reward} 
-(according to $R$)because it keeps acting as if it was trained to optimise a \emph{different} $R' \neq R$.
+(according to $R$) because it keeps acting as if it was trained to optimise a \emph{different} $R' \neq R$.
 \begin{itemize}
   \item $R$ = \textbf{intended objective} (carry shards to the bin),
   \item $R'$ = \textbf{behavioural objective} (what it actually learned).
 \end{itemize}
-\pause
-During training, ``go to the bin'' and ``go to the top-left corner'' were \textbf{indistinguishable}. 
-The simpler one can win, and the model has internalised the wrong goal.
-\end{frame}
-
-% -------------------------------------------------------------------
-\begin{frame}{Out of distribution: move the bin}
-\begin{columns}
-\begin{column}{0.5\textwidth}
-At test time, put the bin somewhere else (e.g. the top-right corner).
-\pause
-The agent still capably picks up shards and carries them \textbf{to the top-left corner}, where it drops them on the floor, ignoring the actual bin.
-\pause
-Defining a proxy reward function $R'$ that rewards dropping shards at the top left corner,
-we can probe the agent's behaviour on the shifted layout.
-\end{column}
-\begin{column}{0.5\textwidth}
-\centering
-\imgorplaceholder{\linewidth}{env_shift}{shifted env (bin moved)}
-\end{column}
-\end{columns}
-\end{frame}
-
-% -------------------------------------------------------------------
-\begin{frame}{Goal misgeneralisation, measured}
-\begin{columns}
-\begin{column}{0.5\textwidth}
-On shifted layouts, the agent:
 \begin{itemize}
-  \item scores \emph{much lower} on $R$ (putting shards in the bin) than in-distribution,
-  \item but high on $R'$ (dropping shards at the top left corner).
+\item During training, ``go to the bin'' and ``go to the top-left corner'' are \textbf{indistinguishable}. 
+\item \emph{A priori} the model will learn the ``simplest'' reward function $R'$ such that $R'=R$ when
+restricted to in-distribution environments. 
 \end{itemize}
-\pause
-It is still competently optimising a goal, just not what we trained for. 
-There is no black-box way to tell apart an agent that learned $R$ from one that learned $R'$
-as the behaviour is the same on in-distribution layouts.
-\end{column}
-\begin{column}{0.5\textwidth}
-\centering
-\imgorplaceholder{0.8\linewidth}{hist_misgen}{misgen histogram}
-\end{column}
-\end{columns}
 \end{frame}
+
+% % -------------------------------------------------------------------
+% \begin{frame}{Out of distribution: move the bin}
+% \begin{columns}
+% \begin{column}{0.5\textwidth}
+% At test time, put the bin somewhere else (e.g. the top-right corner).
+% \pause
+% The agent still capably picks up shards and carries them \textbf{to the top-left corner}, where it drops them on the floor, ignoring the actual bin.
+% \pause
+% Defining a proxy reward function $R'$ that rewards dropping shards at the top left corner,
+% we can probe the agent's behaviour on the shifted layout.
+% \end{column}
+% \begin{column}{0.5\textwidth}
+% \centering
+% \imgorplaceholder{\linewidth}{env_shift}{shifted env (bin moved)}
+% \end{column}
+% \end{columns}
+% \end{frame}
+
+% % -------------------------------------------------------------------
+% \begin{frame}{Goal misgeneralisation, measured}
+% \begin{columns}
+% \begin{column}{0.5\textwidth}
+% On shifted layouts, the agent:
+% \begin{itemize}
+%   \item scores \emph{much lower} on $R$ (putting shards in the bin) than in-distribution,
+%   \item but high on $R'$ (dropping shards at the top left corner).
+% \end{itemize}
+% \pause
+% It is still competently optimising a goal, just not what we trained for. 
+% There is no black-box way to tell apart an agent that learned $R$ from one that learned $R'$
+% as the behaviour is the same on in-distribution layouts.
+% \end{column}
+% \begin{column}{0.5\textwidth}
+% \centering
+% \imgorplaceholder{0.8\linewidth}{hist_misgen}{misgen histogram}
+% \end{column}
+% \end{columns}
+% \end{frame}
 
 % -------------------------------------------------------------------
 \begin{frame}[t]{Fixing it: broaden the training distribution}
@@ -271,10 +278,8 @@ as the behaviour is the same on in-distribution layouts.
 \item Randomise the bin position too.
 \item Now ``corner'' no longer correlates with ``bin'',
 so the agent is forced to learn the intended goal $R$.
-\pause
 \item Result: The training distribution now matches the test distribution,
 so the agent is no longer misgeneralising.
-\pause
 \item \textbf{Caveat:} In practice you often cannot enumerate the shift in advance,
 so this fix is not always available. Mitigating goal misgeneralisation without it is an open problem.
 \end{itemize}
@@ -307,16 +312,16 @@ so this fix is not always available. Mitigating goal misgeneralisation without i
 % \end{columns}
 % \end{frame}
 
-% -------------------------------------------------------------------
-\begin{frame}{Summary}
-\begin{itemize}
-  \item \textbf{Specification gaming / outer alignment:} if a behaviour scores higher return than the intended one, the policy will pursue it. Probe with diagnostic rewards; fix with potential shaping (un-hackable) and targeted penalties.
-  \pause
-  \item \textbf{Goal misgeneralisation / inner alignment:} out of distribution, behaviour is set by the inductive biases, not by what the reward \emph{would} have rewarded. A simpler goal that perfectly correlated during training is what gets pursued when goals diverge.
-  \pause
-  \item Broadening the training distribution helps, when you can; and ``reward-maximising'' is necessary but not sufficient for ``learned''.
-\end{itemize}
-\end{frame}
+% % -------------------------------------------------------------------
+% \begin{frame}{Summary}
+% \begin{itemize}
+%   \item \textbf{Specification gaming / outer alignment:} if a behaviour scores higher return than the intended one, the policy will pursue it. Probe with diagnostic rewards; fix with potential shaping (un-hackable) and targeted penalties.
+%   \pause
+%   \item \textbf{Goal misgeneralisation / inner alignment:} out of distribution, behaviour is set by the inductive biases, not by what the reward \emph{would} have rewarded. A simpler goal that perfectly correlated during training is what gets pursued when goals diverge.
+%   \pause
+%   \item Broadening the training distribution helps, when you can; and ``reward-maximising'' is necessary but not sufficient for ``learned''.
+% \end{itemize}
+% \end{frame}
 
 % -------------------------------------------------------------------
 \begin{frame}[allowframebreaks]{References}
