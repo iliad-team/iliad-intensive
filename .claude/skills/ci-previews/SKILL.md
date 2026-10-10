@@ -59,35 +59,54 @@ writes `gh-pages` additionally takes `concurrency: gh-pages-write` with
    `scripts/`, `src/`, `public/`, `schedule.yaml`, package/Next config, the
    workflows) sets `full=true`; `docs/`, `.claude/`, `scratch/`,
    `intensives/` and root Markdown mark nothing. A failed `gh pr diff` means
-   full. Outputs `changed` (comma list) and `full`.
-3. apt: `~/apt-debs` cached on `hashFiles('.github/apt-packages.txt')` (that
-   file is the one package list; `setup.sh` mirrors it). Warm path = `dpkg -i`
-   from the cached `.deb`s, no mirror contact, gated on a `manifest` file
-   written only after a successful install. Cold path = real `apt-get` with
-   `timeout 300`/`600` because a trickling Ubuntu mirror once ate the whole
-   job budget six builds in a row.
-4. Typst: `~/.local/bin/typst` cached on `hashFiles('scripts/install-typst.sh')`,
-   installed by that script (pinned version, sha256-checked).
-5. Node 22 with npm cache over both lockfiles; `npm ci` twice (root and
-   `scripts/tex2mdx`).
-6. `public/uploads` cached on `tikz-${hashFiles('tex/**')}` (content-addressed
-   SVGs); worksheet artifacts (`tex/*/.build-hash`, PDFs, `.aux`, `.bbl`,
-   `content/modules`, `public/downloads`) cached under `worksheets-<sha>` with
+   full. Outputs `changed` (comma list), `full`, and `nb`: the modules whose
+   notebooks the preview links on `notebooks-pr-<N>` (`changed`, or `*` when
+   `tex/gen_notebooks.py` / `tex/notebook-header.md` changed or the diff failed).
+3. Node 22 with npm cache over both lockfiles (first: the plan needs Node).
+4. Caches: apt `~/apt-debs` on `hashFiles('.github/apt-packages.txt')` (restored
+   every run, which keeps it from the 7-day eviction even when TeX is skipped);
+   `public/uploads` on `tikz-${hashFiles('tex/**')}` (content-addressed SVGs);
+   worksheet artifacts (`tex/*/.build-hash`, PDFs, `.aux`, `.bbl`,
+   `content/modules`, `public/downloads`) under `worksheets-<sha>` with
    `restore-keys: worksheets-` — the key never hits, so the newest entry is
    always restored and rewritten. Only cache entries saved on main are visible
    to other branches; entries expire after 7 idle days.
-7. `npm run ci` with `NEXT_PUBLIC_BASE_PATH`, `NEXT_PUBLIC_PREVIEW_PR`,
+5. **Plan**: `scripts/build-plan.mjs` (Node built-ins only, via
+   `scripts/worksheet-cache.mjs`, the build's own cache check) outputs `tex=true`
+   when some uncached sheet has a `main.tex`, a LaTeX deck or a `fig/*.pdf`.
+6. **TeX Live + poppler, in the background**, only when the plan says so:
+   `.github/install-tex.sh` (`apt-packages.txt` is the one package list;
+   `setup.sh` mirrors it). Warm path = `dpkg -i` from the cached `.deb`s, no
+   mirror contact, gated on a `manifest` written only after a successful
+   install. Cold path = real `apt-get` with `timeout 300`/`600` because a
+   trickling Ubuntu mirror once ate the whole job budget six builds in a row.
+   A `dpkg-divert`ed `/usr/bin/fmtutil` wrapper turns the trigger's `--all`
+   (16 formats, ~34 s) into `--byfmt=pdflatex`; the script fails if
+   `pdflatex.fmt` is missing afterwards. Runs with `nohup … &`, writing
+   `$RUNNER_TEMP/tex.status` and `tex.log`; the Build step waits (≤900 s),
+   prints the log in a group and fails on a non-zero status.
+7. Typst: `~/.local/bin/typst` cached on `hashFiles('scripts/install-typst.sh')`,
+   installed by that script (pinned version, sha256-checked). Then `npm ci`
+   twice (root and `scripts/tex2mdx`) — both overlapping the TeX install.
+8. `npm run ci` with `NEXT_PUBLIC_BASE_PATH`, `NEXT_PUBLIC_PREVIEW_PR`,
    `NEXT_PUBLIC_PREVIEW_PR_TITLE`, `NEXT_PUBLIC_COMMIT_SHA`, plus
-   `PREVIEW_CHANGED_SLUGS` and `PREVIEW_FULL` — the same script `./run.sh ci`
-   runs. `package.json`'s `ci` must keep an **empty** default for the base
+   `PREVIEW_CHANGED_SLUGS`, `PREVIEW_FULL`, `NOTEBOOK_PREVIEW_PR`/`_SLUGS`,
+   `TEX_INSTALLED` (the plan's answer) and `SKIP_OVERFLOW_CHECK=1` — the same
+   script `./run.sh ci` runs, minus the overflow check. `package.json`'s `ci` must keep an **empty** default for the base
    path: `${VAR:-x}` fires on empty too and would re-prefix production.
    The ladder ends with `scripts/prune-preview.mjs`: on a partial preview it
    deletes the unchanged worksheets' `downloads/` and `uploads/` from `out/`
    (their pages were never rendered — `listSlugs` filtered them) and writes
    `out/preview-manifest.json`; a production build or a full preview passes
-   through. `check-overflow` skips pages absent from `out/`.
-8. Guard `out/index.html`, `touch out/.nojekyll`, upload artifact `site`
-   (hidden files included, 1-day retention).
+   through.
+9. Guard `out/index.html`, `touch out/.nojekyll`, upload artifact `site`
+   (hidden files included, 1-day retention) and `content-index`
+   (`content/index.json`, for the overflow job).
+
+**`overflow`** (after `build`, beside `deploy`/`preview-deploy`): checkout, Node,
+`npm ci`, download both artifacts, `scripts/check-overflow.mjs` in headless Chrome.
+Advisory and never red (`|| echo`), as it was inside `npm run ci`; it skips pages
+absent from `out/` (partial previews).
 
 **`deploy`** (push to main): download `site`, guard, checkout `gh-pages` into
 `.deploy`, `find .deploy -mindepth 1 -maxdepth 1 ! -name .git ! -name pr-preview -exec rm -rf`,
@@ -137,7 +156,9 @@ from `site.yml` so neither build triggers the other.
   `notebooks-pr-<N>`. **Weekly** → `sweep` deletes those of closed PRs.
 - Checkout uses LFS: `support/` binaries (D.2's `sprites.png`) are published as files.
 - `site.yml` passes `NOTEBOOK_PREVIEW_PR` to a same-repo PR's build, so its notebook
-  links (web and PDF) open that PR's notebooks. The notebook images come from the
+  links (web and PDF) open that PR's notebooks — for the modules in
+  `NOTEBOOK_PREVIEW_SLUGS` (the ones it touches); other sheets link production's, so
+  they keep production's cached build. The notebook images come from the
   site preview (`/pr-preview/pr-<N>/uploads/<slug>/nb/`), which `prune-preview.mjs`
   keeps for every module, touched or not.
 
@@ -232,7 +253,9 @@ python3 -m http.server 4499 --directory out
 | production not updated after merge | `gh run list --workflow site --branch main`; check the `deploy` job, and whether a `gh-pages-write` writer ahead of it failed. `/admin/status` also shows "N commits behind main" from the browser |
 | preview 404s on assets/links | base path not applied somewhere render-time — see the `site-rendering` skill; or `.nojekyll` missing (Jekyll drops `_next/`) |
 | preview of a closed PR still live | wait for Monday's sweep or `gh workflow run site.yml` |
-| apt step stalls or fails | Ubuntu mirror incident; re-run. If `apt-packages.txt` changed, the first run is cold by design |
+| apt step stalls or fails | the log is in the Build step's "TeX Live + poppler" group. Ubuntu mirror incident; re-run. If `apt-packages.txt` changed, the first run is cold by design |
+| "needs TeX Live, which this CI run skipped installing" | `build-plan.mjs` and the build disagreed about a sheet's cache; compare the Plan step's list with the build's. Both use `scripts/worksheet-cache.mjs`, so look for an input one of them reads differently (env, a file restored late) |
+| a sheet fails on a missing format (`lualatex.fmt`, …) | CI builds only `pdflatex.fmt`: extend the fmtutil wrapper in `.github/install-tex.sh` |
 | a day nobody touched recompiles | cache miss: `worksheets-` entry expired (7 days idle) or the hash inputs changed (converter, `iliad.sty`, `build-content.mjs`) |
 | `git push` rejected locally | the pre-push hook ran the ladder; fix the printed error, or `--no-verify` after `git lfs push` |
 | a notebook link 404s in Colab | `notebooks` run for that push/PR (`gh run list --workflow notebooks`); `gh api repos/iliad-team/iliad-intensive/git/trees/<notebooks or notebooks-pr-N>?recursive=1` shows what is published |

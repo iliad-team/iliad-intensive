@@ -39,23 +39,20 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { availableParallelism } from "node:os";
-import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync, copyFileSync, rmSync } from "node:fs";
 import YAML from "yaml";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { injectAutoLabelsTree } from "./tex2mdx/autolabel.mjs";
 import { transformInputTree } from "./tex2mdx/texinput.mjs";
 import { frontMatterOrderIssues } from "./tex2mdx/util.mjs";
 import { lintFile as houseLintFile, trackedFiles } from "./house-lint.mjs";
 import { buildStatus } from "./build-status.mjs";
 import { loadSchedule, ScheduleError } from "./schedule.mjs";
+import {
+  ROOT, TEX, MODULES, UPLOADS, DOWNLOADS, allWorksheets, deckSources, notebookMasters,
+  nbBranchFor, nbBranchForSheet, colabUrl, worksheetHash, cacheHit, needsTex,
+} from "./worksheet-cache.mjs";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const TEX = path.join(ROOT, "tex");
-const MODULES = path.join(ROOT, "content", "modules");
-const UPLOADS = path.join(ROOT, "public", "uploads");
-const DOWNLOADS = path.join(ROOT, "public", "downloads");
 const CONVERTER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx.mjs");
 const CHECKER = path.join(ROOT, "scripts", "tex2mdx", "tex2mdx-check.mjs");
 // Generated MDX is host-agnostic: figure URLs are plain /uploads/… paths.
@@ -88,13 +85,6 @@ for (let i = 0; i < args.length; i++) {
   wanted.push(args[i]);
 }
 
-// A worksheet is authored either in LaTeX (main.tex — converted to MDX) or
-// directly in MDX (main.mdx — served as-is; a web page only, never a PDF). tex wins if
-// a folder somehow has both.
-const allWorksheets = readdirSync(TEX, { withFileTypes: true })
-  .filter((d) => d.isDirectory()
-    && (existsSync(path.join(TEX, d.name, "main.tex")) || existsSync(path.join(TEX, d.name, "main.mdx"))))
-  .map((d) => d.name);
 for (const w of wanted) {
   if (!allWorksheets.includes(w)) {
     console.error(`no such worksheet: tex/${w}/ needs a main.tex or main.mdx — available: ${allWorksheets.join(", ")}`);
@@ -258,13 +248,6 @@ const NO_CACHE = args.includes("--no-cache");
 //   two summaries for one rebuild is one too many.
 const QUIET = args.includes("--quiet");
 
-// Artifacts share tex/<slug>/ with sources, so top-level generated files are
-// excluded by extension (fig/ is all source, including its .pdf figures, and is
-// hashed whole). Anything not listed here counts as an input by default.
-// vrb (beamer verbatim), bcf + run.xml (biber), brf (hyperref backref): each
-// is written on a deck's or sheet's FIRST build, so leaving one out cost that
-// sheet one needless rebuild on the run after every cold build.
-const ARTIFACT_EXT = /\.(pdf|aux|log|out|toc|nav|snm|vrb|bbl|blg|bcf|run\.xml|brf|fls|fdb_latexmk|synctex\.gz)$/i;
 // Overfull \hbox reports in a worksheet's main.log, attributed to source
 // file:line. TeX names only the line; the file comes from the log's
 // parenthesised open/close trail, walked with a stack after re-joining the
@@ -289,98 +272,16 @@ function overfullBoxes(logPath) {
   return out;
 }
 
-const ARTIFACT_NAME = new Set(["main.autolabel.tex", "main-nosol.tex", "main-nosol.mdx", ".build-hash"]);
-// Generated files the build writes INSIDE subdirectories, which are otherwise
-// hashed whole. Two steps do this: autolabel writes sections/<name>.autolabel.tex
-// beside each section source, and minted writes _minted/ + _minted-slides/
-// caches whose index file carries a build timestamp. Hashing them made a build
-// change its own inputs: the stamp records the pre-build hash, the tree no
-// longer matches it afterwards, so every sectioned sheet rebuilt a second time
-// after a cold build and any minted deck rebuilt on EVERY run (measured:
-// intro-to-ml-engineering, 8-17s per push, forever). Excluded at every depth.
-const GENERATED_DIR = /^_minted/;
-const GENERATED_FILE = /\.autolabel\.tex$/;
-
-// The decks a worksheet folder ships. `slides.tex` is the deck every folder has
-// had so far; a day with more than one lecture adds `slides-<label>.tex` beside
-// it (label: lowercase letters, digits, hyphens). Each compiles and is staged on
-// its own as <slug>-<stem>.pdf + its source, and the page shows one Slides row
-// per deck: slides.tex first, then the rest in filename order — that order is
-// the only sequencing there is, so name a second deck with it in mind. A stem
-// may not end in -handout: that suffix belongs to the collapsed build, and
-// slides-foo-handout.pdf has to mean "the handout of slides-foo".
-//
-// A deck is LaTeX (.tex, the pdflatex ladder below) or Typst (.typ, one
-// `typst compile`); the stem is what names it, so slides.tex and slides.typ in
-// one folder is a clash the build refuses rather than picks between.
-const DECK_RE = /^(slides(?:-[a-z0-9][a-z0-9-]*)?)\.(tex|typ)$/;
-const deckSources = (dir) => {
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir)
-    .map((f) => DECK_RE.exec(f))
-    .filter((m) => m && !m[1].endsWith("-handout"))
-    .map((m) => ({ file: m[0], stem: m[1], ext: m[2] }))
-    .sort((a, b) => (a.stem === "slides" ? -1 : b.stem === "slides" ? 1 : a.stem.localeCompare(b.stem)));
-};
-
 // Typst: a single static binary, pinned + checksum-verified by
 // scripts/install-typst.sh (CI runs it; so does ./setup.sh). Override the
 // binary with TYPST=/path/to/typst.
 const TYPST = process.env.TYPST ?? "typst";
 
-// ------------------------------- notebooks ----------------------------------
-// A .py directly in tex/<slug>/ whose first line starts with "# ! " is a Colab
-// notebook master (docs/NOTEBOOKS.md). tex/gen_notebooks.py builds the notebooks
-// and .github/workflows/notebooks.yml publishes them; this script never does.
-// Masters matter here three ways:
-//   1. they are not worksheet inputs, so worksheetHash skips them (and the local
-//      .ipynb, sync stamps, trash and support/ that go with them) — a notebook
-//      edit never recompiles a PDF;
-//   2. \notebooksol{name} / \notebooknosol{name}, and <NotebookSol name="…"/> /
-//      <NotebookNoSol name="…"/> in an MDX sheet, resolve here to the notebook's
-//      Colab URL, and a name with no master is a build error;
-//   3. the fig/ images they show are staged under /uploads/<slug>/nb/, which is
-//      where the published notebooks link them.
-// COLAB_URL must match COLAB_URL in tex/gen_notebooks.py.
-//
-// A PR preview links the PR's own notebooks: .github/workflows/notebooks.yml
-// publishes them to the PR's own `notebooks-pr-<N>` branch (never to
-// `notebooks`, which only main writes), and site.yml sets NOTEBOOK_PREVIEW_PR for
-// the preview build (same-repo PRs only — a fork's PR gets no notebook preview,
-// so its site preview links production's).
-const NB_BRANCH = /^\d+$/.test(process.env.NOTEBOOK_PREVIEW_PR ?? "")
-  ? `notebooks-pr-${process.env.NOTEBOOK_PREVIEW_PR}` : "notebooks";
-const COLAB_URL = (slug, name, kind) =>
-  `https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/${NB_BRANCH}/${slug}/${name}_${kind}.ipynb`;
-// Does any of a module's sources link a notebook? Then NB_BRANCH is an input to its build.
-const NB_LINK = /\\notebook(?:no)?sol\b|<Notebook(?:No)?Sol\b/;
-const linksNotebooks = (dir) => readdirSync(dir, { withFileTypes: true }).some((e) =>
-  e.isDirectory()
-    ? !/^(\.|_minted|node_modules$|support$)/.test(e.name) && !e.isSymbolicLink() && linksNotebooks(path.join(dir, e.name))
-    : /\.(tex|mdx)$/.test(e.name) && NB_LINK.test(readFileSync(path.join(dir, e.name), "utf8")));
-const isMaster = (p) => {
-  if (!p.endsWith(".py")) return false;
-  try { return readFileSync(p, "utf8").startsWith("# ! "); } catch { return false; }
-};
-const notebookMasters = (slug) => {
-  const dir = path.join(TEX, slug);
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir).filter((f) => isMaster(path.join(dir, f))).map((f) => f.slice(0, -3)).sort();
-};
-// Every master in the repo as "<slug>/<name>", computed once per build.
-let ALL_MASTERS = null;
-const allNotebookMasters = () => (ALL_MASTERS ??= readdirSync(TEX, { withFileTypes: true })
-  .filter((d) => d.isDirectory())
-  .flatMap((d) => notebookMasters(d.name).map((n) => `${d.name}/${n}`)).sort());
-// The notebook side of a module folder, which the worksheet build ignores.
-const isNotebookFile = (dir, e) =>
-  e.name === "support" || e.name === ".trash" || /\.ipynb$/.test(e.name) || /^\..+\.sync$/.test(e.name)
-  || /\.from-notebook\.py$/.test(e.name) || (e.isFile() && isMaster(path.join(dir, e.name)));
-
 const NOTEBOOK_TAG = /<Notebook(Sol|NoSol)\s+name\s*=\s*"([^"]*)"\s*(?:\/>|>([\s\S]*?)<\/Notebook\1\s*>)/g;
 /** Replace notebook links in a built MDX page with plain Colab links. Returns the errors. */
 const resolveNotebookLinks = (mdxOut, slug) => {
   const raw = readFileSync(mdxOut, "utf8");
+  const branch = nbBranchForSheet(slug);
   const errors = [];
   const out = raw.replace(NOTEBOOK_TAG, (m, kind, ref, text) => {
     const [owner, name] = ref.includes("/") ? ref.split("/", 2) : [slug, ref];
@@ -390,7 +291,7 @@ const resolveNotebookLinks = (mdxOut, slug) => {
       return m;
     }
     const label = (text ?? "").trim() || (k === "sol" ? "Open in Colab (solutions)" : "Open in Colab");
-    return `[${label}](${COLAB_URL(owner, name, k)})`;
+    return `[${label}](${colabUrl(branch, owner, name, k)})`;
   });
   if (out !== raw) writeFileSync(mdxOut, out);
   return errors;
@@ -409,58 +310,6 @@ const stageNotebookImages = (slug) => {
       copyFileSync(from, path.join(up, m[1]));
     }
   }
-};
-
-const hashPath = (h, p) => {
-  if (!existsSync(p)) return;
-  h.update(path.basename(p));
-  h.update(readFileSync(p));
-};
-function hashDir(h, root, all = false) {
-  if (!existsSync(root)) return;
-  for (const e of readdirSync(root, { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
-    // node_modules is a symlink in every worktree (new-worktree.sh) and is
-    // pinned by the lockfiles anyway — never walk it.
-    if (e.name === "node_modules" || e.isSymbolicLink()) continue;
-    if (!all && (ARTIFACT_NAME.has(e.name) || ARTIFACT_EXT.test(e.name))) continue;
-    if (!all && isNotebookFile(root, e)) continue;
-    if (e.isDirectory() ? GENERATED_DIR.test(e.name) : GENERATED_FILE.test(e.name)) continue;
-    const p = path.join(root, e.name);
-    h.update(e.name);
-    if (e.isDirectory()) hashDir(h, p, true);
-    else h.update(readFileSync(p));
-  }
-}
-
-const worksheetHash = (slug) => {
-  const h = createHash("sha256");
-  hashDir(h, path.join(TEX, slug));                    // the sheet's own sources
-  hashPath(h, path.join(TEX, "iliad.sty"));            // shared worksheet contract
-  hashPath(h, path.join(TEX, "alphaurl.bst"));         // vendored bibliography style
-  // A sheet that links notebooks depends on which notebooks exist ANYWHERE: its
-  // \notebooksol{name} or {other-slug/name} is checked against them. So renaming
-  // or deleting a master re-checks every sheet that links one, in any module. And
-  // a preview build links the PR's notebooks, production its own, so the two never
-  // share such a sheet's cached page. Sheets without notebook links hash neither.
-  if (linksNotebooks(path.join(TEX, slug))) {
-    h.update(`notebooks:${allNotebookMasters().join(",")}`);
-    h.update(`nb-branch:${NB_BRANCH}`);
-  }
-  // Only the scripts that can change a worksheet's ARTIFACTS. Hashing the whole
-  // scripts/ tree was safe but far too wide: build-status.mjs writes nothing but
-  // content/status.json, and preview.mjs / watch.mjs write nothing at all, yet
-  // touching any of them recompiled every PDF — measured at 66.6s for a change
-  // that could not alter a single byte of output.
-  hashPath(h, path.join(ROOT, "scripts", "build-content.mjs"));  // this ladder
-  hashPath(h, path.join(ROOT, "scripts", "schedule.mjs"));       // reads the schedule
-  hashDir(h, path.join(ROOT, "scripts", "tex2mdx"), true);       // the converter
-  // schedule.yaml is deliberately NOT hashed. Where a sheet sits in the course
-  // decides two frontmatter lines and nothing else — no PDF, no prose, no
-  // figure. Hashing it meant adding one day to the curriculum recompiled all
-  // eleven PDF ladders (66.6s measured). The stamp is verified against the
-  // schedule on every cache hit instead, and rewritten in place if it moved,
-  // which costs about a millisecond and cannot go stale.
-  return h.digest("hex");
 };
 
 // The two frontmatter lines stampSchedule() owns, as they appear in a built MDX.
@@ -501,34 +350,6 @@ const restampIfMoved = (slug) => {
   return true;
 };
 
-// A skip is only safe if everything downstream is already present. That includes
-// the figures: public/uploads belongs to the separate diagram cache, so if that
-// one missed while this one hit, a skipped worksheet would ship broken images.
-// Checking the uploads the cached MDX actually references closes that gap.
-const outputsPresent = (slug) => {
-  const dl = path.join(DOWNLOADS, slug);
-  const mdx = path.join(MODULES, `${slug}.mdx`);
-  // Mirror exactly what step 5 stages, or a sheet becomes permanently
-  // uncacheable. An MDX-authored sheet is a web page and builds no PDF or .tex
-  // at all, so only the two .mdx downloads are guaranteed for it.
-  const need = [mdx, path.join(dl, `${slug}.mdx`), path.join(dl, `${slug}-nosol.mdx`)];
-  if (existsSync(path.join(TEX, slug, "main.tex"))) {
-    need.push(path.join(dl, `${slug}.pdf`), path.join(dl, `${slug}-nosol.pdf`),
-              path.join(dl, `${slug}.tex`), path.join(dl, `${slug}-nosol.tex`));
-  }
-  for (const d of deckSources(path.join(TEX, slug))) need.push(path.join(dl, `${slug}-${d.stem}.pdf`));
-  if (!need.every(existsSync)) return false;
-  // Anchored on the slug, because this build only ever writes figures to
-  // public/uploads/<slug>/. A bare /uploads/ match would also hit external URLs
-  // that happen to contain that segment (ai-alignment-intro cites one), and the
-  // worksheet would then never be cacheable.
-  const refs = new RegExp(`/uploads/${slug}/([^\\s"')]+)`, "g");
-  for (const m of readFileSync(mdx, "utf8").matchAll(refs)) {
-    if (!existsSync(path.join(UPLOADS, slug, decodeURIComponent(m[1])))) return false;
-  }
-  return true;
-};
-
 /** Build one worksheet. Returns { ok, text } — text is the complete,
  *  atomically printable log block for this slug. */
 let tracked;
@@ -564,9 +385,7 @@ async function buildSlug(slug) {
   // Cache check. Only for full builds — --check is converter + gate only, cheap
   // already, and produces none of the artifacts outputsPresent() looks for.
   const inputHash = CHECK_ONLY ? null : worksheetHash(slug);
-  if (inputHash && !NO_CACHE && existsSync(stamp)
-      && readFileSync(stamp, "utf8").trim() === inputHash
-      && outputsPresent(slug)) {
+  if (inputHash && !NO_CACHE && cacheHit(slug, inputHash)) {
     // schedule.yaml is not an input to the hash, so a sheet that has been moved
     // to another day still needs its two stamped lines corrected. Cheap, and it
     // is what keeps the narrower hash honest.
@@ -576,6 +395,15 @@ async function buildSlug(slug) {
       cached: true,
       text: moved ? `↷ ${slug} cached — re-stamped for schedule\n` : "",
     };
+  }
+  // CI installs TeX Live only when scripts/build-plan.mjs says some sheet will
+  // need it, and tells this build so (TEX_INSTALLED=false). Plan and build share
+  // worksheet-cache.mjs, so they should never disagree — but if they do, say so
+  // here, rather than letting the first pdflatex call fail as "PDF build failed".
+  if (!CHECK_ONLY && process.env.TEX_INSTALLED === "false" && needsTex(slug)) {
+    return done(false, "needs TeX Live, which this CI run skipped installing: scripts/build-plan.mjs " +
+      "judged every TeX sheet cached, but this one is not — the plan and the build disagree " +
+      "(scripts/worksheet-cache.mjs)");
   }
   // House-style lint (scripts/house-lint.mjs): the pattern-level checks the
   // converter does not make — hand-typed Hint:/Remark. lead-ins, references
@@ -607,10 +435,11 @@ async function buildSlug(slug) {
   // finds this module's notebooks. The last
   // argument is a file, or already TeX code (a handout deck's
   // "\def\HANDOUT{}\input{slides}"), which the definition just goes in front of.
+  const nbBranch = nbBranchForSheet(slug);
   const tex = (...argv) => {
     if (argv[0] === "pdflatex") {
       const src = argv.at(-1);
-      argv = [...argv.slice(0, -1), `\\def\\iliadslug{${slug}}\\def\\iliadnbbranch{${NB_BRANCH}}`
+      argv = [...argv.slice(0, -1), `\\def\\iliadslug{${slug}}\\def\\iliadnbbranch{${nbBranch}}`
         + (src.startsWith("\\") ? src : `\\input{${src}}`)];
     }
     return exec(argv[0], argv.slice(1), {
@@ -1051,8 +880,8 @@ await Promise.all(Array.from({ length: Math.min(JOBS, slugs.length) }, worker));
     if (names.length) all[slug] = names.map((name) => ({
       name,
       title: nbTitle(readFileSync(path.join(TEX, slug, `${name}.py`), "utf8")),
-      nosol: COLAB_URL(slug, name, "nosol"),
-      sol: COLAB_URL(slug, name, "sol"),
+      nosol: colabUrl(nbBranchFor(slug), slug, name, "nosol"),
+      sol: colabUrl(nbBranchFor(slug), slug, name, "sol"),
     }));
   }
   writeFileSync(path.join(ROOT, "content", "notebooks.json"), JSON.stringify(all, null, 2) + "\n");
