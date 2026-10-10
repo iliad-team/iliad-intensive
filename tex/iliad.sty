@@ -175,6 +175,20 @@
 \newtheorem{definition}[theorem]{Definition}
 \newtheorem{example}[theorem]{Example}
 
+% On LaTeX >= 2024-11-01, hyperref no longer calls \H@refstepcounter, where
+% cleveref (2018) sets a theorem's label type. The kernel's cleveref first aid
+% instead recomputes the type at every \label from \@currentcounter, which for
+% this family is the shared "theorem" counter: \cref to a definition printed
+% "Theorem 2.4", on the PDF and, via the .aux, on the web. Older TeX was not
+% affected. The first aid honours \crefalias, so inside each environment alias
+% the shared counter to the environment's own name.
+\crefname{fact}{Fact}{Facts}
+\Crefname{fact}{Fact}{Facts}
+\@for\iliad@thm:={lemma,proposition,corollary,fact,definition,example}\do{%
+  \edef\iliad@tmp{\noexpand\AddToHook{env/\iliad@thm/begin}%
+    {\noexpand\crefalias{theorem}{\iliad@thm}}}%
+  \iliad@tmp}
+
 % Colours mirror the web components each environment converts to: the
 % theorem/lemma/proposition/corollary family is one violet box there (no
 % per-kind shade), fact and remark render as the blue note callout, and
