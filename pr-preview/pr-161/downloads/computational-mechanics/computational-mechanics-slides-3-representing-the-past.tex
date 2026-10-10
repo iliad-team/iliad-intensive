@@ -1,0 +1,1000 @@
+%--- iliad ---
+% title: 3. Representing the past
+%--- end ---
+% Part 3: representing the past (working title).
+% Build from this directory: make pt3
+% In progress: motivation, HMM intuition, cave, and formal definition.
+% Target a lecture comparable in length to Part 2. Students have completed
+% the Part 2 generator exercises. A reading session on Shai et al. follows.
+\documentclass[aspectratio=169,12pt,t]{beamer}
+\usepackage{compmech-slides}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,shapes.geometric,fit}
+\graphicspath{{fig/}}
+% Factor colours carried over from the original HMM slides.
+\definecolor{hmmInitial}{RGB}{253,246,124}
+\definecolor{hmmFirst}{RGB}{150,235,150}
+\definecolor{hmmSecond}{RGB}{142,233,246}
+\definecolor{hmmLast}{RGB}{250,206,152}
+\definecolor{hmmSum}{RGB}{248,132,132}
+\newcommand{\hmmfactor}[2]{\colorbox{#1}{\ensuremath{#2}}}
+\title{Computational Mechanics}
+\subtitle{3. Representing the past}
+\institute{ILIAD Intensive}
+\date{Autumn 2026}
+\author{Xavier Poncini (Simplex)}
+
+\begin{document}
+\iliadtitle
+
+\begin{frame}{Outline}
+  \vspace{5mm}
+  \begin{enumerate}
+    \setlength{\itemsep}{4mm}
+    \item Hidden Markov models
+    \item Belief states and next-token prediction
+    \item Sufficient statistics
+    \item Generalised HMMs and minimal-dimensional realisations
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{What is a hidden Markov model?}
+  \setlength{\parskip}{0pt}
+  \vfill
+  Intuitively, a \textbf{hidden Markov model} (HMM) is a stochastic process
+  that consists of two components:
+
+  \vspace{5mm}
+  \begin{itemize}
+    \setlength{\itemsep}{5mm}
+    \item A \textbf{hidden}, unobserved component that evolves according to
+      a \textbf{Markovian dynamic}.
+    \item An \textbf{observed} component that provides a possibly lossy view
+      of the hidden dynamic.
+  \end{itemize}
+  \vfill
+
+  \note{This restores the intuitive two-component introduction from slide 3
+  of the old Part 2 deck. The cave illustration will follow, then the formal
+  Mealy-type definition, word probabilities, and examples.
+  The later formal definition specifies a joint distribution over the next
+  emitted symbol and destination state conditional on the current state.
+  The two components described here need not be conditionally independent.
+  Hidden means not directly observed; observations may nevertheless allow
+  the current hidden state to be inferred exactly.}
+\end{frame}
+
+\begin{frame}
+  \vspace*{6mm}
+  \vfill
+  {\centering\evidenceimage[57mm]{hmm-cave.png}\par}
+  \vfill
+
+  \note{Original labelled Plato's cave illustration from the old Part 2
+  deck, slide 4. The image is copied without modification, retaining its
+  Hidden Dynamic and Observations labels. Use the illustration to connect
+  the hidden dynamics to what an observer can see: the observations may
+  discard distinctions in the underlying state. This is an analogy for
+  partial observation, rather than a specification of the Markov property.
+  The formal Mealy-type definition follows on the next slide.}
+\end{frame}
+
+\begin{frame}
+  \vspace*{6mm}
+  \setlength{\parskip}{0pt}
+  \setlength{\abovedisplayskip}{4pt}
+  \setlength{\belowdisplayskip}{4pt}
+  A \textbf{Mealy-type} (edge-emitting) HMM consists of:
+
+  \vspace{2mm}
+  \begin{itemize}
+    \setlength{\itemsep}{1mm}
+    \item A finite set $S$ of \textbf{hidden states}.
+    \item A finite alphabet $\mathcal X$ of \textbf{observed symbols}.
+    \item A collection of $|S|\times |S|$ \textbf{transition matrices}
+      $(T^{(a)})_{a\in\mathcal X}$.
+    \item An \textbf{initial distribution} $\eta^{(\emptyset)}$ over $S$.
+  \end{itemize}
+
+  \vspace{2mm}
+  The matrices specify the joint emission and state transition probabilities:
+  \[
+    T^{(a)}_{ij}
+      :=\Pr\!\left(X=a,\ S'=j\mid S=i\right).
+  \]
+  \par\vspace{3mm}
+  We can conveniently represent these transitions with labelled diagrams:
+
+  \vfill
+  {\centering
+    \begin{tikzpicture}[
+      every node/.style={text=iliadInk,font=\normalsize},
+      state/.style={circle,draw=iliadAccent,line width=0.9pt,
+        fill=iliadAccent!7,minimum size=9mm,inner sep=1pt},
+      flow/.style={-{Stealth[length=2.2mm]},draw=iliadAccent,line width=0.9pt}
+    ]
+      \node[state] (i) at (0,0) {$i$};
+      \node[state] (j) at (3,0) {$j$};
+      \draw[flow] (i) -- node[above] {$a:p$} (j);
+      \node[anchor=west] at (4,0) {$p=T^{(a)}_{ij}$};
+    \end{tikzpicture}\par}
+  \vfill
+
+  \source{Moore-type HMMs emit from states; Mealy-type HMMs emit on
+  transitions. They describe the same processes, but may require different
+  numbers of hidden states.}
+
+  \note{Adapted from the formal definition on slide 5 of the original
+  Part 2 deck. State labels use i,j. In the displayed conditional,
+  S and S' denote the current and next hidden-state random variables,
+  and X denotes the symbol emitted on that transition. The unprimed S
+  also names the state set in the opening list; context distinguishes
+  the set from the random variable. In time-indexed notation, S_t is
+  the state after X_{1:t}, before the transition emitting X_{t+1}.
+  Rows index source states and columns index destination states. The
+  time-homogeneous joint transition law is independent of the earlier
+  history conditional on S_t. Emission and destination need not be
+  conditionally independent of each other.
+
+  Each symbol matrix is nonnegative and substochastic; their sum is a
+  row-stochastic matrix. The normalization condition sums over both symbols
+  and destinations. The initial distribution is a stochastic row vector
+  and need not be stationary. It is included here to specify the model
+  completely; the following slide develops its role in word probabilities.
+  An edge labelled a:p emits a and moves to the indicated state with
+  joint probability p.
+
+  Footnote source: Travers and Crutchfield, Equivalence of History and
+  Generator Epsilon-Machines, Section II,
+  \url{https://csc.ucdavis.edu/~cmg/papers/hgem.pdf}.}
+\end{frame}
+
+\begin{frame}
+  \vspace*{6mm}
+  \setlength{\parskip}{0pt}
+  \setlength{\abovedisplayskip}{3pt}
+  \setlength{\belowdisplayskip}{3pt}
+  \setlength{\fboxsep}{1pt}
+  Fix an initial distribution over hidden states, written as a row vector:
+  \[
+    \eta^{(\emptyset)}_i
+      :=\Pr(S_0=i),\qquad i\in S.
+  \]
+
+  \vfill
+  The probability of observing $x_{1:n}\in\mathcal X^n$ is given by:
+  \[
+    \begin{aligned}
+      \Pr(X_{1:n}=x_{1:n})
+        &=\sum\nolimits_{i_0,\ldots,\colorbox{hmmSum}{$\scriptstyle i_n$}\in S}
+          \hmmfactor{hmmInitial}{\Pr(S_0=i_0)}\\[1mm]
+        &\quad\times\hmmfactor{hmmFirst}{\Pr(X_1=x_1,S_1=i_1\mid S_0=i_0)}\\[1mm]
+        &\quad\times\hmmfactor{hmmSecond}{\Pr(X_2=x_2,S_2=i_2\mid S_1=i_1)}\cdots\\[1mm]
+        &\quad\times\hmmfactor{hmmLast}{\Pr(X_n=x_n,S_n=i_n\mid S_{n-1}=i_{n-1})}.
+    \end{aligned}
+  \]
+
+  \vfill
+  Matrix multiplication performs these sums over hidden states:
+  \[
+    \Pr(X_{1:n}=x_{1:n})
+      =\hmmfactor{hmmInitial}{\eta^{(\emptyset)}}\,
+       \hmmfactor{hmmFirst}{T^{(x_1)}}\,
+       \hmmfactor{hmmSecond}{T^{(x_2)}}\cdots
+       \hmmfactor{hmmLast}{T^{(x_n)}}\,
+       \hmmfactor{hmmSum}{\mathbf1^\top}.
+  \]
+  \par\vspace{2mm}
+  Here $\mathbf1$ is the $|S|$-dimensional row vector of ones.
+
+  \vfill
+  \textbf{Key point:} probabilities are generated by a linear dynamic!
+  \vfill
+
+  \note{Adapted from slide 6 of the old Part 2 deck, using the sequence
+  notation and matching factor highlights from the original HMM slides:
+  yellow initial distribution, green first transition, cyan second
+  transition, orange final transition, and red terminal summation vector.
+  We use the sequence
+  notation from the current Part 2. Pr(a,j|i) is shorthand for Pr(X=a,S'=j|S=i)
+  from the preceding slide. S_0 denotes the initial state before any
+  observations. Hidden states are labelled directly by i, not s_i.
+
+  Conditional on each current hidden state, the next emission and
+  destination are independent of earlier history. This gives the product
+  for each hidden path; marginalizing over all paths gives the word law.
+  Matrix multiplication sums over intermediate states, and the final
+  column vector $\mathbf1^\top$ sums over the destination. The j-th component of the
+  unnormalized row vector is Pr(X_{1:n}=x_{1:n},S_n=j), a joint probability,
+  not yet the posterior conditioned on x_{1:n}. This observation prepares the
+  later belief-state definition. No stationarity assumption is required.}
+\end{frame}
+
+\begin{frame}
+  \vspace*{6mm}
+  \setlength{\parskip}{0pt}
+  \textbf{Example 1: Biased coin}
+
+  \vspace{2mm}
+  Each observation is an independent coin toss, with
+  $\Pr(X_t=1)=p$, where $0<p<1$.
+  \[
+    S=\{0\},\qquad\mathcal X=\{0,1\},\qquad
+    \eta^{(\emptyset)}=\begin{bmatrix}1\end{bmatrix}.
+  \]
+  \vfill
+  {\centering
+  \begin{tikzpicture}[
+    every node/.style={text=iliadInk,font=\normalsize},
+    state/.style={circle,draw=iliadAccent,line width=0.9pt,
+      fill=iliadAccent!7,minimum size=10mm,inner sep=1pt},
+    flow/.style={-{Stealth[length=2.2mm]},draw=iliadAccent,line width=0.9pt}
+  ]
+    \node[state] (coin) at (0,0) {$0$};
+    \draw[flow] (coin.north west)
+      .. controls +(-1.8,1.1) and +(-1.8,-1.1) ..
+      node[left] {$0:1-p$} (coin.south west);
+    \draw[flow] (coin.south east)
+      .. controls +(1.8,-1.1) and +(1.8,1.1) ..
+      node[right] {$1:p$} (coin.north east);
+  \end{tikzpicture}\par}
+  \vfill
+  {\small
+    \textbf{Example output:} $\mathtt{1011001010\ldots}$\par}
+  \[
+    T^{(0)}=\begin{bmatrix}1-p\end{bmatrix},
+    \qquad
+    T^{(1)}=\begin{bmatrix}p\end{bmatrix}.
+  \]
+  \vfill
+  \note{First example from slide 7 of the old HMM deck. The single
+  hidden state is labelled 0, following the direct state-label convention.
+  State labels and emission symbols are separate objects despite sharing
+  a glyph. These are one-by-one matrices. Their product gives the usual
+  Bernoulli sequence probability. The displayed output is one illustrative
+  finite sample. This revisits the IID example from Part 2.}
+\end{frame}
+
+\begin{frame}
+  \vspace*{6mm}
+  \setlength{\parskip}{0pt}
+  \setlength{\abovedisplayskip}{4pt}
+  \setlength{\belowdisplayskip}{4pt}
+  \textbf{Example 2: Zero--One--Random}
+
+  \vspace{2mm}
+  The generator cycles through three phases: emit $0$, emit $1$, then
+  emit a random symbol with $\Pr(1)=p$, where $0<p<1$.
+  \[
+    S=\{0,1,R\},\qquad \mathcal X=\{0,1\},\qquad
+    \eta^{(\emptyset)}=\begin{bmatrix}\tfrac13&\tfrac13&\tfrac13\end{bmatrix}.
+  \]
+
+  \vfill
+  {\centering\input{figures/z1r-generator.tex}\par}
+  \vfill
+  {\small
+    \textbf{Example output:} $\mathtt{011\,010\,011\,011\ldots}$
+    (starting in phase $0$).\quad State order: $(0,1,R)$.\par}
+  \[
+    T^{(0)}=\begin{bmatrix}
+      0&1&0\\
+      0&0&0\\
+      1-p&0&0
+    \end{bmatrix},
+    \qquad
+    T^{(1)}=\begin{bmatrix}
+      0&0&0\\
+      0&0&1\\
+      p&0&0
+    \end{bmatrix}.
+  \]
+  \vfill
+  \note{Second example from slide 7 of the old HMM deck, using the
+  uniform initial phase distribution from the Part 2 exercises. It is
+  stationary because the phase advances deterministically around a cycle.
+  The two labels on the return edge denote distinct emissions with the
+  same destination. Rows are source states, columns are destination states.
+  The row sums across both matrices total one for each state.
+  The observer sees emitted symbols, not phase boundaries. This is the
+  same generator used in the exercise, with s_0,s_1,s_R renamed 0,1,R.
+  The displayed output begins in phase 0. Its three-symbol blocks correspond
+  to the phases 0,1,R, with the random phase emitting 1,0,1,1 in succession.
+  Later slides will revisit this model to calculate beliefs and recover
+  the causal-state automaton that students have already constructed.}
+\end{frame}
+
+\begin{frame}{Predicting HMM observations}
+  \setlength{\parskip}{0pt}
+  \setlength{\abovedisplayskip}{7pt}
+  \setlength{\belowdisplayskip}{1pt}
+  \setlength{\fboxsep}{1pt}
+  We have observed $X_{1:n}=x_{1:n}$ and want to predict the next symbol:
+  \[
+    \Pr(X_{n+1}=a\mid X_{1:n}=x_{1:n}).
+  \]
+  \vfill
+  If we knew the current hidden state $S_n=i$, prediction would be
+  straightforward:
+  \[
+    \Pr(X_{n+1}=a\mid S_n=i)=\sum_{j\in S}T^{(a)}_{ij}.
+  \]
+  \vfill
+  With the hidden state unobserved, we average over its possible values:
+  \[
+    \Pr(X_{n+1}=a\mid X_{1:n}=x_{1:n})
+      =\sum_{i\in S}
+        \underbrace{\hmmfactor{hmmInitial}{\Pr(S_n=i\mid X_{1:n}=x_{1:n})}}
+          _{\text{belief state component}}
+        \sum_{j\in S}T^{(a)}_{ij}.
+  \]
+  \vfill
+
+  The \textbf{belief state} is the row vector
+
+  \vspace{3mm}
+  {\centering
+    \setlength{\fboxsep}{2mm}
+    \setlength{\fboxrule}{0.6pt}
+    \fcolorbox{iliadAccent}{iliadAccent!6}{%
+      $\displaystyle
+        \eta^{(x_{1:n})}_i
+          :=\Pr(S_n=i\mid X_{1:n}=x_{1:n}),\qquad i\in S
+      $}
+    \par}
+  \vfill
+
+  \note{Assume that the observed history has positive probability.
+  For a current state with positive posterior mass, the edge-emitting
+  Markov property gives
+  Pr(X_{n+1}=a|S_n=i,X_{1:n}=x_{1:n})=sum_j T^(a)_{ij}.
+  The law of total probability, conditioning throughout on the observed
+  history, then gives the final expression. Zero-posterior states contribute
+  zero. For unreachable states the transition matrix still specifies the
+  generative emission kernel.
+
+  Highlight the posterior as the quantity that changes with the observed
+  history. The generator's transition probabilities remain fixed.
+  This distribution over the current hidden state is the belief state,
+  defined at the bottom of this slide. The following slide derives how to
+  compute it. The highlighted quantity is a posterior
+  distribution, not an entropy or other scalar measure of uncertainty.}
+\end{frame}
+
+\begin{frame}{Computing and updating the belief state}
+  \setlength{\parskip}{0pt}
+  \setlength{\abovedisplayskip}{4pt}
+  \setlength{\belowdisplayskip}{4pt}
+  For a history $x_{1:n}$ with positive probability, Bayes' rule gives
+  \[
+    \eta^{(x_{1:n})}_i
+      =\Pr(S_n=i\mid X_{1:n}=x_{1:n})
+      =\frac{\Pr(S_n=i,X_{1:n}=x_{1:n})}
+      {\Pr(X_{1:n}=x_{1:n})}.
+  \]
+
+  \vfill
+  Using the HMM transition matrices,
+  \[
+    \eta^{(x_{1:n})}
+      =\frac{\eta^{(\emptyset)}T^{(x_1)}\cdots T^{(x_n)}}
+      {\eta^{(\emptyset)}T^{(x_1)}\cdots T^{(x_n)}\mathbf1^\top}.
+  \]
+
+  \vfill
+  When the next token $x_{n+1}$ is observed, the belief updates recursively:
+  \[
+    \eta^{(x_{1:n})}
+      \mathrel{\overset{x_{n+1}}
+        {\mapstochar\relbar\joinrel\longrightarrow}}
+    \eta^{(x_{1:n+1})}
+      =
+    \frac{\eta^{(x_{1:n})}T^{(x_{n+1})}}
+    {\eta^{(x_{1:n})}T^{(x_{n+1})}\mathbf1^\top}.
+  \]
+  \vfill
+
+  The current belief and the newly observed token determine the next belief.
+  The full observation history does not need to be revisited.
+  \vfill
+
+  \note{This version combines the direct calculation with its recursive
+  form. Bayes' rule expresses each component as a joint probability divided
+  by the probability of the observed history. The matrix product gives the
+  corresponding row-vector expression directly. When a new token arrives,
+  the previous belief replaces the initial distribution and earlier matrix
+  product. Multiplying by the token-labelled transition matrix gives
+  unnormalised probabilities over S_{n+1}; dividing by their sum produces
+  the new belief. The denominator is positive whenever the extended history
+  is possible. With our timing convention, eta after x_{1:n} is a
+  distribution over S_n, and eta after x_{1:n+1} is a distribution over
+  S_{n+1}.}
+\end{frame}
+
+\begin{frame}{The next-token probability vector}
+  \setlength{\parskip}{0pt}
+  \setlength{\abovedisplayskip}{4pt}
+  \setlength{\belowdisplayskip}{4pt}
+  \setlength{\fboxsep}{1pt}
+  For a history $x_{1:n}$, define the row vector
+  \[
+    p^{(x_{1:n})}
+      :=\left(
+        \Pr(X_{n+1}=a\mid X_{1:n}=x_{1:n})
+      \right)_{a\in\mathcal X}.
+  \]
+
+  \vfill
+  % ERRATA 2026-09-16: "slide 10" pointed at the belief-update frame; the
+  %   law-of-total-probability expression is frame 9 (footer numbering).
+  %   The two speaker notes below and at "HMM definition on slide 6" (frame 5)
+  %   were off by one the same way.
+  Returning to the expression on slide 9,
+  \[
+    \hmmfactor{hmmFirst}{\Pr(X_{n+1}=a\mid X_{1:n}=x_{1:n})}
+      =\sum_{i\in S}
+        \hmmfactor{hmmInitial}{\Pr(S_n=i\mid X_{1:n}=x_{1:n})}
+        \hmmfactor{hmmSecond}{\sum_{j\in S}T^{(a)}_{ij}}.
+  \]
+
+  \vfill
+  Using the belief state and next-token vector, this becomes
+  \[
+    \hmmfactor{hmmFirst}{p^{(x_{1:n})}}
+      =\hmmfactor{hmmInitial}{\eta^{(x_{1:n})}}
+       \hmmfactor{hmmSecond}{A},
+    \qquad
+    A_{ia}:=\sum_{j\in S}T^{(a)}_{ij}.
+  \]
+
+  \vfill
+  The HMM fixes $A$, so the map from belief states to next-token vectors is
+  linear. Distinct belief states can produce the same next-token vector.
+  \vfill
+
+  \note{The next-token probability vector records one probability for every
+  token in the alphabet. Return explicitly to the law-of-total-probability
+  expression on slide 9, now replacing the posterior term with the belief
+  state notation. For a fixed hidden state i, the sum over j is the
+  probability of emitting token a next. The matrix A stores these
+  probabilities, with one row per hidden state and one column per token.
+  Therefore multiplying the belief row vector by A gives the full next-token
+  vector. Emphasise that A depends only on the HMM and that this fixed linear
+  readout can be many-to-one.}
+\end{frame}
+
+\begin{frame}{Sufficient statistics for HMM prediction}
+  \setlength{\parskip}{0pt}
+  \setlength{\abovedisplayskip}{4pt}
+  \setlength{\belowdisplayskip}{4pt}
+  Recall that a statistic $R$ is \textbf{sufficient for prediction}
+  if histories with the same statistic have the same probability for every
+  finite continuation:
+  \[
+    R(x)=R(x')
+      \quad\Longrightarrow\quad
+    \Pr(y\mid x)=\Pr(y\mid x')
+      \qquad\text{for every }y\in\mathcal X^*.
+  \]
+
+  \vfill
+  \textbf{The next-token probability vector} $p^{(x_{1:n})}$ gives all one-symbol\\
+  continuation probabilities, but not necessarily those for longer continuations.\\
+  It need not be sufficient for the \textbf{entire future}.
+  {\small\color{iliadMuted}\emph{(See exercises for details.)}}
+
+  \vfill
+  \textbf{The belief state} $\eta^{(x_{1:n})}$ preserves the probability of
+  every finite continuation of an HMM. It is sufficient for predicting the
+  \textbf{entire future}.
+
+  \vfill
+
+  \note{The target of prediction matters. The next-token vector is itself a
+  minimal sufficient statistic for the one-step prediction problem, but the
+  Part 2 definition asks for the distribution of every finite continuation.
+  The next-token vector can merge histories that agree about the next symbol
+  but disagree about later symbols. The following slide proves that the belief
+  state does retain the full continuation law for an HMM.}
+\end{frame}
+
+\begin{frame}{The belief state is a sufficient statistic}
+  \setlength{\parskip}{0pt}
+  \setlength{\abovedisplayskip}{3pt}
+  \setlength{\belowdisplayskip}{3pt}
+  Given a possible history $x_{1:n}$ and finite continuation $y_{1:m}$,
+  Bayes' rule gives
+  \[
+    \begin{aligned}
+      &\Pr(X_{n+1:n+m}=y_{1:m}\mid X_{1:n}=x_{1:n}) \\[2pt]
+      &\quad=
+      \frac{\Pr(X_{1:n+m}=x_{1:n}y_{1:m})}
+           {\Pr(X_{1:n}=x_{1:n})} \\[4pt]
+      &\quad=
+      \frac{
+        \eta^{(\emptyset)}T^{(x_1)}\cdots T^{(x_n)}
+        T^{(y_1)}\cdots T^{(y_m)}\mathbf1^\top
+      }{
+        \eta^{(\emptyset)}T^{(x_1)}\cdots T^{(x_n)}\mathbf1^\top
+      } \\[4pt]
+      &\quad=
+      \eta^{(x_{1:n})}T^{(y_1)}\cdots T^{(y_m)}\mathbf1^\top.
+    \end{aligned}
+  \]
+
+  \vfill
+  The history enters this expression only through its belief state. Hence,
+  \[
+    \eta^{(x)}=\eta^{(x')}
+      \quad\Longrightarrow\quad
+    \Pr(y\mid x)=\Pr(y\mid x')
+      \qquad\text{for every }y\in\mathcal X^*.
+  \]
+
+  \vfill
+  The belief state is sufficient. \textbf{What about minimality?}
+  \vfill
+
+  \note{Assume throughout that the histories being conditioned on have
+  positive probability. The first equality writes the conditional
+  probability as a joint probability divided by the probability of the
+  observed history. Substitute the HMM matrix products in the numerator and
+  denominator. Their common history-dependent prefix, after normalisation,
+  is exactly the belief state. The remaining matrix product depends only on
+  the proposed continuation. Therefore histories with the same belief state
+  assign the same probability to every finite continuation, which is the
+  definition of predictive sufficiency recalled on the previous slide.}
+\end{frame}
+
+\begin{frame}{Belief states need not be minimal}
+  \setlength{\parskip}{0pt}
+  \setlength{\abovedisplayskip}{3pt}
+  \setlength{\belowdisplayskip}{3pt}
+  Consider the two-state HMM
+  \[
+    \eta^{(\emptyset)}=\left(\tfrac12,\tfrac12\right),
+    \qquad
+    T^{(0)}=
+    \begin{pmatrix}
+      \tfrac12 & 0 \\
+      \tfrac12 & 0
+    \end{pmatrix},
+    \qquad
+    T^{(1)}=
+    \begin{pmatrix}
+      0 & \tfrac12 \\
+      0 & \tfrac12
+    \end{pmatrix}.
+  \]
+
+  \vfill
+  After observing $0$ or $1$, respectively, the belief state is
+  \[
+    \eta^{(0)}=(1,0),
+    \qquad
+    \eta^{(1)}=(0,1).
+  \]
+
+  \vfill
+  However, the future is a sequence of independent fair coin flips in either
+  case:
+  \[
+    \Pr(y\mid 0)=\Pr(y\mid 1)=2^{-|y|}
+      \qquad\text{for every }y\in\{0,1\}^*.
+  \]
+
+  \vfill
+  Thus, distinct beliefs can contain exactly the same predictive information.
+  More generally, define the \textbf{predictive equivalence relation}
+  \[
+    \eta\sim\eta'
+      \quad\Longleftrightarrow\quad
+    \eta T^{(y)}\mathbf1^\top
+      =\eta'T^{(y)}\mathbf1^\top
+      \qquad\text{for every }y\in\mathcal X^*.
+  \]
+
+  \vfill
+  Beliefs are \textbf{minimal} precisely when no two reachable beliefs are
+  \textbf{predictively equivalent}. Generalised HMMs will let us characterise this condition.
+  \vfill
+
+  \note{This HMM generates independent fair coin flips. Its hidden state only
+  records the most recently observed token: observing 0 places the model in
+  the first state, while observing 1 places it in the second. Since the two
+  rows of each symbol-labelled transition matrix agree, both hidden states
+  induce the same distribution over every future word. The two posterior
+  distributions are therefore distinct but predictively equivalent. This
+  shows that sufficiency alone does not imply minimality. The equivalence
+  relation displayed on the slide identifies beliefs that assign the same
+  probability to every finite continuation. Belief states are minimal exactly
+  when every such equivalence class contains only one reachable belief. This
+  motivates the move to generalised HMMs on the following slide, where
+  predictive redundancy can be described in linear-algebraic terms.
+
+  The redundant fair-coin presentation is Upper's example in Section 3.4,
+  equation (3.38), of Theory and Algorithms for Hidden Markov Models and
+  Generalized Hidden Markov Models (1997).}
+\end{frame}
+
+\begin{frame}{Generalised hidden Markov models}
+  \setlength{\parskip}{0pt}
+  \setlength{\abovedisplayskip}{3pt}
+  \setlength{\belowdisplayskip}{3pt}
+  A $d$-dimensional \textbf{generalised hidden Markov model} (GHMM) consists of:
+
+  \vspace{1mm}
+  \begin{itemize}
+    \setlength{\itemsep}{0.5mm}
+    \item A finite alphabet $\mathcal X$ of \textbf{observed symbols}.
+    \item A collection of $d\times d$ real \textbf{transition matrices}
+      $(T^{(a)})_{a\in\mathcal X}$.
+    \item An \textbf{initial row vector}
+      $\eta^{(\emptyset)}\in\mathbb R^{1\times d}$.
+    \item A \textbf{column vector} $\phi\in\mathbb R^{d\times 1}$.
+  \end{itemize}
+
+  \vspace{1mm}
+  Writing $T=\sum_{a\in\mathcal X}T^{(a)}$, these objects must satisfy
+  \[
+    T\phi=\phi,\qquad
+    \eta^{(\emptyset)}\phi=1,\qquad
+    \eta^{(\emptyset)}T^{(x_1)}\cdots T^{(x_n)}\phi\geq 0
+      \quad\text{for every }x_{1:n}\in\mathcal X^*.
+  \]
+
+  These conditions ensure that the probability of any observed sequence is
+  \[
+    \Pr(X_{1:n}=x_{1:n})
+      =\eta^{(\emptyset)}T^{(x_1)}\cdots T^{(x_n)}\phi.
+  \]
+
+  \vspace{1mm}
+  An HMM is the special case $d=|S|$ and $\phi=\mathbf1^\top$, where
+  $\eta^{(\emptyset)}$ is a probability distribution, each $T^{(a)}$ is
+  nonnegative, and $T$ is row-stochastic.
+  \vfill
+
+  \note{The definition retains exactly the matrix-product expression used
+  for HMM word probabilities, but its internal coordinates no longer need
+  to be probabilities. The fixed-point condition T phi equals phi gives
+  consistency under extension of a word: summing the probabilities of wa
+  over all next symbols a recovers the probability of w. The condition on
+  the initial vector normalises the empty word, and nonnegativity of every
+  word probability then gives a valid stochastic process.
+
+  The component list deliberately parallels the HMM definition on slide 5.
+  A GHMM replaces the finite hidden-state set by a real vector space of
+  dimension d and adds the column vector phi used to evaluate word weights.
+  An ordinary HMM is the special case in which the symbol-labelled matrices
+  are nonnegative, their sum is row stochastic, the initial vector is a
+  probability distribution, and phi is the all-ones column vector. In the
+  general case, the presentation states are better regarded as basis vectors
+  for a linear representation of the process than as physical hidden states.
+  Do not call the resulting normalised forward coordinates belief states,
+  since they may have negative components.}
+\end{frame}
+
+\begin{frame}{Minimality of a GHMM}
+  \setlength{\parskip}{0pt}
+  \setlength{\abovedisplayskip}{3pt}
+  \setlength{\belowdisplayskip}{3pt}
+  Histories and continuations generate two linear spaces:
+
+  \[
+    \begin{aligned}
+      \mathcal H
+        &:=\operatorname{span}\!\left\{
+          \eta^{(\emptyset)}T^{(x_1)}\cdots T^{(x_n)}
+          \;\middle|\; x_{1:n}\in\mathcal X^n,\ n\geq 0
+        \right\},\\
+      \mathcal F
+        &:=\operatorname{span}\!\left\{
+          T^{(y_1)}\cdots T^{(y_m)}\phi
+          \;\middle|\; y_{1:m}\in\mathcal X^m,\ m\geq 0
+        \right\}.
+    \end{aligned}
+  \]
+
+  A GHMM is \textbf{minimal-dimensional} if no lower-dimensional GHMM
+  realises the same process. For a $d$-dimensional GHMM, this is equivalent to
+  \[
+    \dim\mathcal H=\dim\mathcal F=d.
+  \]
+
+  \vfill
+  \textbf{Theorem.} If a stochastic process admits a GHMM realisation,
+  then it admits a \textbf{minimal-dimensional GHMM realisation}.
+
+  \source{Upper (1997), Theorem 4.3.10.}
+
+  \note{Upper's Theorem 4.3.10 constructs, from any GHMM, an equivalent
+  standard presentation based on minimal history and future wordlists and
+  proves that no equivalent GHMM has fewer states. Thus every process that
+  admits a finite-dimensional GHMM presentation admits a minimal-dimensional
+  one.
+
+  In linear-realisation language, reachability and observability identify the
+  two possible sources of redundant dimension. If the history space is
+  smaller than the ambient row space, restrict the representation to the
+  history space. If a nonzero row direction pairs to zero with every vector
+  in the future space, quotient out that invisible direction. Conversely,
+  when both spaces have dimension d, the process Hankel matrix has rank d, so
+  no lower-dimensional GHMM can realise the same process. This is distinct
+  from minimality of a predictive statistic. See Upper, Theory and Algorithms
+  for Hidden Markov Models and Generalized Hidden Markov Models, Theorem
+  4.3.10 and Sections 4.2--4.3.}
+\end{frame}
+
+\begin{frame}{When HMM belief states are minimal}
+  \setlength{\parskip}{0pt}
+  \setlength{\abovedisplayskip}{3pt}
+  \setlength{\belowdisplayskip}{3pt}
+  If an HMM is minimal-dimensional among all GHMM realisations of its process,
+  then its belief state is a \textbf{minimal sufficient statistic} for
+  prediction.
+
+  \vspace{2mm}
+  Suppose two supported histories $x_{1:n}$ and $x'_{1:n'}$ predict every
+  continuation identically.
+  Then, for every $y_{1:m}$,
+  \[
+    \left(
+      \eta^{(x_{1:n})}-\eta^{(x'_{1:n'})}
+    \right)
+    T^{(y_1)}\cdots T^{(y_m)}\mathbf1^\top
+    =0.
+  \]
+
+  \vspace{1mm}
+  Minimal-dimensionality implies that the future vectors
+  \[
+    T^{(y_1)}\cdots T^{(y_m)}\mathbf1^\top
+  \]
+  span the entire column space. Therefore,
+  \[
+    \eta^{(x_{1:n})}=\eta^{(x'_{1:n'})}.
+  \]
+
+  \vfill
+  Thus, histories have the same belief state precisely when they have the
+  same distribution over the future. The belief state is
+  \textbf{minimal sufficient}.
+
+  \vspace{-1mm}
+  \source{Based on Upper (1997), Sections 4.2--4.3.}
+  \vfill
+
+  \note{Sufficiency gives one implication immediately: equal beliefs imply
+  equal probabilities for all future continuations. For the converse, the
+  displayed difference of two beliefs annihilates every future vector. Since
+  the HMM is minimal-dimensional even within the larger class of GHMMs, the
+  preceding slide gives dim F equals d. The future vectors therefore span the
+  entire column space, so the difference must be zero. This proves that no two
+  distinct reachable beliefs are predictively equivalent.}
+\end{frame}
+
+\begin{frame}{Two notions of minimality}
+  \setlength{\parskip}{0pt}
+  \setlength{\abovedisplayskip}{4pt}
+  \setlength{\belowdisplayskip}{4pt}
+  \small
+  Here we summarise how each notion of minimality enters the key result.
+
+  \vspace{2mm}
+  \begin{itemize}
+    \setlength{\itemsep}{2.5mm}
+    \item \textbf{Minimal sufficient statistics:} coarsest partition of the allowed sequences.
+    \item \textbf{Minimal-dimensional:} no equivalent GHMM has lower
+      dimension.
+  \end{itemize}
+
+  \vspace{3mm}
+  {\centering
+    $\text{HMM is minimal-dimensional}
+    \Longrightarrow
+    \text{belief states are minimal sufficient statistics}.$\par}
+
+  \vspace{2.5mm}
+  Belief states (or their analogues) for a minimal-dimensional GHMM are the
+  \textbf{lowest-dimensional} minimal sufficient statistics among those from
+  which the entire future distribution is \textbf{linearly decodable}.
+
+  \vspace{2.5mm}
+  \textbf{Working hypothesis:} neural networks trained on GHMM data represent
+  these objects. {\color{iliadMuted}\itshape
+    (We will examine supporting evidence in the reading session.)}
+
+  \vfill
+  \source{Park, Choe \& Veitch, \textit{The Linear Representation Hypothesis
+  and the Geometry of Large Language Models} (ICML 2024); Elhage et al.,
+  \textit{Toy Models of Superposition} (Anthropic, 2022).}
+  \vfill
+
+  \note{Predictive minimality is minimality of a statistic for the future
+  prediction problem. A minimal sufficient statistic is equivalent to the
+  causal-state partition up to relabelling. Minimal-dimensionality instead
+  compares all GHMM realisations of the process and asks for the smallest
+  linear state-space dimension. The previous slide proves that the stronger
+  linear condition makes the reachable belief map injective with respect to
+  future laws. The converse can fail because injectivity is required only on
+  the set of reachable beliefs, rather than on every direction of the ambient
+  linear state space. The closing sentence uses lowest-dimensional only
+  within the class of GHMM, or equivalently finite-dimensional linear,
+  realisations. It is not a claim about arbitrary numerical encodings of the
+  minimal sufficient statistic.}
+\end{frame}
+
+\begin{frame}{Summary}
+  \setlength{\parskip}{0pt}
+  \vfill
+  \begin{itemize}
+    \setlength{\itemsep}{4mm}
+    \item A \textbf{belief state} is a sufficient statistic for prediction:
+      the posterior distribution over an HMM's hidden states.
+    \item The \textbf{next-token vector} need not be sufficient. It is a
+      linear readout of the belief state,
+      $p^{(x_{1:n})}=\eta^{(x_{1:n})}A$.
+    \item GHMMs generalise HMMs by relaxing the entrywise probabilistic
+      constraints on the transition matrices, while retaining the same
+      matrix-product expression for output probabilities.
+    \item Beliefs need not be minimal. If the HMM is
+      \textbf{minimal-dimensional} as a GHMM, they are \textbf{minimal sufficient
+      statistics}.
+  \end{itemize}
+
+  \vfill
+
+  \note{The first two points distinguish the full predictive information in
+  the belief state from its next-token readout. The third recalls that GHMMs
+  keep the HMM matrix-product formula while allowing internal coordinates and
+  matrices that need not have an entrywise probabilistic interpretation. The
+  final point states the main minimality result: minimal-dimensionality in the
+  larger GHMM class makes the HMM belief state a minimal sufficient statistic.}
+\end{frame}
+
+% Diagram-based summary variant retained for possible later use.
+\iffalse
+\begin{frame}{Summary}
+  \setlength{\parskip}{0pt}
+  \vspace{-1mm}
+  \centering
+  \resizebox{0.86\textwidth}{!}{%
+  \begin{tikzpicture}[
+    x=1cm,y=1cm,
+    every node/.style={text=iliadInk},
+    heading/.style={font=\small\bfseries},
+    caption/.style={font=\scriptsize,text=iliadMuted},
+    hmmstate/.style={circle,draw=iliadAccent,line width=0.8pt,
+      fill=iliadAccent!8,minimum size=6.5mm,inner sep=0.5pt,
+      font=\scriptsize},
+    belief/.style={ellipse,draw=iliadAccent,line width=0.7pt,
+      fill=hmmFirst!55,minimum width=11mm,minimum height=5.5mm,
+      inner sep=0.5pt,font=\tiny},
+    point/.style={circle,draw=iliadAccent,line width=0.7pt,
+      minimum size=5mm,inner sep=0pt,font=\tiny},
+    flow/.style={-{Stealth[length=1.8mm]},draw=iliadInk,line width=0.7pt},
+    map/.style={-{Stealth[length=2.2mm]},draw=iliadMuted,line width=1pt}
+  ]
+    % Generative realisation.
+    \node[heading] at (1.7,4.75) {HMM realisation};
+    \node[hmmstate] (h0) at (1.0,3.80) {$0$};
+    \node[hmmstate] (h1) at (2.4,3.80) {$1$};
+    \node[hmmstate] (h2) at (1.7,2.90) {$2$};
+    \draw[flow] (h0) to[bend left=18] (h1);
+    \draw[flow] (h1) to[bend left=18] (h0);
+    \draw[flow] (h0) -- (h2);
+    \draw[flow] (h2) -- (h1);
+
+    % Reachable belief-state presentation.
+    \node[heading] at (10.65,4.75) {Reachable belief states};
+    \node[belief] (b0) at (10.65,4.20) {$\eta^{(\emptyset)}$};
+    \node[belief] (b1) at (9.30,3.55) {$\eta^{(0)}$};
+    \node[belief] (b2) at (12.00,3.55) {$\eta^{(1)}$};
+    \node[belief,fill=hmmSecond!55] (b3) at (8.70,2.75) {$\eta^{(00)}$};
+    \node[belief,fill=hmmSecond!55] (b4) at (10.15,2.75) {$\eta^{(01)}$};
+    \node[belief,fill=hmmSecond!55] (b5) at (11.60,2.75) {$\eta^{(10)}$};
+    \node[belief,fill=hmmSecond!55] (b6) at (13.05,2.75) {$\eta^{(11)}$};
+    \draw[flow] (b0) -- (b1);
+    \draw[flow] (b0) -- (b2);
+    \draw[flow] (b1) -- (b3);
+    \draw[flow] (b1) -- (b4);
+    \draw[flow] (b2) -- (b5);
+    \draw[flow] (b2) -- (b6);
+
+    \draw[map] (3.05,3.78) -- node[above,font=\scriptsize]
+      {Bayesian filtering} (7.85,3.78);
+
+    % Geometry of the same reachable beliefs.
+    \node[heading,anchor=west] at (0.05,2.05) {Belief-state geometry};
+    \coordinate (t1) at (1.10,0.20);
+    \coordinate (t2) at (4.65,0.20);
+    \coordinate (t3) at (2.88,1.75);
+    \draw[iliadMuted,line width=0.8pt] (t1)--(t2)--(t3)--cycle;
+    \node[point,fill=hmmSecond!55] at (1.10,0.20) {$00$};
+    \node[point,fill=hmmSecond!55] at (4.65,0.20) {$11$};
+    \node[point,fill=hmmSecond!55] at (2.88,1.75) {$01$};
+    \node[point,fill=hmmFirst!55] at (2.05,0.95) {$0$};
+    \node[point,fill=hmmFirst!55] at (3.55,0.55) {$1$};
+    \node[point,fill=white] at (2.75,0.55) {$\emptyset$};
+
+    \draw[map] (8.45,2.58) -- node[above,sloped,font=\scriptsize]
+      {same states, plotted} (4.75,1.65);
+
+    % Linear next-token readout.
+    \node[heading] at (10.85,1.88) {Next-token geometry};
+    \draw[iliadMuted,line width=0.9pt] (8.45,0.62) -- (13.25,0.62);
+    \node[point,fill=hmmSecond!55] at (8.70,0.62) {$00$};
+    \node[point,fill=hmmSecond!55] at (9.45,0.62) {$01$};
+    \node[ellipse,draw=iliadAccent,line width=0.7pt,fill=hmmFirst!55,
+      minimum width=10mm,minimum height=5mm,inner sep=0pt,font=\tiny]
+      at (10.45,0.62) {$0,\emptyset$};
+    \node[point,fill=hmmFirst!55] at (11.50,0.62) {$1$};
+    \node[point,fill=hmmSecond!55] at (12.95,0.62) {$11$};
+    \node[caption] at (10.85,0.12) {the readout may merge distinct beliefs};
+
+    \draw[map] (5.00,0.78) -- node[above,font=\scriptsize]
+      {$p^{(x_{1:n})}=\eta^{(x_{1:n})}A$} (8.05,0.78);
+  \end{tikzpicture}
+  }
+
+  {\small
+    If an HMM is \textbf{minimal-dimensional as a GHMM}, its beliefs are
+    \textbf{minimal sufficient statistics}.}
+
+  {\color{iliadMuted}\itshape\scriptsize
+    (Reading session: do neural networks trained on GHMM data represent this geometry?)}
+
+  \note{This is a typeset update of the hand-drawn summary diagram in the
+  earlier Part 3 deck. The top row moves from a generative HMM or GHMM
+  realisation to the reachable beliefs obtained by Bayesian filtering. The
+  lower-left panel plots those same beliefs in their state space. The linear
+  map A sends belief states to next-token probability vectors; because the
+  map can merge distinct beliefs, next-token probabilities need not retain
+  all information about the future. The final line adds the minimality result
+  established in the present version of the lecture: when the HMM is
+  minimal-dimensional as a GHMM realisation, its reachable beliefs are
+  minimal sufficient statistics. The reading question connects this
+  geometry to representations learned from GHMM data.}
+\end{frame}
+\fi
+
+% Content plan: add slides as each topic is developed.
+
+% Hidden Markov models
+  % Follow the old Part 2 order: intuitive definition (above), Plato's cave,
+  % formal Mealy-type definition with edge notation, initial distribution
+  % and word probabilities, then biased-coin and Zero--One--Random examples.
+  % Reuse figures/z1r-generator.tex when developing the later example slide.
+  % Introduce edge-emitting generators, an initial distribution, and T^(a).
+  % Preserve the exercises' timing: S_t is the state after observing X_{1:t}.
+  % Use Zero--One--Random as the main worked belief-state example later.
+
+% Belief states
+  % Define the posterior over S_{|w|} for a supported finite history w.
+  % Derive its matrix expression, recursive update, and future-word readout.
+  % Prove predictive sufficiency. Calculate Zero--One--Random beliefs and
+  % connect its mixed-state presentation to the previous exercise automaton.
+  % Plot beliefs in the simplex and distinguish them from next-token outputs.
+  % Revisit the Simple Nonunifilar Source as a second worked example.
+
+% Minimality and representation dimension
+  % Characterize minimal sufficiency by distinguishability of reachable
+  % beliefs through future-word probabilities. Give a redundant counterexample.
+  % Distinguish predictive equivalence, HMM state count, and affine dimension.
+  % State the representation class whenever making dimensional claims.
+  % Retain the finite-history convention, including initial/transient beliefs.
+
+% Belief geometry in transformer activations
+  % Prepare the reading session on Shai et al. (NeurIPS 2024):
+  % https://arxiv.org/abs/2405.15943
+  % Explain the hypothesis, HMM training data, exact belief targets, and
+  % fitted linear/affine readout. Compare theoretical and recovered geometry.
+  % Explain what a plotted point represents and the role of multiple layers.
+  % Distinguish empirical linear decodability from mathematical sufficiency.
+
+% Optional supplementary material, excluded from this initial scaffold:
+% GHMM predictive coordinates, normalized updates, and minimal linear
+% realizations unique up to similarity. Protect time for the paper discussion.
+
+\end{document}

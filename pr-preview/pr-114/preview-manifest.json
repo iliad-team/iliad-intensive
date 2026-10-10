@@ -1,0 +1,22 @@
+{
+  "pr": "114",
+  "full": false,
+  "changed": [
+    {
+      "slug": "training-dynamics",
+      "title": "Training Dynamics",
+      "code": "B.4",
+      "path": "/learning/training-dynamics/"
+    },
+    {
+      "slug": "preferences-to-rewards",
+      "title": "Preferences to Rewards",
+      "code": "D.1.1",
+      "path": "/agency/preferences-to-rewards/"
+    }
+  ],
+  "published": [
+    "training-dynamics",
+    "preferences-to-rewards"
+  ]
+}
