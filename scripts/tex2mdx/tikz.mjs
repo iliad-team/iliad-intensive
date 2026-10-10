@@ -39,6 +39,12 @@ function buildTikzPreamble(pre) {
     if (pkgs.length) keep.push(`\\usepackage${m[1] ?? ""}{${pkgs.join(",")}}`);
   }
   if (!keep.some((l) => /[{,]tikz[},]/.test(l))) keep.push("\\usepackage{tikz}");
+  // iliad.sty loads amsmath and amssymb for every worksheet, so a sheet's
+  // macros may rely on them (\DeclareMathOperator, \mathbb) without a
+  // \usepackage of its own — the standalone has no iliad.sty, so load them here.
+  for (const p of ["amsmath", "amssymb"]) {
+    if (!keep.some((l) => new RegExp(`[{,]${p}[},]`).test(l))) keep.push(`\\usepackage{${p}}`);
+  }
   // tikz/color configuration statements (1-3 brace groups each)
   for (const m of pre.matchAll(/\\(usetikzlibrary|tikzset|tikzcdset|pgfplotsset|definecolor|colorlet|PassOptionsToPackage)\b/g)) {
     let j = m.index + m[0].length, groups = 0;

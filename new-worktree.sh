@@ -24,7 +24,7 @@
 #
 # --init asks a handful of questions (LaTeX or MDX, title, author, whether you
 # want slides.tex / biblo.bib, which schedule.yaml day the sheet belongs to) and
-# writes a skeleton tex/<slug>/ — the same shape as tex/example/, minus the
+# writes a skeleton tex/<slug>/ — the same shape as tex/example-tex/, minus the
 # figures: main.tex or main.mdx, an empty fig/, and whatever else you asked for.
 # It needs a terminal; without --init the script behaves exactly as it always
 # has, so agents and CI are unaffected.
