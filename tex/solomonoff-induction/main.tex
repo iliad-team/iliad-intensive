@@ -93,7 +93,9 @@ distribution $P(\cdot \mid x_{<t})$ over the next symbol $x_t$.
 
 We measure the quality of a predictor $P$ by the $\mu$-expected squared prediction error, summed over every timestep:
 \begin{align}
-S_\infty^\mu := \sum_{t=1}^{\infty} \sum_{x_{<t} \in \mathbb{B}^*} \mu(x_{<t}) \sum_{x_t \in \mathbb{B}} \big( P(x_t \mid x_{<t}) - \mu(x_t \mid x_{<t}) \big)^2.
+% ERRATA 2026-10-10: histories at time t have length t-1, not arbitrary length.
+% Reported by tomgannon in #intensive-errata.
+S_\infty^\mu := \sum_{t=1}^{\infty} \sum_{x_{<t} \in \mathbb{B}^{t-1}} \mu(x_{<t}) \sum_{x_t \in \mathbb{B}} \big( P(x_t \mid x_{<t}) - \mu(x_t \mid x_{<t}) \big)^2.
 \end{align}
 
 How to construct a predictor $P$ such that $S^\mu_\infty$ is small (or at least finite)? Bayesian inference to the rescue: we choose as our predictor a \emph{Bayesian mixture} $\xi$ over a countable class $\Mc = \{\nu_1, \nu_2, \dots\}$ of candidate environments, weighted by prior beliefs $w_\nu$ (formalized in \cref{def:mixture}). The main results we build up to are:
