@@ -38,7 +38,9 @@ Let $p_\beta(w\mid\mathcal{D})$ be the tempered posterior of \Cref{eq:tempered-p
   \boxed{\;\mathrm{BIF}(z_i,\phi) \;=\; -\,\mathrm{Cov}_{w\sim p}\bigl(L(w,z_i),\;\phi(w)\bigr).\;}
 \end{equation}
 
-\emph{Hint:} Write $p_\beta \propto e^{-\sum_j \beta_j L(w,z_j)}\varphi(w)$ and differentiate the ratio $\int \phi\, p_\beta\,dw \,/\, \int p_\beta\,dw$ using the quotient rule. The key identity is $\partial_{\beta_i}\log Z(\beta) = -\E_{p_\beta}[L(w,z_i)]$.
+\begin{hint}
+Write $p_\beta \propto e^{-\sum_j \beta_j L(w,z_j)}\varphi(w)$ and differentiate the ratio $\int \phi\, p_\beta\,dw \,/\, \int p_\beta\,dw$ using the quotient rule. The key identity is $\partial_{\beta_i}\log Z(\beta) = -\E_{p_\beta}[L(w,z_i)]$.
+\end{hint}
 \end{exercise}
 
 \begin{remark}[Statistical physics]\label{rem:stat-phys}
@@ -155,7 +157,7 @@ Let $w^*$ be a non-degenerate minimum of $L$ with positive-definite Hessian $H =
     \frac{1}{\beta}\,D_{\mathrm{KL}} \;=\; &\E_{p_0^\beta}\!\bigl[L(w + \varepsilon r) - \varepsilon\,L_k(w + \varepsilon r) - L(w)\bigr] \\
     &+\; \frac{1}{\beta}\log\frac{Z(\beta,\varepsilon)}{Z(\beta,0)} \;-\; \frac{1}{\beta}\,\E_{p_0^\beta}\!\bigl[\log|\det(I + \varepsilon\nabla r)|\bigr],
   \end{align*}
-  where $Z(\beta,\varepsilon) = \int e^{-\beta(L(w)-\varepsilon L_k(w))}\,dw$. Explain why the last two terms vanish in the $\beta\to\infty$ limit. \emph{Hint:} $\log|\det(I+\varepsilon\nabla r)| = O(1)$, and by Laplace's method $\tfrac{1}{\beta}\log Z(\beta,\varepsilon) \to -\inf_w[L(w) - \varepsilon L_k(w)]$.
+  where $Z(\beta,\varepsilon) = \int e^{-\beta(L(w)-\varepsilon L_k(w))}\,dw$. Explain why the last two terms vanish in the $\beta\to\infty$ limit. \hint{$\log|\det(I+\varepsilon\nabla r)| = O(1)$, and by Laplace's method $\tfrac{1}{\beta}\log Z(\beta,\varepsilon) \to -\inf_w[L(w) - \varepsilon L_k(w)]$.}
 
   \item \textbf{(Taylor expansion at $w^*$.)} Since the expectation under $p_0^\beta$ concentrates at $w^*$ as $\beta\to\infty$, expand $L(w^* + \varepsilon r)$ and $\varepsilon\,L_k(w^* + \varepsilon r)$ using $\nabla L(w^*) = 0$:
   \begin{align*}
@@ -167,7 +169,9 @@ Let $w^*$ be a non-degenerate minimum of $L$ with positive-definite Hessian $H =
     \mathcal{F}(r,\varepsilon) \;=\; \frac{\varepsilon^2}{2}\,\bigl(r - H^{-1}\nabla L_k\bigr)^\top H\,\bigl(r - H^{-1}\nabla L_k\bigr) \;+\; O(\varepsilon^3).
   \end{equation}
 
-  \emph{Hint:} After substitution, the terms that do not depend on $r$ should assemble into $\tfrac{\varepsilon^2}{2}\nabla L_k^\top H^{-1}\nabla L_k$ and cancel with the partition-function contribution, leaving a perfect square.
+  \begin{hint}
+  After substitution, the terms that do not depend on $r$ should assemble into $\tfrac{\varepsilon^2}{2}\nabla L_k^\top H^{-1}\nabla L_k$ and cancel with the partition-function contribution, leaving a perfect square.
+  \end{hint}
 
   \item \textbf{(IFs are optimal.)} The cost \eqref{eq:ot-quadratic} is a squared Mahalanobis distance (in the Hessian metric) between the shift $r$ and the influence function $r_{\mathrm{IF}} := H^{-1}\nabla L_k(w^*)$. Conclude that the IF minimizes $\mathcal{F}$ to $O(\varepsilon^2)$ among \emph{all} smooth shift maps $w\mapsto w+\varepsilon r(w)$, and that the minimum cost is $O(\varepsilon^3)$.
 
