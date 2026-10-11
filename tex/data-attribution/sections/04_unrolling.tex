@@ -217,7 +217,9 @@ so $\varepsilon = 0$ is the original training run and $\varepsilon = 1/n$ corres
   \[
     r_T \;\approx\; -\bigl[I - (I-\eta H)^K\bigr]\,H^{-1}\,\nabla_w L(w^*,z_k).
   \]
-  \emph{Hint:} Sum the geometric series $\sum_{t=0}^{K-1}(I-\eta H)^t$ using the identity $\sum_{t=0}^{K-1}M^t = (I-M^K)(I-M)^{-1}$.
+  \begin{hint}
+  Sum the geometric series $\sum_{t=0}^{K-1}(I-\eta H)^t$ using the identity $\sum_{t=0}^{K-1}M^t = (I-M^K)(I-M)^{-1}$.
+  \end{hint}
 
   Take $K\to\infty$ (assuming $\eta < 2/\lambda_{\max}(H)$) and recover the influence function $r_\infty = -H^{-1}\nabla_w L(w^*,z_k) = r_{\mathrm{IF}}$.
 
@@ -276,7 +278,9 @@ The influence on the loss of a test example $z_q = (x_q, y_q)$, with residual $r
   \end{itemize}
   \item \textbf{(When does influence peak?)} Using the dynamics \eqref{eq:dln-dynamics}, argue that $g'_t(s_k)$ is peaked around $t \approx t_k^*$ (the transition time of mode $k$). Conclude that the $\mathcal{G}'_\varepsilon$ term, the part of influence that acts through the learning speed of each mode, is concentrated in time around the moment the mode is being learned. Before and after, this contribution is negligible.
 
-  \emph{Hint:} Consider the limits $t \ll t_k^*$ (mode not yet learning, $\mathcal{G}_k \approx \mathcal{G}_k(0)$) and $t \gg t_k^*$ (mode saturated, $\mathcal{G}_k \approx s_k$). In both cases, how sensitive is $\mathcal{G}_k$ to a small change in $s_k$?
+  \begin{hint}
+  Consider the limits $t \ll t_k^*$ (mode not yet learning, $\mathcal{G}_k \approx \mathcal{G}_k(0)$) and $t \gg t_k^*$ (mode saturated, $\mathcal{G}_k \approx s_k$). In both cases, how sensitive is $\mathcal{G}_k$ to a small change in $s_k$?
+  \end{hint}
   \item \textbf{(Sign flips.)} Consider $d = 2$ with $s_1 \gg s_2$: mode~1 captures a coarse distinction (``animal vs.\ plant'') and mode~2 a fine distinction (``dog vs.\ cat'' within animals). A dog example $z_{\mathrm{dog}}$ and a cat example $z_{\mathrm{cat}}$ share the same mode-1 coordinate but have opposite mode-2 coordinates: $(x_{\mathrm{dog}})_2 = +(x_{\mathrm{cat}})_2$. Using \eqref{eq:dln-influence-loss}, argue that the influence of $z_{\mathrm{dog}}$ on a cat test loss can change sign during training: positive while mode~1 is being learned (shared structure), negative after mode~2 is learned (competing structure). At what time is the sign flip sharpest?
 \end{enumerate}
 \end{exercise}
