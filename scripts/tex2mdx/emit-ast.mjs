@@ -16,6 +16,7 @@ import { isAutoLabel } from "./autolabel.mjs";
 import { applyMathShims, braceMathArgs } from "./shims.mjs";
 import { slug, ghSlug, readGroup, readOpt, readArg, NEST, CHILD } from "./util.mjs";
 import { registerTikz } from "./tikz.mjs";
+import { numberMath } from "./math-numbering.mjs";
 
 // ---------------------------------------------------------------- tables ---
 // simple textual macro translations (no argument handling)
@@ -149,10 +150,29 @@ function mathClean(m) {
 }
 
 function mathEnvToDollar(name, inner) {
+  inner = numberMath(name, inner, ctx.refs);
   inner = mathClean(inner);
   inner = inner.replace(/\\label\{[^}]*\}/g, "");
   if (/^align\*?$|^alignat\*?$|^gather\*?$/.test(name)) {
     const env = name.replace(/\*$/, "") === "gather" ? "gathered" : "aligned";
+    // Tags are illegal inside KaTeX's aligned/gathered. Convert them before
+    // splitting at \intertext so those displays keep their numbers too.
+    let tagged = "";
+    for (let i = 0; i < inner.length; i++) {
+      if (/^\\tag\b/.test(inner.slice(i))) {
+        let j = i + 4;
+        const starred = inner[j] === "*";
+        if (starred) j++;
+        const g = readArg(inner, j);
+        if (g) {
+          tagged += `\\quad\\text{${starred ? g.content : `(${g.content})`}}`;
+          i = g.end - 1;
+          continue;
+        }
+      }
+      tagged += inner[i];
+    }
+    inner = tagged;
     if (inner.includes("\\intertext")) {
       // split into displays around the prose
       const parts = [];
@@ -172,17 +192,7 @@ function mathEnvToDollar(name, inner) {
         return s;
       }).join("");
     }
-    // \tag inside aligned is illegal in KaTeX: render as right-hand annotations
-    let inner2 = "";
-    for (let i = 0; i < inner.length; i++) {
-      if (inner.startsWith("\\tag", i)) {
-        let j = i + 4; if (inner[j] === "*") j++;
-        const g = readArg(inner, j);
-        if (g) { inner2 += `\\quad\\text{(${g.content})}`; i = g.end - 1; continue; }
-      }
-      inner2 += inner[i];
-    }
-    return `$$\n\\begin{${env}}${inner2}\\end{${env}}\n$$`;
+    return `$$\n\\begin{${env}}${inner}\\end{${env}}\n$$`;
   }
   return `$$\n${inner.trim()}\n$$`;
 }
