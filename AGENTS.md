@@ -22,6 +22,7 @@ Static Next.js site that renders the Iliad Intensive worksheets. **LaTeX is the 
 - [`INTERNALS.md`](docs/INTERNALS.md) — file-level site internals (what reads what).
 - [`PR-PREVIEWS.md`](docs/PR-PREVIEWS.md) — per-PR live website previews (gh-pages model, one-time setup, caveats).
 - [`website.md`](docs/website.md) — hosting/domains: DNS, Cloudflare, the Pages custom domain, base paths, caching.
+- [`latex_format.md`](docs/latex_format.md) — worksheet metadata: `\title`/`\author`, the `%--- iliad ---` block, learning outcomes.
 - [`commands.md`](docs/commands.md) — authoring reference: every supported worksheet construct.
 - [`iliad-sty.md`](docs/iliad-sty.md) — the `iliad.sty` worksheet contract (macros/environments).
 - [`LINKS.md`](docs/LINKS.md) — Google-Doc tab link for each day.

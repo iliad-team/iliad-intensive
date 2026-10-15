@@ -27,7 +27,7 @@ a tree with no root `index.html`, makes an orphan commit and
 `git push --force origin HEAD:gh-pages`. A path missing from `.deploy/` is a
 path unpublished — that is why the production deploy deletes everything at the
 root *except* `pr-preview/`, and why appending history was abandoned (5.4 GB
-across 90 commits). Clones exclude the branch with a negative refspec (README).
+across 90 commits). Clones exclude the branch with a negative refspec (`setup.sh`).
 
 The Colab notebooks live on their own orphan branches, one commit each: **`notebooks`**
 (production, written only from main) and **`notebooks-pr-<N>`** (a same-repo PR's

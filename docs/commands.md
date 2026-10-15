@@ -1,9 +1,8 @@
 # Authoring reference — every supported construct
 
-Construct-by-construct syntax for worksheets, LaTeX first, with the MDX
-equivalent where you author `main.mdx` directly. `tex/example/main.tex` is
-the living demo of everything here; [iliad-sty.md](iliad-sty.md) covers the
-package mechanics.
+Worksheet syntax, LaTeX first, with the MDX equivalent for hand-authored
+`main.mdx`. `tex/example/main.tex` demos everything here;
+[iliad-sty.md](iliad-sty.md) covers the package mechanics.
 
 ## Exercises
 
@@ -19,12 +18,11 @@ Let $p$ be a distribution on a finite set $\mathcal{X}$.
 \end{exercise}
 ```
 
-- Numbered per section ("Exercise 2.1"); the optional argument is the title.
-- Label the exercise if a solution or `\cref` points at it; unlabeled
-  exercises are allowed but draw a CI warning (no stable web anchor).
-- Subparts are a plain `enumerate`; label an `\item` to reference it: `\cref`
-  prints "Exercise 1.2(a)" and, on the web, links to that part. Never
-  hand-write the letter (`\cref{ex:warmup}(a)`) — the build flags it.
+- Numbered per section ("Exercise 2.1"); optional argument is the title.
+- Unlabelled exercises draw a CI warning (no stable web anchor).
+- Subparts: plain `enumerate`. Label an `\item` and `\cref` prints
+  "Exercise 1.2(a)", linking to the part. Don't hand-write
+  `\cref{ex:warmup}(a)`; the build flags it.
 - MDX: `<Exercise id="ex-warmup">**Exercise 1.1.** …</Exercise>`
 
 ## Solutions
@@ -35,13 +33,12 @@ For \cref{ex:warmup-a}: each term is non-negative. \hint{when is $-t\log t = 0$?
 \end{solution}
 ```
 
-- `[ex:label]` is **mandatory** (compile error without it) — that binding is
-  why placement is free: right after the exercise or collected at the end.
-- The PDF keeps your placement; **the web always moves each solution directly
-  beneath its exercise** (a solutions section left empty by the move is
-  dropped from the page — don't `\cref` it from prose).
-- Collapsed (`<details>`) on the web; hidden from the PDF by
-  `\solutionsfalse`; stripped entirely from the `-nosol` downloads.
+- `[ex:label]` is mandatory (compile error without it). Place it anywhere.
+- The PDF keeps your placement; the web moves each solution under its
+  exercise. A solutions section left empty is dropped from the page, so don't
+  `\cref` it from prose.
+- Collapsed on the web, hidden in the PDF by `\solutionsfalse`, stripped from
+  `-nosol` downloads.
 - MDX: `<Solution>…</Solution>`
 
 ## Solutions-only content
@@ -52,16 +49,11 @@ For \cref{ex:warmup-a}: each term is non-negative. \hint{when is $-t\log t = 0$?
 \end{solutionsonly}
 ```
 
-- Content that appears **only** in the with-solutions build — an answer key, an
-  instructor aside, a spoiler. Unlike `solution` it has no box, heading, or
-  exercise binding, and it is never relocated: it renders as plain content
-  exactly where you write it.
-- Removed entirely from every `-nosol` download (PDF, `.tex`, `.mdx`), the same
-  way solutions are, so those stay spoiler-free. Also hidden from your own PDF
-  by `\solutionsfalse` / loading iliad with `[nosolutions]`.
-- Prefer this to a bare `\ifsolutions…\fi`: the conditional works in the PDF but
-  is **not** honoured on the web (the converter can't evaluate TeX conditionals),
-  whereas `solutionsonly` works in both.
+- Only in the with-solutions build. No box, heading or binding; renders where
+  written.
+- Removed from every `-nosol` download (PDF, `.tex`, `.mdx`); hidden by
+  `\solutionsfalse` or `[nosolutions]`.
+- Use instead of `\ifsolutions…\fi`, which the web ignores.
 
 ## PDF-only content
 
@@ -76,25 +68,15 @@ For \cref{ex:warmup-a}: each term is non-negative. \hint{when is $-t\log t = 0$?
 \end{pdfonly}
 ```
 
-- Content kept in **both** PDF variants but dropped from the web page and the
-  `.mdx` downloads without a trace — nothing inside lands in the page, the
-  sidebar, or the anchors.
-- The motivating case is a collected back-of-sheet solutions section: on the
-  web its solutions relocate under their exercises, so its `\appendix` /
-  `\section{Solutions}` header would be left pointing at nothing. Nest
-  `solutionsonly` inside `pdfonly` (as above) and the header appears **only**
-  in the with-solutions PDF.
-- The "don't `\cref` the solutions section" rule is lifted *inside* `pdfonly`:
-  a sentence like "\Cref{apx:solutions} provides worked solutions." is fine
-  when wrapped this way, since the web never renders it. A `\cref` *outside*
-  pointing *in* would be a dead link on the web — the build flags it with a
-  warning.
-- Numbered material (a `\section`, theorem, exercise) inside `pdfonly` is
-  safe for the numbering: the web reads every displayed number out of the
-  PDF's own `.aux`, so hiding, say, Theorem 2.4 leaves a faithful gap on the
-  web (…2.3, then 2.5), exactly mirroring the PDF. Just remember the hidden
-  thing isn't on the page — web-visible `\cref`s to it are dead links (the
-  build flags them, see above).
+- In both PDFs; absent from the web page, sidebar, anchors and `.mdx`
+  downloads.
+- Main use: the header of a collected solutions section, which would point at
+  nothing on the web once its solutions relocate. Nested as above, it appears
+  only in the with-solutions PDF.
+- `\cref`s inside `pdfonly` are fine. A `\cref` from outside into it is a
+  dead web link; the build warns.
+- Numbering stays faithful: the web reads numbers from the `.aux`, so hiding
+  Theorem 2.4 leaves a gap (2.3, 2.5).
 
 ## Hints
 
@@ -104,18 +86,15 @@ Consider $f(t) = t - 1 - \log t$.
 \end{hint}
 ```
 
-- Unnumbered, never labeled, renders exactly where it is written (no
-  relocation, unlike solutions).
-- PDF: a bold "Hint:" lead-in. Web: a collapsible drop-down, like solutions —
-  and unlike solutions, hints survive `\solutionsfalse` and the `-nosol`
-  downloads.
+- Unnumbered, unlabelled, renders where written.
+- PDF: bold "Hint:". Web: collapsible.
+- Survives `\solutionsfalse` and `-nosol`.
 - MDX: `<Hint>…</Hint>`
 
 ## Learning outcomes and summary
 
-The summary is **metadata, not body text**: it goes in the `%--- iliad ---`
-comment block at the top of `main.tex`, as a YAML folded block scalar
-(continuation lines indented two spaces after the leading `% `):
+The summary goes in the `%--- iliad ---` block at the top of `main.tex`, as a
+YAML folded scalar (continuation lines indented two spaces after `% `):
 
 ```latex
 %--- iliad ---
@@ -136,8 +115,7 @@ Learning outcomes stay in the body:
 \end{learningoutcomes}
 ```
 
-The body is ordinary LaTeX. For a longer sheet, group the outcomes under
-`\subsection*{...}` headings, each with its own `itemize`:
+Longer sheets can group them under `\subsection*{...}`, each with an `itemize`:
 
 ```latex
 \begin{learningoutcomes}
@@ -153,19 +131,12 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
 \end{learningoutcomes}
 ```
 
-- The summary becomes the page's lede and its index blurb;
-  `learningoutcomes` renders as the "What you'll learn" box where you put
-  it — after Prerequisites, before the content (see "Front matter opens
-  the sheet" below).
-- Legacy sheets with a `\begin{summary}` env in the body still convert (it
-  is hoisted into the frontmatter), but the metadata block is the home for
-  new sheets; a frontmatter `summary:` overrides the env if both are present.
-- MDX: put `summary:` in the YAML frontmatter; `<LearningOutcomes>` with a
-  markdown list inside. Group headings become bold subheadings in the box
-  (not real headings — no anchor, not in the table of contents).
-- A summary that is missing, empty, or still `TODO` draws a non-fatal
-  **warning** on both paths (LaTeX and MDX) — it is the one metadata field that
-  shows up twice, so an unfinished one is worth naming out loud.
+- Summary → page lede and index blurb. `learningoutcomes` → "What you'll
+  learn" box, placed after Prerequisites (see "Front matter opens the sheet").
+- A legacy body `\begin{summary}` still converts; frontmatter `summary:` wins.
+- MDX: `summary:` in frontmatter; `<LearningOutcomes>` around a markdown
+  list. Group headings become bold lines (no anchor, not in the ToC).
+- Missing, empty or `TODO` summary: non-fatal warning.
 
 ## Table of contents
 
@@ -173,46 +144,29 @@ The body is ordinary LaTeX. For a longer sheet, group the outcomes under
 \tableofcontents   % usually right after \maketitle
 ```
 
-- Optional. In the PDF, `\tableofcontents` produces LaTeX's usual ToC.
-- On the web, the converter emits an in-page **Contents** list at the same
-  spot — a nested list of links to every `section`/`subsection`/`subsubsection`,
-  numbered exactly as the headings are (`1`, `1.1`, `4.2.1`).
-- It is built from the headings that survive conversion, so links never
-  dangle: a section whose body relocated away (e.g. a `Solutions` appendix,
-  whose solutions move under their exercises on the web) is left out
-  automatically. The auto-generated References list is not included.
-- No `.toc` file or CI change is involved — writing `\tableofcontents` in the
-  source is all it takes.
-- MDX-authored sheets (`main.mdx`) have no `\tableofcontents`; write the page
-  with headings and rely on the sidebar nav.
-  
+- Optional. Web: a **Contents** list linking every section level, numbered as
+  the headings (`1`, `1.1`, `4.2.1`).
+- Omits sections emptied by relocation (e.g. a `Solutions` appendix) and the
+  References list.
+- MDX sheets: no ToC; rely on the sidebar.
+
 ## Front matter opens the sheet
 
-Different authors ordered their openings differently; the site does not.
-Every sheet opens the same way:
+Every sheet opens:
 
-1. **Overview** — the `summary:` in the metadata block, which the page header
-   shows under the title (it doubles as the index blurb, so keep it one tight
-   paragraph). A body `\section{Overview}` / `## Overview` is the author's
-   call and draws no warning — it simply reads as the sheet's first content
-   section, after the front matter below.
-2. **Video embeds** (optional) — `\youtube` / `<YouTube />`, see "Videos"
-   below.
-3. **Prerequisites** — an ordinary section.
-4. **Learning outcomes** — the `learningoutcomes` box.
+1. **Overview**: the metadata `summary:`, shown under the title. Keep it one
+   paragraph. A body `## Overview` is allowed and counts as content.
+2. **Video embeds** (optional): see "Videos".
+3. **Prerequisites**: an ordinary section.
+4. **Learning outcomes**: the `learningoutcomes` box.
 
-Then the content. Orientation opens a sheet; pointers *out* of it close it
-(the mirror rule is "Further reading goes last", just below). The build
-checks the ordering of items 2-4 on both paths (LaTeX and MDX) and prints a
-non-fatal **warning** when a sheet strays. Only the opening run is checked — a video
-embedded mid-content to illustrate a point is fine and exempt.
+Then the content. The build warns (non-fatal) if items 2–4 are out of order.
+Videos later in the content are exempt.
 
 ## Further reading goes last
 
-A "Further reading" / "Learn more" section is the LAST section of the sheet:
-after all taught content, just before the references — or before `\appendix`
-if the sheet has one. Prerequisites and the roadmap open a sheet; pointers
-*out* of it close it. This holds for every module, LaTeX or MDX.
+"Further reading" / "Learn more" is the last section: after all content,
+before the references or `\appendix`.
 
 ## Theorem family
 
@@ -223,13 +177,12 @@ The \emph{entropy} of $p$ is …
 \end{definition}
 ```
 
-`definition`, `theorem`, `lemma`, `proposition`, `corollary`, `fact`,
-`example` share one per-section counter; `proof` is collapsible on the web.
-The optional argument is a name/attribution; on the web every box renders
-axiom-style — a bold lead ("**Lemma 2.2 (Gibbs' inequality).**") inside the
-coloured box, so names can contain math.
-MDX: `<Definition id="def-entropy">**Definition 2.1 (entropy).** …</Definition>`,
-`<Theorem id="thm-gibbs">**Lemma 2.2 (Gibbs).** …</Theorem>`.
+- `definition`, `theorem`, `lemma`, `proposition`, `corollary`, `fact`,
+  `example` share one per-section counter. `proof` collapses on the web.
+- Optional argument: name/attribution, may contain math. Web lead:
+  "**Lemma 2.2 (Gibbs' inequality).**"
+- MDX: `<Definition id="def-entropy">**Definition 2.1 (entropy).** …</Definition>`,
+  `<Theorem id="thm-gibbs">**Lemma 2.2 (Gibbs).** …</Theorem>`.
 
 ## Callouts and remarks
 
@@ -248,42 +201,27 @@ An aside in the mathematical register.
 \end{remark}
 ```
 
-- Types: `note` (default), `tip`, `warning` — coloured boxes on web + PDF
-  (`[boxes]`).
-- A second optional argument is the callout's **title**: in the PDF it replaces
-  the "Note"/"Tip"/"Warning" label on the box frame, on the web it heads the
-  box. Use it for a highlighted key equation or a named aside; leave it off
-  for a plain aside (the PDF then shows the type word, the web just the
-  colour). The title travels as a plain-text attribute on the web, so keep
-  maths out of it — a box whose heading needs maths keeps the heading as a
-  bold first line in the body instead.
-- `remark` takes an optional title, appended in parentheses:
-  `\begin{remark}[Encodings]` renders as "Remark (Encodings)".
-- Both may be labelled: no number shows in the box, but
-  `\cref{co:pitfall}` prints "Callout 2.1" and links to it.
+- Types: `note` (default), `tip`, `warning` (`[boxes]`).
+- Second optional argument: title. Replaces the type word on the PDF frame;
+  heads the box on the web. Plain text only: put a maths heading as a bold
+  first line instead.
+- `\begin{remark}[Encodings]` renders "Remark (Encodings)".
+- Both can be labelled: no number shown, but `\cref{co:pitfall}` prints
+  "Callout 2.1".
 - MDX: `<Callout type="warning" id="co-pitfall">…</Callout>`,
   `<Callout type="tip" title="Observation return">…</Callout>`
 
 ## Math, macros, cross-references
 
-- Inline `$…$`, display `\[…\]`, `equation`, `align` — all KaTeX on the web.
-- Your preamble `\newcommand`s / `\DeclareMathOperator`s translate to web
-  math macros automatically (avoid `\mathchoice` and optional-argument
-  macros — the converter warns at `file.tex:line` when it can't translate).
-- `\cref`/`\Cref` resolve to the exact text LaTeX prints, everywhere:
-  equations, sections, exercises, subparts, callouts.
-- **Reference with `\cref` (or `\eqref` for equation numbers), never by
-  hand.** A plain `\ref`, or a `\hyperref` whose visible text hand-writes
-  "Appendix A"-style words, draws an **advisory**: the frozen text stops
-  tracking the label the moment anything renumbers, and the type word is
-  left out of the link. (`\ref*` inside custom `\hyperref` link text is
-  fine — the number still comes from the label.)
-- A **literal dollar** in prose is `\$` — in a `.tex` sheet and in a
-  hand-authored `.mdx` alike (`\$1,000`). It has to be escaped somehow, because
-  two bare `$` in one paragraph are a math span to `remark-math`: "wins $1,000
-  … and wins $500" typesets everything between them. Inside math the escape
-  does not apply (the body is raw, so a `$` byte would end the span) — the
-  converter emits `\char36` there, and by hand that is what to write.
+- `$…$`, `\[…\]`, `equation`, `align`: KaTeX on the web.
+- Preamble `\newcommand`s / `\DeclareMathOperator`s become KaTeX macros.
+  Avoid `\mathchoice` and optional-argument macros; untranslatable ones warn
+  at `file.tex:line`.
+- `\cref`/`\Cref` print what LaTeX prints, for every labelled thing.
+- Use `\cref` or `\eqref`. Plain `\ref`, or `\hyperref` text hand-writing
+  "Appendix A", draws an advisory. `\ref*` inside `\hyperref` text is fine.
+- Literal dollar: `\$` in `.tex` and `.mdx` (`\$1,000`); two bare `$` in a
+  paragraph become a math span. Inside math use `\char36`.
 
 ## Figures
 
@@ -296,11 +234,9 @@ An aside in the mathematical register.
 \end{figure}
 ```
 
-- Export figures to **PDF** into your `fig/` folder — the build converts
-  them to SVG for the web. Web-native assets (`.svg`, `.png`, …) in `fig/`
-  are served as-is.
-- Inline `tikzpicture`/`tikzcd` also works: each diagram is compiled and
-  rendered for the web automatically.
+- PDF figures in `fig/` become SVG on the web. `.svg`, `.png` etc. are served
+  as-is.
+- Inline `tikzpicture`/`tikzcd` works.
 - MDX: `<Figure src="/uploads/your-slug/value-curve.svg" caption="…" />`
 
 ## Videos
@@ -310,28 +246,19 @@ An aside in the mathematical register.
 \youtube[What is a neural network?]{aircAruvnKk}   % title set by hand
 ```
 
-- The argument is the **11-character video ID** — the `v=` value of the watch
-  URL, not the URL itself (a full URL draws a CI warning and a broken embed).
-- Web: an embedded player, with a "Watch on YouTube ↗" link beneath it. The
-  title is shown above that link and used as the player's accessibility
-  title. With no `[Title]`, the build queries the video's real title from
-  YouTube (oEmbed, cached in `content/modules/.video-titles.json`); if the
-  lookup fails (offline build, deleted video) the embed ships untitled with a
-  CI warning. An explicit `[Title]` always wins and needs no network.
-- PDF: a **Video:** line carrying the full watch URL — clickable on screen and
-  still readable on a printed sheet.
-- Block-level: it sets its own paragraph, so write it between paragraphs, not
-  mid-sentence.
+- Argument: the 11-character video ID. A full URL warns and breaks the embed.
+- Web: player plus "Watch on YouTube ↗" link. Without `[Title]`, the title
+  comes from oEmbed (cached in `content/modules/.video-titles.json`); on
+  failure the embed is untitled and CI warns.
+- PDF: a **Video:** line with the watch URL.
+- Block-level: put it between paragraphs.
 - MDX: `<YouTube id="aircAruvnKk" title="…" />`
-- Lecture recordings are front matter: they open the sheet, before
-  Prerequisites (see "Front matter opens the sheet"). A video illustrating
-  one point sits wherever that point is — that's fine too.
+- Lecture recordings go before Prerequisites; illustrative videos anywhere.
 
 ## Notebooks
 
-A module's Colab notebooks are built from master `.py` files sitting next to
-`main.tex` (`tex/<slug>/<name>.py`); see [`NOTEBOOKS.md`](NOTEBOOKS.md). Link
-them by name:
+Built from master `.py` files beside `main.tex` (`tex/<slug>/<name>.py`); see
+[`NOTEBOOKS.md`](NOTEBOOKS.md).
 
 ```latex
 \notebooknosol{compact_proofs}                        % without solutions: "Open in Colab"
@@ -339,21 +266,15 @@ them by name:
 \notebooknosol{worst-case-interp/compact_proofs}      % another module's notebook
 ```
 
-- Inline: a link, usable mid-sentence, in worksheets and in decks that load
-  `iliad-slides.sty`.
-- The build resolves the name to the notebook's Colab URL and **fails** if the
-  module has no master `<name>.py`.
-- Every notebook publishes both versions, so both commands always work (a
-  notebook without exercise markers publishes two identical files).
-- The page also lists each notebook in its downloads block (a **Notebook** row
-  next to Slides) without any command; that link follows the "with solutions"
-  checkbox.
+- Inline links; also work in decks loading `iliad-slides.sty`.
+- Build fails if `<name>.py` doesn't exist.
+- Both versions always publish (identical if no exercise markers).
+- Each notebook also gets a **Notebook** download row automatically, following
+  the "with solutions" checkbox.
 - MDX: `<NotebookNoSol name="compact_proofs" />`,
   `<NotebookSol name="compact_proofs">the worked solutions</NotebookSol>`.
 
 ## Slides
-
-A worksheet folder may carry optional slide decks:
 
 ```
 tex/<slug>/slides.tex          # any self-contained LaTeX (usually beamer)
@@ -361,91 +282,63 @@ tex/<slug>/slides-<label>.tex  # further decks — a day with more than one lect
 tex/<slug>/slides.typ          # …or a deck written in Typst (same stems, .typ)
 ```
 
-- If `slides.tex` is present, the build compiles it to `slides.pdf` and hosts
-  it beside the other downloads — the page gains a **Slides** row (view PDF,
-  download PDF, download the `.tex`). Same 3× `pdflatex` + `bibtex` ladder as
-  the worksheet; a compile error fails the build with `file.tex:line`.
-- **Several decks.** A day taught as more than one lecture keeps every deck in
-  the same folder: `slides.tex` plus `slides-<label>.tex` (label: lowercase
-  letters, digits, hyphens; it may not end in `-handout`, which is the collapsed
-  build's suffix). Each compiles and stages on its own as
-  `<slug>-slides-<label>.pdf/.tex`, and the page shows **one Slides row per
-  deck**: `slides.tex` first, then the rest in filename order — that order is the
-  only sequencing there is, so name a second deck with it in mind. With more
-  than one row, each is labelled from the deck's own `\title{}` (beamer's
-  `\title[short]{long}` included); a lone deck stays unlabelled. A folder can
-  also hold only `slides-<label>.tex` files and no `slides.tex`.
-- **Naming a deck's row.** When the decks share a `\title{}` and differ only
-  in `\subtitle{}`, the rows would all read the same. Open the deck with the
-  same comment block a worksheet uses and the row takes that title instead:
+- `slides.tex` → `slides.pdf` (same `pdflatex`/`bibtex` ladder as the
+  worksheet), shown as a **Slides** row (view, download PDF, `.tex`). A
+  compile error fails the build.
+- **Several decks**: add `slides-<label>.tex` (lowercase, digits, hyphens; not
+  ending `-handout`). Each stages as `<slug>-slides-<label>.pdf/.tex` with its
+  own row: `slides.tex` first, then filename order. With several rows, each
+  is labelled by its `\title{}`. `slides.tex` itself is optional.
+- **Naming a deck's row**: decks sharing a `\title{}` can set `title:` (the
+  only deck key) in a metadata block:
   ```latex
   %--- iliad ---
   % title: 2. Predicting the future
   %--- end ---
   \documentclass[aspectratio=169]{beamer}
   ```
-  `title:` is the only key a deck's block carries; the deck's `\title{}` is
-  still what beamer prints. Without the block the row falls back to `\title{}`.
-- **Handout variant.** A deck that mentions `\HANDOUT` opts into a second,
-  collapsed build. Guard the reveals with it in the preamble:
+- **Handout variant**: a deck mentioning `\HANDOUT` also builds
+  `slides-handout.pdf` (`slides-<label>-handout.pdf`); its row reads
+  *present · handout · LaTeX*.
   ```latex
   \ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
   \documentclass[10pt,aspectratio=169]{beamer}
   ```
-  The build then also produces `slides-handout.pdf` by `\def`-ing the macro on
-  the command line (`slides-<label>-handout.pdf` for a labelled deck), and that
-  deck's **Slides** row reads *present · handout · LaTeX* instead of
-  *view · download · LaTeX*. A deck with no `\pause` reveals simply never
-  mentions `\HANDOUT` and builds once. To reproduce either build by hand:
+  By hand:
   ```
   pdflatex slides.tex                                  # presentation
   pdflatex -jobname=slides-handout "\def\HANDOUT{}\input{slides}"   # handout
   ```
-- `iliad.sty` is a *worksheet* contract and is **not** loaded for slides —
-  style the deck however you like.
-- **An optional shared style.** `tex/iliad-slides.sty` is a beamer preamble you
-  may load instead of writing your own: the Madrid theme, the usual maths and
-  graphics packages, link colours that stay readable on Madrid's dark bars, and
-  `\citev` for citations. Load it after `\documentclass`, local copy first:
+- `iliad.sty` is not loaded for slides.
+- **Optional shared style** `tex/iliad-slides.sty`: Madrid theme, maths and
+  graphics packages, readable link colours, `\citev`. Load after
+  `\documentclass`, local copy first:
   ```latex
   \ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
   \documentclass[10pt,aspectratio=169]{beamer}
   \IfFileExists{iliad-slides.sty}{\usepackage{iliad-slides}}{\usepackage{../iliad-slides}}
   ```
-  The `\HANDOUT` line and `\documentclass` stay in your deck — the first has to
-  run before the class is loaded, and the second keeps the font size and aspect
-  ratio yours. Nothing enforces this: it is a starting point rather than a
-  contract, no build step checks for it, and `tex/training-dynamics/slides.tex`
-  uses the moloch theme with its own preamble instead. The example, AIXI and
-  Solomonoff decks load it.
-- **Typst decks.** A deck written in [Typst](https://typst.app) uses the same
-  stems with a `.typ` extension — `slides.typ`, `slides-<label>.typ` — and is
-  built with one `typst compile`, no pdflatex ladder. Its row offers the PDF
-  and the `.typ` (labelled *Typst* where a LaTeX deck's says *LaTeX*); with
-  several decks on the page, its label is the deck's
-  `#set document(title: "…")`. No handout variant (Typst has no `\pause` to
-  collapse). One stem is one deck: `slides.tex` and `slides.typ` side by side
-  fail the build. Images live in `fig/` like everything else and are
-  referenced relatively (`#image("fig/diagram.svg")`). The build compiles with
-  `--ignore-system-fonts`, so a deck renders identically on CI and on your
-  laptop from the fonts Typst ships (Libertinus, New Computer Modern, DejaVu
-  Sans Mono); a deck that needs another face puts the `.ttf`/`.otf` in
-  `tex/<slug>/fonts/`, which the build passes as `--font-path`.
-  `./setup.sh` installs the pinned Typst binary (`scripts/install-typst.sh`).
-- Slides are **never** converted to MDX and have **no** `-nosol` variant (a
-  deck is a download, not a web page).
-- No source, only a PDF deck? Don't commit the binary. Host it (e.g. Drive)
-  and point at it from the `%--- iliad ---` block:
+  The `\HANDOUT` line must precede `\documentclass`. Not enforced
+  (`tex/training-dynamics/slides.tex` uses moloch).
+- **Typst decks** ([Typst](https://typst.app)): `slides.typ`,
+  `slides-<label>.typ`.
+  - One `typst compile`; row offers PDF and `.typ`; label from
+    `#set document(title: "…")`; no handout.
+  - `slides.tex` and `slides.typ` together fail the build.
+  - Images in `fig/`, relative paths (`#image("fig/diagram.svg")`).
+  - `--ignore-system-fonts`: only bundled fonts (Libertinus, New Computer
+    Modern, DejaVu Sans Mono). Extra fonts go in `tex/<slug>/fonts/`
+    (`--font-path`).
+  - `./setup.sh` installs the pinned binary (`scripts/install-typst.sh`).
+- No MDX conversion, no `-nosol` variant.
+- **PDF-only deck**: don't commit it. Host it (e.g. Drive) and link it:
   ```
   %--- iliad ---
   % slides: https://drive.google.com/…
   %--- end ---
   ```
-  It renders as an outbound **Slides ↗** link — in a row of its own, listed
-  first, alongside the rows for any compiled `slides*.tex`; nothing supersedes
-  anything. That is how a day whose main lecture exists only as a hosted deck
-  and whose guest lecture compiles from source shows both. When the page has
-  several rows, name the hosted one:
+  Renders as a **Slides ↗** row listed first, alongside compiled decks. With
+  several rows, give it a title:
   ```
   %--- iliad ---
   % slides:
@@ -453,20 +346,14 @@ tex/<slug>/slides.typ          # …or a deck written in Typst (same stems, .typ
   %   title: Intro to Reward Learning Theory
   %--- end ---
   ```
-- The build emits a non-fatal **warning** for any worksheet with no
-  `slides*.tex`/`slides*.typ` (whether or not a `slides:` URL is set), in the
-  full build and `./run.sh ci` — not in the `--check` watch/pre-push loop.
-- For a day with **no worksheet yet**, there is no frontmatter to hold a
-  `slides:` URL — put it on the day itself in [`schedule.yaml`](../schedule.yaml)
-  instead. It is a fallback only: once any of the day's worksheets offers a
-  deck (compiled or `slides:`), the day-level URL is not shown.
+- No `slides*.tex`/`slides*.typ` → non-fatal warning (even with a `slides:`
+  URL) in the full build and `./run.sh ci`, not in `--check`.
+- Day with no worksheet yet: put `slides:` on the day in
+  [`schedule.yaml`](../schedule.yaml). Hidden once a worksheet offers a deck.
 
 ## Which teaching day is this? (not your file's business)
 
-Your frontmatter describes the *worksheet*. Where it sits in the *course* —
-its cluster, its teaching day, the order it's listed in — lives in one central
-file, [`schedule.yaml`](../schedule.yaml), which lists each day's worksheets in
-reading order:
+Cluster, day and order live in [`schedule.yaml`](../schedule.yaml):
 
 ```yaml
       - code: D.3
@@ -476,47 +363,28 @@ reading order:
           - aixi
 ```
 
-- Add your slug under its day and you're done: the homepage, the sidebar and
-  [`/admin/status`](https://iliad-intensive.org/admin/status/)
-  all follow, and the build stamps `cluster:`/`day:` into your page for you.
-- Several worksheets per day is normal — D.3 is Solomonoff Induction then AIXI,
-  and that order is a fact about teaching, which no sort of the titles could
-  have recovered.
-- Writing `cluster:` or `day:` in your own frontmatter **fails the build**: two
-  places to state one fact is one too many.
-- A worksheet no day lists also **fails the build**, so nothing can quietly
-  land unplaced. (`unlisted: true` opts a sheet out of the course entirely —
-  that's the format demo, and almost certainly not you.)
+- Add your slug under its day. The homepage, sidebar and
+  [`/admin/status`](https://iliad-intensive.org/admin/status/) follow; the
+  build stamps `cluster:`/`day:` in.
+- `cluster:` or `day:` in your frontmatter **fails the build**.
+- An unlisted worksheet **fails the build**. `unlisted: true` opts out (format
+  demo only).
 
 ## Citations
 
-Entries go in your folder's `biblo.bib`; `\cite{Shannon:48}` etc. as normal
-(`\bibliography{biblo}` + a style at the end of the sheet). On the web,
-citations render as author-year text linking to an anchored entry in a
-References list at the bottom of the page; there, an entry with a `url`
-(or arXiv `eprint`) field makes its title the outbound link. Citations
-never link straight out of the page.
+Entries in your folder's `biblo.bib`; `\cite{Shannon:48}` etc., with
+`\bibliography{biblo}` and a style at the end.
 
-**Pick whatever style you like.** `\bibliographystyle` governs the PDF only —
-the converter never reads it. It parses `biblo.bib` itself and normalizes
-every citation to the same author-year form on the web, so an alpha-label
-sheet (`alphaurl` → `[Knu73]`) and a natbib author-year one (`plainnat` →
-`(Fishburn, 1971)`) read identically online and differ only in their PDFs.
-natbib's commands are all understood: `\citet` keeps its grammatical form
-("Watanabe 2009 defines…"), while `\cite`, `\citep`, `\citealp` and
-`\citetext` render parenthesized.
-
-A style bibtex cannot open produces no `.bbl`, and pdflatex then degrades every
-`\cite` to `[?]` without erroring — so the build treats any bibtex failure
-other than "this document has no bibliography" as fatal.
-
-`alphaurl` needs no package: it is vendored at `tex/alphaurl.bst` (verbatim from
-urlbst 0.9.1) and found through `BSTINPUTS`, because the Debian package carrying
-it is 75 MB for one 36 KB file. For a style that is neither vendored nor in base
-TeX Live, prefer **vendoring the `.bst`** over adding an apt package — the CI TeX
-download is the build's biggest cost and a slow mirror can stall it for 15+
-minutes. A per-worksheet `.bst` works too
-(`tex/singular-learning-theory/far.bst` does exactly that).
+- Web: author-year text linking to a References list at the page bottom.
+  Entries with `url` or arXiv `eprint` get an outbound title link.
+- `\bibliographystyle` affects the PDF only; the web is always author-year.
+- `\citet` stays textual; `\cite`, `\citep`, `\citealp`, `\citetext` are
+  parenthesized.
+- Any bibtex failure (except "no bibliography") is fatal, since otherwise
+  every `\cite` silently becomes `[?]`.
+- `alphaurl` is vendored at `tex/alphaurl.bst` (via `BSTINPUTS`). For other
+  styles outside base TeX Live, vendor the `.bst` rather than add an apt
+  package. Per-worksheet `.bst` works (`tex/singular-learning-theory/far.bst`).
 
 ## Inline marks
 
@@ -525,46 +393,25 @@ minutes. A per-worksheet `.bst` works too
 
 ## Footnotes
 
-`\footnote{…}` becomes a real footnote on the web, not a parenthetical: a
-numbered marker where you wrote it, the note itself at the foot of the page, and
-a link each way. Nothing about the PDF changes.
-
-`\footnotemark` … `\footnotetext{…}` works too — the split form LaTeX needs when
-the marker sits somewhere that cannot carry the text, such as a theorem's title
-argument (`\begin{definition}[Covering\protect\footnotemark]`). The mark takes
-the next number and the next `\footnotetext` fills it in, so keep them in that
-order; a `\footnotetext` with no mark before it stays inline in parentheses and
-draws a warning.
-
-Notes are numbered per page in source order, and the numbering is the renderer's
-— it counts references, so it stays right no matter where the definitions sit.
-One caveat: a footnote spanning several paragraphs is joined into one on the
-page (a blank line would end the note), and the build says so.
-
-Footnotes inside a `solution` are stripped from the `-nosol` download along with
-the answer — the note included, not just its marker.
+- `\footnote{…}` → web footnote with links both ways, numbered per page.
+- `\footnotemark` … `\footnotetext{…}` works (e.g. in a theorem title:
+  `\begin{definition}[Covering\protect\footnotemark]`). Mark first; an orphan
+  `\footnotetext` stays inline and warns.
+- Multi-paragraph footnotes are joined into one paragraph on the web.
+- Footnotes in a `solution` are stripped from `-nosol`.
 
 ## Writing in MDX instead
 
-`main.mdx` replaces `main.tex` entirely: YAML frontmatter (`title`,
-`summary`, `contributors` — `title` required, there's no
-`\title{}` to fall back on), KaTeX math with `$…$`/`$$…$$`, and the JSX
-components named above. **There is no PDF**: LaTeX is the format that becomes a
-print artifact, MDX the one that becomes a web page, so an MDX-authored sheet is
-a page and nothing else. Downloads offer Markdown alone (± solutions) — no PDF,
-no LaTeX. Everything else — the `-nosol` variant, the index, the render gate —
-works identically.
+`main.mdx` replaces `main.tex`:
 
-A hand-authored `main.mdx` is **copied verbatim** into
-`content/modules/<slug>.mdx` — no converter, no preprocessing — and served as
-the page. Nothing else consumes it, and the rules below follow from that: the
-page is the whole output.
+- Frontmatter: `title` (required), `summary`, `contributors`.
+- `$…$`/`$$…$$` math and the components above.
+- **No PDF.** Downloads are Markdown only (± solutions).
+- Copied verbatim to `content/modules/<slug>.mdx` and served as the page.
 
 ### Teaching notes: `<TeachingNote>` (MDX only)
 
-A reading day's source often carries material addressed to whoever *teaches*
-the day rather than to the student reading the page — what a session is for,
-and how the author ran it last time. That goes in a `TeachingNote`:
+For material aimed at whoever teaches the day:
 
 ```mdx
 <TeachingNote title="Session intent">
@@ -582,25 +429,15 @@ verbose, so I opted for Rohin's article instead.
 </TeachingNote>
 ```
 
-- Collapsed by default, so it doesn't sit in the student's reading flow; the
-  `title` is the label on the closed box.
-- Blank lines around the body, like every component with markdown inside.
-- The label belongs in `title`, not in the body: port
-  `**Session intent:** The participants …` as
+- Collapsed; `title` labels it. Blank lines around the body.
+- Port `**Session intent:** The participants …` as
   `<TeachingNote title="Session intent">The participants …`.
-- Not a `Callout`: teacher-facing material carries
-  `data-component="teaching-note"` so it stays findable (a strip, an index, a
-  toggle) once we know what the right format is. It survives `-nosol` — only
-  `<Solution>` is stripped.
-- **In LaTeX it is the `teachingnote` environment**, whose optional argument is
-  the title: `\begin{teachingnote}[Session intent] … \end{teachingnote}`. The
-  converter emits this component from it. A PDF has no collapsing, so there it
-  is a dashed box with the title as its heading.
+- Don't use a `Callout`; this carries `data-component="teaching-note"`.
+  Survives `-nosol`.
+- LaTeX: `\begin{teachingnote}[Session intent] … \end{teachingnote}`. PDF:
+  dashed box headed by the title.
 
 ### Heading levels: `##` is the top
-
-Match what the converter emits for a LaTeX day, so a hand-written page and a
-generated one have the same shape:
 
 | LaTeX | MDX |
 | :--- | :--- |
@@ -608,12 +445,9 @@ generated one have the same shape:
 | `\subsection` | `###` |
 | `\subsubsection` | `####` |
 
-**Never `#`.** The site renders the frontmatter `title` as the page's h1, so a
-`#` in the body is a second h1 sitting a level above every generated page's
-sections. Numbered sections in generated pages carry an `N.` prefix read from
-the `.aux` (`## 1. Preliminaries`); hand-authored days aren't numbered, so
-don't add numbers by hand. Don't mix a bold line (`**Session 2: …**`) with a
-real `### Session 1: …` for the same level — pick the heading.
+- **Never `#`**: the frontmatter `title` is the h1.
+- Don't number headings by hand.
+- Don't use a bold line in place of a heading.
 
 ### Comments: `{/* … */}`
 
@@ -622,23 +456,16 @@ real `### Session 1: …` for the same level — pick the heading.
 {/* parked until the author confirms the timetable */}
 ```
 
-That is the only form MDX accepts. One per line is fine, so is a blank line
-inside a single `{/* … */}` block. `<!-- … -->` is a **compile error**, not a
-comment:
+`<!-- … -->` is a compile error:
 
     MDX compile: FAIL :: Unexpected character `!` (U+0021) before name …
       (note: to create a comment in MDX, use `{/* text */}`)
 
-A comment hides from the rendered page, but the `<slug>.mdx` download is the file
-itself, so parked content still travels with it. Use `{/* … */}` freely while
-drafting and delete it before you ship rather than leaving it commented — git
-history is the place for a block you might want back.
+Comments ship in the `.mdx` download; delete parked content before shipping.
 
 ### GFM: footnotes and tables
 
-The page pipeline loads `remark-gfm`, so GitHub-flavoured markdown works in a
-hand-authored sheet as well as in a converted one — footnotes and tables being
-the two that matter:
+`remark-gfm` is loaded:
 
 ```mdx
 The claim holds for finite horizons.[^horizon]
@@ -646,21 +473,17 @@ The claim holds for finite horizons.[^horizon]
 [^horizon]: It fails for $m = \infty$; see the appendix.
 ```
 
-Any label does (`[^horizon]`, `[^1]`); the renderer numbers notes by the order
-their references appear, and collects them at the foot of the page. A reference
-with no definition renders as the literal text `[^horizon]` — that is the one
-failure mode to watch for, and the sheet still compiles.
+Any label works. A reference with no definition renders as literal
+`[^horizon]` without failing the build.
 
 ### Frontmatter
 
-Never write `cluster:` or `day:` — those belong to `schedule.yaml` and the
-build stamps them in. Writing either is a hard build failure:
+`cluster:` or `day:` is a hard build failure:
 
     main.mdx frontmatter sets `day` — that lives in schedule.yaml (list the
     slug under its day) and is stamped in at build time
 
-So a new MDX module is two edits: the file, plus its slug under the right day's
-`worksheets:` in `schedule.yaml`.
+A new MDX module is the file plus its slug in `schedule.yaml`.
 
 ### Check it
 
@@ -668,8 +491,5 @@ So a new MDX module is two edits: the file, plus its slug under the right day's
     node scripts/build-content.mjs --check <slug>                # + the frontmatter/schedule rules
     node scripts/build-content.mjs <slug>                        # + staged downloads
 
-The gate wants `MDX compile: OK` and `0 errored` KaTeX spans. Only `--check`
-catches a `cluster:`/`day:` in frontmatter or a slug missing from
-`schedule.yaml` — and for an MDX sheet `--check` is essentially the whole story,
-since the full build adds only the copied `.mdx` downloads, with no PDF ladder
-to go wrong.
+Expect `MDX compile: OK` and `0 errored` KaTeX spans. Only `--check` catches
+frontmatter/schedule errors.
