@@ -7,6 +7,45 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+echo "== git: skip the build-output branches =="
+# A plain `git clone` downloads every branch, and three kinds here hold only
+# build output nobody opens locally:
+#   gh-pages           the built website plus a full copy of it per open PR
+#                      preview — ~700 MB, growing with every preview publish
+#   notebooks          the built Colab notebooks (docs/NOTEBOOKS.md)
+#   notebooks-pr-<N>   one notebook branch per open PR
+# So origin's fetch refspec is "every branch" minus those, as negative
+# refspecs (the ^ lines; git >= 2.29). It lives in .git/config, so every later
+# `git fetch`/`git pull` keeps skipping them; you still get every other
+# branch. Measured: 42 MB instead of 136 MB.
+#
+# The README's `git clone --single-branch --branch main` only covers the very
+# first fetch, before this config exists. Re-running ./setup.sh brings any
+# clone up to date when a branch is added here — but it only stops a clone
+# growing; a fresh clone is the only way to reclaim what's already fetched.
+fetch_refspecs=(
+  '+refs/heads/*:refs/remotes/origin/*'
+  '^refs/heads/gh-pages'
+  '^refs/heads/notebooks'
+  '^refs/heads/notebooks-pr-*'
+)
+read -r git_major git_minor < <(git version | sed -E 's/^git version ([0-9]+)\.([0-9]+).*/\1 \2/')
+if [ "$git_major" -lt 2 ] || { [ "$git_major" -eq 2 ] && [ "$git_minor" -lt 29 ]; }; then
+  echo "error: $(git version) is too old — the fetch config needs git >= 2.29. Upgrade git and re-run." >&2
+  exit 1
+fi
+if ! git remote get-url origin >/dev/null 2>&1; then
+  echo "no 'origin' remote — skipped"
+elif [ "$(git config --get-all remote.origin.fetch || true)" = "$(printf '%s\n' "${fetch_refspecs[@]}")" ]; then
+  echo "already configured"
+else
+  git config --unset-all remote.origin.fetch || true
+  for r in "${fetch_refspecs[@]}"; do git config --add remote.origin.fetch "$r"; done
+  echo "configured; fetching the other branches..."
+  git fetch origin
+fi
+echo
+
 # macOS has no apt — hand off to the Homebrew/MacTeX twin of this script.
 if [ "$(uname -s)" = "Darwin" ]; then
   exec ./setup-macos.sh

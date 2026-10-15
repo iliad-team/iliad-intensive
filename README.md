@@ -13,35 +13,19 @@ Feedback welcome! I want friction for you as the writer to be as low as possible
 ```
 git clone --single-branch --branch main git@github.com:iliad-team/iliad-intensive.git
 cd iliad-intensive
-git config --unset-all remote.origin.fetch
-git config --add remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*'
-git config --add remote.origin.fetch '^refs/heads/gh-pages'
-git config --add remote.origin.fetch '^refs/heads/notebooks'
-git config --add remote.origin.fetch '^refs/heads/notebooks-pr-*'
-git fetch origin
-chmod +x setup.sh
 ./setup.sh
 ```
 
-**Why not a plain `git clone`?** A default clone downloads *every* branch, not
-just the one it checks out. `gh-pages` is one of them, and it holds the built
-website plus a complete copy of it for each open PR preview — ~700 MB today,
-growing with every preview publish. None of it is anything you would ever open.
-The `git config` lines add negative refspecs that exclude `gh-pages` for good,
-along with the built Colab notebooks (`notebooks`, plus one `notebooks-pr-<N>`
-branch per open PR; see `docs/NOTEBOOKS.md`), so later `git fetch` and `git pull`
-keep skipping them; `--single-branch` is there
-only to stop the *first* fetch pulling it before that config exists. You still
-get every other branch. Measured: **42 MB instead of 136 MB**.
+**Why `--single-branch`?** A few branches hold only build output — the website
+with every PR preview (~700 MB and growing) and the built notebooks. `setup.sh`
+configures git to skip those for good and then fetches every other branch; this
+flag just stops the first download pulling them before that config exists. The
+details are in `setup.sh`. Already cloned the plain way? Running `./setup.sh`
+stops the clone growing; only a fresh clone reclaims the space.
 
-`setup.sh` installs `git-lfs` if you don't have it and then runs `git lfs pull`,
-so the figures arrive as real files rather than pointers — which is why the LFS
-step comes after it, not before. If you need another branch's figures too, run
-`git lfs fetch --all` once.
-
-Already cloned the heavy way? The three `git config` lines work on an existing
-clone. They stop it growing, but only a fresh clone reclaims what is already
-there.
+`setup.sh` also installs the toolchain and `git-lfs`, then runs `git lfs pull`
+so the figures arrive as real files rather than pointers. If you need another
+branch's figures too, run `git lfs fetch --all` once.
 
 Works on Linux (apt) and macOS — on a Mac, `setup.sh` hands off to
 `setup-macos.sh`, which installs the same toolchain via Homebrew and MacTeX
