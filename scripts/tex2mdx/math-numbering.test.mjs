@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { numberMath } from "./math-numbering.mjs";
+import { injectAutoLabels } from "./autolabel.mjs";
 
 const refs = { "eq:degeneracy": { num: "19" }, a: { num: "4.2a" }, b: { num: "4.2b" } };
 
@@ -50,4 +51,28 @@ test("suppressed rows and aliases do not acquire extra tags", () => {
     String.raw`x\label{a}\notag\\y\label{b} \tag{4.2b}`);
   assert.equal(numberMath("equation", String.raw`x\label{a}\label{b}`, refs),
     String.raw`x\label{a}\label{b} \tag{4.2a}`);
+});
+
+test("autolabel labels every numbered row LaTeX prints, and only those", () => {
+  const tex = String.raw`\begin{document}
+\begin{equation}
+  L(w) = 0
+\end{equation}
+\begin{equation}\label{eq:mine} x \end{equation}
+\begin{equation*} y \end{equation*}
+\begin{align}
+  a &= 1 \\ % b \\ in a comment
+  b &= \begin{pmatrix}1\\2\end{pmatrix} \notag\\
+  c &= 3 \label{eq:c} \\
+  d &= 4 % \label{commented}
+  \\
+\end{align}
+\end{document}`;
+  const { text, labels } = injectAutoLabels(tex);
+  assert.deepEqual(labels, ["iliad-auto-1", "iliad-auto-2", "iliad-auto-3"]);
+  assert.equal(text.split("\n").length, tex.split("\n").length);
+  assert.match(text, /L\(w\) = 0\n\\label\{iliad-auto-1\}\\end\{equation\}/);
+  assert.match(text, /a &= 1 \\label\{iliad-auto-2\}\\\\ % b/);
+  assert.match(text, /d &= 4 % \\label\{commented\}\n  \\label\{iliad-auto-3\}\\\\\n\\end\{align\}/);
+  assert.doesNotMatch(text, /equation\*\}[^\n]*iliad-auto/);
 });

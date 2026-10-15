@@ -197,9 +197,13 @@ function mathEnvToDollar(name, inner) {
   return `$$\n${inner.trim()}\n$$`;
 }
 
+// The author's first \label in a display (anchors never use auto-labels).
+const displayLabel = (inner) =>
+  [...inner.matchAll(/\\label\{([^}]*)\}/g)].find((m) => !isAutoLabel(m[1]));
+
 // display body containing a diagram: render whole body as one SVG
 function tikzDisplay(inner) {
-  const lab = inner.match(/\\label\{([^}]*)\}/);
+  const lab = displayLabel(inner);
   const body = inner.replace(/\\label\{[^}]*\}/g, "").trim();
   const { src } = registerTikz(body, true);
   const fig = `<Figure src="${src}" alt="diagram" />`;
@@ -209,7 +213,7 @@ function tikzDisplay(inner) {
 
 function displayMath(envName, rawInner) {
   if (/\\begin\{tikz(picture|cd)\}/.test(rawInner)) return tikzDisplay(rawInner);
-  const lab = rawInner.match(/\\label\{([^}]*)\}/);
+  const lab = displayLabel(rawInner);
   const math = mathEnvToDollar(envName, rawInner);
   if (lab) { anchorMap[lab[1]] = slug(lab[1]); return `\n\n<div id="${slug(lab[1])}">\n\n${math}\n\n</div>\n\n`; }
   return `\n\n${math}\n\n`;
