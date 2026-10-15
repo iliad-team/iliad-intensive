@@ -1,19 +1,15 @@
 # Site internals
 
-How the website actually works: what runs, what reads what, and where the
-code came from. Companion to [DEVELOPMENT.md](DEVELOPMENT.md) (workflows and
-commands), [iliad-sty.md](iliad-sty.md) (the authoring contract), and
-[commands.md](commands.md) (per-construct syntax). This page is the
-file-level map.
+File-level map of the site. See also [DEVELOPMENT.md](DEVELOPMENT.md) (workflows, commands),
+[iliad-sty.md](iliad-sty.md) (authoring contract) and
+[commands.md](commands.md) (per-construct syntax).
 
 ## The one-sentence version
 
-A fully static Next.js site: LaTeX worksheets in `tex/` are converted at
-build time into MDX + SVGs + PDFs by `scripts/`, and `next build`
-(`output: "export"`) prerenders every page into `out/`, which GitHub Pages
-serves as plain files. There is no server, no database, no API route — the
-git repo is the source of truth and every derived file is a gitignored
-build artifact.
+Fully static Next.js site. `scripts/` converts the LaTeX worksheets in
+`tex/` into MDX, SVGs and PDFs; `next build` (`output: "export"`) prerenders
+every page into `out/`; GitHub Pages serves the files. No server, database or
+API routes; every derived file is gitignored.
 
 ## Data flow
 
@@ -36,30 +32,27 @@ public/downloads/<slug>/*                   pdf/tex/mdx ±nosol,   (gitignored)
 out/                                        static HTML/CSS/JS → GitHub Pages
 ```
 
-One file is hand-edited and committed rather than generated: `schedule.yaml`,
-the curriculum. It maps cluster ids (`A`, `B`, …) to labels and URL slugs,
-lists the teaching days, and says which worksheets are each day's material —
-so it fixes both the site's ordering and the `/admin/status` roster
-(everything else on that page is derived from the build).
+`schedule.yaml` is the one hand-edited input: cluster ids (`A`, `B`, …) →
+labels and URL slugs, teaching days, each day's worksheets. It sets site order
+and the `/admin/status` roster.
 
 ## What the site reads at build time
 
-Every page is prerendered during `next build`; these are the complete
-runtime inputs. If it's not in this table, the site doesn't depend on it.
+Complete list of inputs:
 
 | Input | Read by | Used for |
 |---|---|---|
-| `content/modules/*.mdx` | `src/lib/content.ts` | page bodies + frontmatter; **every** file here becomes a page, listed or not |
-| `content/index.json` | `src/lib/content.ts` | homepage/sidebar listing + ordering + heading TOCs + each sheet's `part`/`parts` within its day (absence ⇒ page is unlisted, still built) |
-| `content/status.json` | `src/lib/status.ts` | the `/admin/status` table (absence ⇒ the page renders a "run the content build" hint) |
-| `schedule.yaml` | `src/lib/cluster-store.ts` | cluster labels and the first URL segment (`/learning/<slug>/`) via `listClusters`, and the teaching days' codes + titles via `listDays`, both in the order the file lists them; clusters fall back to `DEFAULT_CLUSTERS` in `src/lib/clusters.ts` |
-| `intensives/*.yaml` | `src/lib/intensives.ts` | the `/intensives` pages — one programme per file, each a date per teaching day. Malformed data **throws** (unlike `cluster-store.ts`, which degrades): a published schedule that is quietly wrong is worse than a failed build. The content build never reads these |
-| `public/downloads/<slug>/` | `src/lib/content.ts` (`listDownloads`) | which download buttons a page offers (dir listing at build time) |
-| `public/uploads/<slug>/*.svg` | the browser, not the build | figure `<img>` targets referenced from the MDX |
+| `content/modules/*.mdx` | `src/lib/content.ts` | page bodies + frontmatter; every file here becomes a page, listed or not |
+| `content/index.json` | `src/lib/content.ts` | homepage/sidebar listing, order, heading TOCs, `part`/`parts` within a day. Absent ⇒ unlisted but still built |
+| `content/status.json` | `src/lib/status.ts` | `/admin/status` table. Missing ⇒ page shows a "run the content build" hint |
+| `schedule.yaml` | `src/lib/cluster-store.ts` | `listClusters`: cluster labels and first URL segment (`/learning/<slug>/`); `listDays`: day codes + titles. Both in file order. Clusters fall back to `DEFAULT_CLUSTERS` in `src/lib/clusters.ts` |
+| `intensives/*.yaml` | `src/lib/intensives.ts` | `/intensives` pages, one programme per file, a date per teaching day. Malformed data throws (unlike `cluster-store.ts`, which degrades). The content build never reads these |
+| `public/downloads/<slug>/` | `src/lib/content.ts` (`listDownloads`) | which download buttons a page shows (dir listing at build time) |
+| `public/uploads/<slug>/*.svg` | the browser only | figure `<img>` targets |
 | `NEXT_PUBLIC_BASE_PATH` env | `next.config.ts`, `src/lib/mdx.tsx`, module page | sub-path hosting (GitHub Pages project site); applied at render time, never baked into generated MDX |
-| `NEXT_PUBLIC_COMMIT_SHA` env | `src/components/BuildStamp.tsx` | commit shown + linked in the page footer; set by CI, falls back to `git rev-parse HEAD` locally |
-| `NEXT_PUBLIC_PREVIEW_PR` env | `src/components/PreviewBanner.tsx` | PR number on preview builds only; renders the "not the live site" banner |
-| `NEXT_PUBLIC_SNAPSHOTS_URL` env | `src/app/dev/diff/page.tsx` | where `/dev/diff` reads page history from; default the `main` branch of [iliad-intensive-snapshots](https://github.com/iliad-team/iliad-intensive-snapshots) on raw.githubusercontent.com. Override only to test against a local copy |
+| `NEXT_PUBLIC_COMMIT_SHA` env | `src/components/BuildStamp.tsx` | commit shown + linked in the footer; set by CI, locally falls back to `git rev-parse HEAD` |
+| `NEXT_PUBLIC_PREVIEW_PR` env | `src/components/PreviewBanner.tsx` | PR number, preview builds only; renders the "not the live site" banner |
+| `NEXT_PUBLIC_SNAPSHOTS_URL` env | `src/app/dev/diff/page.tsx` | where `/dev/diff` reads page history. Default: `main` of [iliad-intensive-snapshots](https://github.com/iliad-team/iliad-intensive-snapshots) on raw.githubusercontent.com. Override to test a local copy |
 
 ## src/ — the whole site, ~800 lines
 
@@ -68,11 +61,11 @@ Routes (`src/app/`):
 | File | Role |
 |---|---|
 | `layout.tsx` | HTML shell: fonts, `globals.css`, `Navbar` |
-| `intensives/page.tsx` | the programmes ILIAD runs, newest first — a directory page over `intensives/*.yaml` |
-| `intensives/[intensive]/page.tsx` | one programme's calendar: a row per day (date · code · linked material). Material comes from `index.json`, so it lists what was actually built; a day whose worksheets aren't ported says so |
-| `page.tsx` | homepage: hero paragraph + modules grouped by cluster from `index.json`, then by teaching day within a cluster — a day taught in several parts gets a heading (code + title, an anchor a part page links back to) and nests its parts; a one-worksheet day stays a flat row |
-| `[cluster]/[slug]/page.tsx` | the module page. `generateStaticParams` enumerates every MDX module; renders header (title/cluster/day/summary/contributors), `DownloadsRow`, the MDX body, and a "Built <date> from <source>" footer. `dynamicParams = false` — anything not prerendered 404s |
-| `dev/diff/page.tsx` | `/dev/diff`: any two historical versions of a page, through the PR-preview diff view. A static shell; `public/dev-diff.js` fetches the versions, pre-rendered in the iliad-intensive-snapshots repo, in the browser (see `docs/PR-PREVIEWS.md`) |
+| `intensives/page.tsx` | directory of programmes in `intensives/*.yaml`, newest first |
+| `intensives/[intensive]/page.tsx` | one programme: a row per day (date · code · material from `index.json`; unported days say so) |
+| `page.tsx` | homepage: modules from `index.json` by cluster, then day. Multi-part days get a heading (anchor that part pages link to) with parts nested |
+| `[cluster]/[slug]/page.tsx` | module page; `generateStaticParams` covers every MDX module. Header (title/cluster/day/summary/contributors), `DownloadsRow`, MDX body, "Built <date> from <source>" footer. `dynamicParams = false`: anything not prerendered 404s |
+| `dev/diff/page.tsx` | `/dev/diff`: diff any two historical versions of a page. Static shell; `public/dev-diff.js` fetches pre-rendered versions from iliad-intensive-snapshots. See `docs/PR-PREVIEWS.md` |
 | `globals.css` | Tailwind 4 + `prose` typography tweaks |
 | `icon.svg` | favicon |
 
@@ -81,102 +74,66 @@ Libraries (`src/lib/`):
 | File | Role |
 |---|---|
 | `content.ts` | fs readers: module MDX + frontmatter, `index.json`, downloads dir |
-| `mdx.tsx` | **the renderer.** `next-mdx-remote` + remark-math/rehype-katex/rehype-slug, plus the component catalogue the converter emits: `Callout`, `Exercise`, `Solution` (a `<details>`), `LearningOutcomes`, `Definition`, `Theorem`, `Figure`. Component *names* are the contract with `scripts/tex2mdx/`; the styling is this site's own. Content-hash cache so `next dev` doesn't re-render unchanged pages |
-| `clusters.ts` | pure cluster helpers (client-safe, no fs), plus `dayCode()` — the one place a day's *display* code is composed, so "D.3.1" exists only at render time and never as stored data |
-| `cluster-store.ts` | server-only loaders for `schedule.yaml`: `listClusters()` (the cluster table) and `listDays()` (day codes + titles). `server-only` enforces the split, so a client component like `SidebarNav` takes what it needs as props |
+| `mdx.tsx` | the renderer: `next-mdx-remote` + remark-math/rehype-katex/rehype-slug, plus the components the converter emits: `Callout`, `Exercise`, `Solution` (a `<details>`), `LearningOutcomes`, `Definition`, `Theorem`, `Figure`. Component names are the contract with `scripts/tex2mdx/`. Content-hash cache for `next dev` |
+| `clusters.ts` | client-safe cluster helpers + `dayCode()`, the only place a display code like "D.3.1" is built (never stored) |
+| `cluster-store.ts` | server-only loaders for `schedule.yaml`: `listClusters()`, `listDays()`. Client components like `SidebarNav` get data as props |
 
 Components (`src/components/`): `ModulePageShell` (sidebar + content grid),
-`SidebarNav` (cluster-grouped module list with per-page heading TOC),
-`Navbar`, `NavContext`/`NavToggle` (mobile drawer state), `DownloadsRow`
-(pdf/tex/mdx ± solutions buttons), `IliadMark` (logo), `DiffControls` (the
-diff view's controls row, shared by `PreviewBanner` and `/dev/diff`).
+`SidebarNav` (cluster-grouped module list, per-page heading TOC), `Navbar`,
+`NavContext`/`NavToggle` (mobile drawer state), `DownloadsRow` (pdf/tex/mdx ±
+solutions buttons), `IliadMark` (logo), `DiffControls` (diff view controls,
+shared by `PreviewBanner` and `/dev/diff`).
 
 ## scripts/ — the content pipeline
 
 | File | Role |
 |---|---|
-| `build-content.mjs` | per-worksheet ladder, parallel across worksheets (one worker per CPU core, buffered logs; `--jobs N` overrides). A worksheet whose inputs hash unchanged **and** whose artifacts are all still present is skipped (`↷ cached`) — the hash spans its own sources, `tex/iliad.sty`, `tex/alphaurl.bst`, all of `scripts/`, and `schedule.yaml`; `--no-cache` forces a rebuild. Otherwise: shared-`iliad.sty` shadow guard → PDF first (3× `pdflatex` + `bibtex` over the auto-labeled `main.autolabel.tex`, `-jobname=main`; the converter needs the `.aux` for `\cref` and for every displayed number — see `tex2mdx/autolabel.mjs`) → solution-stripped `-nosol` PDF → tex2mdx conversion → every deck `slides.tex`/`slides-<label>.tex`→`<stem>.pdf` (+ `<stem>-handout.pdf` when the deck mentions `\HANDOUT`; + no-slides warning) → `fig/*.pdf`→SVG (`pdftocairo`) → KaTeX render gate → stamp `cluster:`/`day:` from `schedule.yaml` → stage downloads (incl. `<slug>-<stem>.pdf/.tex/-handout.pdf` per deck). Then `index.json`, ordered by the schedule. MDX-authored sheets skip conversion and build no PDF at all — the page plus its `.mdx` download is the whole output. A bibtex failure other than "no bibliography at all" is fatal — a missing `.bst` writes no `.bbl` and silently turns every `\cite` into `[?]`. `--check` = converter + render gate only (no PDFs, no slides, no slides warning) |
+| `build-content.mjs` | One worker per CPU core (`--jobs N`). Skips a sheet (`↷ cached`) if its input hash (own sources, `tex/iliad.sty`, `tex/alphaurl.bst`, `scripts/`, `schedule.yaml`) is unchanged and all artifacts exist; `--no-cache` forces. Ladder: shared-`iliad.sty` shadow guard → PDF (3× `pdflatex` + `bibtex` on `main.autolabel.tex`, `-jobname=main`; see `tex2mdx/autolabel.mjs`) → `-nosol` PDF → tex2mdx → each deck `slides.tex`/`slides-<label>.tex` → `<stem>.pdf` (+ `<stem>-handout.pdf` if the deck mentions `\HANDOUT`; warns if no slides) → `fig/*.pdf` → SVG (`pdftocairo`) → KaTeX render gate → stamp `cluster:`/`day:` from `schedule.yaml` → stage downloads (incl. `<slug>-<stem>.pdf/.tex/-handout.pdf` per deck). Then `index.json` in schedule order. MDX-authored sheets: no conversion, no PDF, just page + `.mdx` download. **Bibtex failure other than "no bibliography" is fatal** (a missing `.bst` turns every `\cite` into `[?]`). `--check`: converter + render gate only |
 | `tex2mdx/tex2mdx.mjs` | converter CLI: source registry, `.aux` cross-refs, frontmatter + `\title`/`\author` extraction, `\gdef` macro block, bibliography |
-| `tex2mdx/autolabel.mjs` | injects `\label{iliad-auto-N}` into every numbered construct (comment/verbatim-aware, same-line, deterministic); the build compiles the injected `main.autolabel.tex` (`-jobname=main`) so the `.aux` carries every displayed number, and the converter reads them back by label name — web numbering is PDF-true, never simulated. Walks the whole document via `texinput.mjs`, so section files are labelled too |
-| `tex2mdx/texinput.mjs` | walks a worksheet across its `\input` boundaries in one deterministic order, applying a transform to every file. Returns both the per-file texts (the auto-labelled compile keeps the split, so `file:line` diagnostics stay useful) and the inlined document (what the converter parses and what the `.tex` downloads ship, so a download no longer points at section files it never contained — it still needs `iliad.sty` beside it, which the downloads do not include) |
+| `tex2mdx/autolabel.mjs` | injects `\label{iliad-auto-N}` into every numbered construct, across `\input` files (comment/verbatim-aware, deterministic). The compiled `.aux` then holds every displayed number, which the converter reads back by label, so web numbering matches the PDF |
+| `tex2mdx/texinput.mjs` | walks a worksheet across `\input`s, transforming each file. Returns per-file texts (for the auto-labelled compile, keeping `file:line` diagnostics) and the inlined document (parsed by the converter, shipped as the `.tex` download). That download needs `iliad.sty`, which is not included |
 | `tex2mdx/emit-ast.mjs` | unified-latex typed AST → MDX emitter (no regex parsing of LaTeX) |
-| `tex2mdx/shims.mjs` | all dialect knowledge: contract env tables, KaTeX synonyms, macro overrides — `iliad.sty`'s web-side twin |
+| `tex2mdx/shims.mjs` | all dialect knowledge: contract env tables, KaTeX synonyms, macro overrides. The web-side twin of `iliad.sty` |
 | `tex2mdx/tikz.mjs` | TikZ → standalone compile → content-addressed `tikz-<sha>.svg` (unchanged diagrams never recompile; CI caches `public/uploads` on `hashFiles('tex/**')`) |
-| `tex2mdx/tex2mdx-check.mjs` | the render gate: compiles the MDX with the site's exact plugin pipeline and KaTeX-renders every math span |
-| `schedule.mjs` | reads + validates `schedule.yaml` (the one hand-kept curriculum file) for both build steps, and derives each worksheet's cluster, day and position from its order. Run it standalone to print the course order. Data errors are fatal |
-| `build-status.mjs` | last step of the content build: `schedule.yaml` + what the build produced → `content/status.json` for `/admin/status`. Which worksheets a day has is the schedule's answer; everything else in the row is read off disk, so the derived columns can't go stale. A built worksheet no day lists is fatal |
-| `watch.mjs` | `./run.sh watch`: dev server + rebuild-on-save loop |
+| `tex2mdx/tex2mdx-check.mjs` | render gate: compiles the MDX with the site's plugin pipeline and KaTeX-renders every math span |
+| `schedule.mjs` | reads + validates `schedule.yaml`; derives each sheet's cluster, day, position. Standalone: prints course order. Data errors are fatal |
+| `build-status.mjs` | last step: `schedule.yaml` + build output → `content/status.json`. A built worksheet no day lists is fatal |
+| `watch.mjs` | `./run.sh watch`: dev server + rebuild on save |
 
-Two `package.json`s: the site's (root) and `scripts/tex2mdx/`'s (unified-latex,
-bibtex-parse, its own KaTeX) — both need `npm ci`, and CI installs both.
+Two `package.json`s, both need `npm ci` (CI installs both): the site's (root)
+and `scripts/tex2mdx/`'s (unified-latex, bibtex-parse, its own KaTeX).
 
-External binaries: `pdflatex` (TeX Live; shell-escape stays OFF — contributor
-LaTeX is untrusted), `bibtex`, `pdftocairo` (poppler-utils)
-(MDX-authored sheets only). Node ≥ 20.9 for Next 16 (`./run.sh` selects nvm's
-Node 22; system Node 18 won't build the site).
+External binaries: `pdflatex` (TeX Live; shell-escape OFF for worksheets, as
+contributor LaTeX is untrusted; ON for decks only, which `minted` needs), `bibtex`, `pdftocairo` (poppler-utils). Node ≥ 20.9 for
+Next 16; `./run.sh` selects nvm's Node 22 (system Node 18 can't build the site).
 
-npm runtime deps (root): `next`, `react`/`react-dom`, `next-mdx-remote`,
+Root npm runtime deps: `next`, `react`/`react-dom`, `next-mdx-remote`,
 `remark-math` + `rehype-katex` + `katex`, `rehype-slug`, `yaml`,
 `server-only`; Tailwind 4 at build time.
 
 ## CI, hooks, deploy
 
-One definition, three entry points (details in DEVELOPMENT.md): `npm run ci`
-= content build + `next build`, run identically by `./run.sh ci`, the
-`.githooks/pre-push` hook (tracked worksheets only), and
-`.github/workflows/site.yml`. That workflow serves everything from a single
-`gh-pages` branch: `main` → the root (production), each PR → a live preview at
-`pr-preview/pr-<N>/`. See DEVELOPMENT.md and PR-PREVIEWS.md.
+`npm run ci` = content build + `next build`. Run identically by `./run.sh ci`,
+the `.githooks/pre-push` hook (tracked worksheets only) and
+`.github/workflows/site.yml`. The workflow publishes from one `gh-pages`
+branch: `main` → root (production), each PR → `pr-preview/pr-<N>/`. See
+DEVELOPMENT.md and PR-PREVIEWS.md.
 
 ## Provenance — relation to the original curriculum site
 
-This repo is a deliberate reduction of the original two-repo curriculum
-system that lives alongside it in the ILIAD folder:
+Reduced from two repos in the ILIAD folder: `iliad-curriculum-public` (Vercel
+site, ~2,300 lines + tex2mdx) and `iliad-curriculum-admin` (~17,000-line CMS:
+Postgres, editor, Claude conversion worker, exporter into the public repo).
+~2k of ~19k lines survive (~800 site + ~1,200 converter).
 
-- **`iliad-curriculum-public`** — the public site (Vercel, ~2,300 lines of
-  TS/TSX + the tex2mdx converter). Its content was a build artifact pushed
-  into it by the admin's exporter.
-- **`iliad-curriculum-admin`** — the CMS (~17,000 lines): Next.js admin app +
-  Postgres (Drizzle) as content source-of-truth, Auth.js allowlist, a
-  ProseMirror WYSIWYG editor with an MDX round-trip serializer, a
-  Claude-CLI conversion worker with job queues, bulk import, and an
-  exporter that committed to the public repo. Hetzner + Cloudflare tunnel +
-  Vercel infra.
-
-**What carried over from the public repo** (~⅓ of its site code, plus the
-converter):
-
-- Verbatim: the rendering shell — `SidebarNav`, `Navbar`, `NavToggle`,
-  `NavContext`, `ModulePageShell`, `IliadMark`, `layout.tsx`,
-  `globals.css`, `clusters.ts`, `cluster-store.ts` (~385 lines).
-- Adapted: `mdx.tsx` (same component catalogue, restyled; Definition/Theorem
-  boxes and the compile cache added), `content.ts`, `page.tsx`, the module
-  page (downloads row + built-from footer added).
-- The whole `scripts/tex2mdx/` converter — 5 of 8 files byte-identical;
-  `tex2mdx.mjs`/`emit-ast.mjs`/`shims.mjs` evolved *here* (affiliation
-  bylines, `\title` anywhere, `unlisted:`, contract-name strictness) and
-  this copy is now the actively developed one.
+- Kept from public, verbatim: `SidebarNav`, `Navbar`, `NavToggle`,
+  `NavContext`, `ModulePageShell`, `IliadMark`, `layout.tsx`, `globals.css`,
+  `clusters.ts`, `cluster-store.ts`. Adapted: `mdx.tsx`, `content.ts`,
+  `page.tsx`, module page.
+- `scripts/tex2mdx/` came from public; this copy is now the maintained one.
 - New here: `DownloadsRow`, `build-content.mjs`, `watch.mjs`, `iliad.sty`,
-  `./run.sh`/`./setup.sh`, the pre-push hook, the GitHub Actions workflow.
-
-**What was dropped from the public repo** (~⅔ of it): the live-preview
-system (`preview/` routes + `lib/preview.ts`, which polled admin-pushed
-preview branches), the slides/`DeckViewer` pages, Mermaid diagram support
-(`MermaidDiagram`, `InlineMd`, the `mermaid` dep), the `/pipeline`
-writer/maintainer docs pages (~600 lines — replaced by `docs/` markdown),
-the `/about` page, the cookie `gate/` route, the `api/download` route
-(static dir listings replaced it), `proxy.ts`, and Vercel hosting itself.
-
-**What was dropped from the admin repo: all of it.** No code was reused —
-only its *data contracts* survive: the cluster-table and `content/index.json`
-shapes (the cluster table began as a hand-kept copy of what the admin
-exporter shipped, and now lives in `schedule.yaml`), the MDX
-component/attribute names, and the frontmatter keys. Everything the CMS did is replaced by a
-cheaper equivalent: Postgres → git; WYSIWYG editor + Claude conversion
-worker → the `iliad.sty` contract + deterministic `tex2mdx`; publish
-pipeline + exporter → `build-content.mjs` in CI; auth/allowlist → GitHub
-permissions; Hetzner/Vercel → GitHub Pages.
-
-Net: of roughly 19k lines across the two original repos, about 2k live on
-here (~800 site + ~1,200 shared converter lines), concentrated entirely in
-the public repo's rendering shell and converter.
+  `./run.sh`/`./setup.sh`, pre-push hook, Actions workflow.
+- Dropped from public: live preview, `DeckViewer`, Mermaid, `/pipeline` and
+  `/about` pages, cookie gate, `api/download`, `proxy.ts`, Vercel.
+- Admin repo: no code reused. Surviving data contracts: cluster-table and
+  `index.json` shapes, MDX component/attribute names, frontmatter keys.

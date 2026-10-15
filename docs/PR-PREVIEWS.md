@@ -1,25 +1,18 @@
 # Per-PR website previews
 
-Every pull request that passes the checks gets its own rendered copy of the site,
-so a reviewer can click through the real pages before the PR is merged:
+Every PR that passes the checks gets a rendered copy of the site at:
 
 ```
 https://iliad-intensive.org/pr-preview/pr-<N>/
 ```
 
-A bot comments that URL on the PR automatically, and updates it on every push.
-When the PR is closed or merged, the preview is torn down.
+A bot comments the URL on the PR and updates it on every push. Closing or merging the PR tears the preview down.
 
-A same-repo PR also previews its **Colab notebooks**: `notebooks.yml` publishes
-them to the PR's own `notebooks-pr-<N>` branch (deleted when it closes; production's
-`notebooks` branch is written only from main), comments their Colab links on the
-PR, and the site preview's notebook links open them. See
-[`NOTEBOOKS.md`](NOTEBOOKS.md#pr-previews).
+Same-repo PRs also preview Colab notebooks: `notebooks.yml` publishes them to a `notebooks-pr-<N>` branch (deleted on close) and comments their Colab links. Production's `notebooks` branch is written only from main. See [`NOTEBOOKS.md`](NOTEBOOKS.md#pr-previews).
 
 ## How it works
 
-The site is a static export (`output: "export"` → `out/`). Everything is served
-from a single **`gh-pages` branch**:
+The site is a static export (`output: "export"` → `out/`), served from a single `gh-pages` branch:
 
 ```
 gh-pages/
@@ -29,213 +22,109 @@ gh-pages/
     pr-14/  index.html, ...       ← preview for PR #14
 ```
 
-`.github/workflows/site.yml` builds the site once per event, then stages the
-result and publishes it with `.github/publish-gh-pages.sh`:
+`.github/workflows/site.yml` builds once per event, stages the result and publishes it with `.github/publish-gh-pages.sh`:
 
-- **push to `main`** → wipes the root, keeps `pr-preview/`, copies `out/` in.
-- **pull request opened/updated** → after the check ladder passes, replaces
-  `pr-preview/pr-<N>/` with `out/` and upserts a comment with the URL. (For a
-  PR from a **fork** this half is done by `fork-preview.yml` instead — see
-  [Fork PRs](#fork-prs).)
-- **pull request closed** → deletes `pr-preview/pr-<N>/`. This fires on
-  `pull_request_target`, not `pull_request`, so it holds a write token for
-  fork PRs too — safe only because the closed event never builds or executes
-  anything from the PR.
+| Event | Action |
+|---|---|
+| push to `main` | wipe the root, keep `pr-preview/`, copy `out/` in |
+| PR opened/updated | after the check ladder passes, replace `pr-preview/pr-<N>/` with `out/` and upsert the URL comment. Fork PRs: done by `fork-preview.yml` (see [Fork PRs](#fork-prs)) |
+| PR closed | delete `pr-preview/pr-<N>/`. Runs on `pull_request_target`, so it has a write token for forks too. Safe only because it builds and executes nothing from the PR |
 
-All three write to the same branch, so they share a `gh-pages-write` concurrency
-group (`cancel-in-progress: false`): simultaneous deploys **queue** instead of
-racing — which force-pushing needs even more than appending did. The URL comment
-is `continue-on-error` — a GitHub API hiccup can't fail an otherwise-successful
-deploy (the URL is deterministic regardless).
+- All three share the `gh-pages-write` concurrency group (`cancel-in-progress: false`), so deploys queue instead of racing.
+- The URL comment is `continue-on-error`; an API failure can't fail a successful deploy.
 
 ### The branch keeps no history
 
-Every publish **force-pushes one orphan commit**. `gh-pages` is always exactly
-one commit deep, because nothing on it is source — it is regenerable from `tex/`
-plus the build.
+Every publish force-pushes one orphan commit, so `gh-pages` is always one commit deep (appending grew it to 5.4 GB).
 
-This is not a tidiness preference. Appending grew the branch to **5.4 GB across
-90 commits — 99.8% of the repository**, and every contributor's `git pull` paid
-for it, since git's default refspec fetches all branches. A single worksheet page
-is ~10 MB, so each rebuild added another copy.
+When editing the workflow:
 
-The consequence for anyone editing the workflow: **each job stages the complete
-tree** in `.deploy/` (check out `gh-pages`, edit only the subtree it owns) and
-lets the script replace the branch with it. A force-push has no previous state to
-merge against, so a path missing from `.deploy/` is a path unpublished. This is
-why the production job carries `pr-preview/` forward instead of deleting it, and
-why `clean-exclude`-style filtering cannot work here: the tree you push *is* the
-site. The script refuses to push a tree with no root `index.html`.
+- Each job stages the **complete** tree in `.deploy/`: check out `gh-pages`, edit only the subtree it owns. A path missing from `.deploy/` is unpublished.
+- So the production job must carry `pr-preview/` forward, and `clean-exclude`-style filtering cannot work.
+- The script refuses to push a tree with no root `index.html`.
 
 ### Base path
 
-Production is served at the root of the custom domain `iliad-intensive.org`
-(see `public/CNAME`), so it needs no prefix. Assets and links are absolute, so a
-preview one level deeper must be built with a matching prefix. The workflow sets
-`NEXT_PUBLIC_BASE_PATH` accordingly:
+Production is at the root of `iliad-intensive.org` (see `public/CNAME`). Assets and links are absolute, so previews need a prefix:
 
 | Event | `NEXT_PUBLIC_BASE_PATH` |
 |---|---|
 | push to `main` | *(empty)* |
 | PR #N | `/pr-preview/pr-N` |
 
-`npm run ci` honours an existing `NEXT_PUBLIC_BASE_PATH` and otherwise defaults
-to empty. That default **must stay empty**: the shell's `${VAR:-default}` fires
-on an empty value as well as an unset one, so a non-empty default there would
-silently re-prefix the production build even though the workflow asked for none.
+`npm run ci` honours an existing `NEXT_PUBLIC_BASE_PATH`, else defaults to empty. **The default must stay empty**: `${VAR:-default}` also fires on an empty value, so a non-empty default would re-prefix the production build.
 
 ## Partial previews: only what the PR changed
 
-A preview carries only the worksheets the PR touched, plus the shell (the
-homepage, `/admin/status`, `/intensives`, `/license`). Every other worksheet
-link on it goes to the **live site**, which is the right page: a preview sits
-on the same origin as production, so `/pr-preview/pr-N/agency/aixi/` and
-`/agency/aixi/` are the same page whenever AIXI is untouched. Publishing the
-copy only repeated production — ~165 MB per open PR on the `gh-pages` tip,
-four fifths of it PDFs and figures.
+A preview contains only the worksheets the PR touched, plus the shell (homepage, `/admin/status`, `/intensives`, `/license`). Other worksheet links go to the live site.
 
-How it is decided (`.github/workflows/site.yml`, the `cfg` step):
+The `cfg` step in `site.yml` decides:
 
-- `gh pr diff --name-only` lists the PR's files against its merge base (works
-  for forks; read access suffices).
-- `tex/<slug>/…` marks that worksheet **changed**. It is rendered, published,
-  and tinted green on the preview's homepage and in its sidebar.
-- Anything else the site reads — `tex/iliad.sty`, `scripts/`, `src/`,
-  `public/`, `schedule.yaml`, the package and Next config files, the
-  workflows — makes it a **full** preview: every page built, as before.
-  Changed worksheets are still tinted.
-- Paths the site never reads — `docs/`, `.claude/`, `scratch/`, root Markdown,
-  and `intensives/` (its page is in every preview anyway) — mark nothing, so
-  such a PR publishes the shell alone.
-- If the file list cannot be fetched, the preview is full. Missing a changed
-  page is the one failure this must never have.
+- `gh pr diff --name-only` lists the PR's files against its merge base (works for forks).
+- `tex/<slug>/…` marks that worksheet changed: it is rendered, published, and tinted green on the preview's homepage and sidebar.
+- Anything else the site reads (`tex/iliad.sty`, `scripts/`, `src/`, `public/`, `schedule.yaml`, package and Next config files, workflows) makes a **full** preview. Changed worksheets are still tinted.
+- Paths the site never reads (`docs/`, `.claude/`, `scratch/`, root Markdown, `intensives/`) mark nothing, so the PR publishes the shell alone.
+- If the file list can't be fetched, the preview is full.
 
-The set reaches the build as `PREVIEW_CHANGED_SLUGS` and `PREVIEW_FULL`
-(`src/lib/preview.ts`). `listSlugs` then renders only the changed worksheets;
-`scripts/prune-preview.mjs` (last in `npm run ci`) removes the unchanged
-worksheets' `downloads/` and `uploads/` directories, which Next copies out of
-`public/` wholesale, and writes `out/preview-manifest.json`, from which the
-preview comment names the changed pages. Links are resolved at render time:
-`ModuleLink` and `siteHref` point at the preview's copy when it exists and at
-the live site when it does not. A production build ignores both variables —
-only a build with `NEXT_PUBLIC_PREVIEW_PR` set can be partial — so a stray
-environment value cannot drop pages from the live site.
+Mechanics:
 
-`check-overflow` skips the pages a partial preview did not render. Fork PRs
-get the same treatment for free: `fork-preview.yml` publishes the artifact
-the build produced.
+- The result reaches the build as `PREVIEW_CHANGED_SLUGS` and `PREVIEW_FULL` (`src/lib/preview.ts`). `listSlugs` renders only the changed worksheets.
+- `scripts/prune-preview.mjs` (last in `npm run ci`) removes unchanged worksheets' `downloads/` and `uploads/` and writes `out/preview-manifest.json`, from which the comment names changed pages.
+- `ModuleLink` and `siteHref` point at the preview's copy if it exists, else the live site.
+- Only a build with `NEXT_PUBLIC_PREVIEW_PR` set can be partial, so a stray env value can't drop pages from production.
+- `check-overflow` skips pages a partial preview didn't render.
+- Fork PRs get the same behaviour: `fork-preview.yml` publishes the build's artifact.
 
-To reproduce one locally (see [Trying it locally](#trying-it-locally)), add
-`PREVIEW_CHANGED_SLUGS=<slug>` to the `next build` and run
-`node scripts/prune-preview.mjs` after `strip-hydration`; with
-`NEXT_PUBLIC_DIFF_BASE=https://iliad-intensive.org` the unchanged links go to
-production, so the whole site stays navigable.
+To reproduce locally (see [Trying it locally](#trying-it-locally)): add `PREVIEW_CHANGED_SLUGS=<slug>` to `next build` and run `node scripts/prune-preview.mjs` after `strip-hydration`. With `NEXT_PUBLIC_DIFF_BASE=https://iliad-intensive.org`, unchanged links go to production.
 
 ## Required one-time setup (maintainer)
 
-The previous setup deployed via the **GitHub Actions** Pages source, which serves
-a *single* artifact as the whole site — previews can't coexist with it. This
-model uses the **branch** source instead. In the repo:
+Previews need the branch Pages source (the GitHub Actions source serves one artifact):
 
 > **Settings → Pages → Build and deployment → Source → "Deploy from a branch" →
 > Branch: `gh-pages` / `(root)`**
 
-Until that switch is made, the `gh-pages` branch is built but nothing is served
-from it. (The first workflow run creates the branch.)
+Until then, `gh-pages` is built but not served. The first workflow run creates the branch.
 
-A branch source runs **Jekyll** by default, which would strip Next's `_next/`
-assets (Jekyll ignores `_`-prefixed dirs). The build writes a `.nojekyll` marker
-to the site root to disable that — no action needed, but don't remove it.
+A branch source runs Jekyll, which ignores `_`-prefixed dirs like `_next/`. The build writes a `.nojekyll` marker to the site root. Don't remove it.
 
 ### Custom domain
 
-The site is served at **`iliad-intensive.org`** (apex A records → GitHub Pages'
-four addresses, `www` → `iliad-team.github.io`, both **DNS-only / grey cloud** in
-Cloudflare so GitHub's Let's Encrypt challenge is not intercepted).
-`iliad-intensive.com` is a separate Cloudflare zone that stays *proxied* and
-redirects, path-preserving, to the `.org`. GitHub Pages holds only **one** custom
-domain per repo, which is why the `.com` is a redirect rather than a second
-`CNAME`.
-
-The domain is claimed by **`public/CNAME`**, and it has to live there rather than
-be written once by Settings → Pages. Setting the domain in the UI commits a
-`CNAME` file to `gh-pages` — but every publish force-pushes `.deploy/` as a
-brand-new orphan commit that *is* the whole branch, so a file only the UI wrote
-is gone on the next deploy, taking the domain with it. `public/` is copied to the
-root of `out/`, so keeping it in the repo re-stages it every time. **Don't delete
-`public/CNAME`.**
+- `iliad-intensive.org`: apex A records → GitHub Pages' four addresses, `www` → `iliad-team.github.io`. Both **DNS-only (grey cloud)** in Cloudflare, so GitHub's Let's Encrypt challenge isn't intercepted.
+- `iliad-intensive.com`: separate Cloudflare zone, proxied, path-preserving redirect to the `.org`. Pages allows one custom domain per repo.
+- The domain is claimed by `public/CNAME` (copied into `out/`). Setting it in Settings → Pages writes a `CNAME` to `gh-pages` that the next force-push deletes. **Don't delete `public/CNAME`.**
 
 ## The diff view
 
-Every preview page's banner has a **diff vs main** checkbox. Ticked, the
-article splits into two columns — the live site's version on the left, the
-PR's on the right — with differences marked like a git diff: removed blocks
-red, added blocks green, edited blocks tinted with the changed words marked
-inside (an inline formula counts as one word). Matched blocks are padded into
-shared rows, so a removed paragraph faces a hatched blank on the other side and
-the two columns scroll together by construction; **sync scroll** off gives each
-column its own scrollbar instead. Solutions that contain a change are opened.
+The preview banner's **diff vs main** checkbox splits the article into two columns: live site left, PR right. Removed blocks red, added green, edited blocks tinted with changed words marked (an inline formula is one word). Matched blocks share rows; a removed paragraph faces a hatched blank. Solutions containing a change open.
 
-The banner is two rows — what this preview is, then the diff controls — and
-sticks to the top of the viewport together with the navbar (`#top-stack` in
-`layout.tsx`; `site.js` measures the stack into `--top-h`, which the anchor
-scroll offset and the sidebar's sticky offset derive from). The second row:
+The two-row banner sticks to the top with the navbar (`#top-stack` in `layout.tsx`; `site.js` measures it into `--top-h`, used by the anchor scroll and sidebar sticky offsets). Controls:
 
-- **diff vs main** — the two-column view described above.
-- **sync scroll** — the columns share the page's scroll (on) or each get
-  their own (off).
-- **hide unchanged** (on by default) — the article's top-level blocks
-  (paragraphs, headings, whole exercise and theorem boxes, lists) that match
-  on both sides fold away, one block of context kept beside each change. An
-  unchanged section collapses to one strip that names its heading and says
-  how many blocks it holds. Click a strip to unfold that run; click it again
-  to fold it back.
-- **allow stretched margins** (off by default) — off, each column is exactly
-  the page's own reading width, so an equation that overflows the real page
-  overflows its column here too, which is the point of reviewing a
-  maths-heavy page; the pair is centred and the page scrolls sideways on a
-  narrow viewport. On, the columns share the viewport and read more
-  comfortably, but hide overflow.
-- **show column edge** (off by default) — a red line down the right edge of
-  every article column, and a dashed red outline on each display equation that
-  is wider than its column (the label counts them). That is the overflow
-  `scripts/check-overflow.mjs` reports, made visible: the equation's scroll box
-  otherwise clips it silently at the edge. Independent of the diff — it works on
-  the plain preview page too, and on `/dev/diff`.
-- **next change ▸** — steps through the removed, added and modified blocks in
-  position order, scrolling each into view with an amber ring; if the diff is
-  off it turns it on first.
+- **diff vs main**: the two-column view.
+- **sync scroll**: columns share the page scroll (on) or scroll separately (off).
+- **hide unchanged** (default on): matching top-level blocks (paragraphs, headings, exercise/theorem boxes, lists) fold into a strip naming the heading and block count, keeping one block of context per change. Click to toggle.
+- **allow stretched margins** (default off): off, each column is the real reading width, so page overflow shows here too (scrolls sideways on narrow screens). On, columns share the viewport but hide overflow.
+- **show column edge** (default off): red line at each column's right edge; dashed red outline (and a count) on display equations wider than the column, i.e. what `scripts/check-overflow.mjs` reports. Works without the diff and on `/dev/diff`.
+- **next change ▸**: scrolls to each changed block in turn (amber ring); turns the diff on if needed.
 
-It is `public/diff.js` (vanilla, like `site.js`) plus the controls in
-`DiffControls.tsx`, and only preview builds load it (and `/dev/diff`, below). The base version is
-simply fetched from the same path at the site root — production and every
-preview share one origin — so no build step and no extra deploy artifact are
-involved. If the page does not exist on main yet the fetch 404s and the
-checkbox disables itself with a note. The comparison is against what is
-**deployed**, not main's HEAD: they differ only between a merge and its deploy.
+Implementation:
 
-Blocks are matched by content (a display equation by its TeX source), so a
-renumbered exercise counts as an edit to its heading line — that is what the
-merge would change on the page, so it is shown.
+- `public/diff.js` (vanilla JS, like `site.js`) plus `DiffControls.tsx`. Loaded only by preview builds and `/dev/diff`.
+- The base is fetched from the same path at the site root (same origin); no build step. A 404 (page not on main) disables the checkbox with a note.
+- The base is what's deployed, which lags main's HEAD between a merge and its deploy.
+- Blocks match by content (equations by TeX source), so a renumbered exercise shows as a heading edit.
 
 ### Page history: `/dev/diff`
 
-The same view compares any two historical versions of a page:
-`/dev/diff/?page=<slug>&from=<tree>&to=<tree>` (trees may be abbreviated; with
-none given, the newest version against the one before it). Every version, on
-every branch, is pre-rendered by the
-[iliad-intensive-snapshots](https://github.com/iliad-team/iliad-intensive-snapshots)
-repo's backfill with today's pipeline, one HTML file per distinct `tex/<slug>/`
-tree. `public/dev-diff.js` reads that repo's `index.json` and two of the pages
-from raw.githubusercontent.com (`access-control-allow-origin: *`), puts the
-newer article on the page and points `diff.js` at the older one through
-`#diff-toggle`'s `data-diff-url`. The site build stores none of it. Figures
-come from this site's `/uploads/`, so an old version shows today's figures.
+Compares any two historical versions of a page: `/dev/diff/?page=<slug>&from=<tree>&to=<tree>`. Trees may be abbreviated; with none given, it shows the newest version against the previous one.
+
+- Every version on every branch is pre-rendered by the [iliad-intensive-snapshots](https://github.com/iliad-team/iliad-intensive-snapshots) repo's backfill with today's pipeline, one HTML file per distinct `tex/<slug>/` tree.
+- `public/dev-diff.js` reads that repo's `index.json` and two pages from raw.githubusercontent.com (`access-control-allow-origin: *`), shows the newer article and points `diff.js` at the older one via `#diff-toggle`'s `data-diff-url`.
+- The site build stores none of it. Figures come from this site's `/uploads/`, so old versions show today's figures.
 
 ### Trying it locally
 
-A local build can diff against production, which sends
-`access-control-allow-origin: *`:
+A local build can diff against production (which sends `access-control-allow-origin: *`):
 
 ```sh
 node scripts/build-content.mjs <slug>
@@ -244,54 +133,27 @@ NEXT_PUBLIC_PREVIEW_PR=local NEXT_PUBLIC_DIFF_BASE=https://iliad-intensive.org \
 python3 -m http.server 4499 --directory out     # then open /<cluster>/<slug>/
 ```
 
-`NEXT_PUBLIC_PREVIEW_PR=local` (anything non-numeric) shows the banner as
-"Local preview build" with no PR link; `NEXT_PUBLIC_DIFF_BASE` is where the
-base pages are fetched from, empty (the default, and what CI uses) meaning this
-origin's root.
+- `NEXT_PUBLIC_PREVIEW_PR=local` (any non-numeric value) labels the banner "Local preview build" with no PR link.
+- `NEXT_PUBLIC_DIFF_BASE` is where base pages are fetched from. Empty (default, used by CI) means this origin's root.
 
 ## Fork PRs
 
-On a `pull_request` event from a fork, `GITHUB_TOKEN` is read-only no matter
-what the workflow's `permissions:` block asks for — that run executes the
-fork's code (`npm ci`, the LaTeX build), so GitHub refuses to hand it a write
-token. `site.yml`'s own preview-deploy is therefore gated to same-repo PRs,
-and fork previews are published by **`.github/workflows/fork-preview.yml`**:
+A fork's `pull_request` run always gets a read-only `GITHUB_TOKEN`, whatever `permissions:` says. So `site.yml`'s preview deploy is same-repo only; `.github/workflows/fork-preview.yml` publishes fork previews:
 
-- It triggers on `workflow_run` after a `site` build completes, so it runs in
-  *this* repo's context with a write token — but it never checks out or
-  executes anything from the PR. Its only PR-derived input is the built site,
-  downloaded as an inert artifact and copied into `pr-preview/pr-<N>/`; the
-  publish script comes from `main`.
-- Publishing still serves PR-author-controlled HTML from the production
-  site's origin, so it is gated on **who**. See [Who is trusted](#who-is-trusted):
-  untrusted authors get a comment instead of a preview URL (reviewers can
-  still run the branch locally).
-- The PR number is resolved from the GitHub API by the run's head SHA (the
-  `workflow_run` payload's `pull_requests[]` is empty for forks), and only if
-  that SHA is still the PR's head — a stale run skips rather than publishing
-  an outdated preview.
-- Do **not** "simplify" this back to running the deploy (or anything that
-  builds) on `pull_request_target` — that is the classic pwn-request: the
-  fork's code runs with a write token. The `closed` event is the one safe
-  exception, because cleanup touches nothing from the PR.
+- Triggers on `workflow_run` after a `site` build, with a write token. Never checks out or executes PR code: its only PR input is the built site artifact, copied into `pr-preview/pr-<N>/`. The publish script comes from `main`.
+- Gated on [Who is trusted](#who-is-trusted), since it serves author-controlled HTML on the production origin. Untrusted authors get a comment instead.
+- The PR number is looked up via the API from the run's head SHA (`pull_requests[]` is empty for forks). If that SHA is no longer the PR's head, it skips.
+- **Never move the deploy (or any build) to `pull_request_target`.** That runs fork code with a write token (pwn-request). The `closed` cleanup is the one safe exception.
 
-Note `workflow_run` (and `pull_request_target`) use the workflow file on the
-**default branch**, so changes to this machinery cannot be exercised from
-their own PR — they take effect on merge.
+`workflow_run` and `pull_request_target` use the default branch's workflow file, so changes here only take effect on merge.
 
 ### Who is trusted
 
-A fork PR's author is **trusted** if they are an org member or a collaborator
-(GitHub's `author_association` OWNER/MEMBER/COLLABORATOR: people who can push
-branches here anyway), **or** their login is in
-[`.github/trusted-contributors`](../.github/trusted-contributors) **on main**.
-`.github/trust.sh` is the one implementation, and every caller reads the list
-from main through the API, so a PR adding its own author to the list does
-nothing until a maintainer merges it. Having a PR merged grants nothing by
-itself: that closes "get a typo fix merged, then send something malicious"
-(the rule until 2026-09-24 was "anyone with a merged PR").
+A fork PR's author is trusted if their `author_association` is OWNER/MEMBER/COLLABORATOR, or their login is in [`.github/trusted-contributors`](../.github/trusted-contributors) on main.
 
-Trust unlocks three things; an untrusted fork PR gets none of them:
+- `.github/trust.sh` is the one implementation. Every caller reads the list from main via the API, so a PR adding its own author does nothing until merged.
+- A merged PR grants no trust by itself.
+- To trust someone, add their login to `.github/trusted-contributors` and merge; remove it to revoke.
 
 | What | Where | Untrusted author |
 |---|---|---|
@@ -299,45 +161,10 @@ Trust unlocks three things; an untrusted fork PR gets none of them:
 | A live preview | `fork-preview.yml` | a 🔒 comment instead |
 | `/dev/diff` history | `snapshots-dispatch.yml` only dispatches for trusted authors, and iliad-intensive-snapshots' `update.yml` only renders trusted PR heads | not rendered |
 
-What a fork PR can never do, trusted or not: write to this repo. Its own runs
-get a read-only token and no secrets, and the jobs that do hold a write token
-(`fork-preview`, `approve-trusted`, `snapshots-dispatch`) run main's code and
-never check out or execute the PR.
-
-To trust someone, add their login to `.github/trusted-contributors` in a PR
-and merge it; to revoke, remove it.
+No fork PR can write to this repo. Its runs get a read-only token and no secrets. The write-token jobs (`fork-preview`, `approve-trusted`, `snapshots-dispatch`) run main's code and never check out or execute the PR.
 
 ## Caveats / known limitations
 
-- **Concurrent deploys.** All `gh-pages` writes share the `gh-pages-write`
-  concurrency group, so a `main` push and a PR deploy queue rather than race.
-- **Third-party actions.** Publishing no longer uses one. Earlier revisions used
-  `rossjrw/pr-preview-action` (dropped: a post-deploy REST call for the commit
-  SHA failed the check on a GitHub API blip even though the deploy succeeded)
-  and then `JamesIves/github-pages-deploy-action`, dropped when publishing moved
-  to an explicit script.
-
-  **That action's `single-commit: true` would also have worked** — a claim in the
-  PR that made this change, and in its commit message, says otherwise and is
-  wrong. The reasoning was that `single-commit` checks out an orphan, leaving an
-  empty worktree that `clean-exclude: pr-preview/**` cannot protect. But the
-  action runs `git checkout --orphan <branch> origin/<branch>`, and `--orphan`
-  *with a start-point* populates the index and working tree exactly as a normal
-  checkout would — only the resulting commit is parentless:
-
-  ```console
-  $ git worktree add --no-checkout --detach wt     # 0 files
-  $ cd wt && git checkout --orphan gh-pages origin/gh-pages
-  $ find . -type f
-  ./index.html
-  ./pr-preview/pr-25/index.html                    # previews are present
-  ```
-
-  So the explicit script is a preference — no third-party action in the publish
-  path, staging visible in the workflow — not a necessity. Swapping back to the
-  flag is a legitimate simplification if anyone wants it.
-- **Branch size.** One commit deep, but the *tip* is still large: a full site
-  build is ~100 MB and each live preview is another copy. Closing stale PRs is
-  what keeps it down.
-- **Prototype.** This is a first cut (branch `pr-website-serve`). Validate on a
-  throwaway PR before relying on it.
+- **No third-party publish action.** `JamesIves/github-pages-deploy-action` with `single-commit: true` would also work (its `git checkout --orphan <branch> origin/<branch>` keeps the existing tree). The script is a preference.
+- **Branch size.** A full build is ~100 MB, plus each live preview. Close stale PRs.
+- **Prototype.** First cut (branch `pr-website-serve`). Validate on a throwaway PR before relying on it.

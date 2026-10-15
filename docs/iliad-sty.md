@@ -1,82 +1,70 @@
 # `iliad.sty` — the worksheet contract
 
-`iliad.sty` is the one required package for LaTeX worksheets. It defines the
-small set of semantic environments the tex → MDX converter understands (the
-"contract zone"). Everything else — prose, math, `\newcommand` macros, extra
-packages, citations — is the "free zone": write whatever LaTeX you like and
-it converts faithfully. Per-construct syntax lives in
-[commands.md](commands.md); this page covers the package itself.
+The one required package for worksheets. It defines the environments the
+converter understands; any other LaTeX converts as written. Per-construct
+syntax: [commands.md](commands.md).
 
 ## Loading it
-
-Every worksheet loads the style local-first, with the shared repo copy as
-fallback:
 
 ```latex
 \IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
 ```
 
-- **In the repo**, `tex/iliad.sty` is the single shared copy everyone builds
-  against. Per-folder copies are gitignored, and the build fails if a stray
-  local copy drifts from the shared one.
-- **Outside the repo** (your machine, Overleaf), put a copy of `iliad.sty`
-  next to your `main.tex` and the same line finds it. Don't commit it.
+- Repo: `tex/iliad.sty` is the shared copy. Local copies are gitignored; the
+  build fails if one drifts from it.
+- Overleaf etc.: put an uncommitted copy next to `main.tex`.
+- `[boxes]` adds `tcolorbox` PDF styling. The website ignores it.
 
-The `[boxes]` option turns on ready-made `tcolorbox` styling for the PDF.
-Without it, PDF rendering is deliberately plain — style your PDF however you
-like; the website's look is decided downstream and doesn't depend on it.
-
-It loads for you: `amsmath`, `amssymb`, `amsthm`, `enumitem`, `graphicx`,
-`hyperref`, and `cleveref` (last, as it must be). Configure hyperref with
-`\hypersetup{...}` — do **not** re-load it.
+Loads `amsmath`, `amssymb`, `amsthm`, `enumitem`, `graphicx`, `hyperref`,
+and `cleveref` (last). Configure hyperref with `\hypersetup{...}`; **do not
+re-load it.**
 
 ## Strictness
 
-The contract is strict about its own names: worksheets must not define their
-own theorem/exercise/solution machinery, and must not `\renewcommand` /
-`\renewenvironment` anything this package defines. A clash is a loud compile
-error on purpose — port legacy material to the format rather than working
-around it (CI also rejects redefinitions of contract names).
+Don't define your own theorem/exercise/solution machinery or
+`\renew…` anything this package defines. Clashes fail compilation and CI.
+Port legacy material to the format.
 
 ## What it defines
 
 | Name | Kind | Purpose |
 |---|---|---|
-| `exercise` | env | numbered problem box ("Exercise 2.1"), own per-section counter |
-| `solution` | env | worked answer bound to an exercise; hidden by `\solutionsfalse` |
-| `solutionsonly` | env | plain content shown only in the with-solutions build (answer key / instructor aside); no box or binding; stripped from `-nosol` |
-| `pdfonly` | env | kept in both PDF variants, dropped entirely from the web build; nest `solutionsonly` inside it for with-solutions-PDF-only content |
-| `learningoutcomes` | env | "What you'll learn" box; body is an `itemize`, or `\subsection*{}` groups each with their own `itemize` |
-| `definition` `theorem` `lemma` `proposition` `corollary` `fact` `example` | envs | amsthm family sharing one per-section counter |
+| `exercise` | env | numbered ("Exercise 2.1"), own per-section counter |
+| `solution` | env | answer bound to an exercise |
+| `solutionsonly` | env | unboxed, unbound content for the with-solutions build only |
+| `pdfonly` | env | both PDFs, not web; nest `solutionsonly` for with-solutions PDF only |
+| `learningoutcomes` | env | "What you'll learn"; an `itemize`, or `\subsection*{}` groups of `itemize` |
+| `definition` `theorem` `lemma` `proposition` `corollary` `fact` `example` | envs | amsthm, one shared per-section counter |
 | `proof` | env | amsthm; collapsible on the web |
-| `hint` | env | unnumbered block hint, rendered in place; collapsible on the web |
-| `teachingnote` | env | `[Title]` optional (default "Teaching note"); teacher-facing aside — dashed box in the PDF, collapsed drop-down on the web; unnumbered, kept in both variants |
-| `callout` | env | `[note\|tip\|warning][Title]` coloured aside; the optional title replaces the type word on the box (PDF) and heads it (web) |
-| `remark` | env | aside in the theorem register; note-style callout on the web. Optional title: `\begin{remark}[Title]` → "Remark (Title)" |
-| `\important` | mark | ★ after an exercise's label: one of the sheet's key exercises |
-| `\authorname{}` `\affiliation{}` | cmds | structured `\author{}` entries (byline extraction) |
-| `\hint{}` `\note{}` | cmds | inline `[Hint: …]` / `[Note: …]` (don't use inline `\hint{}` at the top level of a `hint` environment) |
-| `\youtube[Title]{ID}` | cmd | YouTube video by its 11-char ID: embedded player on the web, a "Video:" line with the watch URL in the PDF |
-| `\llbracket` `\rrbracket` | cmds | Iverson brackets, from kernel pieces — don't load `stmaryrd` for them (on Debian it drags in ~79 MB of CI download for two glyphs). `\providecommand`, so a sheet that does load stmaryrd keeps its glyphs; a **slide deck** doesn't load `iliad.sty`, so it still defines its own |
+| `hint` | env | unnumbered; collapsible on the web |
+| `teachingnote` | env | `[Title]` (default "Teaching note"); dashed box in PDF, collapsed on web; unnumbered, in both variants |
+| `callout` | env | `[note\|tip\|warning][Title]`; title replaces the type word (PDF), heads the box (web) |
+| `remark` | env | note-style callout on web; `[Title]` → "Remark (Title)" |
+| `\important` | mark | ★ marks a key exercise |
+| `\authorname{}` `\affiliation{}` | cmds | structured `\author{}` entries |
+| `\hint{}` `\note{}` | cmds | inline `[Hint: …]` / `[Note: …]`; not at top level of a `hint` env |
+| `\youtube[Title]{ID}` | cmd | 11-char video ID: player on web, "Video:" URL line in PDF |
+| `\llbracket` `\rrbracket` | cmds | Iverson brackets; don't load `stmaryrd` for them (~79 MB CI download). `\providecommand`d. Slide decks don't load `iliad.sty`, so define their own |
 | `\ifsolutions` | toggle | `\solutionsfalse` hides every solution from the PDF |
-| `\skippable`, `\difficulty{}`, `summary` env | legacy | still compile but are not part of the contract; the page summary belongs in the `%--- iliad ---` metadata block |
+| `\skippable`, `\difficulty{}`, `summary` env | legacy | compile, not in the contract; use `summary:` metadata |
 
 ## Metadata extraction
 
-The website builds each page's metadata from the LaTeX itself:
+From the LaTeX:
 
-- **title** ← `\title{...}` (found anywhere in the document, so setting it
-  after `\begin{document}` works)
-- **byline** ← `\author{...}`; plain `A \and B` works, and
-  `\authorname{X}\\ \affiliation{Y}` entries render as "X (Y)"
+- **title** ← `\title{...}`, found anywhere (after `\begin{document}` works)
+- **byline** ← `\author{...}`; `A \and B` works; `\authorname{X}\\ \affiliation{Y}` renders "X (Y)"
 
-The **summary** is not extracted from the LaTeX — it lives in the
-`%--- iliad ---` comment block at the top of `main.tex`, alongside the other
-metadata keys (`cluster:`, and optional `title:`/`contributors:` overrides of
-the extracted values — a duplicate draws a build warning). Values are
-one-line YAML scalars, except `summary:`, which may be a paragraph written as
-a YAML folded block scalar (continuation lines indented two spaces after the
-leading `% `; line breaks fold into spaces):
+The rest lives in the `%--- iliad ---` block atop `main.tex`:
+
+- `cluster:`
+- `summary:` (not extracted from LaTeX)
+- `title:` / `contributors:`: optional overrides of the extracted values; a duplicate draws a build warning
+- `unlisted: true`: page built and reachable by URL, linked from nowhere
+- `slides:`: URL of an externally hosted deck (outbound link); a compiled `slides.tex` in the folder supersedes it (see [commands.md](commands.md))
+
+Values are one-line YAML scalars, except `summary:`, which may be a folded
+block scalar (continuation lines indented two spaces after `% `):
 
 ```latex
 %--- iliad ---
@@ -88,57 +76,35 @@ leading `% `; line breaks fold into spaces):
 %--- end ---
 ```
 
-(Legacy sheets with a `\begin{summary}` env in the body still convert — it is
-hoisted into the frontmatter — but a `summary:` key overrides it.)
+A legacy `\begin{summary}` env in the body is hoisted into the frontmatter; a
+`summary:` key overrides it.
 
-`unlisted: true` is a maintainer flag:
-the page is built and reachable by URL but linked from nowhere. `slides:` holds
-the URL of an externally hosted deck (rendered as an outbound link; a compiled
-`slides.tex` in the folder supersedes it — see [commands.md](commands.md)).
+Build **warnings** (never failures, with `file.tex:line`) for:
 
-Missing title/cluster/contributors draw build **warnings** (never
-failures) with `file.tex:line` locations.
-
-So does a summary that isn't one: **missing, empty, or still `TODO`**. The
-summary is the page's lede *and* its blurb in the homepage and sidebar index, so
-a sheet without one looks unfinished in two places — and `TODO` is exactly what
-a port leaves behind when the source had no summary to transcribe (an author's
-words are ported, never invented), which makes it the easiest thing in the file
-to forget. An MDX-authored sheet gets the same warning from
-`build-content.mjs`, since it never passes through the converter.
+- missing title, cluster or contributors
+- summary missing, empty or `TODO` (ports leave `TODO` when the source has
+  none). It is the page lede and index blurb. MDX sheets get this warning from
+  `build-content.mjs`.
 
 ## Labels and cross-references
 
-`\label` anything you want to reference — exercises, theorems, callouts,
-remarks all take labels, and `\cref` resolves to the exact text LaTeX
-prints, on paper and on the web alike. Use `\cref`, not `\ref`: it prints
-and links the type word, so you never hand-type "Section" next to it (the build
-warns about a plain `\ref`, and about a hand-written "Section~\cref{...}").
-
-Every sectioning level reads as **Section**, and every appendix level as
-**Appendix** — the package renames cleveref's `subsection` / `subsubsection` /
-`subappendix` so a `\cref` at a subsection prints "Section 2.3" rather than
-"Subsection 2.3". Heading depth is document structure, not something a
-cross-reference should announce. Set once here so no two sheets disagree; the
-converter reads these same declarations out of this file, so the web and the
-PDF always agree on what a reference is called.
-
-Any placement LaTeX binds correctly is valid (top level of the environment);
-right after `\begin{...}` is clearest. Callouts and remarks carry discreet
-per-section counters: no number shows in the box, but `\cref` prints
-"Callout 2.1" / "Remark 2.3" and links to it.
+- `\label` anything (exercises, theorems, callouts, remarks); `\cref` prints
+  the same on paper and web, type word included. The build warns on plain
+  `\ref` and on hand-written "Section~\cref{...}".
+- All sectioning levels print "Section", all appendix levels "Appendix"
+  (cleveref names renamed here; the converter reads them from this file).
+- Place the `\label` at the env's top level; right after `\begin{...}` is clearest.
+- Callouts and remarks have hidden per-section counters: no number in the
+  box, but `\cref` prints "Callout 2.1" / "Remark 2.3" and links to it.
 
 ## Solutions and the two PDF variants
 
-`\begin{solution}[ex:label]` must name its exercise — that binding is what
-lets solutions live anywhere (adjacent, or collected at the end) and still
-pair up. The build produces every download in two variants: with solutions,
-and with every solution stripped (`-nosol`) — the stripped `.tex`/`.mdx`/
-`.pdf` are safe to hand out or paste into an LLM. `\solutionsfalse` is the
-authoring-time equivalent for your own PDF compiles.
-
-A sheet that collects its solutions in a back-of-sheet section should wrap
-that section's `\appendix`/`\section{Solutions}` header in `pdfonly` +
-`solutionsonly`: the web relocates the solutions under their exercises and
-would otherwise show the emptied header, and the `-nosol` PDF must not show
-it either. See "PDF-only content" in [commands.md](commands.md).
+- `\begin{solution}[ex:label]` must name its exercise; it may then sit anywhere.
+- Every download has two variants: with solutions, and `-nosol` (all stripped;
+  safe to hand out or paste into an LLM). `\solutionsfalse` does the same for
+  your own compiles.
+- A back-of-sheet solutions section must wrap its `\appendix`/
+  `\section{Solutions}` header in `pdfonly` + `solutionsonly`. Otherwise the web
+  (which moves solutions under their exercises) and the `-nosol` PDF show an
+  empty header. See "PDF-only content" in
+  [commands.md](commands.md).
