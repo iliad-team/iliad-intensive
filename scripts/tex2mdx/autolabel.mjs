@@ -2,8 +2,9 @@
  * autolabel.mjs — synthetic \label injection, so every displayed number on
  * the web comes out of LaTeX's .aux instead of a simulated counter.
  *
- * The .aux only records what is \label'ed: an unlabeled theorem is numbered
- * in the PDF but leaves no readable trace. So both consumers of a worksheet
+ * The .aux only records what is \label'ed: an unlabeled theorem or equation
+ * is numbered in the PDF but leaves no readable trace. Theorem-likes and
+ * headings get one label each; numbered displays get one per numbered row. So both consumers of a worksheet
  * run the SAME injection over the whole document — main.tex and everything it
  * \inputs (injectAutoLabelsTree) — before doing anything else:
  *
@@ -27,6 +28,7 @@
  */
 import { readOpt, readArg } from "./util.mjs";
 import { transformInputTree } from "./texinput.mjs";
+import { NUMBERED_MATH, mapRows, wantsLabel } from "./math-numbering.mjs";
 
 export const AUTO_PREFIX = "iliad-auto-";
 export const isAutoLabel = (l) => typeof l === "string" && l.startsWith(AUTO_PREFIX);
@@ -39,6 +41,17 @@ const BUILTIN_NUMBERED = [
   "exercise", "remark",
 ];
 const HEADING = /^\\(section|subsection|subsubsection)(?=[[{\s])/;
+// Where the display opened at `from` closes: the first \end{env} outside a
+// comment (a numbered display cannot nest inside itself).
+function displayEnd(tex, from, env) {
+  const closer = `\\end{${env}}`;
+  for (let i = from; i < tex.length;) {
+    if (tex.startsWith(closer, i)) return i;
+    if (tex[i] === "%") { const eol = tex.indexOf("\n", i); i = eol === -1 ? tex.length : eol + 1; continue; }
+    i += tex[i] === "\\" ? 2 : 1;
+  }
+  return -1;
+}
 // regions where "\begin{theorem}" is literal text, not a construct
 const VERBATIM = new Set(["verbatim", "Verbatim", "lstlisting", "alltt", "minted", "comment"]);
 
@@ -108,6 +121,15 @@ export function injectAutoLabels(tex, opts = {}) {
         const o = readOpt(tex, i);
         if (o) { out += tex.slice(i, o.end); i = o.end; }
         out += `\\label{${nextLabel()}}`;
+      } else if (inDoc && NUMBERED_MATH.test(env)) {
+        // displayed equations: label each numbered row that has no label of
+        // its own, at the row's end (before its \\ or the \end), same line
+        const end = displayEnd(tex, i, env);
+        if (end !== -1) {
+          out += mapRows(env, tex.slice(i, end),
+            (row) => (wantsLabel(row) ? `${row}\\label{${nextLabel()}}` : row));
+          i = end;
+        }
       }
       continue;
     }
