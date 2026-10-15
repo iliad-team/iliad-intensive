@@ -1,0 +1,36 @@
+{
+  "pr": "197",
+  "full": false,
+  "changed": [
+    {
+      "slug": "prerequisites",
+      "title": "Prerequisites",
+      "code": "0",
+      "path": "/foundations/prerequisites/"
+    },
+    {
+      "slug": "alignment-in-practice-ii",
+      "title": "Alignment in Practice 2",
+      "code": "A.3",
+      "path": "/alignment/alignment-in-practice-ii/"
+    },
+    {
+      "slug": "mysteries-of-deep-learning",
+      "title": "Mysteries of Deep Learning",
+      "code": "B.2",
+      "path": "/learning/mysteries-of-deep-learning/"
+    },
+    {
+      "slug": "data-attribution",
+      "title": "Data Attribution",
+      "code": "B.5",
+      "path": "/learning/data-attribution/"
+    }
+  ],
+  "published": [
+    "prerequisites",
+    "alignment-in-practice-ii",
+    "mysteries-of-deep-learning",
+    "data-attribution"
+  ]
+}

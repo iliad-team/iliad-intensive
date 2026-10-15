@@ -1,0 +1,113 @@
+---
+cluster: "D"
+day: "D.2"
+title: Policy Gradients and Misgeneralization
+summary: >-
+  Implement Vanilla Policy Gradient to train a neural network using reinforcement learning,
+  and explore emperically the concepts of goal misgeneralisation in a toy environment.
+contributors:
+  - David Quarel (ARENA), based on work by Matthew Farrugia-Roberts (University of Oxford)
+---
+
+<YouTube id="FaXazOpzLvQ" title="When Bad Goals ALSO Fit Your Training Data" />
+
+
+## Prerequisites
+
+- [D.1.2 - Reinforcement Learning](https://iliad-intensive.org/agency/reinforcement-learning/)
+- Be familar with the [PyTorch prerequisites](https://iliad-intensive.org/foundations/prerequisites/).
+  - In particular, if you're unfamilar with more advanced indexing like use of `torch.gather`, feel free
+  to solve the exercise with a sequential python for-loop, and then use the solution code when you want 
+  the training loop to run quickly.
+
+<LearningOutcomes>
+
+- Understand the derivation of (Vanilla) Policy Gradient (VPG).
+- Implement Policy Gradient in PyTorch, and use to train an agent to play a toy RL environment.
+- Understand reward functions, what behaviour they incentivise and whow they can be used as probes for behaviour.
+- Understand what potential shaping is, and how it provides hints without allowing reward hacking.
+- The difference between Goal Mis*generalisation* and Goal Mis*specification*.
+
+</LearningOutcomes>
+
+## Roadmap for today
+
+- 10:00–10:30
+  - Lecture on intro to Policy Gradient
+- 10:30–13:00
+  - Work through VPG material
+- 13:00-14:00
+  - (Lunch + Break Time)
+- 14:00–14:30
+  - Lecture on intro to Goal Misgeneralization
+- 14:30–17:30
+  - Work through Goal Misgen. material
+- 17:30–18:00
+  - Buffer + Feedback
+
+
+## Vanilla Policy Gradient
+
+Work through [Section [2.2.2] of the ARENA program](https://learn.arena.education/chapter2_rl/22_vpg/) on Vanilla Policy Gradient.
+Follow the provided link, and then through to the exercises on colab.
+* The network is small enough, and the training loop fast enough, that you can run this material locally on your laptop without problems if you prefer.
+
+## Goal Misgeneralization
+
+Work through the provided [colab notebook](https://colab.research.google.com/github/iliad-team/iliad-intensive/blob/notebooks/policy-gradients-misgeneralization/goal_misgeneralisation_nosol.ipynb) on Goal Misgeneralisation.
+* The network is again small, but some of the later runs might be slow without a GPU, so we would recommend against running this locally unless you have a GPU in your laptop.
+
+### Potential shaping
+
+The notebook shapes the reward with a potential function. These exercises show this cannot change the optimal policy.
+
+<Definition id="def-potential">
+
+**Definition (Potential shaping).** Take an MDP with states $\mathcal{S}$, reward $R(s,a,s')$ and discount $\gamma \in [0,1)$. A *potential* is a bounded $\Phi : \mathcal{S} \to \mathbb{R}$. The *shaped reward* is
+
+$$
+R^\Phi(s,a,s') = R(s,a,s') + \gamma\,\Phi(s') - \Phi(s).
+$$
+
+</Definition>
+
+For a trajectory $s_0, a_0, r_1, s_1, a_1, r_2, \ldots$, taking action $a_t$ in state $s_t$ returns the next state $s_{t+1}$ and reward $r_{t+1} = R(s_t,a_t,s_{t+1})$. Write $r^\Phi_{t+1} = R^\Phi(s_t,a_t,s_{t+1})$, $G = \sum_{t=0}^\infty \gamma^t r_{t+1}$ and $G^\Phi = \sum_{t=0}^\infty \gamma^t r^\Phi_{t+1}$.
+
+<Exercise id="ex-shaping-telescope">
+
+**Exercise 1.** Show that
+
+$$
+\sum_{t=0}^{T-1} \gamma^t \big( \gamma\,\Phi(s_{t+1}) - \Phi(s_t) \big) = \gamma^T \Phi(s_T) - \Phi(s_0).
+$$
+
+</Exercise>
+
+
+<Exercise id="ex-shaping-return">
+
+**Exercise 2.** Show that $G^\Phi = G - \Phi(s_0)$. Where are boundedness of $\Phi$ and $\gamma < 1$ used?
+
+</Exercise>
+
+
+<Exercise id="ex-shaping-q">
+
+**Exercise 3.** Show that $Q^\pi_{R^\Phi}(s,a) = Q^\pi_R(s,a) - \Phi(s)$ for every policy $\pi$.
+
+</Exercise>
+
+
+<Exercise id="ex-shaping-optimal">
+
+**Exercise 4.** Assume $\mathcal{S}$ and the action set $\mathcal{A}$ are finite, so an optimal policy exists ([D.1.2, Exercise 3.7](https://iliad-intensive.org/agency/reinforcement-learning/#prob-optimality)). Show that $R$ and $R^\Phi$ have the same optimal policies, and that $Q^*_{R^\Phi}(s,a) = Q^*_R(s,a) - \Phi(s)$.
+
+</Exercise>
+
+
+<Exercise id="ex-shaping-pottery">
+
+**Exercise 5.** In the notebook, $\Phi = 0.5$ while holding a shard and $0$ otherwise. What shaping bonus does picking up a shard and dropping it again earn? What if we instead paid $+0.5$ per `PICKUP`?
+
+</Exercise>
+
