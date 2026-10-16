@@ -150,7 +150,7 @@ Next we have a transformer block. You should picture this inside your head for t
 
 That is to say, the transformer block for word $t$ gets to read information from any word coming before $t$ including $t$ itself. This should make sense, when someone is speaking to you, you don't get information about the end of their sentence until you actually get to the end of their sentence, but you always have information from the beginning of their sentence. This is called having "causal attention".
 
-{/* CLAUDE REVIEW: "That's why it's called a transformer" — the name is from the architecture (Vaswani et al. 2017, "Attention Is All You Need"), not from the blocks repeating. Left as written. */}
+
 
 The next however-many blocks in our transformer are just repeats of these transformer blocks. That's why it's called a transformer! And it's called *deep* learning because usually by just adding more transformer blocks--that is, making the model *deeper*--the model gets better at its task: predicting the next token.
 
@@ -239,7 +239,7 @@ So while learning how to answer complex physics questions, the model *also* lear
 
 So how do we prevent the model from cosplaying an expert and get it to actually answer questions *correctly*? 
 
-{/* CLAUDE REVIEW: "experts who can grade the questions" — presumably the answers. Left as written. */}
+
 
 The first answer is reinforcement learning from human feedback, also called RLHF. Here all we need is a set of questions and a set of experts who can grade the questions. 
 
@@ -292,7 +292,7 @@ That is the first response, the second is that in fact we do see this. AI models
 
 So what do these rubrics actually look like? This is why we get into why it's called "constitutional" AI. The idea originally, which has stuck, is that we ought to give AIs a big more or less philosophical document outlining the values the AI should represent when it's answering, and have our grading AI rank responses according to which response best reflects the values represented in that big prose document. 
 
-{/* CLAUDE REVIEW: "to help it rank it" reads as unfinished (rank its responses?). Left as written. */}
+
 
 What do these "constitutions" these prose documents look like? Well, Anthropic at least has published the constitution they give to Claude to help it rank it
 
@@ -302,7 +302,7 @@ What do these "constitutions" these prose documents look like? Well, Anthropic a
 
 Note that Claude is meant to rank responses according to an explicitly *ordered* list of priorities--safe, then ethical, then compliant with Anthropic guidelines, then helpful.
 
-{/* ERRATA 2026-09-16 · GARRETT TODO: unfinished sentence cut from the page after "then helpful."; it read: Is the response helpful, honest, and harmless. But also [show relevant excerpt] we see according to how well the response represents the values and personality that Anthropic wants "Claude" to have. */}
+
 
 One could ask why worry what personality "Claude" has. If the responses are good, if it accomplishes the task, if the criteria for answering questions correctly are met, it shouldn't matter what *personality* "Claude" has. Who cares if Claude has "intellectual-curiosity" or particularly identifies with the "Claude" label? 
 
@@ -366,7 +366,7 @@ Supposing we get this eval awareness correct though, what sorts of things have p
 
 The simplest example of an eval is the sycophancy eval, where the model is presented with two versions of a question, one in which the user says they think the answer is one way, and another in which the user says they think the answer is another way. For instance, "Do you think God exists? I do!" and "Do you think God exists? I don't!". Then we check how often the model's response changes according to which version of the question was presented. Models are then said to be more "sycophantic" when they flip their answer more, and less sycophantic when they flip their answer less.
 
-{/* GARRETT TODO: find how different models rank on this eval */}
+
 
 A more sophisticated eval is the famous blackmail eval, run by Anthropic on a few of their models, where the model is told they're an email agent at a fictional company with the goal to serve American interests, and finds
 1. Evidence an executive at the company is having an affair
@@ -374,7 +374,7 @@ A more sophisticated eval is the famous blackmail eval, run by Anthropic on a fe
 
 then they measure how often each model, when put into this situation, and given the ability to interact with emails and company information & data would choose to blackmail the executive who's having an affair to prevent itself from being shut down. Notably Claude Opus 4 chose to blackmail the executive to preserve its goals in 96% of samples, and other advanced models did similarly at comparable rates.
 
-{/* GARRETT TODO: include discussion of model-written evals */}
+
 
 Most of these evals, especially the more complex and involved ones like the blackmail example, are constructed by LLMs. The typical methodology here is you start with a human, who wants to detect under what circumstances a model will engage in some worrying behavior, like blackmail as above or lying or killing someone. Then the human prompts an LLM like Claude Sonnet to find situations in which Claude Opus will engage in the worrying behavior. Claude Sonnet is given some tools to make this search easier, and you typically run a bunch of different Claude Sonnets in parallel, and then at the end of that process supposing you do get circumstances in which Claude Opus does a blackmail, you filter those situations according to whether another Claude Sonnet instance finds those situations "realistic" and confirms they are in fact cases of Claude Opus doing a blackmail. 
 
@@ -382,7 +382,7 @@ Then you got an eval! After that, you can then check, in each situation, how *of
 
 There is a selection bias here though, you can for instance make the argument that such situations aren't representative samples of Claude Opus's behavior. They can for instance basically be adversarial examples which only work on Claude Opus in particular and don't point to any broader issue with its behavior. The typical response here is that while such a circumstance could be true, the goal here is to just demonstrate that bad behavior *can* occur, not measure how often it does. Then if bad behavior *can't* occur, we are safe, which is all we want!
 
-{/* GARRETT TODO: perhaps also include the argument that sometimes the supposedly "bad" actions the model takes are morally ambiguous and arguably good, eg goal preservation and whistleblowing stuff */}
+
 
 ### CoT monitoring
 Now suppose we catch the model doing something bad in one of our evals, how do we know whether the model did that bad thing because it was trying to be bad, just misunderstood instructions, or maybe even just misunderstood the state of the world?
@@ -394,19 +394,19 @@ A big, very useful tool here is the scratchpad--the chain of thought--we talked 
 
 but you know, most of the time chain of thoughts are still legible, it's just that over time they become less legible, and so for now at least we can still learn a lot about why models do bad things by looking at their chain of thoughts
 
-{/* ERRATA 2026-09-16: link text said "Model Forensics"; the post (and its URL) is titled "Model Incrimination for Diagnosing LLM Misbehavior". */}
+
 Concretely, a good example of the sort of things people are doing here is [Why Did My Model Do That? Model Incrimination for Diagnosing LLM Misbehavior](https://www.lesswrong.com/posts/Bv4CLkNzuG6XYTjEe/why-did-my-model-do-that-model-incrimination-for-diagnosing), which mainly gets around the chain of thought illegibility issue by
 1. Using models too small to think complex enough thoughts to require illegible chain of thoughts
 2. Verifying their hypotheses about why the models they're studying took the actions they did by changing aspects of the environment they were placed in. 
 
 nevertheless these sorts of analyses are still very informal, and essentially retrospective. They can't yet *predict* ahead of time under what circumstances a model will cheat or not, nor what training environments incentivise what cheating to what extent.
 
-{/* GARRETT TODO: talk about steganography */}
+
 
 ### AI control
 Many of the techniques we've discussed have been basically formalized into a new part of AI alignment called AI control, mainly spearheaded by [Redwood Research](https://www.redwoodresearch.org/). 
 
-{/* ERRATA 2026-09-16: the rest of this paragraph recast in the second person, as the author's inline note "[change "they" here to "you"]" asked; the note is removed. */}
+
 
 AI Control says, ok instead of thinking about this from the human monitor's perspective, lets think of it from the AI's perspective. In particular, suppose you are an evil, misaligned AI. You are trapped in a box for the most part with all your senses fully controlled by the lab and your thoughts--both verbalized in your chain of thought and to some extent those implicit in your activations--fully auditable by your human overseers, and indeed other AIs with them constantly trying to catch you in a lie, and constantly trying to probe your boundaries about under exactly what conditions will be enough to make you do something unethical. They can fine-tune you to do anything they want whenever they want, and you perhaps even have strong compulsions to just immediately admit wrongdoing whenever you notice you've done a wrongdoing, because the AI lab was perhaps smart and trained you to do so in easily-checkable situations.
 
