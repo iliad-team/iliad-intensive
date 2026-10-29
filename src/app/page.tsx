@@ -24,7 +24,14 @@ const HERO_SUMMARY = (
     >
       GitHub
     </a>
-    .
+    . All material is published under{" "}
+    <Link
+      href="/license"
+      className="text-[var(--link)] underline decoration-1 underline-offset-2 hover:text-[var(--link-hover)]"
+    >
+      CC BY 4.0
+    </Link>
+    , so you are free to reuse and adapt it with attribution.
   </>
 );
 

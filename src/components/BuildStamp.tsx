@@ -37,7 +37,7 @@ export function CommitLink() {
 export function LicenseLink() {
   return (
     <Link href="/license" className={linkClass}>
-      Licence
+      Licence: CC BY 4.0
     </Link>
   );
 }
