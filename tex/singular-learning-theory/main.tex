@@ -150,14 +150,18 @@
 \addcontentsline{toc}{section}{\nameref{sec:intro}}
 
 \emph{Singular learning theory (SLT)} is a theory of learning that accounts for
-\emph{degeneracy} in neural networks. What is degeneracy? Let us first appeal
-to the Cambridge dictionary, documenting some features of typical uses of the
-word within mathematics:
+\emph{degeneracy} in neural networks. What exactly is degeneracy? Let us first
+appeal to the Cambridge dictionary, which documents some features of typical
+uses of the word within mathematics:
 \begin{quote}
     \emph{Degenerate} (of an equation, curve, line, etc.) unusual or
     complicated in some way compared to other equations, curves, lines, etc.\
     of a similar type, especially because a variable or parameter is zero.
 \end{quote}
+This dictionary sense already captures the intuition we will make precise:
+a degenerate object sits at the boundary of a family, where something that is
+usually nonzero happens to vanish.
+
 On the other hand, we should recall that deep learning has as many roots in
 neuroscience as in mathematics. And as they say, ``neural networks are
 \emph{grown.}'' Perhaps we should also hear the biologist's definition:
@@ -295,7 +299,7 @@ deep learning and supervised Bayesian deep learning, along with some example
 neural network architectures and statistical models that we will repeatedly
 study throughout the tutorial.
 
-\subsection{Neural networks and parameter--function maps}
+\subsection{Neural networks, parameters, and parameter--function maps}
 
 Let $\X$ denote a space of network inputs (e.g., a space of images or token
 sequences encoded as vectors), and let $\Y$ denote a space of outputs (e.g., a
@@ -327,8 +331,7 @@ begin with, we have the following remark.
         \item
             A ``parameter'' is an individual dimension of parameter space
             (e.g., ``initialise this parameter to the value $0.0$,'' or ``this
-            neural network has billions of parameters''). A loose synonym in
-            this case is ``weight.''
+            neural network has billions of parameters'').
         \item
             A ``parameter'' is also a particular point in the parameter space
             (e.g., ``this parameter is a local minimum of the loss function,''
@@ -456,8 +459,8 @@ chance to familiarise oneself with the concept of a parameter--function map.
     parameters allow each layer to represent an \emph{affine} transform, rather
     than just a linear transform. For each of
     \cref{eg:neuron,eg:linear,eg:dln,eg:mlp}, extend the example to use
-    biased neurons. Precisely define the parameter space and the
-    parameter--function map in each case.
+    biased neurons throughout. Define precisely the parameter space and the
+    parameter--function map in each case, and count the parameters.
 \end{exercise}
 
 Modern deep learning leverages more involved parameter--function maps. Neural
@@ -967,7 +970,7 @@ Let $\X = \{\ast\}$ and $\Y = \R$, so that we have a hypothesis class of constan
     \item What is the directional derivative of the parameter--function map in
         direction $v = 1$?
     \begin{hint}
-What kind of derivative does this reduce to?
+What kind of ordinary one-variable derivative does this reduce to, and why?
     \end{hint}
     \item At which points in the parameter space is this parameter--function map degenerate, if any?
 \end{enumerate}
@@ -1085,13 +1088,14 @@ degeneracy.
 \begin{proof}
     Define the curve in parameter space traced by the continuous symmetry,
     $\gamma : \R \to \W$ with $\gamma(t) = T_t(w)$.
-    Fix $t_0 \in \R$. Since $T_t$ is a continuous symmetry, the derivative
+    Fix $t_0 \in \R$. This is the only step where continuity of the symmetry
+    is used. Since $T_t$ is a continuous symmetry, the derivative
     along the curve at $t_0$ vanishes:
     \begin{align*}
         D_{\gamma'(t_0)} \Phi(\gamma(t_0))
         &\propto \gamma'(t_0) \cdot \nabla \Phi(\gamma(t_0))
     \\  &= \left.\frac{d}{dt}\right|_{t=t_0} \Phi(\gamma(t))
-            \tag{chain rule}
+            \tag{chain rule for $\Phi \circ \gamma$}
     \\  &= \left.\frac{d}{dt}\right|_{t=t_0} \Phi(w)
             \tag{symmetry, $\Phi \circ T_t = \Phi$}
     \\  &= 0.
@@ -2181,12 +2185,9 @@ We now state one of the main results of SLT: an asymptotic expansion of $F_n(\U)
     \begin{equation}
     \label{eq:fef}
         F_n(\U) = nL_n(w^*) + \lambda_{\U} \log n 
-              - (\mu_{\U} - 1)\log \log n + O_p(1).
+              - (\mu_{\U} - 1)\log \log n + O_p(1), \qquad n \to \infty.
     \end{equation}
 \end{theorem}
-\begin{remark}
-    Since $L_n(w^*)$ is a random variable, so is $F_n(\U)$. The expansion \cref{eq:fef} is an asymptotic statement about random variables where the remainder $O_p(1)$ denotes a term that is bounded in probability as $n \to \infty$.
-\end{remark}
 
 To understand what this expansion tells us about Bayesian learning, note that the two leading terms of this expansion have transparent interpretations:
 $$F_n \;\approx\;
@@ -2388,13 +2389,13 @@ Finally, there has been some attempt to theoretically investigate the links betw
 % \subsection[Solutions to exercises from Section~1]{Solutions to exercises from \cref{sec:prelims}}
 
 \begin{solution}[ex:biased-neurons]
-For each architecture, we add a bias vector to each layer's output before the next transformation (or activation function) is applied.
+For each architecture, we append a bias vector to every layer's output, before the next transformation (or activation function) is applied; the bias is a free parameter like any weight.
 
 \begin{enumerate}
     \item \textbf{A linear neuron with bias} (\cref{eg:neuron}).
     Let $\W = \R^{d+1}$, encoding a weight vector $w \in \R^d$ and a scalar bias $b \in \R$. The parameter--function map sends $(w, b)$ to $f_{w,b} : \R^d \to \R$ defined by
     \begin{equation*}
-        f_{w,b}(x) = w^\top x + b.
+        f_{w,b}(x) = w^\top x + b, \qquad b \in \R.
     \end{equation*}
 
     \item \textbf{Multi-linear neural network with bias} (\cref{eg:linear}).
