@@ -83,7 +83,8 @@ jobs:
       github.event_name != 'pull_request_target'
       && github.event_name != 'schedule'
       && github.event_name != 'workflow_dispatch'
-    runs-on: ubuntu-latest
+    # Keep the TeX toolchain stable when ubuntu-latest changes releases.
+    runs-on: ubuntu-24.04
     # A healthy warm run is ~2 minutes; a healthy COLD run ~7 (the TeX
     # download). The historically unbounded step was that download, which a
     # degraded Ubuntu mirror has stalled past 15 minutes while still *looking*
@@ -196,10 +197,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/apt-debs
-          key: apt-tex-${{ runner.os }}-${{ hashFiles('.github/apt-packages.txt') }}
+          key: apt-tex-ubuntu-24.04-${{ runner.arch }}-${{ hashFiles('.github/apt-packages.txt') }}
           restore-keys: |
-            apt-tex-${{ runner.os }}-
-            apt-tex-v1-${{ runner.os }}
+            apt-tex-ubuntu-24.04-${{ runner.arch }}-
 
       - name: TeX Live + poppler
         # The package set (and every per-package why) lives in

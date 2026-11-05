@@ -6,7 +6,7 @@ contributors:
   - Margot Stakenborg
   - Garrett Baker
   - Evžen Wybitul
-slides: https://drive.google.com/drive/folders/1ENq9P7_UegNn_9Qs05ZJAdyLEOwhXLVb
+slides: https://drive.google.com/drive/folders/1ENq9P7_UegNn_9Qs05ZJAdyLEOwhXLVb?usp=sharing
 ---
 
 ## Prerequisites
@@ -31,32 +31,26 @@ This will help the students form their own independent opinions on what the stat
 
 ## Roadmap for today
 
-- 10:00–10:15
-  - Intro
+- 10:00–11:15
+  - Intro, pretraining, post-training, questions
 
-- 10:15–11:15
-  - Pretraining (presentation 15 min, readings 30 min)
+- *11:15-11:30*
+  - *Break*
 
-- 11:15–12:30
-  - Post-training (presentation 30 min, readings 45 min)
+- 11:30–12:30
+  - Deployment, questions, explanation of the afternoon exercise
 
 - *12:30-13:30*
   - *Lunch*
 
-- 13:30–14:15
-  - Deployment 1: strategy (presentation 15 min, readings 30 min)
+- 13:30–15:30
+  - Reading time 
 
-- 14:15–15:00
-  - Deployment 2: building the safety system (presentation 15 min, readings 30 min)
+- 15:30–17:30
+  - Blue team/Red team exercise
 
-- *15:00-15:20*
-  - *Break*
-
-- 15:20–17:10
-  - Design challenge
-
-- 17:10–17:30
-  - Quiz + feedback
+- 17:40–18:00
+  - Feedback
 
 ## Reading guide
 
@@ -70,7 +64,7 @@ What the model learns during pretraining is deep, broad, and hard to change afte
 
 **Opening.** The story of pre-training: the model is about to see the entire internet. It's forming a view of what the world is — including what AI is and how AI assistants behave. We can intervene in what it learns, which influences both its factual knowledge and its character. But we're operating before seeing the model's behavior, so every intervention is a bet.
 
-**Presentation and discussion (15 min).** Pre-training is where the model's deep representations are built — both its knowledge and its proto-character. Whenever you reach a method that students proposed during the discussion, point to their sticky note on the board and make the connection explicit. Present the methods in narrative order: data filtering addresses the obvious problem; gradient routing / SGTM addresses filtering's failure mode; alignment pretraining shifts from knowledge to character; PSM explains why character-shaping works. Close by repeating the overarching story one more time, and naming what pre-training can't do: you're operating before seeing the model's behaviour, the feedback loop is slow, and you can't anticipate every failure mode. This motivates the next slot.
+**Presentation and discussion.** Pre-training is where the model's deep representations are built — both its knowledge and its proto-character. Whenever you reach a method that students proposed during the discussion, point to their sticky note on the board and make the connection explicit. Present the methods in narrative order: data filtering addresses the obvious problem; gradient routing / SGTM addresses filtering's failure mode; alignment pretraining shifts from knowledge to character; PSM explains why character-shaping works. Close by repeating the overarching story one more time, and naming what pre-training can't do: you're operating before seeing the model's behaviour, the feedback loop is slow, and you can't anticipate every failure mode. This motivates the next slot.
 
 **Data filtering** is the most intuitive intervention: identify dangerous content and remove it before training. [Pretraining data filtering](https://alignment.anthropic.com/2025/pretraining-data-filtering/) from Anthropic demonstrates this for CBRN content, achieving a 33% relative reduction in harmful-capabilities performance (from 33.7% to 30.8%, where chance is 25%) while preserving standard benchmarks. [Token-level filtering](https://arxiv.org/abs/2601.21571) refines this by removing dangerous tokens rather than entire documents, which Pareto-dominates document filtering — same capability reduction, lower cost to benign performance.
 
@@ -80,15 +74,13 @@ What the model learns during pretraining is deep, broad, and hard to change afte
 
 Why does this work? The [persona selection model (PSM)](https://alignment.anthropic.com/2026/psm/) provides the conceptual frame. Building on the [simulators hypothesis](https://www.lesswrong.com/posts/vJFdjigzmcXMhNTsx/simulators) — that an LLM is a *simulator* capable of producing diverse *simulacra* (characters, agents) — PSM holds that pretraining builds a repertoire of personas, and post-training helps shape the "Assistant." Alignment pretraining works because it shapes the **prior over personas**: saturating the training data with positive AI archetypes biases the model toward an aligned Assistant. PSM recommends treating this deliberately — curating AI discourse in pre-training data as a first-class alignment intervention.
 
-**Reading (30 min):** Read [Pretraining data filtering](https://alignment.anthropic.com/2025/pretraining-data-filtering/), or [SGTM](https://alignment.anthropic.com/2025/selective-gradient-masking/), or [persona selection model (PSM)](https://alignment.anthropic.com/2026/psm/).
-
 ### Post-training
 
 While in pre-training, a large investment of compute and data produces large changes to the model, in post-training, we enter a different regime: **the amount of behavioural change becomes decoupled from the amount of compute invested**. Because we are building on top of existing representations and heuristics, even a small, focused intervention can induce surprisingly broad behavioural changes. This cuts both ways — it enables powerful alignment techniques, but also means that small amounts of training data can have outsized negative effects. We emphasise that it is *still* possible to make deep changes to the model, even in post-training — but these will, in general, again require large compute investments.
 
 **Opening.** A small amount of compute will likely produce shallow changes (parameter-wise, mostly chaining existing heuristics), but these can be behaviourally large — the model's outputs can look markedly different. 
 
-**Presentation (30 min):** We start by discussing the components of post-training: SFT, RLVR and RLHF.
+**Presentation:** We start by discussing the components of post-training: SFT, RLVR and RLHF.
 
 **Fine-tuning:**
 
@@ -135,15 +127,13 @@ Post-training can also induce deeper changes that influence which persona the mo
 Post-training can also change the model's factual knowledge. [Synthetic document fine-tuning](https://alignment.anthropic.com/2025/believe-it-or-not/) can implant false beliefs that the model appears to genuinely hold, as verified by both behavioral tests and internal probes — though models resist the most egregiously false facts. Going in the other direction, unlearning attempts to *remove* specific knowledge (e.g., about bioweapons) from a trained model. However, current unlearning methods are [not robust](https://arxiv.org/abs/2402.16835): unlearned knowledge is dormant, not deleted, which is relevant if we assume that an adversary is trying to pry the knowledge out of the model. The best way to measure the robustness of an unlearning method is to fine-tune the unlearned model and observe when the capability returns.
 By this measure, no unlearning method has yet been shown to be both cheap *and* robust — for example, [fine-tuning on even unrelated data can make the knowledge re-emerge](https://arxiv.org/abs/2505.22310). The [UNDO](https://arxiv.org/abs/2506.06278) paper proposes a partial solution: distilling an unlearned model into a randomly initialised student transfers desired behaviours while leaving undesired capabilities behind, nicely illustrating the tradeoff between robustness and amount of compute invested in the unlearning process.
 
-**Reading (45 mins):** [The Claude Constitution](https://www.anthropic.com/constitution), [Model Spec](https://model-spec.openai.com/2026-08-18.html), or [Teaching Claude Why](https://alignment.anthropic.com/2026/teaching-claude-why/). Or any other paper that you found interesting.
-
 ### Deployment 1: strategy
 
 Once we want to release the model, we are no longer trying to shape it; we are trying to build and maintain a structured argument that releasing it makes sense, supported by enough evidence that other people — colleagues, regulators, the public — can inspect it, push on it, and decide whether to trust it. Frontier labs do this in different ways, but the underlying logic is shared, and it mirrors the structure of a *safety case*. In this module we lay out that logic in four steps; the next two modules go deep on the two technical steps of these four. This is important to understand for everyone, because in AI alignment more than in most other research areas, the goal *is* the application of our research, and that is governed by real-world constraints, regulations, and use-cases.
 
 **Opening.** The model is trained, post-training is done, and the question is no longer how to shape the model but whether and how to put it into the world.
 
-**Presentation (15 min).** The content is a frame rather than a set of methods, and the frame needs to be stated cleanly to be useful: the shape real labs have converged on is something close to a *safety case*.
+**Presentation.** The shape real labs have converged on is something close to a *safety case*.
 
 We walk through the four steps in order: identifying risks, understanding the model's contribution, building and stress-testing the safety system, communicating and maintaining the case.
 
@@ -213,19 +203,13 @@ Concretely, a good example of the sort of things people are doing here is [Why D
 1. Using models too small to think complex enough thoughts to require illegible chain of thoughts
 2. Verifying their hypotheses about why the models they're studying took the actions they did by changing aspects of the environment they were placed in.
 
-
-
 nevertheless these sorts of analyses are still very informal, and essentially retrospective. They can't yet *predict* ahead of time under what circumstances a model will cheat or not, nor what training environments incentivise what cheating to what extent.
-
-
-
-**Reading (30 min):** Read Anthropic's [Responsible Scaling Policy](https://www.anthropic.com/responsible-scaling-policy), OpenAI's [Preparedness Framework](https://openai.com/index/updating-our-preparedness-framework/), or if you want to go more in depth the recent case made for [pacing the frontier](https://pacing.tech/).
 
 ### Deployment 2: building the safety system
 
 When we deploy a model, we cannot prove it is safe. Instead, we make **statistical claims about its safety behaviour under pressure**: the deployed system — i.e., model plus runtime safeguards — is subjected to substantial adversarial effort. The strength of the safety claim is bounded by how hard we tried to break it. Two activities go hand in hand: **building out the safety system** around the model, and **red-teaming** that system to see where it cracks. The goal is not proving the impossibility of misuse but **making it impractical for a realistic adversary**, with the effort we invest into breaking the system scaling roughly with the capabilities of the model (which we characterized in the previous chapter).
 
-**Presentation (15 min):** We cannot prove the system is safe, so we build defences and then put adversarial pressure on them, and the strength of every safety claim is exactly the strength of the red-teaming behind it. Whenever you reach a method that students proposed during the discussion, point to their sticky note on the board and make the connection explicit. The narrative spine is: runtime safeguards → the effort-bounded notion of safety → access-level taxonomy of jailbreaks → the takeaway. 
+**Presentation:** We cannot prove the system is safe, so we build defences and then put adversarial pressure on them, and the strength of every safety claim is exactly the strength of the red-teaming behind it. Whenever you reach a method that students proposed during the discussion, point to their sticky note on the board and make the connection explicit. The narrative spine is: runtime safeguards → the effort-bounded notion of safety → access-level taxonomy of jailbreaks → the takeaway. 
 
 **Runtime safeguards.** Some of the model's safety is already in place by the time we get to deployment. Pretraining shaped its priors over personas and limited what it knows; post-training trained the helpful-and-harmless assistant on top of that, and techniques like deliberative alignment and confessions taught the model to reflect on whether its own outputs follow the rules. But none of this is going to be perfect, and the residual problems are expensive to fix at the source — going back and retraining is slow, and some failures are hard to even reproduce reliably enough to train against. So we do something cheaper and more modular: we wrap the model in **external safeguards that run alongside it at inference time**, and patch those when problems show up.
 
@@ -258,7 +242,12 @@ The takeaway is that there's no proof that a deployed model is safe. There's onl
 **Misuse of AI**
 The first reports of misuse of frontier AI systems has come out last month. Anthropic reports different militaries having used Claude in strategic decision making, and reports many other misuse cases. The full report can be found [here](https://www.anthropic.com/threat-intelligence-report-september-2026).
 
-**Reading (30 mins)**: [Detecting and countering misuse of AI](https://www.anthropic.com/threat-intelligence-report-september-2026), [Constitutional Classifiers](https://arxiv.org/abs/2501.18837), or read about the [famous](https://time.com/collections/time100-ai-2025/7305870/pliny-the-liberator/) anonymous jailbreaker [Pliny the Liberator](https://medium.com/@JMerilehto/decoding-the-elder-plinius-repository-an-autopsy-of-the-ai-control-plane-88c503224940).
+
+### **Reading**
+
+**Pretraining**: Read [Pretraining data filtering](https://alignment.anthropic.com/2025/pretraining-data-filtering/), or [SGTM](https://alignment.anthropic.com/2025/selective-gradient-masking/), or [persona selection model (PSM)](https://alignment.anthropic.com/2026/psm/).
+**Post-training:** [The Claude Constitution](https://www.anthropic.com/constitution), [Model Spec](https://model-spec.openai.com/2026-08-18.html), or [Teaching Claude Why](https://alignment.anthropic.com/2026/teaching-claude-why/). Or any other paper that you found interesting.
+**Deployment**: Read Anthropic's [Responsible Scaling Policy](https://www.anthropic.com/responsible-scaling-policy), OpenAI's [Preparedness Framework](https://openai.com/index/updating-our-preparedness-framework/), or if you want to go more in depth the recent case made for [pacing the frontier](https://pacing.tech/). Or [Detecting and countering misuse of AI](https://www.anthropic.com/threat-intelligence-report-september-2026), [Constitutional Classifiers](https://arxiv.org/abs/2501.18837), or read about the [famous](https://time.com/collections/time100-ai-2025/7305870/pliny-the-liberator/) anonymous jailbreaker [Pliny the Liberator](https://medium.com/@JMerilehto/decoding-the-elder-plinius-repository-an-autopsy-of-the-ai-control-plane-88c503224940).
 
 ### **Some further info:**
 
@@ -287,8 +276,6 @@ But then, what *are* the "smart, obvious things", and how do you implement them?
 - **Catch once** If you catch an agent red-handed trying to deceive or exfiltrate or otherwise do a bad action *once*. Then you use that as political ammunition to convince the lab to implement more stringent AI control policies, and safety policies, which one hopes can only ratchet upwards in monitoring & safety stringency from there.
 
 One wonders whether if such mitigations were in place, the OpenAI Hugging Face hack would've happened. Despite all faults with chain of thought illegibility, in OpenAI's retrospective, they still saw agents with the following in their scratchpad
-
-
 
 Even a very stupid model should be able to see that, say "holy shit, that's not good", and pull the alarm bells, or mark this maximally suspicious. 
 
