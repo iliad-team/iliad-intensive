@@ -1,0 +1,42 @@
+{
+  "pr": "201",
+  "full": true,
+  "changed": [
+    {
+      "slug": "policy-gradients-misgeneralization",
+      "title": "Policy Gradients and Misgeneralization",
+      "code": "D.2",
+      "path": "/agency/policy-gradients-misgeneralization/"
+    }
+  ],
+  "published": [
+    "prerequisites",
+    "ai-alignment-intro",
+    "alignment-in-practice",
+    "alignment-in-practice-ii",
+    "reward-learning-theory",
+    "mysteries-of-deep-learning",
+    "singular-learning-theory",
+    "training-dynamics",
+    "data-attribution",
+    "qft",
+    "intro-to-ml-engineering",
+    "mechanistic-interpretability",
+    "computational-mechanics",
+    "condensation",
+    "preferences-to-rewards",
+    "reinforcement-learning",
+    "policy-gradients-misgeneralization",
+    "solomonoff-induction",
+    "aixi",
+    "agent-foundations",
+    "optimization-thermodynamics",
+    "decision-theory",
+    "open-source-game-theory",
+    "power-seeking",
+    "world-models",
+    "debate",
+    "steganography",
+    "worst-case-interp"
+  ]
+}

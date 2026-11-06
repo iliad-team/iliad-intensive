@@ -1,0 +1,470 @@
+% vpg-slides.tex — Vanilla Policy Gradient (ILIAD Intensive).
+% Adapted from the ARENA "[2.2] Vanilla Policy Gradient" deck with the DQN frames removed.
+% Build:  present -> pdflatex slides.tex   |   handout -> pdflatex "\def\HANDOUT{}\input{slides}"
+\input{arena_beamer.sty}
+
+
+% Deck-local macros (RL chapter math notation).
+\newcommand{\R}{\mathcal{R}}
+\renewcommand{\S}{\mathcal{S}}
+\newcommand{\A}{\mathcal{A}}
+\renewcommand{\Pr}{\text{Pr}}
+\renewcommand{\P}{\text{P}}
+\newcommand{\iter}{\xrightarrow{I}}
+\newcommand{\eval}{\xrightarrow{E}}
+\newcommand{\iver}[1]{\llbracket {#1} \rrbracket}
+\newcommand{\biject}{\langle \cdot \rangle}
+\newcommand{\bij}[1]{\langle {#1} \rangle}
+\newcommand{\pth}{{\boldsymbol{\phi}}}
+\newcommand{\eps}{\epsilon}
+\newcommand{\eplen}{T}
+\newcommand{\env}{\mu}
+% algpseudocode helpers, unused by this deck (no algorithmic block remains) and
+% the package is not in the site's CI TeX set -- see arena_beamer.sty.
+%\algnewcommand\algorithmicinput{\textbf{Input:}}
+%\algnewcommand\Input{\item[\algorithmicinput]}
+%\algnewcommand\algorithmicoutput{\textbf{Output:}}
+%\algnewcommand\Output{\item[\algorithmicoutput]}
+%\algnewcommand\algorithmiceffect{\textbf{Effect:}}
+%\algnewcommand\Effect{\item[\algorithmiceffect]}
+
+
+\begin{document}
+
+
+\title[{[2.2] Vanilla Policy Gradient}]
+{{[2.2] Vanilla Policy Gradient}}
+
+ 
+\author[David Quarel] % (optional, for multiple authors)
+{David Quarel}
+ 
+\institute[ILIAD]{ILIAD Intensive}
+ 
+\date[\today] % (optional)
+{\today}
+ 
+\frame{\titlepage}
+
+
+\begin{frame}
+	\frametitle{Beyond Tabular Learning}
+	
+\begin{itemize}
+	\item Tabular RL assumes that sweeping through
+	all state-action pairs is tractable
+	\pause
+	\item What about large/continuous state spaces?
+	%\pause
+	\begin{itemize}
+		\item State aggregation?
+		%\pause
+		\item Parameterised policy $\pi_\bth$, learn best $\bth$?
+		%\pause
+		\item Craft a heuristic by hand?
+	\end{itemize}
+%\pause
+	\item In general, would like the agent to learn useful features for us
+	\pause
+	\begin{itemize}
+		\item Something deep learning excels at!
+	\end{itemize}
+\end{itemize}
+\end{frame}
+
+\begin{frame}
+	\centering
+		\includegraphics[height=\textheight]{fig/drake}
+\end{frame}
+
+\begin{frame}
+	\frametitle{Difficulties with using Neural Networks for RL}
+	
+	\begin{itemize}
+		\item Neural networks expect to be trained in a supervised learning fashion,
+		with batches of data fed in, loss computed, and gradients backpropagated.  
+        \pause
+        \item We need a way to obtain a gradient somehow from trajectories, and
+        then use this gradient to update the policy.
+        \pause
+        \item Interaction with environment is \textit{NOT} i.i.d, which supervised
+        learning assumes, so we need to run many trajectories in parallel.
+        \pause
+        \item Our grouth truth signal is if the policy obtains large returns during training.
+	\end{itemize}
+
+\end{frame}
+
+
+
+\section{VPG Assumptions}
+\begin{frame}
+    \frametitle{VPG Framework}
+    \begin{itemize}
+%          \item DQN learns $Q_*$, and then recovers the policy $\pi_*$ from $Q_*$.
+%        \textit{We no longer do this}.
+        \item \textbf{Action space} $\A$ is still discrete, and finite %(though PPO works for continuous 
+        %action spaces, unlike DQN)
+%        \begin{itemize}
+%            \item e.g. number of buttons to press on gamepad
+%        \end{itemize}
+    \item \textbf{State space} $\S$ is continuous (a subspace of $\mathbb{R}^n$), and
+    each state is a vector $\mathbf{s} \in \mathcal{S}$.
+%    \begin{itemize}
+%        \item e.g. in CartPole, the state is fully described as 
+%        $\mathbf{s} = (x, v, \bth, \omega)$ = (position, velocity, angle, angular velocity),
+%        so the state space $\mathcal{S} \subseteq \mathbb{R}^4$. 
+%    \end{itemize} 
+    \item Environment is \textbf{episodic}, and agent always starts at/near \textbf{starting 
+    state} $\mathbf{s}_0$. We generate a full episode, and then afterwards learn. No discount
+    ($\gamma = 1$).
+    \item Define measure of performance (\textbf{joy}) as
+    $$
+    J(\bth) := V_{\pi_\bth}(\mathbf{s}_0)
+    $$
+%    \begin{itemize}
+%        \item e.g. Initial state $\mathbf{s}_0$ for CartPole sampled uniformly from the hypercube 
+%        $[-0.05, 0.05]^4$
+%    \end{itemize}
+    \item Policy $\pi_\bth \equiv \pi(\cdot | \mathbf{s}; \bth)$ is a conditional probability 
+    distribution $\pi_\bth : \S \to \Delta \A$ over actions, mapping a state to a probability distribution over actions.
+    \item Gradient $\nabla_\bth \pi_\bth$ is well-defined.
+%    \item In practice, $\pi_\bth$ is a neural network, mapping a state vector $\mathbf{s}$ to 
+%    a vector of logits 
+%    $$
+%    \mathbf{h}(\mathbf{s};\bth) = [h_1(\mathbf{s};\bth), \ldots, h_n(\mathbf{s};\bth)]
+%    $$
+%    from which the action is sampled by softmax'ing the logits
+%    $$
+%    \pi(a_i | \mathbf{s}; \bth) := 
+%    \frac{\exp h_i(\mathbf{s};\bth)}{\sum_j \exp h_j(\mathbf{s};\bth)}
+%    $$
+    \item Choose $\bth$ to maximize joy $J(\bth)$ via gradient \textit{ascent}
+    $$
+    \bth \leftarrow \bth + \alpha \nabla_{\bth} J(\bth) 
+    $$
+    
+    %\item Original PPO paper uses loss for everything. I use \textbf{loss} L for things we \textbf{minimize}, and \textbf{joy} J for things we \textbf{maximize}.
+\end{itemize}
+\end{frame}
+
+
+% \begin{frame}
+%     \frametitle{Aside: Expectations hide stuff!}
+    
+%     The constant uses of $\mathbb{E}$ can hide a lot of what's going on when you implement
+%     it in practice. Usually wish to compute expected value of some function $f$ of trajectories $\tau$. 
+%     $$
+%     \mathbb{E}_{\tau}[f(\tau)] = \sum_{\tau} \text{Pr}(\tau | \bth) f(\tau)
+%     $$
+%     and $\hat{\mathbb{E}}[f(\tau)] \equiv \frac{1}{|\mathcal{B}|} \sum_{b=1}^{|\mathcal{B}|} [f(\tau^b)]$ 
+%     for when this is \textbf{approximated by sampling }
+%     \begin{itemize} 
+%         \item a \textit{batch} $\mathcal{B}= \{\tau^1, \tau^2, \ldots \tau^{|\mathcal{B}|} \}$
+%         of \textit{episodes}, 
+%     \item with \textit{trajectories} $\tau^b = s^b_{0}, a^b_0, r^b_1, s^b_1, \ldots, s^b_{\eplen}$
+%     \item and \textit{returns} $G^b_t = \sum_{t'=t+1}^{\eplen} r^b_{t'}$,
+%     \end{itemize}
+%     For example, with $f = G$, we have
+%     $$
+%     \hat{\mathbb{E}}[G(\tau)] = 
+%     \frac{1}{|\mathcal{B}|} \sum_{b=1}^{|\mathcal{B}|} 
+%     \sum_{t=0}^{\eplen-1} G^b_t 
+%     $$    
+% \end{frame}
+
+\begin{frame}
+    \frametitle{Softmax policy}
+    
+    \begin{itemize}
+    \item In practice, $\pi_\bth : \S \to \Delta \A$ is a neural network $\mathbf{h}$, mapping a state vector $\mathbf{s}$ to 
+    a vector of logits, one for each action $\A = \{a_1, \ldots, a_n\}$.
+    $$
+    \mathbf{h}(\mathbf{s};\bth) = [h_1(\mathbf{s};\bth), \ldots, h_n(\mathbf{s};\bth)]
+    $$
+    from which the action is sampled by softmax'ing the logits
+    $$
+    \pi(a_i | \mathbf{s}; \bth) := 
+    \frac{\exp h_i(\mathbf{s};\bth)}{\sum_j \exp h_j(\mathbf{s};\bth)}
+    $$
+    \item More principled than $\epsilon$-greedy, as we get exploration for free,
+    and exploratory actions are not selected at random, but with a bias towards
+    actions believed to be good.
+\end{itemize}
+\end{frame}
+%
+%
+%\section{Vanilla Policy Gradient}
+%\begin{frame}
+%	\frametitle{Policy Based Methods}
+%	\begin{itemize}
+%      
+%		\item Instead, learn $\pi$ directly. $\pi$ is stochastic, push up (down) probability $\pi(a|s)$
+%		of good (bad) actions. Hopefully, converge to $\pi^*$.
+%		\pause
+%		\item Policy $\pi_\bth$ is parameterised by $\bth$, such that $\nabla_\bth \pi_\bth$ exists. Network maps a state vector $s$ to l
+%		\pause
+%		\item Assume environment episodic and starting state $s_0$. Define measure of performance $J(\bth) = V_\pi(s_0)$ (gain).
+%		\pause
+%		\item Gradient \textit{ascent} $\bth \leftarrow \bth + \alpha \nabla_{\bth} J(\bth)$ 
+%%		\pause
+%%			\item Learn preferences $h(s,a, \bth)$, and (assuming $|\mathcal{A}|$ ``small'')
+%%			define softmax policy
+%%			$$
+%%			\pi^{\text{softmax}}_\bth(a|s) = \frac{\exp(h(s,a,\bth)/T)}{\sum_{a'} \exp(h(s,a',\bth)/T)}
+%%			$$ 
+%%			where $T$ is temperature (hyperparamter).
+%%			\begin{itemize}
+%%					\item Use neural network to learn $h(s,a,\bth)$
+%%				\end{itemize}
+%	\end{itemize}
+%\end{frame}
+%
+%\begin{frame}
+%	\frametitle{Softmax vs. greedy}
+%	\begin{itemize}
+%			\item \textbf{Advantages}
+%			\begin{itemize}
+%					\item $\pi_{\varepsilon\text{-greedy}}$ always does uniformly random actions when exploring.
+%						$\pi^{\text{softmax}}_\bth$ is still stochastic, but biased towards good moves
+%					\item $\pi^{\text{softmax}}_\bth$ is continuous w.r.t preferences $h(s,a,\bth)$.  $\pi_{\varepsilon\text{-greedy}}$ might dramatically change
+%					behaviour in response to small perturbations in $\hat{Q}_*$ $\equiv$ better
+%					convergence
+%%					\item $\pi$ is a simpler function than $Q$. Learning $\pi$ directly learns 
+%%					faster(?)
+%				\end{itemize}
+%			\item \textbf{Disadvantages}
+%			\begin{itemize}
+%					\item More computationally expensive/more complex
+%					\item $\pi^{\text{softmax}}_\bth$ will play near uniform for
+%					two states with similar values. $\pi_{\varepsilon\text{-greedy}}$ will
+%					choose the best 
+%					\item $\pi^{\text{softmax}}_\bth$ will only converge to deterministic policy
+%					with a temperature schedule (especially for states with similar value), 
+%					hard to choose temperature scale a priori/requires domain knowledge
+%				\end{itemize}
+%		\end{itemize}
+%\end{frame}
+
+%\begin{frame}
+%    \begin{enumerate}
+%        \item If we had access to the best action $a^*$, we could update the policy
+%        $$
+%        
+%        $$
+%    \end{enumerate}
+%\end{frame}
+
+\begin{frame}
+	\frametitle{Policy Gradient Framework}
+	\begin{itemize}
+		\item Assume episodic environment, episode length (horizon) $\eplen$, no discount $\gamma=1$. 
+        \item Assume fixed starting state $s_0$. Markov environment $\env(s'|s,a)$.
+		\item Define $J(\bth) = V_{\pi_{\bth}}(s_0) = \mathbb{E}_{\tau \sim \pi_\bth}[G(\tau)]$. 
+		\item Let  $\tau = s_{0}, a_0, r_1, s_1, \ldots, s_{\eplen-1}, a_{\eplen-1}, r_{\eplen}, s_{\eplen}$ denote
+		a trajectory 
+		\item $G(\tau) = \sum_{t=1}^{\eplen} r_t$ is the undiscounted return for trajectory $\tau$.
+        \begin{align*}
+            \text{Pr}(\tau | \bth) &=  \prod_{t=0}^{\eplen-1} \pi_\bth(a_t|s_t) \env(s_{t+1} | s_t,a_t) \\
+            & = \pi_\bth(a_0|s_0) \env(s_1 | s_0,a_0)  \ldots \pi_\bth(a_{\eplen-1}|s_{\eplen-1}) \env(s_{\eplen} | s_{\eplen-1},a_{\eplen-1})
+        \end{align*} is the prob. of sampling trajectory $\tau$ from enviro. $\mu$ given params. $\bth$.
+	\end{itemize}
+    Want to compute $\nabla_{\bth} J(\bth)$.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Policy Gradient Framework}
+    \begin{align*}
+		\onslide<1->{\nabla_{\bth} J(\bth) 
+			&= \nabla_{\bth} \Ex_{\tau \sim \pi_{\bth}}\left[G(\tau) \right]} \\
+		\onslide<2->{&= \nabla_\bth \sum_\tau \red{\text{Pr}(\tau | \bth)} G(\tau)} \\
+		\onslide<3->{&= \sum_\tau \nabla_\bth \red{\text{Pr}(\tau | \bth)} G(\tau)} \\
+		\onslide<4->{&= \sum_\tau \red{\text{Pr}(\tau | \bth)} \left( \nabla_\bth \log \red{\text{Pr}(\tau | \bth)} G(\tau) \right)  \text{\small{$\quad$ as $\nabla \log f(x) = \frac{\nabla f(x)}{f(x)}$ }}}\\
+		\onslide<5->{&= \Ex_{\tau \sim \pi_{\bth}}\left[\nabla_\bth \log \red{\text{Pr}(\tau | \bth)} G(\tau)\right]}
+	\end{align*}
+    \onslide<6->{Problem: $\red{\text{Pr}(\tau | \bth)}$ is unknown}
+\end{frame}
+
+\begin{frame}
+	Note that 
+	\begin{align*}
+		\nabla_\bth \log \red{\text{Pr}(\tau | \bth)} 
+		\onslide<1->{&= \nabla_\bth \log \prod_{t=0}^{\eplen - 1} \pi_\bth(a_t|s_t) \red{\env(s_{t+1} | s_t,a_t)}}  \\
+		\onslide<2->{&= \nabla_\bth \sum_{t=0}^{\eplen - 1} \log \bigg( \pi_\bth(a_t|s_t) \red{\env(s_{t+1} | s_t,a_t)} \bigg)}   \\
+		\onslide<3->{&= \nabla_\bth \sum_{t=0}^{\eplen - 1} \left( \log \pi_\bth(a_t|s_t) + \log \red{\env(s_{t+1} | s_t,a_t)} \right)}  \\
+		\onslide<4->{&= \nabla_\bth \sum_{t=0}^{\eplen - 1} \log \pi_\bth(a_t|s_t) + 
+			\cancel{ \nabla_\bth \sum_{t=0}^{\eplen - 1}\log \red{\env(s_{t+1} | s_t,a_t)} }} \\
+		\onslide<5->{&= \nabla_\bth \sum_{t=0}^{\eplen - 1} \log \pi_\bth(a_t|s_t)}
+	\end{align*}
+\end{frame}
+
+
+\begin{frame}
+	\frametitle{REINFORCE}
+	This gives the core equation for Vanilla Policy Gradient (VPG) or \textbf{REINFORCE} 
+    $$
+	\nabla_{\bth} J(\bth) =
+	\Ex_{\tau \sim \pi_{\bth}} 
+	\left[  \sum_{t=0}^{\eplen-1} \nabla_\bth \log \pi_\bth(a_t|s_t) G(\tau) \right] 
+	$$
+%	\bs
+VPG generates a trajectory, learns, then discards it, generates another.
+\end{frame}
+
+
+\begin{frame}
+    \textbf{Clever trick 1: The future cannot affect the past}
+\begin{itemize}
+    \item In REINFORCE, each $\log \pi_\bth(a_t|s_t)$ is multiplied by the full return $G(\tau)$.
+    \item But $a_t$ cannot influence rewards that happened \textbf{before} it.
+    \item \href{https://spinningup.openai.com/en/latest/spinningup/extra\_pg\_proof2.html}{Can be shown that}
+    we can replace $G(\tau)$ with the \textbf{reward-to-go}:
+    $$
+    G_t := \sum_{t'=t+1}^{\eplen} r_{t'} = r_{t+1} + \ldots + r_{\eplen}
+    $$
+    %which (in expectation) is the same as the Q-value $Q_{\pi_\bth}(s_t,a_t)$.
+    \item This gives a lower-variance, unbiased estimator.
+
+\end{itemize}
+\begin{align*}
+    %		\nabla_{\bth} J(\bth) &=
+    %		\Ex_{\tau \sim \pi_{\bth}} 
+    %		\left[ \nabla_\bth \sum_{k=t}^{\eplen} \log \pi_\bth(a_k|s_k) 
+    %		\sum_{j = k}^{\eplen} R(s_j, a_j, s_{j+1}) \right] \\
+    \nabla_{\bth} J(\bth) &=
+    \Ex_{\tau \sim \pi_{\bth}} 
+    \left[  \sum_{t=0}^{\eplen-1} \nabla_\bth \log \pi_\bth(a_t|s_t) \red{G(\tau)} \right]  \\
+    &= \Ex_{\tau \sim \pi_{\bth}} 
+    \left[ \sum_{t=0}^{\eplen - 1} \nabla_\bth \log \pi_\bth(a_t|s_t) \red{G_t} \right] \\
+    % &= \Ex_{\tau \sim \pi_{\bth}} 
+    % \left[ \sum_{t=0}^{\eplen-1} \nabla_\bth \log \pi_\bth(a_t|s_t) 
+    % \red{Q_{\pi_\bth}(s_t, a_t)} \right] 
+    %	&= \Ex_{\tau \sim \pi_{\bth}} 
+    %\left[ \nabla_\bth \sum_{k=t}^{\eplen} \log \pi_\bth(a_k|s_k) 
+    %\hat{R}_t \right] 
+ \end{align*}
+\end{frame}
+
+\begin{frame}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{fig/vpg}
+        % generated from algo.tex
+    \label{fig:vpg}
+\end{figure}
+%	\bs
+VPG generates a trajectory, learns, then discards it, generates another.
+\end{frame}
+
+\begin{frame}
+\begin{block}{Importance Sampling Theorem (IST)}
+    For any two probability distributions $p$ and $q$ where $q(x) > 0$ whenever $p(x) > 0$:
+    $$
+    \Ex_{x \sim p}[f(x)] = \Ex_{x \sim q} \left[ \frac{p(x)}{q(x)} f(x) \right]
+    $$
+\end{block}
+\onslide<2->
+\textbf{Proof:}
+\begin{align*}
+    \onslide<3->{\Ex_{x \sim p}[f(x)] &= \sum_x p(x) f(x)}\\
+    \onslide<4->{&= \sum_x \frac{p(x)}{q(x)} q(x) f(x)} \\
+    \onslide<5->{&= \sum_x q(x) \frac{p(x)}{q(x)} f(x)} \\
+    \onslide<6->{&= \Ex_{x \sim q} \left[ \frac{p(x)}{q(x)} f(x) \right]}
+\end{align*}
+\onslide<7->
+The ratio $\frac{p(x)}{q(x)}$ is called the \textbf{importance weight} or \textbf{importance ratio}.
+\end{frame}
+
+\begin{frame}
+    \frametitle{VPG with Importance Sampling}
+    \textbf{Problem:} VPG is on-policy: we must generate fresh trajectories for each policy update.
+    
+    \textbf{Solution:} Use importance sampling to reuse old trajectories from $\pi_{\bth_{old}}$.
+    
+    The \textbf{exact} IS-corrected gradient requires the full trajectory probability ratio:
+    \begin{align*}
+    \nabla_\bth J(\bth) &= \Ex_{\tau \sim \pi_{\bth_{old}}} 
+        \left[ \textcolor{red}{\frac{\Pr(\tau | \bth)}{\Pr(\tau | \bth_{old})}} \sum_{t=0}^{\eplen-1} \nabla_\bth \log \pi_\bth(a_t|s_t) G_t \right] \\
+    &= \Ex_{\tau \sim \pi_{\bth_{old}}} 
+        \left[ \textcolor{red}{\prod_{t'=0}^{\eplen-1} \frac{\pi_\bth(a_{t'}|s_{t'})}{\pi_{\bth_{old}}(a_{t'}|s_{t'})}} \sum_{t=0}^{\eplen-1} \nabla_\bth \log \pi_\bth(a_t|s_t) G_t \right]
+    \end{align*}
+    
+    \textbf{Problem:} The product of ratios has \textit{very high variance} for long trajectories.
+\end{frame}
+
+\begin{frame}
+    \frametitle{VPG with Importance Sampling (cont.)}
+    \textbf{Common approximation:} Use per-step importance ratios instead:
+    \begin{align*}
+    \nabla_\bth J(\bth) &\approx \Ex_{\tau \sim \pi_{\bth_{old}}} 
+        \left[ \sum_{t=0}^{\eplen-1} \frac{\pi_\bth(a_t|s_t)}{\pi_{\bth_{old}}(a_t|s_t)} 
+        \nabla_\bth \log \pi_\bth(a_t|s_t) G_t \right] \\
+    &= \Ex_{\tau \sim \pi_{\bth_{old}}} 
+        \left[ \sum_{t=0}^{\eplen-1} \frac{\nabla_\bth \pi_\bth(a_t|s_t)}{\pi_{\bth_{old}}(a_t|s_t)} G_t \right]
+        \quad \text{(as $\pi \nabla \log \pi = \nabla \pi$)}
+    \end{align*}
+    
+    \textbf{Why use the ratio at timestep $t$?} For the term $\nabla_\bth \log \pi_\bth(a_t|s_t) G_t$:
+    \begin{itemize}
+        \item Action $a_t$ was sampled from $\pi_{\bth_{old}}(\cdot|s_t)$, but we evaluate $\nabla_\bth \log \pi_\bth(a_t|s_t)$
+        \item Correct for this mismatch with $\frac{\pi_\bth(a_t|s_t)}{\pi_{\bth_{old}}(a_t|s_t)}$
+    \end{itemize}
+    \textbf{What we ignore:} State $s_t$ and return $G_t$ also depend on $\pi_{\bth_{old}}$, but when $\pi_\bth \approx \pi_{\bth_{old}}$, these effects are small.
+\end{frame}
+
+% \begin{frame}
+% \frametitle{VPG with Importance Sampling}
+% \textbf{Problem:} VPG is on-policy - we must generate fresh trajectories for each policy update.
+% \onslide<2->
+
+% \textbf{Solution:} Use importance sampling to reuse old trajectories from $\pi_{\bth_{old}}$.
+
+% Starting from the VPG gradient:
+% \begin{align*}
+%     \onslide<2->{\nabla J(\bth) &= \Ex_{\tau \sim \pi_{\bth}} 
+%     \left[ \sum_{t=0}^{\eplen-1} \nabla_\bth \log \pi_\bth(a_t|s_t) G_t \right]} \\
+%     \onslide<3->{&= \Ex_{\tau \sim \pi_{\bth}} 
+%     \left[ \sum_{t=0}^{\eplen-1} \frac{\nabla_\bth \pi_\bth(a_t|s_t)}{\pi_{\bth}(a_t|s_t)} G_t \right]}\\
+%     \onslide<4->{&= \Ex_{\tau \sim \pi_{\bth_{old}}} 
+%     \left[ \sum_{t=0}^{\eplen-1} \frac{\cancel{\pi_\bth(a_t|s_t)}}{\pi_{\bth_{old}}(a_t|s_t)} \frac{\nabla_\bth \pi_\bth(a_t|s_t)}{\cancel{\pi_{\bth}(a_t|s_t)}} G_t \right] \text{ (IST)}} \\
+%     \onslide<5->{&= \Ex_{\tau \sim \pi_{\bth_{old}}} 
+%     \left[ \sum_{t=0}^{\eplen-1} \frac{\nabla_\bth \pi_\bth(a_t|s_t)}{\pi_{\bth_{old}}(a_t|s_t)} G_t \right]} 
+% \end{align*}
+% \end{frame}
+
+\begin{frame}
+\frametitle{VPG with Importance Sampling Algorithm}
+\textbf{Input:} Environment, policy $\pi_{\bth}$, batch size $N$, learning rate $\alpha$
+
+\textbf{Algorithm: Repeat for each iteration:}
+\begin{enumerate}
+    %\item Initialize policy parameters $\bth$
+    %\item \textbf{repeat} for each iteration:
+   
+	\item Collect $N$ episodes in parallel using current policy $\pi_{\bth}$:
+	\begin{itemize}
+		\item Generate episode $\tau^i = (s_0^i, a_0^i, r_1^i, s_1^i, \ldots, s_\eplen^i)$
+		\item Store log probabilities: $\log \pi_{\text{old}}(a_t^i | s_t^i) = \log \pi_{\bth}(a_t^i | s_t^i)$
+		\item Compute returns $G_t^i = \sum_{k=t+1}^\eplen r_k^i$ for all $t$
+		\item Store $\{\tau^i, G_t^i, \log \pi_{\text{old}}(a_t^i | s_t^i)\}_{i=1}^{N}$.
+	\end{itemize}
+	\item Sample batch $\mathcal{B} = \{\tau^i, G_t^i, \log \pi_{\text{old}}(a_t^i | s_t^i)\}_{i=1}^{|\mathcal{B}|}$.
+	\item Compute importance sampling joy:
+	% $$
+	% J(\bth) = \frac{1}{|\mathcal{B}|} \sum_{i=1}^{|\mathcal{B}|} \sum_{t=0}^{T-1} \frac{\pi_\bth(a_t^i | s_t^i)}{\pi_{\text{old}}(a_t^i | s_t^i)} G_t^i
+	% $$
+	$$
+		J(\bth) = \frac{1}{|\mathcal{B}|} \sum_{i=1}^{|\mathcal{B}|} \sum_{t=0}^{\eplen-1} 
+		\frac{\pi_\bth(a_t^i | s_t^i)}{\pi_{\text{old}}(a_t^i | s_t^i)} G_t^i
+		$$
+	\item Gradient ascent: $\bth \leftarrow \bth + \alpha \nabla_\bth J(\bth)$
+\end{enumerate}
+
+\vspace{0.2cm}
+Can reuse trajectories, or slice large rollouts into smaller batches.
+\end{frame}
+
+
+
+\end{document}

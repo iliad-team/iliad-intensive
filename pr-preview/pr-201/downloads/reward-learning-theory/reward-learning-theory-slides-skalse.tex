@@ -1,0 +1,986 @@
+% slides-skalse.tex — Joar Skalse's guest-lecture deck for this day, as he
+% delivered it (his Main.tex with preamble.tex, commands.tex and his local
+% statsbeamer.sty inlined so the file is self-contained; images moved to fig/;
+% bibliography pointed at this folder's biblo.bib). The day's main lecture is a
+% Google Slides deck, linked from the worksheet's `slides:` frontmatter.
+%% If you have any problems using this template, please contact the author: %%
+%% Chris Carmona: carmona@stats.ox.ac.uk ; chriscarmona.me %%
+
+\documentclass{beamer}
+
+\usepackage{tikz}
+\usepackage{ragged2e}
+\usetikzlibrary{automata, positioning}
+\usepackage{csquotes}
+
+% ---- preamble.tex, inlined ----
+%load any additional packages
+
+\usepackage[UKenglish]{babel}
+\usepackage[utf8]{inputenc} % so we can input characters with accents (e.g. ő)
+
+% ---- statsbeamer.sty (the deck's own local style), inlined ----
+\pgfdeclareimage[width=0.9cm]{oxfordlogo}{fig/oxford-logo.png}
+\pgfdeclareimage[width=3cm]{statslogo1}{fig/statistics-logo.png}
+\pgfdeclareimage[width=2cm]{statslogo2}{fig/statistics-logo2.png}
+\pgfdeclareimage[width=3cm]{cslogo}{fig/cslogo.png}
+
+% Define the colours that are to be used in the presentation
+\definecolor{oxfordblue}{RGB}{0,33,71}          % Oxford Blue
+% \definecolor{oxfordgold}{cmyk}{0,0.21,0.60,0.30}    % Oxford Gold
+
+%% Title slide formatting %%
+% \setbeamerfont{title}{size=\Large}
+% \setbeamerfont{subtitle}{size=\normalsize}
+
+% Reformat Title Page
+\setbeamercolor{title}{fg=white}
+\setbeamercolor{author}{fg=white}
+\setbeamercolor{institute}{fg=white}
+\setbeamercolor*{subtitle}{fg=white}
+\setbeamercolor*{date}{fg=white}
+\setbeamerfont*{date}{size=\small}
+
+\setbeamertemplate{title page}{
+    % \setbeamercolor{background canvas}{bg=oxfordblue}%  blue background
+    \vspace{1cm}
+    \begin{centering}
+        {
+        % \usebeamerfont{title}
+        \LARGE
+        \usebeamercolor[fg]{title}
+        \inserttitle\\[1.5cm]
+        }
+        {
+        % \usebeamerfont{subtitle}
+        \large
+        \usebeamercolor[fg]{subtitle}
+        \insertauthor\\[0.5cm]
+        }
+        {
+        % \usebeamerfont{subtitle}
+        \small
+        \usebeamercolor[fg]{subtitle}
+        \insertinstitute\\[1cm]
+        }
+    \end{centering}
+    
+    \begin{flushright}
+        {
+        \usebeamerfont{date}
+        \usebeamercolor[fg]{date}
+        \insertdate
+        }
+    \end{flushright}
+    
+    %\begin{picture}(0,0)
+    %    \put(0,20){%
+    %        \pgfuseimage{cslogo}
+    %    }
+    %\end{picture}
+    
+    \newcommand{\maketitleoxstats}{
+        \setbeamertemplate{footline}{} %removefootline for this slide
+        \setbeamertemplate{headline}{}
+        \setbeamercolor{background canvas}{bg=oxfordblue}
+        \maketitle
+        \setbeamercolor{background canvas}{bg=}
+    }
+}
+
+%% General slide formatting %%
+
+\setbeamertemplate{frametitle}
+{%
+    \begin{picture}(0,0)
+        \put(-8,-10){%
+            % \Large\color{oxfordblue}\insertframetitle
+            \large\bf\color{oxfordblue}\insertframetitle
+        }
+        \put(-7,-20){%
+            \normalsize\color{oxfordblue}\insertframesubtitle
+        }
+    \end{picture}
+}
+
+% \setbeamertemplate{footline}
+% {%
+%     \begin{picture}(0,0)
+%         \put(20,32){%
+%             \color{oxfordblue}
+%             \rule{320pt}{0.2pt}
+%         }
+%         \put(20,10){%
+%            \pgfuseimage{statslogo2}
+%         }
+%         \put(100,20){%
+%             \color{oxfordblue}
+%             \insertshorttitle
+%         }
+%         \put(230,20){%
+%             \color{oxfordblue}
+%             \insertshortdate
+%         }
+%         \put(337,20){%
+%             \color{oxfordblue}
+%             % \insertpagenumber
+%             \insertframenumber % this allows using pause without increasing page number
+%         }
+%     \end{picture}%
+% }
+
+% Shows table of contents at each section
+% \AtBeginSection[]
+%   {
+%     \ifnum \value{framenumber}>1
+%       \begin{frame}<beamer>
+%       \frametitle{Outline}
+%       \tableofcontents[currentsection]
+%       \end{frame}
+%     \else
+%     \fi
+%   }
+
+\setlength{\abovedisplayskip}{3pt} % reduces spaces above displayed items (e.g. equations)
+\setlength{\belowdisplayskip}{3pt} % reduces spaces below displayed items (e.g. equations)
+
+\raggedbottom % prevents LaTeX from adding vertical white space in strange places on pages that it cannot fill properly.
+% ---- end statsbeamer.sty ----
+
+\usepackage{graphicx} % ease graphics management
+\graphicspath{{fig/}} % define folder with images
+\usefonttheme{serif} % change font to allow \textbf{}
+\usepackage{charter} % Nicer fonts
+
+\usepackage{amsmath,amsthm,amssymb} % for math equations
+
+\usepackage{natbib} % richer citation
+\usepackage{breakcites} % avoid overfull hbox for long cites
+
+% ---- end preamble.tex ----
+%% Information (author, title, etc.) %%
+
+\title[Short Title]{% short title for footer
+    Towards a Formal Theory of Reward
+    Learning, With Application to
+    Inverse Reinforcement Learning
+    \vspace{0.5cm}
+}
+
+\author{Joar Skalse} % \and Alessandro Abate}
+
+\institute{
+        \textit{Deducto Limited \& King's College London,}\\
+        \textit{formerly Oxford University \& the Future of Humanity Institute.}
+        \vspace{0.5cm}
+}
+\date[Venue and Date]{% short date for footer
+    The Iliad Intensive, 2026
+}
+
+
+%% Content of slides %%
+%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%
+
+% ---- commands.tex, inlined ----
+\newcommand{\J}{\mathcal{J}}
+
+% Components of Markov Decision Process (apart from reward)
+\newcommand{\Environment}{M}
+\newcommand{\States}{\mathcal{S}}
+\newcommand{\Actions}{\mathcal{A}}
+\newcommand{\reward}{R}
+\newcommand{\TransitionDistribution}{\tau}
+\newcommand{\InitStateDistribution}{\mu_0} %{\iota}
+\newcommand{\discount}{\gamma}
+\newcommand{\TransitionSet}{\mathcal{T}}
+\newcommand{\InitStateSet}{\mathcal{I}}
+
+\newcommand{\norm}[1]{\lVert#1\rVert}
+
+\newcommand{\R}{\mathcal{R}}
+
+\newcommand{\MDP}{\langle \States, \Actions, \TransitionDistribution, \InitStateDistribution, \reward, \discount \rangle}
+\newcommand{\MDPd}{\langle \States, \Actions, \TransitionDistribution, \InitStateDistribution, \reward, d \rangle}
+
+\newcommand{\yrcite}[1]{\citeyearpar{#1}}
+%\newcommand{\citep}[1]{(\cite{#1})}
+
+%\usepackage{caption, amsmath, amssymb, mathtools, extpfeil, float, yfonts, csquotes, lipsum, fancyhdr, algorithm, algorithmic, amsthm} 
+
+%\theoremstyle{plain}
+%\newtheorem{theorem}{Theorem}%[section]
+\newtheorem{proposition}[theorem]{Proposition}
+%\newtheorem{lemma}[theorem]{Lemma}
+%\newtheorem{corollary}[theorem]{Corollary}
+
+%\theoremstyle{definition}
+%\newtheorem{definition}[theorem]{Definition}
+%\newtheorem{assumption}[theorem]{Assumption}
+
+%\theoremstyle{remark}
+%\newtheorem{remark}[theorem]{Remark}
+
+
+% Reward function domains
+\newcommand{\SxS}{{\States{\times}\States}}
+\newcommand{\SxA}{{\States{\times}\Actions}}
+\newcommand{\SxAxS}{{\States{\times}\Actions{\times}\States}}
+
+% value functions etc.
+\newcommand{\M}{\mathcal{M}}
+\newcommand{\Q}{Q}
+\newcommand{\V}{V}
+\newcommand{\A}{A}
+\newcommand{\Return}{G}
+\newcommand{\Evaluation}{\mathcal{J}}
+\newcommand{\EvaluationMCE}{\Evaluation^{\mathrm{H}}_\beta}
+\newcommand{\Qfor}[1]{\Q^{#1}}
+\newcommand{\Vfor}[1]{\V^{#1}}
+\newcommand{\Afor}[1]{\A^{#1}}
+\newcommand{\QStar}{\Q^\star}
+\newcommand{\VStar}{\V^\star}
+\newcommand{\AStar}{\A^\star}
+\newcommand{\QSoft}{\Q^{\mathrm{H}}_\alpha}
+\newcommand{\QSoftN}[1]{\Q^{\mathrm{H}}_{\beta,#1}}
+
+% policies
+\newcommand{\policy}{\pi}
+\newcommand{\OptimalPolicy}{\policy_\star}
+\newcommand{\basePolicy}{\policy_0}
+\newcommand{\greedyPolicyWrt}[1]{\policy^{#1}_{\star}}
+\newcommand{\epsGreedyPolicyWrt}[1]{\policy^{#1}_{\epsilon}}
+\newcommand{\BoltzmannPolicyWrt}[1]{\policy^{#1}_{\beta}}
+\newcommand{\BoltzmannRationalPolicy}{\policy^\star_\beta}
+\newcommand{\MaximumEntropyPolicy}{\policy_\beta}
+\newcommand{\MCEPolicy}{\policy^{\mathrm{H}}_\beta}
+
+\newcommand{\Expect}[2]{\mathbb{E}_{#1}\left[{#2}\right]}
+
+%\usepackage{xcolor}
+%\newcommand{\red}[1]{\textcolor{red}{#1}}
+%\newcommand{\green}[1]{\textcolor{teal}{#1}}
+%\newcommand{\orange}[1]{\textcolor{orange}{#1}}
+
+\newcommand{\PS}{\mathrm{PS}_\gamma}
+\newcommand{\SR}{S'\mathrm{R}_\TransitionDistribution}
+\newcommand{\LS}{\mathrm{LS}}
+\newcommand{\OPT}{\mathrm{OP}_{\TransitionDistribution,\gamma}}
+\newcommand{\Mx}{\mathrm{M}_\mathcal{X}}
+\newcommand{\CS}{\mathrm{CS}}
+
+\newcommand{\kPS}[1]{\mathrm{PS}_{\discount,\InitStateDistribution}^{#1}}
+
+\newcommand{\Rspace}{{\hat{\mathcal{R}}}}% ---- end commands.tex ----
+
+% Title slide %
+{
+    \setbeamertemplate{footline}{}
+    \setbeamertemplate{headline}{}
+    \setbeamercolor{background canvas}{bg=oxfordblue}
+    \maketitle
+}
+
+%----------------------------%
+% Contents slide
+\begin{frame}
+\frametitle{Outline}
+\tiny
+\tableofcontents
+\end{frame}
+%----------------------------%
+
+%now include the slides
+\setbeamercovered{transparent}
+
+%----------------------------%
+%----------------------------%
+\section{Background}
+\setbeamercolor{background canvas}{bg=oxfordblue}
+\begin{frame}
+    \frametitle{}
+    \centering
+    \Large
+    \textcolor{white}{Introduction \& Background}
+\end{frame}
+\setbeamercolor{background canvas}{bg=}
+
+\subsection{The Theoretical Reward Learning Research Agenda}
+\begin{frame}
+    \frametitle{What is Reward Learning?}
+    \small
+    In order to get an AI system to solve a task autonomously, we must first formalise the goal of that task as a \emph{reward function}.
+    \newline\newline
+    It is often very difficult to directly specify a reward function that never incentivises undesirable behaviour.
+    \newline\newline
+    \emph{Reward learning} is an area of machine learning concerned with the problem of \emph{learning} a reward function from data.
+    \newline\newline
+    In the simplest case, reward learning can be approached as a supervised learning problem.
+\end{frame}
+
+\begin{frame}
+    \frametitle{My Research Agenda}
+    \small
+    My research has focused on building a formal theory of reward learning, with the aim of developing a deeper theoretical understanding of the reward learning problem.
+    \newline\newline
+    The aim of this research agenda is partially to rigorously establish under what conditions different reward learning methods can be guaranteed to be reliable.
+    %understanding of when different reward learning methods are reliable, and what kinds of failure modes they can have.
+    \newline\newline
+    However, the aim of this work is in part also to increase our \emph{understanding} of reward functions as abstract objects, and thereby give us better intuitions for what kinds of approaches are likely to work and what kinds of failure modes we should anticipate.
+\end{frame}
+
+
+\begin{frame}
+    \frametitle{Why Study Reward Learning?}
+    \small
+    Reward optimisation is not the only way to get an AI system to do something; we can also use supervised learning, imitation learning, prompting, or activation engineering, etc.
+    \newline\newline
+    However, all other methods for directing AI systems are anchored to and limited by current human performance.
+    \newline\newline
+    If we want an AI system to solve a task that we cannot solve ourselves, then reward optimisation is by far the most promising method.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Theoretical Problems in Reward Learning}
+    \small
+    \begin{enumerate}
+        \item How \enquote{close} must two reward functions $R_1, R_2$ be, before it would be bad to maximise $R_2$ instead of $R_1$? What is the right way to define \enquote{close}?
+        \item How \enquote{close} will the learnt reward function be to the true reward function, if we use a given reward learning method?
+        \item Can all important preference structures be expressed as reward functions?
+        \item How sensitive are different reward learning methods to misspecified data models?
+        \item What happens if you optimise a misspecified reward function?
+        \item Are there reward optimisation methods that are robust to misspecification of the reward function?
+    \end{enumerate}
+\end{frame}
+
+\subsection{What is Inverse Reinforcement Learning?}
+
+\begin{frame}
+    \frametitle{What is Inverse Reinforcement Learning?}
+    \small
+    Inverse Reinforcement Learning (IRL) is a type of reward learning that is concerned with inferring what objective an agent is pursuing based on the actions taken by that agent.
+    \newline\newline
+    This roughly corresponds to the notion of \emph{revealed preferences} in psychology and economics, since we are attempting to infer \emph{preferences} from \emph{behaviour}.
+    \newline\newline
+    In its most general form, IRL could be used as a self-supervised method for learning representations of human preferences based on raw observations of human behaviour.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Why study IRL?}
+    \small
+    IRL is not very common in practice. So why focus on IRL?
+    \newline\newline
+    One reason is that IRL is sufficiently complex that studying IRL will require the development of \enquote{deep} theoretical tools, that may give a greater insight into the properties of reward learning more generally.
+    \newline\newline
+    Another reason is that there is a duality between IRL and reward optimisation; they both involve reasoning about under what conditions two reward functions lead to the same policy. 
+    \newline\newline
+    Finally, IRL is entirely self-supervised. Thus, if it could be made to work, then it would be much more scaleable than other reward learning methods.
+\end{frame}
+
+\begin{frame}
+    \frametitle{The Main Difficulties For IRL}
+    \small
+     The IRL problem is typically formalised as the problem of inferring a reward function $R$ from a policy $\pi$. To do this, an IRL algorithm needs to have a model of how $\pi$ relates to $R$, which is referred to as a \emph{behavioural model}. 
+     \newline\newline
+     However, under most behavioural models, there are typically multiple reward functions which are consistent with each given policy. This means that the reward function is ambiguous, or \emph{partially identifiable}, based on this data source.
+     \newline\newline
+     To clearly understand the impact of this ambiguity, it is important that the ambiguity can be fully characterised and quantified.
+\end{frame}
+
+\begin{frame}
+    \frametitle{The Main Difficulties For IRL}
+    % split in two?
+    \small
+    Another central difficulty in IRL is that the relationship between a person's prefereces and their behaviour is incredibly complex, and practically impossible to model perfectly.
+    \newline\newline
+    By contrast, most IRL algorithms are based on very simple behavioural models, that typically correspond to some form of noisy optimality.
+    \newline\newline
+    This means that these behavioural models are \emph{misspecified}, which raises the concern that they might systematically lead to flawed inferences if applied to real-world data.
+\end{frame}
+
+\begin{frame}
+    \frametitle{The Main Difficulties For IRL}
+    % split in two?
+    \small
+    Resolving the issue of misspecification in IRL is fundamentally difficult. Of course, we can incorporate findings from behavioural psychology, or use machine learning, to create behavioural models that are more and more accurate.
+    However, it will never be realistically possible to create a behavioural model that is completely free from all forms of misspecification. 
+    \newline\newline
+    For this reason, it is important to understand how sensitive the IRL problem is to misspecification of the behavioural model. Is a mostly accurate behavioural model sufficient to ensure that the inferred reward function likewise is mostly accurate, or can a slight error in the behavioural model lead to a large error in the inferred reward?
+\end{frame}
+
+\subsection{Formalising the IRL Problem}
+\begin{frame}{Notation and Assumptions}
+    \small
+    I will use the following notation:
+    \begin{enumerate}
+        \item An MDP is a tuple $(S,A,\tau,\mu_0,R,\gamma)$.
+        \item Given $S$ and $A$, let $\Pi$ be the set of all policies, and $\R$ the set of all reward functions.
+        \item The \emph{evaluation function} $J : \Pi \to \mathbb{R}$ gives the expected cumulative discounted reward of each policy.
+        \item The \emph{ordering of policies} for a reward function $R$ is the ordering induced by $J$.
+        \item The optimal $Q$-function is $Q^\star$.
+    \end{enumerate}
+    Moreover, most of the results that I will present assume that $S$ and $A$ are finite, and that all states in $S$ are reachable under $\tau$ and $\mu_0$.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Formalising the IRL Problem}
+    \small
+    We assume that the environment consists of a set of states $S$, a set of actions $A$, a transition function $\tau : S \times A \to \Delta(S)$, and an initial state distribution $\mu_0 \in \Delta(S)$. 
+    \newline\newline
+    Moreover, we assume that the preferences of the observed agent are described by a reward function $R : S \times A \times S \to \mathbb{R}$, and that its behaviour is described by a policy $S \to \Delta(A)$.
+    \newline\newline
+    The task of IRL is then to infer $R$ based on $\pi$, $S$, $A$, $\tau$, and $\mu_0$.
+\end{frame}
+
+\begin{frame}
+    \frametitle{Behavioural Models}
+    \small
+    In the current IRL literature, the most common behavioural models are:
+    \vspace{0.2cm}
+    \begin{enumerate}
+        \item \emph{Optimality}: We assume that $\pi$ maximises expected cumulative discounted reward \citep{ng2000}.
+        \item \emph{Boltzmann Rationality}: We assume that $\mathbb{P}(\pi(s) = a) \propto e^{\beta Q^\star(s,a)}$ \citep{ramachandran2007}. 
+        \item \emph{Maximal Causal Entropy}: We assume that $\pi$ maximises the causal entropy objective; $\mathbb{E}[\sum_{t=0}^{\infty} \gamma^t (R(s_t, a_t, s_{t+1}) + \alpha H(\pi(s_{t+1})))]$, where $H$ is the Shannon entropy function \citep{ziebart2010thesis}.
+    \end{enumerate}
+    \vspace{0.2cm}
+    Here $\gamma$, $\beta$, and $\alpha$ are parameters of the behavioural model.
+\end{frame}
+
+
+%----------------------------%
+\setbeamercolor{background canvas}{bg=oxfordblue}
+\begin{frame}
+    \frametitle{}
+    \centering
+    \Large
+    %\textbf{\textcolor{white}{Part 1:}}
+    \textcolor{white}{Partial Identifiability}
+\end{frame}
+\setbeamercolor{background canvas}{bg=}
+%----------------------------%
+
+\section{Partial Identifiability and Invariance}
+
+\subsection{Background}
+
+\begin{frame}{The Issue of Partial Identifiability}
+    \small
+    There will often be multiple reward functions that are consistent with a given data source, even in the limit of infinite data.
+    
+    \vspace{0.5cm}
+    For example, two rewards may induce exactly the same expert behaviour; in that case, no amount of expert demonstrations can distinguish them. %Similarly, two reward functions may induce exactly the same preferences over trajectories; in that case, no amount of preference data can distinguish them.
+
+    \vspace{0.5cm}
+    It is therefore important to characterise this fundamental ambiguity for different reward learning data sources, so that they can be compared, and so that their limitations can be understood.
+\end{frame}
+
+\begin{frame}{The Issue of Partial Identifiability}
+    \small
+    Identifying a reward function uniquely is often unnecessary, because all plausible reward functions might lead to the same outcome in a given application.
+
+    \vspace{0.5cm}
+    For example, if we want to learn a reward function in order to compute an optimal policy, then it is enough to learn a reward function that has the same optimal policies as the true reward.
+    %In general, ambiguity is not problematic if all compatible reward functions lead to identical downstream outcomes.
+
+    \vspace{0.5cm}
+    It is therefore important to also consider the \emph{ambiguity tolerance} for various applications (such as policy optimisation).
+\end{frame}
+
+\begin{frame}{The Issue of Partial Identifiability}
+    \small
+    Ambiguity and ambiguity tolerance are formally related: both concern \emph{invariances} of objects that can be computed from reward functions to \emph{transformations} of those reward functions.
+
+    \vspace{0.5cm}
+    This will let us reason about ambiguity of different reward learning data sources, and ambiguity tolerance of different applications, within a single unified framework.
+\end{frame}
+
+\begin{frame}{Reward Transformations}
+    \small
+    Many of our results are expressed in terms of \emph{transformations} on the set of all reward functions, $\mathcal{R}$.
+    
+    \begin{definition}
+    Following \citet{ng1999}, we say that a \emph{potential function} is a function $\Phi : \States \to \mathbb{R}$.
+    Given a discount $\discount$,
+    we say that
+      $R_2 \in \mathcal{R}$ is produced by \emph{potential shaping} of $R_1 \in \mathcal{R}$
+    if for some potential $\Phi$,
+      $$
+      R_2(s,a,s') = R_1(s,a,s') + \discount\cdot\Phi(s') - \Phi(s).
+      $$
+    \end{definition}
+
+    \begin{definition}
+    \label{def:sprime-redistribution}
+    Given a transition function $\TransitionDistribution$,
+    we say that
+        $R_2 \in \mathcal{R}$ is produced by \emph{$S'$-redistribution} of $R_1 \in \mathcal{R}$
+    if
+        $$
+        \Expect{S' \sim \TransitionDistribution(s,a)}{\reward_1(s,a,S')}
+        = \Expect{S' \sim \TransitionDistribution(s,a)}{\reward_2(s,a,S')}.
+        $$ 
+    \end{definition}
+\end{frame}
+
+%\begin{frame}{Reward Transformations}
+    % Maybe remove?
+%    \small
+%    We also define \emph{sets} of reward transformations:
+%    \begin{enumerate}
+%        \item Let $\PS$ be the set of all  reward transformations $t$ such that $t(R)$ is given by potential shaping of $R$ relative to the discount $\discount$.
+%        \item Let $\SR$ be the set of all reward transformations $t$ such that $t(R)$ is given by $S'$-redistribution of $R$ relative to the transition function $\TransitionDistribution$.
+%        \item Let $\LS$ be the set of all reward transformations $t$ that scale each reward function by some positive constant, i.e.\ for each $R$ there is a $c \in \mathbb{R}^+$ such that $t(R)(s,a,s') = c \cdot R(s,a,s')$.
+        %\item Let $\CS$ be the set of all reward transformations $t$ that shift each reward function by some constant, i.e.\ for each $R$ there is a $c \in \mathbb{R}$ such that $t(R)(s,a,s') = R(s,a,s') + c$.
+%    \end{enumerate}
+%    Note that these sets are defined in a way that allows their transformations to be \enquote{sensitive} to the reward function it takes as input. For example, a transformation $t \in \mathrm{PS}_\gamma$ might apply different potential functions to different reward functions.
+%\end{frame}
+
+\subsection{Select Results}
+
+\begin{frame}{Select Results}
+    \small
+    \begin{theorem}
+    Given an MDP and a temperature parameter $\beta$, the Boltzmann-rational policy determines $\reward$ up to
+    $S'$-redistribution and potential shaping.
+    \end{theorem}
+
+    \vspace{0.5cm}
+    \begin{theorem}
+    Given an MDP and a weight $\alpha$, the maximal causal entropy policy determines $\reward$ up to
+    $S'$-redistribution and potential shaping.
+    \end{theorem}
+
+    \vspace{0.5cm}
+    In our paper, we fully characterise the ambiguity of 21 different reward objects and include a number of additional results. For more information, see \citet{skalse2022}.
+\end{frame}
+
+%----------------------------%
+\setbeamercolor{background canvas}{bg=oxfordblue}
+\begin{frame}
+    \frametitle{}
+    \centering
+    \Large
+    %\textbf{\textcolor{white}{Part 2:}}
+    \textcolor{white}{Misspecification}
+\end{frame}
+\setbeamercolor{background canvas}{bg=}
+%----------------------------%
+
+\section{Misspecification}
+
+\subsection{Background}
+
+\begin{frame}{Misspecification}
+    Our analysis of partial identifiablity assumes that there is no misspecification. That is, if the learning algorithm assumes that the data is computed from a behavioural model $f$, then we assume that the data in fact is computed from $f$.
+
+    \vspace{0.5cm}
+    In reality, this will not hold. For example, a human is not Boltzmann-rational. It is therefore crucial to consider what happens if the modelling assumptions are violated.
+\end{frame}
+
+\subsection{Framework and Definitions}
+
+\begin{frame}
+    \frametitle{Framework}
+    \small
+    Given a partition $P$ of $\mathcal{R}$, and two behavioural models $f, g : \mathcal{R} \to \Pi$, we say that $f$ is $P$-robust to misspecification with $g$ if:
+    \vspace{0.25cm}
+    \begin{enumerate}
+        \item $f(R_1) = g(R_2) \implies R_1 \equiv_P R_2$.
+        \item $f(R_1) = f(R_2) \implies R_1 \equiv_P R_2$.
+        \item $\mathrm{Im}(g) \subseteq \mathrm{Im}(f)$.
+        \item $f \neq g$.
+    \end{enumerate}
+    \vspace{0.5cm}
+    %\tiny
+    %$\mathrm{Am}(f)$ is the partition of $\mathcal{R}$ according to which $R_1 \equiv R_2$ when $f(R_1) = f(R_2)$.\\ 
+    %$A \prec B$ for two partitions $A$ and $B$ if $A$ is a partition refinement of $B$.
+\end{frame}
+
+%\begin{frame}{Explanation}
+%    Intuitively, we want to say that a behavioural model is robust to some type of misspecification if an algorithm based on that model will learn a reward function that is \enquote{close enough} to the true reward function when subject to that misspecification. To formalise this intuitive statement, we first need a definition of what it should mean for two reward functions to be \enquote{close enough}. Our initial analysis will define this in terms of \emph{equivalence classes}. Specifically, we assume that we have a partition $P$ of $\mathcal{R}$, and that the learnt reward function $R_H$ is \enquote{close enough} to the true reward $R^\star$ if they are in the same class.
+%\end{frame}
+
+%\begin{frame}{Explanation}
+%    Our definition of $P$-admissibility is equivalent to stating that a learning algorithm based on $f$ is guaranteed to learn a reward function that is $P$-equivalent to the true reward function when there is no misspecification. 
+
+%    \vspace{0.5cm}
+%    Our definition of $P$-robustness says that $f$ is $P$-robust to misspecification with $g$ if any learning algorithm based on $f$ is guaranteed to learn a reward function that is $P$-equivalent to the true reward function when trained on data generated from $g$.
+%    The requirement that $\mathrm{Im}(g) \subseteq \mathrm{Im}(f)$ ensures that the learning algorithm is never given data that is impossible according to its model. 
+%    The requirement that $f$ is $P$-admissible is included to rule out some uninteresting edge cases.
+%\end{frame}
+
+\begin{frame}
+    \frametitle{Core Lemma}
+    \small
+    Say that $\mathrm{Am}(f) \preceq P$ if $f(R_1) = f(R_2) \implies R_1 \equiv_P R_2$.
+    
+    \vspace{0.5cm}
+    \begin{lemma}%\label{lemma:how_to_calculate_robustness_sets}
+        If $\mathrm{Am}(f) \preceq P$, 
+        and $T$ is the set of all reward transformations that preserve $P$, then $f$ is $P$-robust to misspecification with $g$ if and only if $g = f \circ t$ for some $t \in T$ where $f \circ t \neq f$.
+    \end{lemma}
+
+    \vspace{0.5cm}
+    This means that we can derive necessary and sufficient conditions that completely characterise what forms of misspecification a given behavioural model $f$ will tolerate, by first finding the transformations $T$ that characterise $P$, and then composing $f$ with each element of $T$!
+\end{frame}
+
+\begin{frame}{Other Lemmas}
+    \begin{lemma}
+    If $f$ is not $P$-robust to misspecification with $g$, and $\mathrm{Im}(g) \subseteq \mathrm{Im}(f)$, then for any $h$, $h \circ f$ is not $P$-robust to misspecification with $h \circ g$.
+    \end{lemma}
+
+    \begin{lemma}\label{lemma:rob_to_adm}
+    If $f$ is $P$-robust to misspecification with $g$ then $\mathrm{Am}(g) \preceq P$.
+    \end{lemma}
+
+    \begin{lemma}\label{lemma:P_rob_symmetry}
+    If $f$ is $P$-robust to misspecification with $g$ and $\mathrm{Im}(f) = \mathrm{Im}(g)$ then $g$ is $P$-robust to misspecification with $f$.
+    \end{lemma}
+
+    \begin{lemma}\label{lemma:ambiguity_robustness}
+    $f$ satisfies that $\mathrm{Am}(f) \preceq P$ but is not $P$-robust to any misspecification if and only if $\mathrm{Am}(f) = P$.
+    \end{lemma}
+\end{frame}
+
+\begin{frame}{Which Equivalence Relation Do We Pick?}
+    \small
+    As for our analysis of partial identifiablity, we can let the partition $P$ correspond to a particular downstream application. However, in this setting, this leads to a combinatorial explosion of cases to consider.
+
+    \vspace{0.5cm}
+    To make our analysis more tractable, we will therefore focus on two specific equivalence relations. We say that $R_1 \equiv_\mathrm{ORD} R_2$ if $R_1$ and $R_2$ have the same \emph{ordering of policies}, and that $R_1 \equiv_\mathrm{OPT} R_2$ if $R_1$ and $R_2$ have the same \emph{optimal policies} (in a given environment).
+\end{frame}
+
+\begin{frame}{Characterising Equivalent Reward Functions}
+    \small
+    \begin{theorem}%\label{thm:order_of_policies}
+    The MDPs $(\States, \Actions, \TransitionDistribution, \InitStateDistribution, 
+    R_1, \discount)$ and $(\States, \Actions, \TransitionDistribution, \InitStateDistribution, 
+    R_2, \discount)$ have the same ordering of policies if and only if $R_1$ and $R_2$ differ by potential shaping (with $\discount$), positive linear scaling, and $S'$-redistribution (with $\TransitionDistribution$).%, applied in any order.
+    \end{theorem}
+    \vspace{0.5cm}
+    This tells us exactly when two reward functions have the same ordering of policies, i.e.\ when $R_1 \equiv_\mathrm{ORD} R_2$. There is no simple closed-form expression for $\equiv_\mathrm{OPT}$, but we can still use it in analysis.
+\end{frame}
+
+\subsection{Select Results}
+
+\begin{frame}
+    \frametitle{Select Results}
+    \small
+    Let $\Pi^+$ be the set of all policies such that $\pi(a \mid s) > 0$ for all $s,a$, and let $F$ be the set of all functions $f : \mathcal{R} \rightarrow \Pi^+$ that, given $R$, returns a policy $\pi$ which satisfies
+    \begin{equation*}
+        \mathrm{argmax}_{a \in \Actions} \pi(a \mid s) = \mathrm{argmax}_{a \in \Actions} \QStar(s,a), 
+    \end{equation*}
+    In other words, $F^\M$ is the set of functions that generate policies which take each action with positive probability, and that take the optimal actions with the highest probability. 
+    This class is quite large, and includes e.g.\ Boltzmann-rational policies.
+
+    \begin{theorem}\label{thm:boltzmann_weak_robustness}
+    Let $f \in F$ be surjective onto $\Pi^+$. Then $f$ is $\mathrm{OPT}$-robust to misspecification with $g$ if and only if $g \in F$ and $g \neq f$.
+    \end{theorem} 
+\end{frame}
+
+\begin{frame}{Select Results}
+    \small
+    Let $\psi : \mathcal{R} \rightarrow \mathbb{R}^+$ be any function from reward functions to positive real numbers, and let $b_\psi : \mathcal{R} \rightarrow \Pi^+$ be the function that, given $R$, returns the Boltzmann-rational policy with temperature $\psi(R)$. Moreover, let $B = \{b_\psi : \psi \in \mathcal{R} \rightarrow \mathbb{R}^+\}$ be the set of all such functions $b_\psi$. 
+    %This set includes Boltzmann-rational policies.%; just let $\psi$ return a constant $\beta$ for all $R$.
+
+    \begin{theorem}
+    If $b_\psi \in B$ then $b_\psi$ is $\mathrm{ORD}$-robust to misspecification with $g$ if and only if $g \in B$ and $g \neq b_\psi$.
+    %be surjective onto $\Pi^+$
+    \end{theorem}
+    
+    This means that the Boltzmann-rational model is $\mathrm{ORD}$-robust to misspecification of the temperature parameter $\beta$, but not to any other form of misspecification.
+\end{frame}
+
+\begin{frame}{Select Results}
+    \small
+    In the full paper, we also characterise the misspecification robustness of optimal policies and maximal causal entropy policies. We also present several additional results concerning transfer learning and misspecified environment parameters.
+    \newline\newline
+    Interestingly, we find that a very wide class of behavioural models (including, but not limited to, all the standard behavioural models) lack robustness to misspecification of the discount parameter $\gamma$ or transition function $\tau$.
+    \newline\newline
+    For more details, see \citet{Skalse_Abate_2023}.
+\end{frame}
+
+%----------------------------%
+\section{Quantifying the Difference Between Reward Functions}
+
+\setbeamercolor{background canvas}{bg=oxfordblue}
+\begin{frame}
+    \frametitle{}
+    \centering
+    \Large
+    %\textbf{\textcolor{white}{Part 3:}}
+    \textcolor{white}{Quantifying the Difference Between Reward Functions}
+\end{frame}
+\setbeamercolor{background canvas}{bg=}
+%----------------------------%
+
+\subsection{Background}
+
+\begin{frame}{Why Quantify the Difference Between Reward Functions?}
+    \small
+    When analysing a reward learning algorithm, we want to obtain results regarding \emph{how far} the learnt reward function is from the underlying true reward function. This requires a way to quantify the difference between reward functions.
+    
+    \vspace{0.5cm}
+    So far, we have used \emph{equivalence relations}. This is a limitation, because it will not allow us to distinguish between \emph{small} and \emph{large} errors. To do this, we need \emph{metrics}.
+\end{frame}
+
+\begin{frame}{Some Na\"ive Ideas}
+    \small
+    A simple method might be to measure their $L_2$-distance. However, two reward functions can have a large $L_2$-distance, even if they induce the \emph{same} ordering of policies, or a small $L_2$-distance, even if they induce the \emph{opposite} ordering of policies.
+    
+    \vspace{0.3cm}
+    Another option is to evaluate the learnt reward function on a \emph{test set}. However, this can only guarantee that the learnt reward function is accurate on a given data distribution, and when the reward function is \emph{optimised} we necessarily incur a \emph{distributional shift}.
+    
+    \vspace{0.3cm}
+    Yet another option is to optimise the learnt reward function, and evaluate the obtained policy according to the true reward function. However, this is very expensive, and it makes it difficult to separate issues with the policy optimisation algorithm from issues with the reward learning algorithm. Moreover, this method cannot be used for theoretical work. 
+\end{frame}
+
+%\subsection{Equivalence Relations}
+
+%\begin{frame}{Characterising Equivalent Reward Functions}
+%    \small
+%    \begin{theorem}%\label{thm:order_of_policies}
+%    The MDPs $(\States, \Actions, \TransitionDistribution, \InitStateDistribution, 
+%    R_1, \discount)$ and $(\States, \Actions, \TransitionDistribution, \InitStateDistribution, 
+%    R_2, \discount)$ have the same ordering of policies if and only if $R_1$ and $R_2$ differ by potential shaping (with $\discount$), positive linear scaling, and $S'$-redistribution (with $\TransitionDistribution$).%, applied in any order.
+%    \end{theorem}
+%    \vspace{0.5cm}
+%    This tells us exactly when two reward functions are \emph{equivalent}.
+%\end{frame}
+
+\subsection{STARC Metrics}
+
+
+\begin{frame}{Defining STARC Metrics}
+    \small
+    \begin{definition}\label{def:canonicalisation_function}
+    A function $c : \R \to \R$ is a \emph{canonicalisation function} if $c$ is linear, $c(R)$ and $R$ differ by potential shaping and $S'$-redistribution, and $c(R_1) = c(R_2)$ if and only if $R_1$ and $R_2$ only differ by potential shaping and $S'$-redistribution.
+    \end{definition}
+    
+    \begin{definition}\label{def:admissible_metric}
+    A metric $m : \R \times \R \to \mathbb{R}$ is \emph{admissible} if there exists a norm $p$ and two (positive) constants $u,\ell$ such that $\ell \cdot p(x,y) \leq m(x,y) \leq u \cdot p (x,y)$ for all $x, y \in \R$.
+    \end{definition}
+    
+    \begin{definition}\label{def:reward_metric}
+    A function $d : \R \times \R \to \mathbb{R}$ is a \emph{STARC metric} (STAndardised Reward Comparison) if there is a canonicalisation function $c$, a function $n$ that is a norm on $\mathrm{Im}(c)$, and a metric $m$ that is admissible on $\mathrm{Im}(s)$, such that $d(R_1, R_2) = m(s(R_1), s(R_2))$,
+    where $s(R) = c(R)/n(c(R))$ when $n(c(R)) \neq 0$, and $c(R)$ otherwise.
+    \end{definition}
+\end{frame}
+
+\begin{frame}{Visualising STARC Metrics I}
+    \small
+    \begin{figure}[!ht]
+        \centering
+        \scalebox{0.4}{
+            \includegraphics{fig/circle_diagram-1.pdf}
+        }
+        %\caption{\label{fig:framework}%
+        %    An overview of our framework.
+        %}
+    \end{figure}    
+    STARC metrics map $\R$ to a linear subspace, normalise the vectors, and then take a distance with a metric that is similar to a norm.
+\end{frame}
+
+\begin{frame}{The Occupancy Measure}
+    \small
+    Given an MDP and a policy $\pi$, we can define the \emph{occupancy measure} $\eta^\pi$ of $\pi$ as an $|S|\times|A|\times|S|$-dimensional vector where
+    $$
+    \eta^\pi[s,a,s'] = \sum_{t=0}^\infty \gamma^t \mathbb{P}(s_t = s, a_t = a, s_{t+1} = s').
+    $$
+    We now have that $J(\pi) = \eta^\pi \cdot R$. This means that $J$ can be decomposed into two steps, the first of which is independent of $R$, and the second of which is linear.
+    
+    \vspace{0.5cm}
+    The set $\Omega$ of the occupancy measures for all policies forms a convex polytope in an $|S|(|A|-1)$-dimensional affine subspace.
+\end{frame}
+
+\begin{frame}{Visualising STARC Metrics II}
+    \small
+    \begin{figure}[!ht]
+        \centering
+        \scalebox{0.4}{
+            \includegraphics{fig/occupancy_measure-1.pdf}
+        }
+        %\caption{\label{fig:framework}%
+        %    An overview of our framework.
+        %}
+    \end{figure}
+    The STARC distance between two reward functions $R_1$, $R_2$ is bilipschitz equivalent to the angle between $R_1$ and $R_2$ after they have been projected onto the space of all occupancy measures $\Omega$.
+\end{frame}
+
+\begin{frame}{Examples of a Canonicalisation Functions}
+    \small
+    \begin{proposition}%\label{proposition:value_canon}
+        For any policy $\pi$, the function $c : \R \to \R$ given by 
+        $$
+        c(R)(s,a,s') = \mathbb{E}_{S' \sim \tau(s,a)}\left[R(s,a,S') - V^\pi(s) + \gamma V^\pi(S')\right]
+        $$
+        is a canonicalisation function. 
+    \end{proposition}
+
+    \begin{proposition}%\label{prop:minimal}
+        A canonicalisation function $c : \R \to \R$ is \emph{minimal} for a norm $n$ if for all $R$ we have that $n(c(R)) \leq n(R')$ for all $R'$ such that $R$ and $R'$ differ by potential shaping and $S'$-redistribution. For any weighted $L_2$-norm, a minimal canonicalisation function exists and is unique.
+    \end{proposition}
+
+    \begin{proposition}%\label{prop:minimal}
+        The function $c : \R \to \R$ which projects reward functions onto the space of occupancy measures $\Omega$ is a canonicalisation function.
+    \end{proposition}
+\end{frame}
+
+\begin{frame}{Basic Properties}
+    \small
+    \begin{proposition}\label{prop:STARC_pseudometrics}
+        All STARC metrics are pseudometrics on $\mathcal{R}$.
+    \end{proposition}
+    
+    \vspace{1cm}
+    \begin{proposition}\label{prop:STARC_distance_zero}
+    All STARC metrics have the property that $d(R_1, R_2) = 0$ if and only if $R_1$ and $R_2$ induce the same ordering of policies.
+    \end{proposition}
+\end{frame}
+
+\begin{frame}{Soundness}
+    \small
+    \begin{definition}\label{def:soundness}
+    A pseudometric $d$ on $\R$ is \emph{sound} if there exists a positive constant $U$, such that for any reward functions $R_1$ and $R_2$, if two policies $\pi_1$ and $\pi_2$ satisfy that $J_2(\pi_2) \geq J_2(\pi_1)$, then
+    $$
+    J_1(\pi_1) - J_1(\pi_2) \leq U \cdot (\max_\pi J_1(\pi) - \min_\pi J_1(\pi)) \cdot d(R_1, R_2).
+    $$
+    %and moreover, if $d(R_1, R_2) = 0$ then $R_1$ and $R_2$ have the same policy order.
+    \end{definition}
+
+    \begin{theorem}\label{thm:STARC_sound}
+    All STARC metrics are sound.
+    \end{theorem}
+\end{frame}
+
+\begin{frame}{Completeness}
+    \small
+    \begin{definition}\label{def:STARC_complete}
+    A pseudometric $d$ on $\R$ is \emph{complete} if there exists a positive constant $L$, such that for any reward functions $R_1$ and $R_2$, there exists two policies $\pi_1$ and $\pi_2$ such that $J_2(\pi_2) \geq J_2(\pi_1)$ and
+    $$
+    J_1(\pi_1) - J_1(\pi_2) \geq L \cdot (\max_\pi J_1(\pi) - \min_\pi J_1(\pi)) \cdot d(R_1, R_2),
+    $$
+    %and moreover, if $R_1$ and $R_2$ have the same policy order then $d(R_1, R_2) = 0$.
+    and if $\max_\pi J_1(\pi) - \min_\pi J_1(\pi) = \max_\pi J_2(\pi) - \min_\pi J_2(\pi) = 0$, then we have that $d(R_1, R_2) = 0$.
+    \end{definition}
+
+    \begin{theorem}\label{thm:STARC_complete}
+    All STARC metrics are complete.
+    \end{theorem}
+\end{frame}
+
+\begin{frame}{Uniqueness}
+    \small
+    \begin{proposition}\label{prop:bilipschitz}
+    Any two pseudometrics on $\R$ that are both sound and complete are bilipschitz equivalent.
+    \end{proposition}
+
+    \vspace{0.5cm}
+    This means that there is a sense in which STARC metrics are unique.
+
+    \vspace{0.5cm}
+    For more details, see \citet{skalse2024starcgeneralframeworkquantifying}.
+\end{frame}
+
+%----------------------------%
+\section{A Few Short Results}
+
+\setbeamercolor{background canvas}{bg=oxfordblue}
+\begin{frame}
+    \frametitle{}
+    \centering
+    \Large
+    %\textbf{\textcolor{white}{Part 3:}}
+    \textcolor{white}{A Few Short Results}
+\end{frame}
+\setbeamercolor{background canvas}{bg=}
+%----------------------------%
+
+\subsection{Reward Hacking}
+\begin{frame}{Reward Hacking}
+    \small
+    Say that two reward functions $R_1$ and $R_2$ are \emph{hackable} if there exists policies $\pi_1$, $\pi_2$ such that $J_1(\pi_1) > J_1(\pi_2)$ but $J_2(\pi_1) < J_2(\pi_2)$. Otherwise, they are \emph{unhackable}.
+
+    \vspace{0.5cm}
+    Two reward functions $R_1$, $R_2$ are \emph{equivalent} if $J_1(\pi_1) \geq J_1(\pi_2)$ iff $J_2(\pi_1) \geq J_2(\pi_2)$ for all $\pi_1$, $\pi_2$. A reward function $R$ is \emph{trivial} if $J(\pi_1) = J(\pi_2)$ for all $\pi_1$, $\pi_2$.
+    
+    \vspace{0.5cm}
+    \begin{theorem}\label{thm:reward_hacking}
+    Two reward functions $R_1$, $R_2$ are unhackable if and only if they are equivalent, or at least one of them is trivial.
+    \end{theorem}
+
+    \vspace{0.5cm}
+    For more details, see \citet{rewardhacking}.
+\end{frame}
+
+\subsection{Risk-Sensitivity}
+\begin{frame}{Risk-Sensitivity}
+    \small
+    \begin{theorem}\label{thm:monotonic_implies_affine}
+    Let $R_1$, $R_2$ be two reward functions such that 
+    $$
+    G_1(\xi_1) \leq G_1(\xi_2) \iff G_2(\xi_1) \leq G_2(\xi_2)
+    $$
+    for all $\xi_1, \xi_2 \in (S\times A)^\omega$. Then is an $a > 0$ and a $b$ such that
+    $$
+    G_2(\xi) = a \cdot G_1(\xi) + b
+    $$
+    for all $\in (S\times A)^\omega$.
+    \end{theorem}
+
+    \vspace{0.5cm}
+    For more details, see \citet{pmlr-v216-skalse23a}.
+\end{frame}
+
+\subsection{Multi-Objective Problems}
+\begin{frame}{Multi-Objective Problems}
+    \small
+    A \emph{MOMDP} is an MDP with more than one reward function. A \emph{MORL objective} $O$ is a function that takes $k$ policy evaluation functions $J_1 \dots J_k$ and returns a total ordering $\prec_O$ over $\Pi$. 
+
+    \vspace{0.5cm}
+    A MOMDP $M_1 = (S,A,T,\{R_1 \dots R_k\},\gamma)$ with objective $O$ is equivalent to an MDP $M_2 = (S,A,T,R,\gamma)$ if and only if $M_1$'s policy order is $\prec_{O,M}$. In this case, we say that $M_1$ with $O$ is \emph{scalarized} by $R$.
+
+    \vspace{0.5cm}
+    \begin{theorem}\label{thm:morl_affine}
+    If a MOMDP $M$ with objective $O$ is scalarizable, then there exist $w_1 \dots w_k \in \mathbb{R}$ such that $M$ with $O$ is scalarized by the reward $R(s,a) = \sum_{i=1}^k w_i \cdot R_i(s,a)$.
+    \end{theorem}
+
+    \vspace{0.5cm}
+    This implies that many MORL objectives are not scalarizable! For more details, see \citet{pmlr-v216-skalse23a}.
+\end{frame}
+
+
+
+%----------------------------%
+% Conclusions
+\begin{frame}
+    \frametitle{}
+    \centering
+    
+    \Large\color{oxfordblue}
+    Thank you!
+
+    \vspace{0.5cm}
+    joar.mvs@gmail.com%\\
+    %aabate@cs.ox.ac.uk
+
+\end{frame}
+%----------------------------%
+
+% References slide
+\begin{frame}
+\frametitle{References}
+\tiny
+\bibliographystyle{apalike} %use the apalike bibliography style
+\bibliography{biblo} % bibliography file
+\end{frame}
+
+%\begin{frame}{Frame Title}
+%    \small
+%\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%
+\end{document}
+%%%%%%%%%%%%%%%%%%%%

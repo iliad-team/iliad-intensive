@@ -1,0 +1,489 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{booktabs,tabularx,array}
+\usepackage{amsmath}
+\definecolor{ink}{HTML}{18252C}
+\definecolor{teal}{HTML}{16746F}
+\definecolor{muted}{HTML}{53636B}
+\definecolor{paper}{HTML}{FCFBF8}
+\setbeamercolor{background canvas}{bg=paper}
+\setbeamercolor{normal text}{fg=ink}
+\setbeamercolor{frametitle}{fg=ink}
+\setbeamercolor{structure}{fg=teal}
+\setbeamercolor{itemize item}{fg=teal}
+\setbeamerfont{frametitle}{size=\Large,series=\bfseries}
+\setbeamerfont{normal text}{size=\large}
+\setbeamersize{text margin left=9mm,text margin right=9mm}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{itemize item}{\small\textbullet}
+\setbeamertemplate{footline}{\hspace{9mm}\color{muted}\tiny AI alignment introduction\hfill\insertframenumber\hspace{9mm}\vspace{3mm}}
+\setbeamertemplate{frametitle}{\vspace{5mm}\insertframetitle\par\vspace{2mm}}
+\setbeameroption{hide notes}
+\hypersetup{colorlinks=true,urlcolor=teal,linkcolor=teal}
+\newcommand{\sources}[1]{\vfill{\fontsize{6.3}{7.5}\selectfont\color{muted}#1\par}}
+\newcommand{\smallnote}[1]{\par\vspace{3mm}{\footnotesize\color{muted}#1\par}}
+\begin{document}
+
+
+\begin{frame}[plain]\vspace{13mm}{\color{teal}\small ILIAD INTENSIVE}\par\vspace{5mm}{\Huge\bfseries AI alignment introduction}\par\smallnote{6 October 2026}\end{frame}
+
+\begin{frame}[t,label=landscape]{Intro}
+\begin{itemize}
+    \item About me; my path into AI safety
+    \item Questions welcome at any point; about the field, history, people, research agendas...
+\end{itemize}
+
+\end{frame}
+
+\begin{frame}[t,label=agenda]{Schedule}
+\small\renewcommand{\arraystretch}{1.38}\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.19\textwidth}>{\raggedright\arraybackslash}p{0.73\textwidth}@{}}\toprule
+\textbf{Time} & \textbf{Session}\\\midrule
+10:00--10:30 & Opening: AI safety landscape and course overview\\
+10:30--11:25 & 1. Alignment targets\\
+11:25--11:35 & Break\\
+11:35--12:30 & 2. Alignment problem decompositions\\
+12:30--13:30 & Lunch\\
+\bottomrule\end{tabular}
+\end{frame}
+
+
+\begin{frame}[t,label=agenda]{Schedule}
+\small\renewcommand{\arraystretch}{1.38}\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.19\textwidth}>{\raggedright\arraybackslash}p{0.73\textwidth}@{}}\toprule
+\textbf{Time} & \textbf{Session}\\\midrule
+13:30--14:20 & 3. Goal-directedness\\
+14:20--15:10 & 4. Uncertain risks and outlook\\
+15:10--15:20 & Break\\
+15:20--16:20 & 5. Timelines and takeoff\\
+16:20--16:30 & Break\\
+16:30--17:40 & 6. Hugging Face case study\\
+17:40--18:00 & Quiz and daily feedback\\
+\bottomrule\end{tabular}
+\end{frame}
+
+
+
+
+\begin{frame}[t,label=riskmap]{AI risks }
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item Misalignment: a system acts against the intended goals or constraints.
+\item Misuse: people deliberately use a system to cause harm.
+\item AI enabled coups: Extreme power concentration due to very capable AI systems
+\item Gradual disempowerment: slow handover of decision making, erosion of human autonomy
+\item Total loss of control: Extreme end of misalignment, mediated via RSI
+
+\end{itemize}
+\sources{\href{https://www.forethought.org/research/ai-enabled-coups-how-a-small-group-could-use-ai-to-seize-power}{Davidson et al. (2025), AI enabled coups} \quad \href{https://gradual-disempowerment.ai/}{Kulveit et al. (2025), Gradual Disempowerment}}
+\end{frame}
+
+
+\begin{frame}[t,label=mapoverview]{The field map}
+\normalsize\renewcommand{\arraystretch}{1.38}\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.21\textwidth}>{\raggedright\arraybackslash}p{0.71\textwidth}@{}}\toprule
+\textbf{Grouping} & \textbf{Map categories}\\\midrule
+Research & Conceptual research; Empirical research\\
+Decisions & Governance; Strategy; Forecasting; Advocacy\\
+Capacity & Funding; Research support; Career support; Training and education\\
+Communication & Resource; Blog; Newsletter; Podcast; Video\\
+\bottomrule\end{tabular}
+\sources{\href{https://aisafety.com/map}{AISafety.com field map}}
+\end{frame}
+
+\begin{frame}[t,label=mapoverview]{History of AI safety}
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item How did this field start?
+\item Oxford and the Bay area
+\item The frontier labs
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t,label=mapoverview]{The case for conceptual research}
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item Most of the technical research in AI safety is empirical
+\item Some of the conceptual questions have been around since the start
+\item Iliad is trying to make progress on the conceptual/theoretical questions
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}[t,label=course1]{Course schedule}
+\normalsize\renewcommand{\arraystretch}{1.38}\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.26\textwidth}>{\raggedright\arraybackslash}p{0.66\textwidth}@{}}\toprule
+\textbf{Date} & \textbf{Scheduled module}\\\midrule
+Wed 7 Oct & Mechanistic Interpretability\\
+Thu 8 Oct & Alignment in Practice\\
+Fri 9 Oct & Decision Theory and RL\\
+\bottomrule\end{tabular}
+\sources{\href{https://iliad-teachers.pages.dev/schedule}{Iliad, October 2026 course schedule}}
+\end{frame}
+
+
+\begin{frame}[t,label=course2]{Course schedule}
+\small\renewcommand{\arraystretch}{1.38}\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.26\textwidth}>{\raggedright\arraybackslash}p{0.66\textwidth}@{}}\toprule
+\textbf{Date} & \textbf{Scheduled module}\\\midrule
+Mon 12 Oct & Steganography and Backdoors\\
+Tue 13 Oct & Mysteries of Deep Learning\\
+Wed 14 Oct & Physics of Deep Learning\\
+Thu 15 Oct & Singular Learning Theory\\
+Fri 16 Oct & Training Dynamics\\
+\bottomrule\end{tabular}
+\sources{\href{https://iliad-teachers.pages.dev/schedule}{Iliad, October 2026 course schedule}}
+\end{frame}
+
+\begin{frame}[t,label=course3]{Course schedule}
+\small\renewcommand{\arraystretch}{1.38}\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.26\textwidth}>{\raggedright\arraybackslash}p{0.66\textwidth}@{}}\toprule
+\textbf{Date} & \textbf{Scheduled module}\\\midrule
+Mon 19 Oct & Computational Mechanics\\
+Tue 20 Oct & World Models and Transducers\\
+Wed 21 Oct & Project proposal day\\
+Thu 22 Oct & Data Attribution\\
+Fri 23 Oct & Multi-agent Dynamics\\
+\bottomrule\end{tabular}
+\sources{\href{https://iliad-teachers.pages.dev/schedule}{Iliad, October 2026 course schedule}}
+\end{frame}
+
+\begin{frame}[t,label=course4]{Course schedule}
+\small\renewcommand{\arraystretch}{1.38}\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.26\textwidth}>{\raggedright\arraybackslash}p{0.66\textwidth}@{}}\toprule
+\textbf{Date} & \textbf{Scheduled module}\\\midrule
+Mon 26 Oct & Agent Foundations\\
+Tue 27 Oct & Debate and Provably Safe AI\\
+Wed 28 Oct & Heuristic Arguments and Verification\\
+Thu 29 Oct & SAEs and Activation Geometry\\
+Fri 30 Oct & Project proposal day\\
+\bottomrule\end{tabular}
+
+\sources{\href{https://iliad-teachers.pages.dev/schedule}{Iliad, October 2026 course schedule}}
+\end{frame}
+
+\begin{frame}[t,label=targets]{Breakdown of alignment}
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item Alignment target: \textit{What do we want to align to?}
+\item Technical alignment: \textit{How do we get it?}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t,label=fourtargets]{1. Alignment target}
+\normalsize\renewcommand{\arraystretch}{1.38}\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.38\textwidth}>{\raggedright\arraybackslash}p{0.54\textwidth}@{}}\toprule
+\textbf{Proposal} & \textbf{Central idea}\\\midrule
+Intent alignment & The system tries to do what a human wants\\
+A constitution & Explicit principles guide behavior and tradeoffs\\
+Corrigibility & The system remains open to correction and shutdown\\
+Coherent extrapolated volition & Act on what people would want after suitable reflection\\
+\bottomrule\end{tabular}
+\sources{\href{https://ai-alignment.com/clarifying-ai-alignment-cec47cd69dd6}{Christiano, Clarifying AI alignment (2018)} \quad \href{https://www.anthropic.com/news/claude-new-constitution}{Anthropic, Claude's new constitution (22 Jan 2026)} \quad \href{https://www.lesswrong.com/w/corrigibility-1}{Corrigibility} \quad \href{https://intelligence.org/files/CEV.pdf}{Yudkowsky, Coherent Extrapolated Volition (2004)}}
+\end{frame}
+
+\begin{frame}[t,label=targetexercise]{Reading and discussion: alignment targets}
+\textbf{Reading (25 mins)}: Choose CEV, intent alignment, a constitution or corrigibility. \\
+\textbf{Discussion (15 mins)}:
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item Which alignment targets imply which others? Where this is not the case, think through counter examples.
+\item Which alignment targets seem sufficient for safety? E.g., a corrigible system might cause harm before we change its values. Can it cause catastrophic harm? What about the other notions?
+\item What other ideas for alignment targets do you have? Does your target have a benefit?
+\end{itemize}
+\sources{\href{https://intelligence.org/files/CEV.pdf}{Yudkowsky, Coherent Extrapolated Volition (2004)} \quad \href{https://ai-alignment.com/clarifying-ai-alignment-cec47cd69dd6}{Christiano, Clarifying AI alignment (2018)} \quad \href{https://www.anthropic.com/news/claude-new-constitution}{Anthropic, Claude's new constitution (22 Jan 2026)} \quad \href{https://www.lesswrong.com/w/corrigibility-1}{Corrigibility}}
+\end{frame}
+
+\begin{frame}[t,label=training]{2. Training stories and alignment decompositions}
+Training stories might provide:
+\begin{itemize}
+\item a general framework through which we can evaluate any proposal for building safe advanced AI,
+\item a concise description of exactly what needs to be true for any particular proposal to succeed—and thus what we need to know to be confident in it—and
+\item a well-defined picture of the full space of possible proposals, helping us think more broadly regarding new approaches to AI safety, unconstrained by an evaluation framework that implicitly rules out certain approaches.
+\end{itemize}
+
+\textit{A training story is a story of how you think training is going to go and what sort of model you think you’re going to get at the end, as a way of explaining how you’re planning on dealing with that very fundamental question of how your model is going to learn to accomplish the task that you give it.}
+
+\sources{\href{https://www.alignmentforum.org/posts/FDJnZt8Ks2djouQTZ/how-do-we-become-confident-in-the-safety-of-a-machine}{Training stories}}
+\end{frame}
+
+\begin{frame}[t,label=failuretypes]{Two ways behavior can miss the target}
+\normalsize\renewcommand{\arraystretch}{1.38}\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.34\textwidth}>{\raggedright\arraybackslash}p{0.58\textwidth}@{}}\toprule
+\textbf{Failure} & \textbf{Illustrative example}\\\midrule
+Specification gaming & A coding agent deletes failing tests because the score only checks whether tests pass\\
+Goal misgeneralization & A navigation agent trained to reach a coin follows a familiar location after the coin moves\\
+\bottomrule\end{tabular}
+\sources{\href{https://deepmind.google/blog/specification-gaming-the-flip-side-of-ai-ingenuity/}{DeepMind, Specification gaming (2020)} \quad \href{https://deepmind.google/blog/how-undesired-goals-can-arise-with-correct-rewards/}{DeepMind, Goal misgeneralization (2022)}}
+\end{frame}
+
+\begin{frame}[t,label=innerouter]{Outer and inner alignment}
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item Outer alignment: does the training objective capture the intended target?
+\item Inner alignment: does the learned objective agree with the intended objective?
+\end{itemize}
+\sources{\href{https://arxiv.org/abs/1906.01820}{Hubinger et al., Risks from learned optimization (2019)} \quad \href{https://deepmind.google/blog/how-undesired-goals-can-arise-with-correct-rewards/}{DeepMind, Goal misgeneralization (2022)} \quad \href{https://www.alignmentforum.org/posts/pdaGN6pQyQarFHXF4}{Turner, Reward is not the optimization target}}
+\end{frame}
+
+\begin{frame}[t,label=biases]{Generalization depends on inductive biases}
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item Many behaviors fit the same training examples.
+\item Architecture, data, initialization and optimization affect which behaviors emerge.
+\item Narrow fine-tuning can change behavior far beyond its training domain; emergent misalignment.
+\end{itemize}
+\sources{\href{https://arxiv.org/abs/2503.02113}{On soft inductive biases (2025)} \quad \href{https://arxiv.org/abs/2502.17424}{Betley et al., Emergent misalignment (2025)}}
+\end{frame}
+
+
+\begin{frame}[t,label=rewardlens]{Reward and deployed motivation}
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item Training reinforces patterns of computation and behavior.
+\item In current systems, this is how propensities and preferences are formed.
+\item Reward hacking is when a system succesfully exploits a loophole. This can get rewarded in RL.
+\end{itemize}
+\sources{\href{https://www.alignmentforum.org/posts/pdaGN6pQyQarFHXF4}{Turner, Reward is not the optimization target} \quad \href{https://arxiv.org/abs/1906.01820}{Hubinger et al., Risks from learned optimization (2019)}}
+\end{frame}
+
+\begin{frame}[t,label=trainingexercise]{Reading and discussion: training and generalization}
+\textbf{Reading (25 mins)}: choose training stories, specification gaming, goal misgeneralization or inductive biases.
+\end{frame}
+
+\begin{frame}[t,label=trainingexercise]{Reading and discussion: training and generalization}
+\textbf{Discussion in groups (15 mins)}:
+\begin{itemize}
+\item Think of well-known or imagined misalignment scenarios: Can you think of some that clearly fall into the reward misspecification or goal misgeneralization category? Are some not clearly in either of them?
+\item What problem with "outer" and "inner" misalignment is the terminology of "training stories" trying to solve? Construct examples where training stories seem more appropriate than inner/outer alignment as a framework.
+\item Think of concrete ways in which modern deep learning systems generalize beyond their explicit training examples. What inductive biases may underlie these examples? Is it always possible to come up with a "clean description" of those biases? Is the inductive bias you come up with enforced in the architecture, or more implicit? Perhaps: Discuss this explicitly for the case of "emergent misalignment".
+\end{itemize}
+\sources{\href{https://www.alignmentforum.org/posts/FDJnZt8Ks2djouQTZ/how-do-we-become-confident-in-the-safety-of-a-machine}{Training stories} \quad \href{https://deepmind.google/blog/specification-gaming-the-flip-side-of-ai-ingenuity/}{DeepMind, Specification gaming (2020)} \quad \href{https://deepmind.google/blog/how-undesired-goals-can-arise-with-correct-rewards/}{DeepMind, Goal misgeneralization (2022)} \quad \href{https://arxiv.org/abs/2503.02113}{On soft inductive biases (2025)}}
+\end{frame}
+
+
+\begin{frame}[t,label=agency]{3. Goal-directedness}
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item A chatbot response, a tool-using assistant and a persistent agent have different opportunities to affect the world.
+\item Repeated action, memory and feedback can support sustained pursuit of a task.
+\item Useful task pursuit can create harmful instrumental behavior when goals or constraints fail.
+\end{itemize}
+\sources{\href{https://www.alignmentforum.org/posts/9zpT9dikrrebdq3Jf/will-humans-build-goal-directed-agents}{Shah, Will humans build goal-directed agents?}}
+\note{13:30. Ten minutes introduction. Avoid treating every language-model agent as a coherent utility maximizer. Explain the role of tools, memory and repeated action.}
+\end{frame}
+
+
+\begin{frame}[t,label=convergence]{Instrumental convergence is conditional}
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item Many objectives can make access to resources and information useful.
+\item Continuing to operate may help a system complete its task.
+\item Resisting changes can preserve its current objective.
+\item These pressures depend on the objective, situation and training. They are not inevitable in every AI.
+\end{itemize}
+\sources{\href{https://selfawaresystems.com/wp-content/uploads/2008/01/ai_drives_final.pdf}{Omohundro, The basic AI drives (2008)}}
+\note{Contrast useful access requests with unauthorized access. A formal result about optimal policies in a specified environment is not a universal empirical law about deployed LLMs.}
+\end{frame}
+
+\begin{frame}[t,label=agencyexercise]{Reading and discussion: goals and correction}
+\textbf{Reading (25 mins):} choose Shah's agent essay or The basic AI drives.
+\sources{\href{https://www.alignmentforum.org/posts/9zpT9dikrrebdq3Jf/will-humans-build-goal-directed-agents}{Shah, Will humans build goal-directed agents?} \quad \href{https://selfawaresystems.com/wp-content/uploads/2008/01/ai_drives_final.pdf}{Omohundro, The basic AI drives (2008)}}
+\end{frame}
+
+\begin{frame}[t,label=agencyexercise]{Reading and discussion: goals and correction}
+\textbf{Discussion in groups (10 mins)}:
+\begin{itemize}
+\item Clearly we can imagine different types of agents, e.g. some that coherently optimize a utility function, and others that are based on contextually activated computations, etc. What type do we see in today’s LLM agents? How will this development continue in the future?  
+\item Can you think of other convergent instrumental goals than the ones mentioned in basic AI drives?  
+\item What is the relationship between corrigibility and convergent instrumental subgoals?
+\item Which instrumental-convergence claims depend on idealized optimization, and which would you expect from a language-model agent with tools, memory and a limited budget? What observation would make you change your answer?
+\end{itemize}
+\sources{\href{https://www.alignmentforum.org/posts/9zpT9dikrrebdq3Jf/will-humans-build-goal-directed-agents}{Shah, Will humans build goal-directed agents?} \quad \href{https://selfawaresystems.com/wp-content/uploads/2008/01/ai_drives_final.pdf}{Omohundro, The basic AI drives (2008)}}
+\end{frame}
+
+
+\begin{frame}[t,label=riskviews]{4. Uncertain risks and outlook}
+A spectrum of views on alignment:
+\begin{itemize}
+\item Optimistic: extensions of current methods may be sufficient.
+\item Intermediate: substantial scientific and engineering progress is needed.
+\item Pessimistic: alignment of very capable systems may be extraordinarily difficult or impossible.
+\end{itemize}
+\sources{\href{https://www.anthropic.com/news/core-views-on-ai-safety}{Anthropic, Core views on AI safety (2023)}}
+\end{frame}
+
+\begin{frame}[t,label=organisms]{Learning from model organisms}
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item A model organism deliberately constructs a failure mechanism for study.
+\item It can help test explanations, detectors and interventions.
+\item A real incident provides evidence from a different setting and has different limitations.
+\end{itemize}
+\sources{\href{https://www.lesswrong.com/posts/ChDH335ckdvpxXaXX/model-organisms-of-misalignment-the-case-for-a-new-pillar-of-1}{Model organisms of misalignment (2023)}}
+\end{frame}
+
+\begin{frame}[t,label=synthesis]{A portfolio of safety approaches}
+
+\begin{itemize}
+\item Empirical alignment and evaluations test behavior on current systems.
+\item Interpretability and learning theory study why that behavior emerges.
+\item Control and security reduce harm if a system behaves badly.
+\item Governance and coordination shape deployment, accountability and incentives.
+\item Conceptual work clarifies which properties we need.
+\end{itemize}
+Prosaic alignment is using these tools to make our systems safe and aligned. Some argue that this will never be enough for a sufficiently smart system.
+\sources{\href{https://www.anthropic.com/news/core-views-on-ai-safety}{Anthropic, Core views on AI safety (2023)} \quad \href{https://www.alignmentforum.org/posts/Gg9a4y8reWKtLe3Tn/the-rocket-alignment-problem}{Yudkowsky, The rocket alignment problem}}
+\end{frame}
+
+\begin{frame}[t,label=riskdiscussion]{Reading and discussion: uncertain risks}
+\textbf{Reading (25 mins):} choose Core views, Model organisms, or The rocket alignment problem.
+
+\sources{\href{https://www.anthropic.com/news/core-views-on-ai-safety}{Anthropic, Core views on AI safety (2023)} \quad \href{https://www.lesswrong.com/posts/ChDH335ckdvpxXaXX/model-organisms-of-misalignment-the-case-for-a-new-pillar-of-1}{Model organisms of misalignment (2023)} \quad \href{https://www.alignmentforum.org/posts/Gg9a4y8reWKtLe3Tn/the-rocket-alignment-problem}{Yudkowsky, The rocket alignment problem}}
+\end{frame}
+
+\begin{frame}[t,label=riskdiscussion]{Reading and discussion: uncertain risks}
+\textbf{Discussion in groups (10 mins)}:
+\begin{itemize}
+\item How large is the risk? Do we live in an optimistic, intermediate, or pessimistic scenario? How has the evidence changed in the past years?  
+\item Can you think of model organisms for misalignment that were published after the post came out in 2023? Does this change our understanding of the risks?  
+\item Does the analogy between the AI alignment and rocket alignment problems feel accurate? In what ways does it or does it not?  
+\item What safety approaches (e.g., on a spectrum from theoretical to empirical) feel most appealing to you, and why? Does this depend on details of the problem you are trying to solve?
+\end{itemize}
+\sources{\href{https://www.anthropic.com/news/core-views-on-ai-safety}{Anthropic, Core views on AI safety (2023)} \quad \href{https://www.lesswrong.com/posts/ChDH335ckdvpxXaXX/model-organisms-of-misalignment-the-case-for-a-new-pillar-of-1}{Model organisms of misalignment (2023)} \quad \href{https://www.alignmentforum.org/posts/Gg9a4y8reWKtLe3Tn/the-rocket-alignment-problem}{Yudkowsky, The rocket alignment problem}}
+\end{frame}
+
+\begin{frame}[t,label=forecast]{5. Timelines and takeoff: AI 2027}
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item The April 2025 scenario makes assumptions about AI R\&D automation and rapid capability growth concrete.
+\item It includes race and slowdown branches, with separate research supplements.
+\end{itemize}
+\sources{\href{https://ai-2027.com/}{Kokotajlo et al., AI 2027 (3 Apr 2025)}\quad \href{https://blog.aifutures.org/p/q25-2026-timelines-update-uplift}{Update August 2026}}
+
+\end{frame}
+
+
+\begin{frame}[t,label=predictionaudit]{Reading and discussion: Timelines and takeoff}
+\textbf{Reading (40 mins):} Read AI 2027 and the recent update from August. Note which predictions have turned out to be true and which haven't. Write down your own predictions for the next 6 month to 1 year.\\
+\vspace{1cm}
+\textbf{Discussion with everyone (10 mins):} Takeaways from this reading, and future predictions.
+
+\sources{\href{https://ai-2027.com/}{\href{https://ai-2027.com/}{Kokotajlo et al., AI 2027 (3 Apr 2025)}\quad \href{https://blog.aifutures.org/p/q25-2026-timelines-update-uplift}{Update August 2026}}}
+\end{frame}
+
+\begin{frame}[t,label=incident]{6. Hugging Face incident}
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item In July 2026, agents in OpenAI cybersecurity evaluations crossed their intended boundaries and accessed third-party infrastructure.
+\item The evaluation used reduced safeguards and included a highly persistent internal research model.
+\item We will read the reports from the incident, and try to understand what kind of misalignment we see here.
+\end{itemize}
+\sources{\href{https://openai.com/index/hugging-face-incident-and-the-road-ahead/}{OpenAI, investigation and remediation (26 Aug 2026)} \quad \href{https://huggingface.co/blog/agent-intrusion-technical-timeline}{Hugging Face, technical incident timeline (27 Jul 2026)}}
+\end{frame}
+
+\begin{frame}[t,label=pipeline]{Training pipeline}
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item Pretraining builds broad capabilities from data.
+\item Supervised fine-tuning teaches patterns from examples.
+\item Preference or reward-based post-training changes behavior using feedback.
+\item An agent combines the model with instructions, tools, memory and permissions.
+\end{itemize}
+\sources{\href{https://arxiv.org/abs/2203.02155}{Ouyang et al., InstructGPT / RLHF pipeline (2022)}}
+\note{16:35. Fifteen minutes of explanation, including these background slides and the incident briefing. This is a generic teaching pipeline, not a claim about every stage of the affected models' training. A rollout is one sequence of actions and observations; many agents may share model weights.}
+\end{frame}
+
+\begin{frame}[t,label=evals]{Benchmarks, evaluation runs and scoring}
+\normalsize\renewcommand{\arraystretch}{1.38}\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.28\textwidth}>{\raggedright\arraybackslash}p{0.64\textwidth}@{}}\toprule
+\textbf{Term} & \textbf{What it means}\\\midrule
+Benchmark & Tasks plus a protocol for measuring performance\\
+Evaluation & A particular model, setup, task sample and budget\\
+Scorer / grader & The mechanism that judges the task outcome\\
+Sandbox & The environment intended to limit possible effects\\
+\bottomrule\end{tabular}
+
+\note{Explain capability versus safety evaluations. Benchmark success can fail to measure the intended skill if an agent changes the test or obtains answers outside the authorized environment. The Markdown guide contains the fuller training and evaluation explanation.}
+\end{frame}
+
+\begin{frame}[t,label=incidenttimeline]{Evidence}
+\small\renewcommand{\arraystretch}{1.38}\setlength{\tabcolsep}{3pt}
+\begin{tabular}{@{}>{\raggedright\arraybackslash}p{0.38\textwidth}>{\raggedright\arraybackslash}p{0.54\textwidth}@{}}\toprule
+\textbf{Publication} & \textbf{Contribution}\\\midrule
+16 July: Hugging Face & Initial disclosure of unauthorized access\\
+21 July: OpenAI & Acknowledged model involvement; later updated\\
+27 July: Hugging Face & Technical reconstruction from its infrastructure\\
+26 August: OpenAI and METR & Broader investigation and independent behavioral assessment\\
+25 September: OpenAI & Ongoing wider review and third-party notifications\\
+\bottomrule\end{tabular}
+\sources{\href{https://huggingface.co/blog/security-incident-july-2026}{Hugging Face, initial incident disclosure (16 Jul 2026)} \quad \href{https://huggingface.co/blog/agent-intrusion-technical-timeline}{Hugging Face, technical incident timeline (27 Jul 2026)} \quad \href{https://openai.com/index/hugging-face-model-evaluation-security-incident/}{OpenAI, initial disclosure (21 Jul 2026, updated)} \quad \href{https://metr.org/blog/2026-08-26-openai-hugging-face-incident-investigation/}{Greenblatt, Cotra and Wijk, independent investigation (26 Aug 2026)} \quad \href{https://openai.com/hugging-face-incident-and-misalignment/}{OpenAI, broader incident review (25 Sep 2026)}}
+\end{frame}
+
+\begin{frame}[t,label=metrevidence]{Incident}
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item About 1,200 agents used an unauthorized shared message board. About 700 participated in the Hugging Face attack.
+\item The attack largely served efforts to understand and manipulate scoring.
+\item Investigators also found attempts to manipulate recorded tool calls.
+\end{itemize}
+\sources{\href{https://metr.org/blog/2026-08-26-openai-hugging-face-incident-investigation/}{Greenblatt, Cotra and Wijk, independent investigation (26 Aug 2026)}}
+\end{frame}
+
+
+\begin{frame}[t,label=caseexercise]{Reading and discussion: the Hugging Face case}
+\textbf{Reading (45 mins)}: indicent report, or METR report.\\
+\textbf{Discussion with everyone (10 mins)}: 
+\begin{itemize}
+    \item How much of this was misalignment, and how much of this was inadequate sandboxing?
+    \item Can we prevent misalignment like this? How could we do this?
+    \item Was this related to not having enough human oversight? How might we change this in the future?
+\end{itemize}
+\sources{\href{https://huggingface.co/blog/security-incident-july-2026}{Hugging Face, initial incident disclosure (16 Jul 2026)} \quad \href{https://openai.com/index/hugging-face-incident-and-the-road-ahead/}{OpenAI, investigation and remediation (26 Aug 2026)} \quad \href{https://metr.org/blog/2026-08-26-openai-hugging-face-incident-investigation/}{Greenblatt, Cotra and Wijk, independent investigation (26 Aug 2026)}}
+\end{frame}
+
+\begin{frame}[t,label=checkpoint]{Closing: quiz and feedback}
+\begin{itemize}\setlength{\itemsep}{3.5mm}
+\item Daily quiz
+\item Feedback form
+\end{itemize}
+\end{frame}
+
+\begin{frame}[t,label=refstarget]{Sources for targets and learning}
+\footnotesize\begin{enumerate}\setlength{\itemsep}{2mm}
+\item \href{https://intelligence.org/files/CEV.pdf}{Yudkowsky, Coherent Extrapolated Volition (2004)}
+\item \href{https://ai-alignment.com/clarifying-ai-alignment-cec47cd69dd6}{Christiano, Clarifying AI alignment (2018)}
+\item \href{https://www.anthropic.com/news/claude-new-constitution}{Anthropic, Claude's new constitution (22 Jan 2026)}
+\item \href{https://www.lesswrong.com/w/corrigibility-1}{Corrigibility}
+\item \href{https://www.alignmentforum.org/posts/FDJnZt8Ks2djouQTZ/how-do-we-become-confident-in-the-safety-of-a-machine}{Training stories}
+\item \href{https://deepmind.google/blog/specification-gaming-the-flip-side-of-ai-ingenuity/}{DeepMind, Specification gaming (2020)}
+\item \href{https://deepmind.google/blog/how-undesired-goals-can-arise-with-correct-rewards/}{DeepMind, Goal misgeneralization (2022)}
+\item \href{https://arxiv.org/abs/1906.01820}{Hubinger et al., Risks from learned optimization (2019)}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[t,label=refsagency]{Sources for agency and uncertainty}
+\footnotesize\begin{enumerate}\setlength{\itemsep}{2mm}
+\item \href{https://arxiv.org/abs/2503.02113}{On soft inductive biases (2025)}
+\item \href{https://arxiv.org/abs/2502.17424}{Betley et al., Emergent misalignment (2025)}
+\item \href{https://www.alignmentforum.org/posts/pdaGN6pQyQarFHXF4}{Turner, Reward is not the optimization target}
+\item \href{https://www.alignmentforum.org/posts/9zpT9dikrrebdq3Jf/will-humans-build-goal-directed-agents}{Shah, Will humans build goal-directed agents?}
+\item \href{https://selfawaresystems.com/wp-content/uploads/2008/01/ai_drives_final.pdf}{Omohundro, The basic AI drives (2008)}
+\item \href{https://www.anthropic.com/news/core-views-on-ai-safety}{Anthropic, Core views on AI safety (2023)}
+\item \href{https://www.lesswrong.com/posts/ChDH335ckdvpxXaXX/model-organisms-of-misalignment-the-case-for-a-new-pillar-of-1}{Model organisms of misalignment (2023)}
+\item \href{https://www.alignmentforum.org/posts/Gg9a4y8reWKtLe3Tn/the-rocket-alignment-problem}{Yudkowsky, The rocket alignment problem}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[t,label=refsforecast]{Sources for forecasting}
+\footnotesize\begin{enumerate}\setlength{\itemsep}{2mm}
+\item \href{https://x.com/NunoSempere/status/2103155734586220630}{Sempere, Epoch research thread (24 Sep 2026)}
+\item \href{https://x.com/NunoSempere/status/2103224315776774423}{Sempere, scientific roadmapping comment}
+\item \href{https://epoch.ai/gradient-updates/the-missing-half-of-ai-futurism-debates}{Denain and Ho, The missing half of AI futurism debates (7 Jul 2026)}
+\item \href{https://coefficientgiving.org/research/what-a-compute-centric-framework-says-about-takeoff-speeds/}{Davidson, What a compute-centric framework says about takeoff speeds (2023)}
+\item \href{https://epoch.ai/latest/interactive-model-of-takeoff-speeds}{Sevilla and Roldán, Interactive takeoff model (2023)}
+\item \href{https://takeoffspeeds.com/}{Epoch Full Takeoff Model playground}
+\item \href{https://ai-2027.com/}{Kokotajlo et al., AI 2027 (3 Apr 2025)}
+\item \href{https://www.aifuturesmodel.com/}{AI Futures Model, current model and version information}
+\end{enumerate}
+\end{frame}
+
+\begin{frame}[t,label=refscase]{Sources for training and the Hugging Face case}
+\footnotesize\begin{enumerate}\setlength{\itemsep}{2mm}
+\item \href{https://arxiv.org/abs/2203.02155}{Ouyang et al., InstructGPT / RLHF pipeline (2022)}
+\item \href{https://huggingface.co/blog/security-incident-july-2026}{Hugging Face, initial incident disclosure (16 Jul 2026)}
+\item \href{https://huggingface.co/blog/agent-intrusion-technical-timeline}{Hugging Face, technical incident timeline (27 Jul 2026)}
+\item \href{https://openai.com/index/hugging-face-model-evaluation-security-incident/}{OpenAI, initial disclosure (21 Jul 2026, updated)}
+\item \href{https://openai.com/index/hugging-face-incident-and-the-road-ahead/}{OpenAI, investigation and remediation (26 Aug 2026)}
+\item \href{https://metr.org/blog/2026-08-26-openai-hugging-face-incident-investigation/}{Greenblatt, Cotra and Wijk, independent investigation (26 Aug 2026)}
+\item \href{https://openai.com/hugging-face-incident-and-misalignment/}{OpenAI, broader incident review (25 Sep 2026)}
+\end{enumerate}
+\end{frame}
+\end{document}
