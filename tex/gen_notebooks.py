@@ -63,7 +63,7 @@ CELL_HEADER = "# ! CELL TYPE:"
 NOTEBOOK_HEADER = "# ! NOTEBOOK:"
 # `# ! SOLUTIONS: <path>`: also publish ARENA's solutions module (every solution and
 # `py`-filtered cell, as plain Python) at <path> inside the published folder, e.g.
-# part6_goalmisgen/solutions.py when the support modules' tests import it.
+# <package>/solutions.py when the support modules' tests import it.
 SOLUTIONS_HEADER = "# ! SOLUTIONS:"
 SOLUTIONS_KEY = "solutions"  # its key in the parsed metadata and in metadata.iliad
 MAGIC = "#%! "  # prefix that keeps IPython magics (%pip, !ls, %%bash) valid Python in a master

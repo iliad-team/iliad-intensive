@@ -44,14 +44,14 @@ tex/
   Other `.py` files are ignored. Any number per slug; one notebook each.
 - **Names** become file and link names; spaces and a `_sol`/`_nosol` suffix are rejected.
 - **Helper modules** go in `support/` (a helper beside `main.tex` won't ship). It is
-  published as-is, so a package (`support/part6_goalmisgen/`) keeps its import name.
+  published as-is, so a package (`support/<package>/`) keeps its import name.
   Binaries in it use LFS.
 - **Fetch cell:** if a module has `support/` or a solutions module, each published
   notebook gets a second cell that sparse-clones its folder from the `notebooks` branch
   (or the PR preview's) onto `sys.path`. The local notebook instead starts with a marked
   cell adding `build/notebooks/<slug>/` to `sys.path`; sync-back skips it.
-- **Solutions module:** if support code imports ARENA's solutions module (D.2's
-  `tests.py` does), add `# ! SOLUTIONS: part6_goalmisgen/solutions.py` at the top. The
+- **Solutions module:** if support code imports ARENA's solutions module (an ARENA
+  `tests.py` usually does), add `# ! SOLUTIONS: <package>/solutions.py` at the top. The
   tool publishes it: every solution and `py`-filtered cell as plain Python,
   byte-identical to ARENA's output.
 - **`fig/` is shared** and already LFS-tracked for every image format at any depth.
@@ -374,21 +374,11 @@ diagram URLs pointed at `fig/` (PNGs copied, LFS). `main.mdx`'s two Colab links 
 `<NotebookNoSol name="compact_proofs">`. Keep the old repo's `build` branch and archive
 (don't delete) the repo, so shared Colab links keep working.
 
-**D.2 — done.**
-- `tex/policy-gradients-misgeneralization/goal_misgeneralisation.py` is D.2's master at
-  `main` 83147cc, scripted: first cell dropped,
-  `# ! SOLUTIONS: part6_goalmisgen/solutions.py` added, setup cell's clone of the old
-  `build` branch removed (`%pip install` and widget-manager lines kept).
-- `support/part6_goalmisgen/`: the nine files from `gen/support/part6_goalmisgen/`,
-  unchanged (two PNGs in LFS).
-- `main.mdx`'s Colab link became `<NotebookNoSol name="goal_misgeneralisation">`.
-- Verified: matches the old `build` branch cell for cell except header, fetch and setup
-  cells; `solutions.py` byte-identical.
-
-Still on the old repo: `slides-goalmisgen.tex` and the notebook link the pottery-shop
-game at `iliad-team.github.io/iliad-intensive-D.2/play.html` (archiving keeps Pages
-serving it). Its `goalmisgen-2.6-*` branches are merged into its `main`; its orphan
-`notebooks` branch is stale.
+**D.2 — moved to ARENA (2026-11-06).** The goal misgeneralisation coding material now lives
+in ARENA as [section 2.3.2](https://learn.arena.education/chapter2_rl/032_goal_misgen/)
+(ARENA-education/ARENA_materials#736), so D.2 links there, the same way its VPG half links
+ARENA 2.2.2. The notebook master `goal_misgeneralisation.py` and `support/part6_goalmisgen/`
+were removed; `main.mdx` keeps its pen-and-paper potential-shaping exercises.
 
 ## Generator
 
