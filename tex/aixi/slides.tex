@@ -157,7 +157,7 @@ $$
 The \textbf{optimal value} is $V_\nu^{*,m}(\aes_{<t}) := \sup_\pi V_\nu^{\pi,m}(\aes_{<t})$, with $V_\nu^* \equiv V_\nu^{*,\infty}$.%
 \pause
 \begin{itemize}
-    \item \textbf{Optimal value} $V_\nu^* := \sup_\pi V_\nu^\pi$; an optimal policy $\pi_\nu^*$ satisfies $V_\nu^{\pi_\nu^*} = V_\nu^*$.
+    \item \textbf{Optimal policy} $\pi_\nu^*$ satisfies $V_\nu^{\pi_\nu^*} = V_\nu^*$.
     \item \textbf{Bayes-optimal policy} $\pi_\xi^* \in \argmax_\pi V_\xi^\pi$: acts optimally w.r.t.\ the \emph{mixture} $\xi$.
 \end{itemize}
 \end{frame}
@@ -256,7 +256,8 @@ the Bayes-optimal agent secures at least a fraction proportional to the prior we
 
 \begin{frame}{Result 3: Self-optimizing property (stretch goal)}
 \begin{block}{Theorem}
-If \emph{some} policy can learn to act optimally in every $\nu\in\cM$, then $\pi_\xi^*$ does too:
+Let $\cM$ be finite and fix a historic policy $\pi$ generating the actions $a_{<t}$.
+If \emph{some} policy can learn to act optimally in every $\nu\in\cM$, then $\pi_\xi^*$ does too: for all $\mu\in\cM$,
 \[
 V_\mu^*(\aes_{<t}) - V_\mu^{\pi_\xi^*}(\aes_{<t}) \to 0 \quad \mu^\pi\text{-a.s.}
 \]
@@ -272,7 +273,13 @@ V_\mu^*(\aes_{<t}) - V_\mu^{\pi_\xi^*}(\aes_{<t}) \to 0 \quad \mu^\pi\text{-a.s.
 %     \item \textbf{Change of measure} (Markov inequality) transfers convergence between $\nu$ and $\mu$.
 % \end{itemize}
 % \pause
-\textbf{Intuition:} \emph{AIXI learns to play as well as the optimal agent that knows the true environment $\mu$.}
+% ERRATA 2026-11-09: theorem was missing "M finite" and the meaning of pi; the
+%   intuition claimed AIXI itself is self-optimizing, which is false for the universal class.
+\textbf{Intuition:} \emph{If the class is learnable at all, the Bayes-optimal agent learns to act as well as the agent that knows the true $\mu$.}
+\pause
+\begin{itemize}
+    \item \textbf{But not for AIXI:} the theorem needs $\cM$ finite. Over all computable environments AIXI explores too little and is \emph{not} asymptotically optimal~\citev{Orseau:13nonlearn,Leike:15badpriors}, though some other policies are (see the safety slides).
+\end{itemize}
 \end{frame}
 
 %========================= WRAP-UP ============================================
@@ -303,21 +310,103 @@ V_\mu^*(\aes_{<t}) - V_\mu^{\pi_\xi^*}(\aes_{<t}) \to 0 \quad \mu^\pi\text{-a.s.
     Total prediction error $\leq K(\mu)\ln 2$.
     \pause
     \item \textbf{AIXI} lifts this to action: the Bayes-optimal policy over the same universal mixture.
-    It learns to predict \emph{and} to act as well as if it knew the world.
+    Its value estimates converge on-policy, and it can't be fooled; but it explores too little to be guaranteed to act optimally in the limit.
     \pause
     \item \textbf{The catch:} both are \emph{incomputable} ($K$ is incomputable; $\cM$ is intractable to enumerate, the expectimax is intractable).
     They are gold standards, not computable algorithms, and the prior's $2^{-K(\nu)}$ hides a dependency
-    on the choice of universal Turing machine.
+    on the choice of universal Turing machine: a bad choice of UTM can make AIXI behave arbitrarily badly~\citev{Leike:15badpriors}.
     \pause
-    \item \textbf{Why care for safety:} a precise, assumption-light model of idealized 
-    intelligence providing a lens on what optimal agents do. For example, we
-    can show under what circumstances AIXI would \href{https://people.idsia.ch/~ring/AGI-2011/Paper-B.pdf}{wirehead}~\citev{Ring:11delusion},
     \item \textbf{Approximations:} \href{https://arxiv.org/abs/0909.0801}{MC-AIXI-CTW}~\citev{Veness:11mcaixi} gives an approximation using Context Tree Weighting to
-    replace $\xi$ and Monte-Carlo-Tree-Search to replace the expectimax. 
-    \href{https://arxiv.org/pdf/2006.03357}{safely rather than recklessly explore}~\citev{Cohen:20curiosity}, or
-    \href{https://link.springer.com/chapter/10.1007/978-3-642-22887-2_1}{self-modify}~\citev{Orseau:11selfmod}
-    as a model of what superintelligent agents would do.
+    replace $\xi$ and Monte-Carlo-Tree-Search to replace the expectimax.
 \end{itemize}
+\end{frame}
+
+\begin{frame}{Why care for safety? (I) What would an optimal agent do?}
+\small
+AIXI makes ``what does a capable, reward-maximizing agent want?'' a theorem-shaped question.
+\pause
+\begin{itemize}
+    \item \textbf{Reward hijacking.} Given a \href{https://people.idsia.ch/~ring/AGI-2011/Paper-B.pdf}{delusion box}, a reward maximizer uses it~\citev{Ring:11delusion}.
+    An agent planning in an unknown world, unable to rule out that \emph{the reward signal itself} is what it should optimize,
+    is incentivized to \href{https://doi.org/10.1002/aaai.12064}{intervene in the provision of reward}~\citev{Cohen:22intervene};
+    this argument underpins a \href{https://doi.org/10.1126/science.adl0625}{\emph{Science} policy paper} on long-term planning agents~\citev{Cohen:24regulating}.
+    \pause
+    \item \textbf{Tampering \& self-modification.} \href{https://arxiv.org/abs/1908.04734}{Causal influence diagrams} show which designs remove the incentive to tamper with the reward function~\citev{Everitt:21tampering};
+    agents that score futures with their \emph{current} utility \href{https://arxiv.org/abs/1605.03142}{preserve their goals}~\citev{Orseau:11selfmod,Everitt:16selfmod}.
+    \pause
+    \item \textbf{Shutdown is fragile.} Reading the missing mass of a semimeasure as ``death'', merely \emph{shifting} rewards turns AIXI from
+    \href{https://arxiv.org/abs/1606.00652}{suicidal to self-preserving}~\citev{Martin:16death}.
+    \href{https://arxiv.org/abs/2502.15820}{Power-seeking} also falls out as empowerment maximization~\citev{Hayashi:25empower}.
+    \pause
+    \item \textbf{Exploration vs.\ traps.} Asymptotic optimality is achievable (e.g.\ \href{https://arxiv.org/abs/1602.07905}{Thompson sampling}~\citev{Leike:16thompson}),
+    but only by trying everything: an asymptotically optimal agent is \href{https://arxiv.org/abs/2006.03357}{eventually destroyed or incapacitated}~\citev{Cohen:20curiosity}.
+    \pause
+    \item \textbf{The prior can be malign.} Simple programs that \emph{simulate reasoners} may steer the universal prior's predictions~\citev{Christiano:16malign}; still debated.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Why care for safety? (II) Mitigations and the bridge to LLMs}
+\small
+\begin{itemize}
+    \item \textbf{Myopia + boxing.} \href{https://arxiv.org/abs/1905.12186}{BoMAI} maximizes reward only within an episode, in a sealed room;
+    it is \emph{asymptotically unambitious}, i.e.\ indifferent to seizing outside power~\citev{Cohen:20bomai}.
+    \pause
+    \item \textbf{Pessimism + mentor.} Act on the \emph{worst} plausible world models and defer to a mentor otherwise;
+    the agent then \href{https://arxiv.org/abs/2006.08753}{rarely does anything unprecedented}~\citev{Cohen:20pessimism}, and
+    \href{https://arxiv.org/abs/2604.13609}{Golden Handcuffs} (subjective reward range $[-L,1]$) get sublinear regret vs.\ the mentor while
+    no simple unsafe event is triggered by the agent before the mentor~\citev{Ebtekar:26handcuffs}.
+    Same idea in \href{https://www.jmlr.org/papers/v23/21-0618.html}{conservative imitation}~\citev{Cohen:22imitation}
+    and in \href{https://proceedings.mlr.press/v286/bengio25a.html}{Bayesian harm guardrails}~\citev{Bengio:25oracle} for \href{https://arxiv.org/abs/2502.15657}{Scientist AI}~\citev{Bengio:25scientist}.
+    \pause
+    \item \textbf{LLMs as approximate Solomonoff.} Transformers meta-trained on UTM outputs
+    \href{https://arxiv.org/abs/2401.14953}{approximate the universal mixture}~\citev{GrauMoya:24universal};
+    prompting is then Bayesian conditioning, and \href{https://arxiv.org/abs/2505.17010}{some targets are unreachable by prompts alone}~\citev{Genewein:25prompt}.
+    Being KL-$\eta$ close to $\xi$ costs $O(\eta)$ on average but $\Theta(\eta/w_\mu)$ in environment $\mu$: worst in
+    \href{https://arxiv.org/abs/2610.29289}{rare, low-prior worlds}~\citev{Li:26approxSI}.
+    \pause
+    \item \textbf{Embedded agency.} AIXI sits outside its world and can't model itself~\citev{Wyeth:25embedded}.
+    Reflective oracles give \href{https://arxiv.org/abs/2508.16245}{a grain of truth for multi-agent play}~\citev{Wyeth:25grain}
+    and \href{https://arxiv.org/abs/2511.22226}{self-predicting universal agents}~\citev{Meulemans:25eupi}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Want to work on this? AIXI Labs}
+\begin{itemize}
+    \item \href{https://www.aixi.uk/}{\textbf{AIXI Labs}} (``AI X-risk Initiative''): an AI safety org founded in 2026 by
+    Cole Wyeth, Aram Ebtekar, Michael Cohen, Matthias Dellago and Marcus Hutter~\citev{AIXILabs:26}.
+    \pause
+    \item \textbf{Focus:} algorithmic information theory, continual RL, and AIXI. Stated agenda:
+    \begin{itemize}
+        \item strengthen the \emph{technical} case that ASI poses an existential risk;
+        \item prototype mitigations built on conservative AIXI variants (pessimism, corrigibility) and push frontier labs to adopt them;
+        \item port the AIXI analysis to LLM agents and test it empirically;
+        \item long-term deconfusion: learning in unrealizable environments, corrigibility.
+    \end{itemize}
+    \pause
+    \item Funded by UK AISI's Alignment Project; runs a research fellowship and is hiring.
+    For the worldview, read \href{https://www.lesswrong.com/posts/baP2osKGc4KmDoTET/the-aixi-perspective-on-ai-safety}{``The AIXI perspective on AI Safety''}~\citev{Wyeth:26perspective}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Further reading: the textbook}
+\begin{columns}[c]
+\begin{column}{0.36\textwidth}
+\centering
+\href{http://www.hutter1.net/ai/uaibook2.htm}{\includegraphics[height=0.78\textheight]{fig/uaibook2.jpg}}
+\end{column}
+\begin{column}{0.6\textwidth}
+\textbf{An Introduction to Universal Artificial Intelligence}\\
+{\small Hutter, Quarel \& Catt, 2024~\citev{Hutter:24uaibook2}}
+\medskip
+\begin{itemize}
+    \item Today's material follows the book.
+    \item Gentle intro, late-undergrad level.
+    \item Covers prediction, agents, approximations and safety.
+    \item \href{http://www.hutter1.net/publ/uaibook2.pdf}{Free PDF} and
+    \href{http://www.hutter1.net/ai/suaibook.pdf}{lecture slides with exercises}.
+\end{itemize}
+\end{column}
+\end{columns}
 \end{frame}
 
 %========================= REFERENCES ==========================================
