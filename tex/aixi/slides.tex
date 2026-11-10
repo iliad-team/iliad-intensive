@@ -18,6 +18,9 @@
 % see tex/iliad-slides.sty). Local copy first, so this folder still compiles
 % when it is copied out of the repo.
 \IfFileExists{iliad-slides.sty}{\usepackage{iliad-slides}}{\usepackage{../iliad-slides}}
+\usepackage{multicol}
+% Compact References frame: no 1.5em spacer strut per bibliography entry.
+\makeatletter\patchcmd{\beamer@newblock}{1.5em}{0pt}{}{}\makeatother
 
 %====================== macros shared with the worksheets ======================
 \newcommand{\cA}{\mathcal{A}}
@@ -340,8 +343,8 @@ AIXI makes ``what does a capable, reward-maximizing agent want?'' a theorem-shap
     \pause
     \item \textbf{Exploration vs.\ traps.} Asymptotic optimality is achievable (e.g.\ \href{https://arxiv.org/abs/1602.07905}{Thompson sampling}~\citev{Leike:16thompson}),
     but only by trying everything: an asymptotically optimal agent is \href{https://arxiv.org/abs/2006.03357}{eventually destroyed or incapacitated}~\citev{Cohen:20curiosity}.
-    \pause
-    \item \textbf{The prior can be malign.} Simple programs that \emph{simulate reasoners} may steer the universal prior's predictions~\citev{Christiano:16malign}; still debated.
+    % \pause
+    % \item \textbf{The prior can be malign.} Simple programs that \emph{simulate reasoners} may steer the universal prior's predictions~\citev{Christiano:16malign}; still debated.
 \end{itemize}
 \end{frame}
 
@@ -410,11 +413,17 @@ AIXI makes ``what does a capable, reward-maximizing agent want?'' a theorem-shap
 \end{frame}
 
 %========================= REFERENCES ==========================================
-\begin{frame}[allowframebreaks]{References}
-\footnotesize
+\begin{frame}{References}
+\vspace*{-1.2em}
+\fontsize{4}{4.4}\selectfont
 \setbeamertemplate{bibliography item}[text]
+\setbeamertemplate{bibliography entry title}{ }\setbeamertemplate{bibliography entry location}{ }\setbeamertemplate{bibliography entry note}{ }
+\setlength{\columnsep}{1em}
+\begin{multicols}{4}
+\setlength{\parskip}{0pt}
 \bibliographystyle{alphaurl}
 \bibliography{biblo}
+\end{multicols}
 \end{frame}
 
 \end{document}
