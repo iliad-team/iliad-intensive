@@ -261,9 +261,9 @@ clusters:
         title: Policy Gradients and Misgeneralization
         lead: David Q
         doc: https://docs.google.com/document/d/1ZI_JIg_-CeMZpZKxlh8TdmVmn6CK3UIbIz_Wl-g9U8o/edit?tab=t.hu1actdm586n
-        source: missing
-        # Stub module: the recorded lecture only. The coding-day material
-        # itself is still unported (see source above).
+        source: ready
+        # The coding material (VPG, goal misgeneralisation) lives in ARENA
+        # (2.2.2, 2.3.2); the worksheet links there.
         worksheets:
           - policy-gradients-misgeneralization
 

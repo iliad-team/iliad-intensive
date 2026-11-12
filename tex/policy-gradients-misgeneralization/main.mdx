@@ -52,12 +52,13 @@ Follow the provided link, and then through to the exercises on colab.
 
 ## Goal Misgeneralization
 
-Work through the provided <NotebookNoSol name="goal_misgeneralisation">colab notebook</NotebookNoSol> on Goal Misgeneralisation.
-* The network is again small, but some of the later runs might be slow without a GPU, so we would recommend against running this locally unless you have a GPU in your laptop.
+Work through [Section [2.3.2] of the ARENA program](https://learn.arena.education/chapter2_rl/032_goal_misgen/) on Goal Misgeneralisation.
+Follow the provided link, and then through to the exercises on colab.
+* The network is again small, but some of the later training runs are slow without a GPU, so we recommend running this on colab (or locally only if you have a GPU).
 
 ### Potential shaping
 
-The notebook shapes the reward with a potential function. These exercises show this cannot change the optimal policy.
+The ARENA material shapes the reward with a potential function. These exercises show this cannot change the optimal policy.
 
 <Definition id="def-potential">
 
@@ -164,7 +165,7 @@ $$
 
 <Exercise id="ex-shaping-pottery">
 
-**Exercise 5.** In the notebook, $\Phi = 0.5$ while holding a shard and $0$ otherwise. What shaping bonus does picking up a shard and dropping it again earn? What if we instead paid $+0.5$ per `PICKUP`?
+**Exercise 5.** In the ARENA material, $\Phi = 0.5$ while holding a shard and $0$ otherwise. What shaping bonus does picking up a shard and dropping it again earn? What if we instead paid $+0.5$ per `PICKUP`?
 
 </Exercise>
 
