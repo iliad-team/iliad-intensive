@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002F[cluster]\u002F[slug]","\u002Fintensives\u002F[intensive]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()

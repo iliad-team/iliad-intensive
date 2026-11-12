@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 380" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M0,0 L10,5 L0,10 z" fill="#0E7C66"/>
+    </marker>
+  </defs>
+
+  <!-- ===== LEFT PANEL: r ===== -->
+  <text x="170" y="36" text-anchor="middle" font-size="22" fill="#0f172a" font-weight="700">goal r</text>
+  <line x1="44" y1="300" x2="298" y2="300" stroke="#94a3b8" stroke-width="2"/>
+
+  <rect x="70"  y="128" width="46" height="172" fill="#2563eb"/>
+  <rect x="148" y="240" width="46" height="60"  fill="#d97706"/>
+  <rect x="226" y="232" width="46" height="68"  fill="#cbd5e1"/>
+
+  <text x="93"  y="322" text-anchor="middle" font-size="18" fill="#0f172a">B</text>
+  <text x="171" y="322" text-anchor="middle" font-size="18" fill="#0f172a">G&#8321;</text>
+  <text x="249" y="322" text-anchor="middle" font-size="18" fill="#0f172a">G&#8322;</text>
+
+  <text x="93"  y="118" text-anchor="middle" font-size="20" fill="#2563eb">&#9733;</text>
+  <text x="171" y="352" text-anchor="middle" font-size="17" fill="#b45309" font-weight="700">forgo (a&#8242;) wins</text>
+
+  <!-- ===== SWAP ARROW ===== -->
+  <path d="M312,165 C360,132 400,132 448,165" fill="none" stroke="#0E7C66" stroke-width="3" marker-end="url(#ar)"/>
+  <text x="380" y="128" text-anchor="middle" font-size="18" fill="#0E7C66" font-weight="700">&#966; : swap B &#8596; G&#8321;</text>
+
+  <!-- ===== RIGHT PANEL: phi.r ===== -->
+  <text x="590" y="36" text-anchor="middle" font-size="22" fill="#0f172a" font-weight="700">&#966;&#183;r</text>
+  <line x1="462" y1="300" x2="716" y2="300" stroke="#94a3b8" stroke-width="2"/>
+
+  <rect x="490" y="240" width="46" height="60"  fill="#2563eb"/>
+  <rect x="568" y="128" width="46" height="172" fill="#d97706"/>
+  <rect x="646" y="232" width="46" height="68"  fill="#cbd5e1"/>
+
+  <text x="513" y="322" text-anchor="middle" font-size="18" fill="#0f172a">B</text>
+  <text x="591" y="322" text-anchor="middle" font-size="18" fill="#0f172a">G&#8321;</text>
+  <text x="669" y="322" text-anchor="middle" font-size="18" fill="#0f172a">G&#8322;</text>
+
+  <text x="591" y="118" text-anchor="middle" font-size="20" fill="#d97706">&#9733;</text>
+  <text x="591" y="352" text-anchor="middle" font-size="17" fill="#0E7C66" font-weight="700">gain (a) wins</text>
+</svg>
