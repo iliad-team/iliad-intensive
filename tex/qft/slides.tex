@@ -1,12 +1,20 @@
 % slides.tex — the slide deck for the Physics of Deep Learning worksheet.
 %
 % Three lectures, stacked into one beamer document: Part I (Bayesian learning
-% and phase transitions), Part II (networks at large width), Part III (neural
-% scaling laws). They were written for the September 2026 Iliad Intensive and
-% follow Sections 2, 3--5 and 7 of main.tex; the one-day teaching plan in
-% Section 0 of main.tex says how they were used. Any self-contained LaTeX works
-% here: the build compiles this file to slides.pdf and hosts it beside the
-% worksheet's downloads (never converted to MDX).
+% and phase transitions), Part II (scaling neural networks and feature
+% learning), Part III (neural scaling laws). They were written for the
+% September 2026 Iliad Intensive and follow Sections 2, 3--5 and 7 of main.tex;
+% the one-day teaching plan in Section 0 of main.tex says how they were used.
+% The frames use \pause reveals; the \HANDOUT line below lets the website build
+% also produce a collapsed slides-handout.pdf (one page per frame). Any
+% self-contained LaTeX works here: the build compiles this file to slides.pdf
+% and hosts it beside the worksheet's downloads (never converted to MDX).
+%
+% Stacked from three per-part decks (slides-partI/II/III.tex) that live outside
+% the repo, in Tudor's Drive folder ML/NN-QFT/Iliad-notes/main. Do not add those
+% files here: the build would compile each slides-<label>.tex as a further deck
+% and the page would grow three more "Slides" rows.
+\ifdefined\HANDOUT\PassOptionsToClass{handout}{beamer}\fi
 \documentclass[11pt]{beamer}
 
 \usetheme{default}
@@ -25,6 +33,7 @@
 \newcommand{\R}{\mathbb{R}}
 \newcommand{\pd}{\partial}
 \newcommand{\hl}[1]{{\color{blue!60!black}\textbf{#1}}}
+\newcommand{\bl}[1]{{\color{blue}{#1}}}
 
 \author{Tudor Dimofte}
 \institute{Iliad Intensive (Sept. 2026)}
@@ -51,17 +60,17 @@
 
 %=====================================================================
 \begin{frame}{Questions about learning}
-  How and when are \hl{features} learned during training?
+  How and when are \hl{features} learned during training? \pause
   \begin{itemize}
     \item How to quantify? How to even \emph{define} features?
     \item How does this depend on architecture, \# parameters, training data, \dots
     \item How can we \emph{steer} learning, emergent capabilities, etc.?
-  \end{itemize}
+  \end{itemize} \pause
   \vspace{4mm}
 
   Physics-inspired approaches help identify \hl{approximations} in which
-  these questions can be studied, in a simple(r), quantitative, often
-  analytic way.
+  these questions can be studied, in a simpler, quantitative, (ideally)
+  analytic way. \pause
   \vspace{3mm}
 
   The approximations typically involve \hl{scaling} of some sort:
@@ -73,19 +82,19 @@
 
 \begin{frame}{Structure of the day}
 
-\hl{This lecture:} Bayesian learning and statistical mechanics. A common approximation scheme, with a particularly strong connection to physics. I'll mainly talk about physics, and ask you to apply the same ideas to learning in the exercises!
+\hl{This lecture:} Bayesian learning and statistical mechanics. A common approximation scheme, with a particularly strong connection to physics. I'll mainly talk about physics, and ask you to apply the same ideas to learning in the exercises! \pause
 
 \medskip
 
-\hl{Part II:} Behavior of neural networks at large values of hyperparameters (especially: large width). 
+\hl{Part II:} Behavior of neural networks at large values of hyperparameters (especially: large width).  \pause
 
 \medskip
 
-\hl{Part III:} Neural scaling laws -- one of the simplest robust empirical observations that any theoretical model needs to be able to explain.
+\hl{Part III:} Neural scaling laws -- one of the simplest robust empirical observations that any theoretical model needs to be able to explain. \pause
 
 \medskip
 
-\hl{Part IV:} (if there's time) Reading \& discussing a recent survey on the science of deep learning.
+\hl{Part IV:}  Reading \& discussing a recent survey on the science of deep learning.
 \end{frame}
 
 
@@ -93,9 +102,9 @@
 %=====================================================================
 \begin{frame}{Statistical mechanics \& statistical learning}
   We initialize networks randomly:
-  \[ \theta \sim \pi \qquad (\theta = \text{parameters},\ \#\theta = N)\,. \]
+  \[ \theta \sim \pi \qquad (\theta = \text{parameters},\ \#\theta = N)\,. \]  \pause
   Then we train with some version of gradient descent, roughly
-  \[ \Delta\theta \approx -\eta\, \nabla_\theta L(\theta)\,. \]
+  \[ \Delta\theta \approx -\eta\, \nabla_\theta L(\theta)\,. \]  \pause
   \vspace{1mm}
 
   A common approximation to GD is \hl{Bayesian learning}
@@ -108,19 +117,42 @@
   \end{itemize}
 \end{frame}
 
+
+%=====================================================================
+\begin{frame}{Bayesian digression}
+
+Why is \quad  $p_\beta(\theta) \,\propto\, \underbrace{e^{-\beta L(\theta)}}_{\text{likelihood}}\, \underbrace{\pi(\theta)}_{\text{prior}}$ \quad sensible?  \pause
+%
+\begin{itemize}
+\item The Bayesian prior $\pi(\theta)$ comes from the initialization of the network (blind to data). \pause
+\item The Bayesian likelihood of seeing a data sample $(x_i,y_i)$  (where $x_i$ = input, $y_i$=truth), given a model $f_\theta$, should be
+  \[ P_{\rm model}( (x_i,y_i)|\theta) = e^{-\ell(f_\theta(x_i),y_i)} \]
+\end{itemize} \pause
+Loss functions in neural networks are constructed to satisfy this! \pause
+\begin{itemize}
+\item MSE:   \quad $P_{\rm model}((x_i,y_i)|\theta) = e^{-\frac1{2\varepsilon} |f_\theta(x_i)-y_i|^2}$ \\
+ \hspace{1.2in} \bl{if ``truth'' $y_i$ has Gaussian noise $\mathcal N(0,\varepsilon)$}  \pause
+\item x-entropy: \quad $P_{\rm model}((x_i,y_i)|\theta) = f_\theta^{y_i}(x_i) = e^{-[-\log f_\theta^{y_i}(x_i)]}$ \\
+  \bl{$f_\theta(x_i) \in \R^k$ dist. over classes; $y_i\in\{1,...,k\}$ true class label} \pause
+\end{itemize}
+\medskip
+\[ \textstyle P_{\rm model}(\{(x_i,y_i)\}_{i=1}^n|\theta) = \prod_{i=1}^n P_{\rm model}( (x_i,y_i)|\theta) = e^{-\sum_{i=1}^n \ell(f_\theta(x_i),y_i)} \]
+
+\end{frame}
+
 %=====================================================================
 \begin{frame}{An interpretation of $\beta$}
   For $n$ samples $(x_i, y_i)_{i=1}^n$:
   \[
     L_n(\theta) = \sum_{i=1}^n \ell_i(\theta)\,,\qquad
     \ell_i(\theta) = \ell\big(f_\theta(x_i),\, y_i\big)\,,
-  \]
+  \] \pause
   \[
     L_n(\theta) = n \cdot \underbrace{\tfrac1n \sum_i
     \ell_i(\theta)}_{\text{finite as } n\to\infty}
     \;\approx\; n\, \bar L(\theta)\,,\qquad
     \bar L(\theta) = \E_{(x,y)\sim q}\, \ell\big(f_\theta(x), y\big)\,.
-  \]
+  \] \pause
   \vspace{1mm}
 
   For large $n$:
@@ -128,27 +160,29 @@
   \vspace{-.5cm}
   \begin{itemize}
     \item The effective parameter is $\beta' = n\beta$: \ \emph{more data
-      $=$ more training $=$ larger $\beta'$ =  ``colder.''}
+      $=$ more training $=$ larger $\beta'$ =  ``colder.''} \pause
     \item We'll often write $e^{-\beta \bar L}\pi$;  but remember
       $\beta\to\infty$ as $n\to\infty$.
   \end{itemize}
 \end{frame}
 
+
+
 %=====================================================================
 \begin{frame}{The analogy with thermal physics}
   Bayesian learning looks a lot like a \hl{thermal} system,
-  i.e.\ like near-equilibrium statistical mechanics:
+  i.e.\ like near-equilibrium statistical mechanics: \pause
   \vspace{-.5cm}
   \begin{center}
   \renewcommand{\arraystretch}{1.35}
   \begin{tabular}{r@{\;\;}c@{\;\;}l}
     $\theta$ \ ($\#\theta = N$) &$\leftrightarrow$& microscopic state of a system \\[-2pt]
-    && \footnotesize (velocities of $N$ gas particles; spins of $N$ electrons) \\
-    $L(\theta)$ &$\leftrightarrow$& energy $E(\theta)$ \ (or Euclidean action $S(\theta)$) \\
+    && \footnotesize (velocities of $N$ gas particles; spins of $N$ electrons) \\ \pause
+    $L(\theta)$ &$\leftrightarrow$& energy $E(\theta)$ \ (or Euclidean action $S(\theta)$) \\ \pause
     $p(\theta) \propto e^{-\beta L(\theta)}$ &$\leftrightarrow$& Boltzmann distribution:
       state of a system \\[-2pt]
     && that's been equilibrated with a bath at
-      $T = 1/\beta$ \\
+      $T = 1/\beta$ \\ \pause
   \end{tabular}
   \end{center}
   \vspace{2mm}
@@ -159,7 +193,7 @@
     e^{-\beta L(\theta)}\pi(\theta) = e^{-\beta \tilde L(\theta)}\,,\qquad
     \tilde L(\theta) \leftrightarrow E(\theta)\,.
   \]
-  \vspace{-.2cm}
+  \vspace{-.2cm} \pause
 
   The analogy opens up lots of useful \hl{methodology}.
 \end{frame}
@@ -170,20 +204,20 @@
   \[
     Z(\beta) = \int d\theta\; e^{-\beta E(\theta)}\,,\qquad
     p_\beta(\theta) = \tfrac1{Z(\beta)}\, e^{-\beta E(\theta)}\,.
-  \]
+  \]  \pause
   Suppose there are \hl{observables} $\mathcal O_i(\theta)$ whose expectation values
-  we want. Generalize with \hl{sources} $J$:
+  we want. \pause Generalize with \hl{sources} $J$:
   \[
     Z(\beta, J) = \int d\theta\; e^{-\beta E(\theta) + \sum_i J^i \mathcal O_i(\theta)}\,.
-  \]
+  \] \pause
   Then
   \[
-    \E(\mathcal O_i) = \frac{\pd}{\pd J^i}\log Z\Big|_{J=0}\,,\quad
+    \E(\mathcal O_i) = \frac{\pd}{\pd J^i}\log Z\Big|_{J=0}\,, \pause \quad
     \mathrm{Cov}(\mathcal O_i, \mathcal O_j) = \frac{\pd^2}{\pd J^i \pd J^j}\log Z\Big|_{J=0}\,,
-  \]
+  \] \pause
   and in general $\displaystyle \kappa^{(p)}(\mathcal O_{i_1},\dots,\mathcal O_{i_p}) =
   \pd_{J^{i_1}}\!\cdots\,\pd_{J^{i_p}} \log Z\big|_{J=0}$ is the $p$-th
-  \hl{cumulant}.
+  \hl{cumulant}. \pause
   \vspace{2mm}
 
   $F(\beta, J) := -\log Z(\beta, J)$ is the (sourced) \hl{free energy}:
@@ -199,33 +233,33 @@
     \mathrm{Var}(E) = -\pd_\beta^2 F\,,\qquad
     \kappa^{(3)}(E) = \pd_\beta^3 F\,,\ \dots
   \]
-  \emph{We'll see these derivatives of $F$ again in a little bit.}
+  \emph{We'll see these derivatives of $F$ again in a little bit.}  \pause
   \vspace{6mm}
 
-  The analogy with physics also opens up a bag of well-developed \hl{approximations}. We'll illustrate two in a classic physics example:
+  The analogy with physics also opens up a bag of well-developed \hl{approximations}. \pause We'll illustrate two in a classic physics example:
   \begin{itemize}
-  \item Mean-field approximation, to help connect microscopic (individual param.) and macroscopic (large-scale) observables.
+  \item Mean-field approximation, to help connect microscopic (individual param.) and macroscopic (large-scale) observables.  \pause
   \item Simplifications at large $N$ \\ ($N=$ \# parameters here, but other limits are similar)
-  \end{itemize}
+  \end{itemize} \pause
   We'll look at the \emph{Ising model}; see Tong's \emph{Statistical Field Theory} notes for more on the awesome physics of this example.
 \end{frame}
 
 %=====================================================================
 \begin{frame}{Physics example: the Ising model}
   $\Lambda$: a graph with $N$ vertices $\{i\}$ and undirected edges
-  $\{\langle ij\rangle\}$.
+  $\{\langle ij\rangle\}$.  \pause
   \vspace{1mm}
 
   At each vertex, place a ``spin'' $\theta_i \in \{\pm 1\}$: a system with
-  $2^N$ states, specified by $\theta_1, \dots, \theta_N$.
+  $2^N$ states, specified by $\theta_1, \dots, \theta_N$. \pause
   \[
-    E(\theta) \;=\; -J\!\!\sum_{\text{edges }\langle ij\rangle}\!\!
+    E(\theta) \;=\; -\frac{J}{2}\!\!\sum_{\text{edges }\langle ij\rangle}\!\!
     \theta_i\,\theta_j \;-\; B \sum_{\text{vxs } i} \theta_i
   \]
   \begin{itemize}
     \item $J$: coupling strength (alignment with neighbors)
     \item $B$: external magnetic field (alignment with the field)
-  \end{itemize}
+  \end{itemize}  \pause
   \vspace{2mm}
 
   An interesting observable: the \hl{magnetization}
@@ -242,24 +276,24 @@
 \begin{frame}{Mean-field approximation}
   We'd like to \hl{push forward} the distribution
   $p_\beta(\theta) \propto e^{-\beta E(\theta)}$
-  to a distribution $p_\beta(m)$ over the macroscopic $m$.
+  to a distribution $p_\beta(m)$ over the macroscopic $m$. \pause
   \vspace{2mm}
 
   Key: the \hl{mean-field approximation}. Suppose each spin $\theta_i$
   only feels the \emph{average} force of all other spins, not its
-  particular neighbors --- i.e.\ replace each spin's actual neighbor sum
-  by $d$ copies of the global average ($d$ = average \# of neighbors):
+  particular neighbors \pause --- i.e.\ replace each spin's actual neighbor sum
+  by $d$ copies of the global average $m$ (with $d$ = \# of neighbors):
   \[
-    \sum_{\langle ij\rangle} \theta_i\theta_j
+    \frac12 \sum_{\langle ij\rangle} \theta_i\theta_j
     \;=\; \frac12 \sum_i \theta_i
     \underbrace{\sum_{j\,\sim\, i}\theta_j}_{
       \textstyle \approx\ d\, m}
-    \;\approx\; \frac{d}{2}\, m \sum_i \theta_i
-  \]
+    \;\approx\; \frac{d}{2}\, m \sum_i \theta_i =N\, \frac{d}{2} m^2
+  \] \pause
   \[
     \Rightarrow\quad E(\theta) \;\approx\; -N\Big(\frac{dJ}{2}\,m^2 + Bm\Big)\,.
-  \]
-  Turns out to hold at large $N$ and large $d\gtrsim4$.
+  \] \pause
+  Turns out to hold at large $N$ and large $d\gtrsim4$. \pause
   Assuming this,
   \[
     Z(\beta, J, B) \;=\; \sum_{\{\theta\}} e^{-\beta E(\theta)}
@@ -272,19 +306,19 @@
 %=====================================================================
 \begin{frame}{Entropy, and the reduction to one variable}
   Counting states at fixed $m$: \
-  $\Omega(m) = \binom{N}{\frac{1+m}{2}N}$, and Stirling gives
+  $\Omega(m) = \binom{N}{\frac{1+m}{2}N}$, \pause and Stirling gives
   \[
     \log \Omega(m) \!\! \underset{N\to \infty}{\approx}\!\! N \underbrace{\Big[\log 2 - \tfrac12(1-m)\log(1-m)
     - \tfrac12(1+m)\log(1+m)\Big]}_{\textstyle h(m)}
-  \]
+  \] \pause
   $h(m) = \frac1N \log(\#\text{ available states})$ is the \hl{entropy}
-  (per-site) at magnetization $m$: the effective measure after switching variables.
+  (per-site) at magnetization $m$: the effective measure after switching variables. \pause
   \[
     Z(\beta, J, B) = \int_{-1}^{1} dm\;
     \underbrace{e^{\,N\beta\left[\frac{dJ}{2}m^2 + Bm + \beta^{-1} h(m)\right]}}_{
       \textstyle =:\ e^{-N\beta\, s(m)}}
   \]
-  $s(m)$: effective \hl{action}, or free-energy density at $m$.
+  $s(m)$: effective \hl{action}, or free-energy density at $m$. \pause
   \vspace{2mm}
 
   \begin{center}
@@ -297,14 +331,14 @@
   At large $N$, the integral concentrates around \hl{minima} of $s$
   (saddle-point approximation):
   \[
-    \frac{\pd s}{\pd m} = 0
+    \frac{\pd s}{\pd m} = 0 \pause
     \quad\Longrightarrow\quad
     dJ\,\bar m + B = \beta^{-1}\tanh^{-1}(\bar m)\,,
   \]
   \[
     \text{i.e.}\qquad
     \boxed{\ \bar m = \tanh\big(\beta\,(dJ\,\bar m + B)\big)\ }
-  \]
+  \] \pause
   Solve graphically, for various $\beta, J, B$:
   \begin{center}
     \includegraphics[width=\linewidth]{fig/slides-tanh.pdf}
@@ -335,8 +369,8 @@ If the mean-field approx. is consistent, we'd better find
 %=====================================================================
 \begin{frame}{Phases \& phase transitions}
   Analyze the structure of \hl{minima of $s(m)$} --- they control where
-  the probability density accumulates. Rich structure as $\beta, J, B$
-  are varied! Taylor-expanding $h(m) \approx \log 2 - \frac{m^2}{2}
+  the probability density accumulates. \pause Rich structure as $\beta, J, B$
+  are varied! \pause Taylor-expanding $h(m) \approx \log 2 - \frac{m^2}{2}
   - \frac{m^4}{12}$:
   \[
     s(m) \;\approx\; \mathrm{const} - B\,m
@@ -344,10 +378,10 @@ If the mean-field approx. is consistent, we'd better find
     + \tfrac{\beta^{-1}}{12}\, m^4 + \cdots
   \]
   Take $Jd > \beta^{-1}$ (coupling beats temperature: the system tries to
-  be \emph{ordered}, neighboring spins align. But which way?)
+  be \emph{ordered}, neighboring spins align. But which way?) \pause
   \begin{center}
     \includegraphics[width=0.95\linewidth]{fig/slides-wells.pdf}
-  \end{center}
+  \end{center} \pause
   They align \hl{with the magnetic field $B$}: \ $\bar m \approx -1$ for
   $B<0$, \ $\bar m \approx +1$ for $B>0$.
   This is a \hl{first-order phase transition} as $B$ crosses $B_c = 0$.
@@ -355,11 +389,12 @@ If the mean-field approx. is consistent, we'd better find
 
 %=====================================================================
 \begin{frame}{Features of a first-order transition}
-  The structure of this transition, as two isolated minima cross, is universal (independent of the model). Look at $\E(m) = \frac{1}{N\beta}\frac{\pd F}{\pd B}$:  \begin{center}
+  The structure of this transition, as two isolated minima cross, is universal (independent of the model). Look at $\E(m) = \frac{1}{N\beta}\frac{\pd F}{\pd B}$:  \pause
+  \begin{center}
     \includegraphics[width=0.9\linewidth]{fig/slides-firstorder.pdf}
-  \end{center}
+  \end{center} \pause
   As $N\to\infty$, the saddle-point approx. strongly prefers $m$ to sit in the lowest minimum, so $\mathbb E(m) =\beta^{-1} \partial_B (F/N)$ develops a discontinuity ---  the
-  \emph{definition} of a first-order phase transition.
+  \emph{definition} of a first-order phase transition. \pause
   The ``susceptibility'' $\chi := \pd_B \E(m) = \beta^{-1} \pd_B^2(F/N)$
   diverges to a $\delta$.
 \end{frame}
@@ -367,13 +402,13 @@ If the mean-field approx. is consistent, we'd better find
 %=====================================================================
 \begin{frame}{A second-order transition, too}
   An \emph{$n$-th order} phase transition $=$ discontinuity in the $n$-th
-  derivative of $F/N$, as $N\to\infty$.
+  derivative of $F/N$, as $N\to\infty$.  \pause
   \vspace{1mm}
 
   In the Ising model this happens at fixed $B = 0$ (symmetric minima), as the temperature $T = \beta^{-1}$ crosses $T_c = Jd$:
   \begin{center}
     \includegraphics[width=0.62\linewidth]{fig/slides-secondorder.pdf}
-  \end{center}
+  \end{center} \pause
   One basin deforms and splits: the order parameter $\E(m)$ moves
   \emph{continuously} but not smoothly ($\E(m) \propto (\beta-\beta_c)^{1/2}$).
 \end{frame}
@@ -386,10 +421,10 @@ If the mean-field approx. is consistent, we'd better find
     (*)\qquad
     \underbrace{n \to \infty}_{\text{samples / learning time}}
     \;\;\rightsquigarrow\;\;
-    \beta \to \infty \quad (T \to 0)\,.
+    \beta \to \infty \quad (T \to 0)\,.  \pause
   \]
   \begin{itemize}
-    \item In Ising, this sweep would see the \emph{second}-order transition.
+    \item In Ising, this sweep would see the \emph{second}-order transition.  \pause
     \item For \emph{first}-order transitions, when we \emph{dynamically}
       vary a parameter there is \hl{hysteresis}: transitions are
       delayed. (One dynamical analogue in neural networks: the
@@ -403,14 +438,14 @@ If the mean-field approx. is consistent, we'd better find
   \hl{Langevin equation}
   \[
     \dot\theta = -\nabla_\theta L(\theta) + T^{1/2}\, d\xi
-    \qquad (\text{Gaussian noise, variance $T$})\,.
+    \qquad (\text{Gaussian noise, variance $T$})\,.  \pause
   \]
   \begin{itemize}
     \item Starting from any sufficiently generic prior, at late training time ($t\to \infty$) this
       converges to $p(\theta) \propto e^{-\frac1T L(\theta)}$: one can
       ``Bayesian train'' a network in practice.
       
-      (More on this in Tong's \emph{Kinetic Theory} lectures.)
+      (More on this in Tong's \emph{Kinetic Theory} lectures.) \pause
     \item Alternatively, $T\to0$ at finite time $t$ produces gradient flow $\dot\theta = -\nabla_\theta L$.
     
     \medskip
@@ -481,20 +516,22 @@ If the mean-field approx. is consistent, we'd better find
 \end{frame}
 
 %=====================================================================
-\begin{frame}{Setup: the MLP}
-  A network with parameters $\theta\in\R^P$. Keep it simple: an
-  \hl{MLP} (fully-connected network), input $x \in \R^d$, $L$ hidden
-  layers each of width $N$, one output $f(x)$.
+\begin{frame}{Setup: MLP}
+  Consider networks with parameters $\theta\in\R^P$. \pause
+  
+  Keep it simple: focus on an
+  \hl{MLP} (fully-connected network), \\ input $x \in \R^d$, $L$ hidden
+  layers each of width $N$, one output $f(x)$. \pause
   \vspace{2mm}
 
   Pre-activations in layer $\ell$:
   \[
-    z^{(\ell)}_i = \sum_{j=1}^{N} w^{(\ell)}_{ij}\, \phi\big(z^{(\ell-1)}_j\big)\,,
+    z^{(\ell)}_i = \sum_{j=1}^{N} w^{(\ell)}_{ij}\, \phi\big(z^{(\ell-1)}_j\big)\,, \pause
     \quad\text{except}\quad
-    z^{(1)}_i = \sum_{j=1}^{d} w^{(1)}_{ij}\, x_j \ \ (\text{no } \phi)\,,
+    z^{(1)}_i = \sum_{j=1}^{d} w^{(1)}_{ij}\, x_j \ \ (\text{no } \phi)\,,\pause
   \]
   \[
-    f = z^{(L+1)} \qquad\text{so}\qquad
+    f = z^{(L+1)} \qquad\text{so}\qquad \pause
     \theta = \{w^{(1)}, \dots, w^{(L+1)}\}\,.
   \]
   \vspace{1mm}
@@ -505,7 +542,7 @@ If the mean-field approx. is consistent, we'd better find
 %=====================================================================
 \begin{frame}{Randomness at initialization}
   There is already randomness here, from random initialization:
-  $\theta \sim \pi(\theta)$ (some \emph{prior}).
+  $\theta \sim \pi(\theta)$ (some \emph{prior}).  \pause
   \vspace{2mm}
 
   \hl{Question:} how does the randomness propagate to the values
@@ -514,27 +551,27 @@ If the mean-field approx. is consistent, we'd better find
   \hl{push-forward distribution} on
   \[
     \big(f(x^1),\, \dots,\, f(x^k)\big)\ ?
-  \]
+  \] \pause
   \vspace{1mm}
 
   This simplifies greatly as $N\to \infty$.
   \vspace{1mm}
 
-  But exactly \emph{how} it simplifies depends strongly on $\pi$ (as well as how learning rate, $L$, etc. scale with $N$).
+ Exactly \emph{how} it simplifies depends strongly on $\pi$ (as well as how learning rate, $L$, etc. scale with $N$).
 \end{frame}
 
 %=====================================================================
-\begin{frame}{Lazy initialization (``fan-in norm'')}
-  \hl{Lazy init:} try to keep all pre-activations $z^{(\ell)} = O(1)$.
+\begin{frame}{Lazy initialization (``fan-in'')}
+  \hl{Lazy init:} try to keep all pre-activations $z^{(\ell)} = O(1)$. \pause
   \[
     z^{(\ell)}_i = \sum_{j=1}^{N} \underbrace{w^{(\ell)}_{ij}}_{N\ \text{random coeffts}}
     \underbrace{\phi\big(z^{(\ell-1)}_j\big)}_{O(1)}
-  \]
+  \] \pause
   \[
     \Longrightarrow\quad
     \text{take}\ \ w^{(\ell)}_{ij} \sim \frac{1}{\sqrt N}\,,\qquad
     w^{(1)}_{ij} \sim \frac{1}{\sqrt d}\,.
-  \]
+  \] \pause
   Let's implement this explicitly: for $\ell>1$ set
   \[
     z^{(\ell)}_i = \frac{1}{\sqrt N}\sum_{j=1}^N w^{(\ell)}_{ij}\,
@@ -546,25 +583,48 @@ If the mean-field approx. is consistent, we'd better find
 
 %=====================================================================
 \begin{frame}{Gaussian processes}
-  \textbf{Definition.} Given $\mu: \R^d \to \R$ and
-  $K: \R^d\times\R^d \to \R$ (the \hl{kernel}), a \hl{Gaussian process}
+  \textbf{Definition.}  A \hl{Gaussian process}
   is a random function $f: \R^d \to \R$ such that for any
-  $(x^1, \dots, x^k)$, the joint distribution of
-  $\big(f(x^1), \dots, f(x^k)\big)$ is Gaussian with mean
-  $\big(\mu(x^1), \dots, \mu(x^k)\big)$ and covariance matrix
-  \[
-    \begin{pmatrix}
-      K(x^1,x^1) & \cdots & K(x^1,x^k) \\
-      \vdots & & \vdots \\
-      K(x^k,x^1) & \cdots & K(x^k,x^k)
-    \end{pmatrix}.
-  \]
-  \vspace{1mm}
+  $(x^1, \dots, x^k)$, the joint distribution of \\
+  \hspace{1in} $\big(f(x^1), \dots, f(x^k)\big)$ \qquad  is Gaussian.  \pause
+  
+  \bigskip
+  
+  I.e. aside from the mean $\E(f(x^i))$ and covariance $\text{Cov}(f(x^i),f(x^j))$, all \emph{higher cumulants} of $f(x^i)$'s vanish. \pause
+  
+  \bigskip
+  
+ It's determined by two deterministic functions:
+ 
+ \[ \E(f(x)) =:\, \mu(x) \qquad \mu:\R^d\to \R \]
+ \[  \text{Cov}(f(x),f(x')) =: \; K(x,x') \qquad K: \R^d\times\R^d \to \R\quad  \text{the \hl{kernel}} \]
+  
+  \end{frame}
 
-  Equivalently: mean and covariance exist, but \emph{all higher
-  cumulants vanish} (recall the cumulants of Part I --- here the
-  observables are the $f(x^i)$ themselves).
-\end{frame}
+
+
+
+%=====================================================================
+%\begin{frame}{Gaussian processes}
+%  \textbf{Definition.} Given $\mu: \R^d \to \R$ and
+%  $K: \R^d\times\R^d \to \R$ (the \hl{kernel}), a \hl{Gaussian process}
+%  is a random function $f: \R^d \to \R$ such that for any
+%  $(x^1, \dots, x^k)$, the joint distribution of
+%  $\big(f(x^1), \dots, f(x^k)\big)$ is Gaussian  with mean
+%  $\big(\mu(x^1), \dots, \mu(x^k)\big)$ and covariance matrix
+%  \[
+%    \begin{pmatrix}
+%      K(x^1,x^1) & \cdots & K(x^1,x^k) \\
+%      \vdots & & \vdots \\
+%      K(x^k,x^1) & \cdots & K(x^k,x^k)
+%    \end{pmatrix}.
+%  \] 
+%  \vspace{1mm}
+%
+%  Equivalently: mean and covariance exist, but \emph{all higher
+%  cumulants vanish} (recall the cumulants of Part I --- here the
+%  observables are the $f(x^i)$ themselves).
+%\end{frame}
 
 %=====================================================================
 \begin{frame}{Theorem: lazy init $\Rightarrow$ Gaussian process}
@@ -575,7 +635,9 @@ If the mean-field approx. is consistent, we'd better find
     K^{(\ell+1)}(x,x') =  \E_{z\,\sim\, K^{(\ell)}}
     \Big[\phi\big(z(x)\big)\,\phi\big(z(x')\big)\Big]\,,
   \]
-  with base case $K^{(1)}(x,x') =  \frac{1}{d}x\cdot x'$.
+  with base case $K^{(1)}(x,x') =  \frac{1}{d}x\cdot x'$. \pause
+  
+  \smallskip 
   \emph{Sketch:} the first layer is a sum of Gaussians --- exactly
   Gaussian, with kernel $K^{(1)}$. Induct on layers:
   \emph{conditioned} on layer $\ell$, the $z^{(\ell+1)}_i$ are i.i.d.\
@@ -583,14 +645,14 @@ If the mean-field approx. is consistent, we'd better find
   $\widehat K^{(\ell)} = \frac{1}{N}\sum_j
   \phi(z_j^{(\ell)}(x))\,\phi(z_j^{(\ell)}(x'))$.
   Key: as $N\to\infty$ its variance $\to 0$, so it becomes
-  \emph{deterministic} --- and Gaussianity propagates.
+  \emph{deterministic} --- and Gaussianity propagates.  \pause
   \vspace{2mm}
 
   The recursion has an analytic form for $\phi = \mathrm{ReLU}$ and
-  $\mathrm{erf}$.
+  $\mathrm{erf}$. \pause
   \vspace{1mm}
 
-  {\footnotesize (There is also a slick physics derivation by path
+  {\footnotesize (There is also a ``physics'' derivation by path
   integrals --- left as an exercise for those who like them; see the
   long notes, \S3.)}
 \end{frame}
@@ -602,11 +664,11 @@ If the mean-field approx. is consistent, we'd better find
   \[
     z^{(1)}_i(x) = \frac{1}{\sqrt d}\sum_{j=1}^{d} w^{(1)}_{ij}\, x_j\,,
     \qquad w^{(1)}_{ij} \sim \mathcal N(0,1)\ \ \text{i.i.d.}
-  \]
+  \] \pause
   For fixed $i$, this is a linear combination of independent Gaussians
   with \emph{fixed} coefficients $x_j/\sqrt d$ --- so
   $\big(z^{(1)}_i(x^1), \dots, z^{(1)}_i(x^k)\big)$ is \hl{exactly
-  jointly Gaussian} (no large-$N$ limit needed), with mean zero and
+  jointly Gaussian} (no large-$N$ limit needed), with mean zero \pause and
   kernel
   {\small
   \[
@@ -615,8 +677,9 @@ If the mean-field approx. is consistent, we'd better find
     \underbrace{\E\big[w^{(1)}_{ij} w^{(1)}_{ij'}\big]}_{
     \delta_{jj'}}
     =  \frac{x\cdot x'}{d}\,.
-  \]}
-  Moreover, distinct neurons $i \neq i'$ use \emph{disjoint} sets of
+  \]} \pause
+ 
+ Moreover, distinct neurons $i \neq i'$ use \emph{disjoint} sets of
   weights, so the $z^{(1)}_i$ are i.i.d.\ across $i$: layer 1 is $N$
   independent copies of one Gaussian process.
 \end{frame}
@@ -624,7 +687,7 @@ If the mean-field approx. is consistent, we'd better find
 %=====================================================================
 \begin{frame}{Proof sketch, II: induction on layers}
   \emph{Inductive hypothesis:} as $N\to\infty$, the $z^{(\ell-1)}_j$
-  become i.i.d.\ GPs with deterministic kernel $K^{(\ell-1)}$.
+  become i.i.d.\ GPs with deterministic kernel $K^{(\ell-1)}$. \pause
 
   \hl{Conditioned} on layer $\ell-1$, the coefficients
   $\phi\big(z^{(\ell-1)}_j\big)$ are frozen, so
@@ -635,7 +698,8 @@ If the mean-field approx. is consistent, we'd better find
   \[
     \widehat K^{(\ell)}(x,x') = \frac{1}{N}\sum_{j=1}^{N}
     \phi\big(z^{(\ell-1)}_j(x)\big)\,\phi\big(z^{(\ell-1)}_j(x')\big)\,.
-  \]}
+  \]} \pause
+  
   \emph{Un}-conditionally, $\widehat K^{(\ell)}$ is a \hl{random
   variable} --- but an average of $N$ i.i.d.\ $O(1)$ terms (by the
   inductive hypothesis), so
@@ -647,8 +711,8 @@ If the mean-field approx. is consistent, we'd better find
     =  \E_{z \sim K^{(\ell-1)}}
     \big[\phi\big(z(x)\big)\,\phi\big(z(x')\big)\big]
     = K^{(\ell)}(x,x')\,.
-  \]}
-  \hl{Key:} as $N\to\infty$ the variance $\to 0$: the kernel becomes
+  \]} \pause
+  \noindent \hl{Key:} as $N\to\infty$ the variance $\to 0$: the kernel becomes
   \emph{deterministic}. A Gaussian mixture with deterministic kernel is
   Gaussian --- and the neurons, coupled only through
   $\widehat K^{(\ell)}$, stay independent: Gaussianity propagates.
@@ -656,24 +720,24 @@ If the mean-field approx. is consistent, we'd better find
 
 %=====================================================================
 \begin{frame}{Lesson --- and the $L/N$ expansion}
-  \hl{Lesson:} the $N\to\infty$ limit with lazy init is \emph{boring} (but tractable!) at
-  init. It also turns out boring(ish) in training.
+  \hl{Lesson:} the $N\to\infty$ limit with lazy init is tractable at
+  init. It also turns out boring(ish) in training.  \pause
   \vspace{1mm}
 
   \hl{But:} the $N\to\infty$ limit does \emph{not} commute with
   $L\to\infty$. If $L$ is large, each successive layer gets larger
-  fluctuations in its kernel, and they don't die off.
+  fluctuations in its kernel, and they don't die off. \pause
   \vspace{1mm}
 
   Hanin, Roberts--Yaida: for $N, L \to\infty$ networks the relevant
-  expansion parameter is $\boxed{L/N}$. We've just analyzed $L/N = 0$.
+  expansion parameter is $\boxed{L/N}$. We've just analyzed $L/N = 0$. \pause
   \begin{itemize}
     \item \emph{Small} (but nonzero) $L/N$: no longer Gaussian ---
       cumulants $K^{(4)}(f(x^1), \dots, f(x^4))$ nonzero, but
       \emph{controllable}.
     \item \emph{Large} $L/N$: each successive cumulant is even larger;
       uncontrollable outputs.
-  \end{itemize}
+  \end{itemize} \pause
   \vspace{1mm}
 
   This translates to \hl{training} (SGD, GD, grad flow, even Bayesian):
@@ -689,9 +753,9 @@ If the mean-field approx. is consistent, we'd better find
 
 %=====================================================================
 \begin{frame}{Detour: gradient flow and the NTK}
-  To analyze training and quantify ``features'', we'll introduce a geometric object known as the Neural Tangent Kernel (NTK).
+  To analyze training and quantify ``features'', we'll introduce a geometric object known as the Neural Tangent Kernel (NTK). 
   
-  (Jacot, Gabriel, Hongler 2018)
+  (Jacot, Gabriel, Hongler 2018) \pause
 
 \bigskip
 
@@ -701,23 +765,24 @@ If the mean-field approx. is consistent, we'd better find
   \[
     \frac{dx^a}{dt} = -\,g^{ab}(x)\,\frac{\pd h}{\pd x^b}
     \qquad\text{(the flow of the vector field } -g^{-1}(dh)\text{)}\,.
-  \]
-  You \emph{need} a metric to define gradient flow, descent, etc.
+  \]  \pause
+  You \emph{need} a metric to define gradient flow, descent, etc.  \pause
   \vspace{2mm}
 
   In the parameter space of neural networks, the metric is assumed to be
   \hl{Euclidean}: $g_\theta = \delta_{ij}\, d\theta^i d\theta^j$.
-  \ (First source of inductive bias!)
   \vspace{1mm}
 
-  Training (as gradient flow) is $\ \dot\theta^i = -\,\delta^{ij}\pd_j L(\theta)$.
+  Training (as gradient flow) is $\ \dot\theta^i = -\,\delta^{ij}\pd_j L(\theta)$.  \pause
+  
+  \hspace{1in} (First source of inductive bias!)
 \end{frame}
 
 %=====================================================================
 \begin{frame}{Push the flow to function space: the NTK}
   Suppose $\{x^\mu\}_{\mu=1}^n$ are fixed inputs, with network outputs
-  $f^\mu = f_\theta(x^\mu)$ and ``truth'' values $y^\mu$. Push forward
-  the flow from $\theta\in\R^P$ to $\{f^\mu\}\in\R^n$: the standard
+  $f^\mu = f_\theta(x^\mu)$ and ``truth'' values $y^\mu$.  \pause Push forward
+  the flow from $\theta\in\R^P$ to $\{f^\mu\}\in\R^n$: \pause the standard
   coordinate transformation of the \emph{inverse metric} gives
   \[
     \delta^{ij}\ \text{on}\ \R^P
@@ -725,18 +790,19 @@ If the mean-field approx. is consistent, we'd better find
     \Theta^{\mu\nu} = \frac{\pd f^\mu}{\pd\theta^i}\,\delta^{ij}\,
     \frac{\pd f^\nu}{\pd\theta^j}
     = \nabla_\theta f^\mu \cdot \nabla_\theta f^\nu\ \text{on}\ \R^n\,,
-  \]
+  \] \pause
   \[
     \dot\theta = -\nabla_\theta L
     \quad\rightsquigarrow\quad
     \dot f^\mu = - \,\underbrace{\Theta^{\mu\nu}}_{\text{\hl{NTK}}}\ \underbrace{\pd_{f^\nu} L}_{\text{residual}}\,.
-  \]
+  \] \pause
   Compactly, $\Theta = J J^{\!\top}$ with $J = \nabla_\theta f$ the
-  Jacobian.
+  Jacobian. \pause
   
+  \smallskip
    For MSE loss
    \[ L = \frac12\sum_\mu |f^\mu - y^\mu|^2\quad\Rightarrow\quad
-  \pd_{f^\mu}L = f^\mu - y^\mu =: \Delta^\mu \,. \] 
+  \pd_{f^\mu}L = f^\mu - y^\mu =: \Delta^\mu \,. \]  \pause
 
   \emph{``The NTK controls the geometry of optimization.''}
 \end{frame}
@@ -749,15 +815,15 @@ If the mean-field approx. is consistent, we'd better find
     J = U\,\Lambda\, V^{\!\top}\,,\qquad
     \Lambda = \big(\,\mathrm{diag}(\sqrt{\lambda_1}, \sqrt{\lambda_2},
     \dots)\ \big|\ 0\,\big)\,.
-  \]
+  \] \pause
   \begin{itemize}
     \item columns of $V$: modes in \emph{parameter} space;
     \item columns of $U$: modes in \emph{function values} $\to$
-      \hl{``features''};
+      \hl{``features''};  \pause
     \item $\Theta = JJ^{\!\top} = U\,\Lambda\Lambda^{\!\top} U^{\!\top}$:
       the features are the \hl{eigenvectors of the NTK}, with
       eigenvalues $\lambda_k$.
-  \end{itemize}
+  \end{itemize} \pause
   \vspace{2mm}
 
   This is a commonly used theoretical notion of \emph{feature}.
@@ -774,17 +840,17 @@ If the mean-field approx. is consistent, we'd better find
 %=====================================================================
 \begin{frame}{How big is the NTK, in lazy scaling?}
 
-Back to training at large $N$! What does the NTK look like?
+Back to training at large $N$! What does the NTK look like?  \pause
 
 \medskip
 
   Try $L = 1$:\quad
   $\displaystyle f(x) = \frac{1}{\sqrt N}\sum_{i=1}^N c_i\,\phi(a_i\cdot x)$,
-  \quad $a, c \sim \mathcal N(0,1)$.
+  \quad $a, c \sim \mathcal N(0,1)$.  \pause
   \[
     \nabla f = \frac{1}{\sqrt N}\bigoplus_i \Big(\phi(a_i\cdot x)\,,\
     c_i\,\phi'(a_i\cdot x)\, x\Big)
-  \]
+  \]  \pause
   \vspace{-.3cm}
   {\small
   \[
@@ -792,10 +858,10 @@ Back to training at large $N$! What does the NTK look like?
     \Big[\phi(a_i\cdot x^\mu)\,\phi(a_i\cdot x^\nu)
     + c_i^2\,\phi'(a_i\cdot x^\mu)\,\phi'(a_i\cdot x^\nu)\;
     x^\mu\!\cdot x^\nu\Big] = O(1)\,.
-  \]}
+  \]}  \pause
   Similarly, at finite depth $L$ and large $N$ (with the $1/\sqrt N$'s
   explicit): $\Theta = $ sum of $L$ terms, each $O(1)$ --- so
-  $\Theta = O(1)$, positive-definite.
+  $\Theta = O(1)$, positive-definite.  \pause
   \vspace{2mm}
 
   {\footnotesize \hl{Warning:} in the $w \sim \mathcal N(0, \frac1N)$ parametrization one
@@ -807,22 +873,23 @@ Back to training at large $N$! What does the NTK look like?
 \end{frame}
 
 %=====================================================================
-\begin{frame}{Theorem: lazy training is lazy}
+\begin{frame}{Theorem: lazy learning}
   \textbf{Theorem} (Du et al., Jacot et al., \dots). Fix depth, data,
   and a sufficiently overparametrized lazy network, trained by gradient
-  flow with the scalings above. Despite the fact that $f^\mu = O(1)$
-  moves and fits the data:
+  flow with the scalings above. Then, during \emph{training}: \pause
+  %Despite the fact that $f^\mu = O(1)$
+  %moves and fits the data:
   \begin{itemize}
     \item The network \hl{linearizes} around initialization:
       \[
         f_\theta(x) = f_{\theta_0}(x)
         + (\theta - \theta_0)\cdot \nabla_\theta f(x)\big|_{\theta_0}
         + O\Big(\tfrac{1}{\sqrt N}\Big)\,;
-      \]
+      \] \pause
     \item the NTK \hl{freezes}:
       $\displaystyle \frac{\|\dot\Theta\|}{\|\Theta\|} =
-      O\Big(\frac{1}{\sqrt N}\Big)\,;$
-    \medskip
+      O\Big(\frac{1}{\sqrt N}\Big)\,;$     \pause
+    \medskip  
     \item $f(x^\mu) \to y^\mu$ \emph{exponentially fast} in training
       time, with rates determined by the spectrum of $\Theta$.
   \end{itemize}
@@ -835,16 +902,16 @@ Back to training at large $N$! What does the NTK look like?
       big matrix, but \emph{sparse} --- block-diagonal per neuron, each
       block carrying the explicit $\tfrac{1}{\sqrt N}$. (In fact
       $O(\tfrac1N)$ after cancelling fluctuations, but $\tfrac{1}{\sqrt
-      N}$ is enough.)
+      N}$ is enough.)  \pause
     \item Taylor-expand: the quadratic term is
       $\|\Delta\theta\|^2\,\|\nabla^2 f\|_{\rm op} \approx O(1)\times
       O\big(\tfrac{1}{\sqrt N}\big)$, using $\|\Delta\theta\| =
       O(1)$ from $\|\dot\theta\| = \|\sum_\mu \Delta^\mu \nabla f^\mu\|
-      \sim \sqrt{\Theta} = O(1)$.
+      \sim \sqrt{\Theta} = O(1)$.   \pause
     \item $\|\dot\Theta\| \leq 2\,\|\nabla^2 f\|_{\rm op}\,
-      \|\dot\theta\|\,\|\nabla f\| \to 0$: the kernel freezes.
-    \item With $\Theta$ constant, the flow solves itself:
-      $\dot\Delta^\mu = -\Theta^{\mu\nu}\Delta_\nu$, so in the
+      \|\dot\theta\|\,\|\nabla f\| \to 0$: the kernel freezes.  \pause
+    \item With $\Theta$ constant,\; 
+      $\dot\Delta^\mu = -\Theta^{\mu\nu}\Delta_\nu$, \; so in the
       NTK eigenbasis ($\Theta = U\Lambda\Lambda^\top U^\top$)
       \[
         (U^{\!\top}\Delta)_k(t) = e^{-\lambda_k t}\,
@@ -864,14 +931,14 @@ Back to training at large $N$! What does the NTK look like?
   \vspace{1mm}
 
   {\footnotesize [The learning algorithm here is simple and well known:
-  \emph{kernel regression}.]}
+  \emph{kernel regression}.]}  \pause
   \vspace{4mm}
 
   This is \hl{not} a good model for actual neural networks, which
   \emph{change} their NTK (phase transitions!) to adapt to the training
-  data and generalize intelligently.
+  data and generalize intelligently. \pause
   
-  Remarkably, it's enough to predict some basic behavior (Part III).
+  Remarkably, it's enough to predict some basic behavior (Part III). \pause
   
   \vspace{3mm}
 
@@ -894,18 +961,18 @@ Back to training at large $N$! What does the NTK look like?
     f(x) = \frac1N \sum_{i=1}^N c_i\,\phi(a_i\cdot x)\,,\qquad
     c_i,\, a_{ij} \sim \mathcal N(0,1)\,,
   \]
-  and send $N\to\infty$. Main differences from the lazy regime:
+  and send $N\to\infty$.  \pause  Main differences from the lazy regime:
   \begin{itemize}
-    \item At init, $f(x) \to 0$: the Gaussian process \emph{collapses}.
+    \item At init, $f(x) \to 0$: the Gaussian process \emph{collapses}. \pause
     \item In training, $\Theta^{\mu\nu} = O\big(\tfrac1N\big)$ ---
       which \emph{forces} the learning rate to scale as $N$ for anything to happen:
       \[
         \dot\theta = -N\,\nabla_\theta L\,,\qquad
         \dot f^\mu = -N\,\Theta^{\mu\nu}\Delta^\nu\,.
-      \]
+      \] \pause
   \end{itemize}
   $\rightsquigarrow$ a nonlinear (in parameters) network, with an
-  \hl{adaptive NTK}. Why does the NTK move now?
+  \hl{adaptive NTK}.  \pause  Why does the NTK move now?
   \[
     \frac{|\dot\Theta|}{|\Theta|} \;\lesssim\;
     \underbrace{N}_{\text{l.r.}}\cdot\,
@@ -925,14 +992,14 @@ Back to training at large $N$! What does the NTK look like?
     = \frac1N \sum_{\mu=1}^n \Big[\frac{1}{2N}\sum_{i,j=1}^N
     g^\mu_i\, g^\mu_j
     - y^\mu \sum_{i=1}^N g^\mu_i\Big] + \text{const}
-  \]
+  \] \pause
   \emph{Same form as the mean-field approximation of Ising!} Weak
   all-to-all couplings, depending only on the \hl{averages}
   \[
     G^\mu = \frac1N\sum_i g^\mu_i\,:\qquad
     L = \cancel{\frac1N} \cdot N \sum_\mu \Big[\tfrac12 (G^\mu)^2 - y^\mu
-    G^\mu\Big]\,.
-  \]
+    G^\mu\Big]\,
+  \]  \pause
   \textbf{Theorem.} As $N\to\infty$, at all training times $t$, the
   distribution of particles converges,
   \[
@@ -1006,7 +1073,7 @@ Back to training at large $N$! What does the NTK look like?
   \vspace{-2mm}
   \begin{block}{Organizing question}
     The test loss of large models falls as a clean power law in every
-    resource spent on it. \ \emph{Where do the exponents come
+    resource spent on it.  \emph{Where do the exponents come
     from?}
   \end{block}
 \end{frame}
@@ -1025,8 +1092,8 @@ Back to training at large $N$! What does the NTK look like?
   \item \hl{$N$} $=$ parameters (non-embedding)
   \item \hl{$D$} $=$ dataset size (in tokens)
   \item $C$ $=$ training compute (in FLOPs).
-  \end{itemize}
-  (Note: for single-epoch training, $C\approx 6ND$, with $N$ \& $D$ optimally allocated.)
+  \end{itemize} \pause
+  (Note: for single-epoch training, $C\approx 6ND$, with $N$ \& $D$ optimally allocated.) 
    %
  % \footnote{\emph{Why $6ND$:} forward $\approx 2N$ FLOPs/token (one
   %multiply--add per parameter); backward $\approx 2\times$ forward
@@ -1059,12 +1126,12 @@ Back to training at large $N$! What does the NTK look like?
     images $8{\times}8$ & $0.24$ & $0.19$ \\
     video & $0.24$ & $0.14$ \\
     math (procedural) & $0.16$ & $0.17$
-  \end{tabular}
+  \end{tabular} 
   \end{center}
   \vspace{1mm}
   \begin{itemize}
     \item \hl{Data matters}: exponents vary by a factor of
-      $\sim\!3$--$5$ across modalities. 
+      $\sim\!3$--$5$ across modalities.   \pause
       %(Preview: Sharma--Kaplan explain
       %this as $\alpha_N \approx 4/d$, $d =$ \emph{intrinsic dimension}
       %of the data manifold --- language is high-$d$, hence slow.)
@@ -1077,9 +1144,9 @@ Back to training at large $N$! What does the NTK look like?
 
 %=====================================================================
 \begin{frame}{Joint laws and bottlenecks}
-  Single-resource laws assume the \emph{other} resources are unlimited.
-  Joint fits describe the crossover to being \hl{bottlenecked}: loss is
-  governed by whichever resource is scarcest. Two proposals:
+  Single-resource laws assume the \emph{other} resources are unlimited, with a single \hl{bottleneck}.
+  Joint fits describe the crossover between bottlenecks: loss is
+  governed by whichever resource is scarcest.  \pause Two proposals:
   \vspace{1mm}
 
   \hl{Kaplan et al.:}\quad
@@ -1093,12 +1160,12 @@ Back to training at large $N$! What does the NTK look like?
   $\displaystyle
     L(N, D) = E + \frac{N_c}{N^{\alpha_N}} + \frac{D_c}{D^{\alpha_D}}
     %L(N, D) = E + \frac{A}{N^{0.34}} + \frac{B}{D^{0.28}}
-  $
+  $  \pause
   \vspace{1mm}
 
   \begin{itemize}
-    \item $E$: data's intrinsic noise floor, irreducible entropy \\ ($\approx 1.69$ for text)
-    \item Both forms reduce to single-resource power laws as either $N$ or $D$ $\to\infty$, removing bottleneck.
+    \item $E$: data's intrinsic noise floor, irreducible entropy \\ ($\approx 1.69$ for text)  \pause
+    \item Both forms reduce to single-resource power laws as either $N$ or $D$ $\to\infty$, removing bottleneck.  \pause
     \item The difference matters for compute-optimal scaling: at fixed $C\approx 6ND$, how to balance $N$ and $D$?
   \end{itemize}
 \end{frame}
@@ -1113,13 +1180,13 @@ Back to training at large $N$! What does the NTK look like?
     Chinchilla 2022 &  $N \propto C^{0.5}$, \ $D \propto C^{0.5}$:
     %$N \propto C^{0.5}$, \ $D \propto C^{0.5}$:
     \emph{grow both equally} \\
-    & (rule of thumb: $\sim 20$ tokens per parameter)
+    & (rule of thumb: $\sim 20$ tokens per parameter)  \pause
   \end{tabular}
   \end{center}
   \vspace{1mm}
 
   \hl{Which is right?} Chinchilla's is now the accepted baseline.
- The discrepancy was analyzed \& understood by Porian et al.\ 2024.
+ The discrepancy was analyzed \& understood by Porian et al.\ 2024.  \pause
   
  %: Kaplan's fit
  % was skewed by last-layer/embedding compute accounting, too-long
@@ -1141,7 +1208,7 @@ Back to training at large $N$! What does the NTK look like?
 %=====================================================================
 \begin{frame}{Where do the laws come from?}
   Basic answer: the loss curve is reading off the \hl{coarse
-  distribution of structure in the data}: power laws in, power laws out.
+  distribution of structure in the data}: power laws in, power laws out.  \pause
   \vspace{2mm}
 
   \begin{columns}
@@ -1158,7 +1225,7 @@ Back to training at large $N$! What does the NTK look like?
       \includegraphics[width=0.88\linewidth]{fig/zipf.pdf}
     \end{column}
   \end{columns}
-  \vspace{1mm}
+  \vspace{1mm}  \pause
 
   \hl{Theoretical status:} many models derive the \emph{single-resource} laws from data structure (now fairly clear); a few derive
   \emph{multi-resource} laws. Still missing: the data's exponents from
@@ -1216,7 +1283,7 @@ Back to training at large $N$! What does the NTK look like?
       al.'s effective-kernel methods at finite width) and dynamical
       routes (DMFT) give matching exponents where they overlap.
       
-      \emph{Cf.} Part I ``two limits of one system''.
+     % \emph{Cf.} Part I ``two limits of one system''.
     \item Only the static (MRS) and dynamical (DMFT) field-theory models
       currently predict \emph{joint} laws --- and DMFT derives a
       Chinchilla-like compute-optimal frontier. But both of these work in a frozen-NTK regime.
@@ -1233,12 +1300,12 @@ Back to training at large $N$! What does the NTK look like?
   \begin{itemize}
     \item \textbf{QH1 (discreteness).} What a network learns decomposes
       into enumerable \hl{quanta} --- basic skills or facts (``carry
-      the one''). Each is fully learned or not at all.
+      the one''). Each is fully learned or not at all.  \pause
     \item \textbf{QH2 (ordered acquisition).} Models learn quanta in
-      order of decreasing usefulness: a given model knows the first $m$.
+      order of decreasing usefulness: a given model knows the first $m$.  \pause
     \item \textbf{QH3 (Zipfian use).} Quantum $k$ is \emph{used} on a
       fraction $p_k \propto k^{-(\alpha+1)}$ of data samples, and knowing it
-      reduces the loss there by a constant $\Delta$.
+      reduces the loss there by a constant $\Delta$.  \pause
   \end{itemize}
   So a model that has learned $m$ quanta has expected loss
   \[
