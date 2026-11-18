@@ -1,0 +1,482 @@
+% =============================================================================
+% tex/example-tex/main.tex — the worksheet TEMPLATE, LaTeX flavour.
+% (tex/example-mdx/main.mdx is the same skeleton in MDX. Pick one: a LaTeX
+% sheet also becomes a PDF; an MDX sheet is a web page only.)
+%
+% Two jobs. (1) A skeleton in the shape of the Iliad Intensive module
+% template (the Mega Doc's "Template" tab): copy this folder, paste your
+% material into the matching sections, delete what you don't need.
+% (2) A demo of every construct iliad.sty and the tex -> MDX pipeline
+% support, each used where a real sheet would use it.
+%
+% Start a new sheet:      cp -r tex/example-tex tex/<your-slug>
+% Then list <your-slug> under its day in schedule.yaml (the only other edit).
+% Build + preview:        ./run.sh watch <your-slug>
+% Reference:              docs/commands.md (every construct), docs/iliad-sty.md
+%
+% The `%` comments are instructions to you, the author: they never reach the
+% web page (the converter strips them) but they DO travel in the downloadable
+% .tex, so delete them as you fill each section in.
+% =============================================================================
+
+% ---- Metadata ---------------------------------------------------------------
+% A YAML block in comments. LaTeX ignores it; the converter lifts it into the
+% page frontmatter. Keys:
+%   title:     overrides \title{} on the web (optional).
+%   summary:   the sheet's OVERVIEW — one tight paragraph. The page header
+%              shows it under the title and it doubles as the index blurb, so
+%              it lives here, never as an "Overview" body section. Use the
+%              YAML folded scalar (`>-`) with continuation lines indented two
+%              spaces after the leading `% `.
+%   slides:    a deck hosted elsewhere (Drive FOLDER url, for a PDF with no
+%              source). A slides.tex / slides.typ in this folder is compiled
+%              and listed automatically — see slides.tex.
+%   unlisted:  maintainer flag — built, linked from nowhere. Remove it.
+% NOT here: cluster / day. schedule.yaml owns where a sheet sits in the course
+% and the build stamps both in; writing them here is a build error.
+%--- iliad -------------------------------------------------------------------
+% title: "Example Worksheet: The Kitchen Sink"
+% summary: >-
+%   A template worksheet in the shape of the module template, demonstrating
+%   every construct the pipeline supports: this paragraph is the overview,
+%   shown under the title and in the index.
+% # slides: https://drive.google.com/drive/folders/<folderId>
+% unlisted: true
+%--- end ----------------------------------------------------------------------
+\documentclass[11pt]{article}
+
+% The ONE required package. It provides: exercise, solution, hint, proof,
+% callout, remark, teachingnote, definition/theorem/lemma/proposition/
+% corollary/fact/example, learningoutcomes, solutionsonly, pdfonly, \youtube,
+% the \ifsolutions toggle, and loads hyperref+cleveref (configure hyperref
+% with \hypersetup{...}; don't re-load it). PDF styling is plain by default;
+% [boxes] gives the ready-made colour boxes matching the website.
+% Local copy first (Overleaf), else the shared ../iliad.sty:
+\IfFileExists{iliad.sty}{\usepackage[boxes]{iliad}}{\usepackage[boxes]{../iliad}}
+
+% \solutionsfalse   % uncomment to hide all solutions from your own PDF
+
+% ---- Free zone --------------------------------------------------------------
+% Define whatever notation you like; load extra packages as needed.
+% \newcommand macros become KaTeX macros automatically (avoid \mathchoice and
+% optional-argument macros — the converter warns if it can't translate one).
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\KL}[2]{D_{\mathrm{KL}}\!\left(#1 \,\middle\|\, #2\right)}
+\DeclareMathOperator*{\argmax}{arg\,max}
+
+% ---- Title and contributors -------------------------------------------------
+% \author{} is the Contributors section: everyone who wrote or taught the
+% material, with affiliation. The web byline reads "Name (Affiliation)".
+\title{Example Worksheet: The Kitchen Sink}
+\author{\authorname{Jane Doe}\\ \affiliation{Example University}
+  \and \authorname{John Roe}\\ \affiliation{Example Institute}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+% Optional. LaTeX's ToC in the PDF; an in-page Contents list on the web.
+\tableofcontents
+
+% ---- Front matter -----------------------------------------------------------
+% Every sheet opens in this fixed order (the build warns when one strays):
+%   1. video embeds (optional)   2. Prerequisites   3. the learning-outcomes
+%   box (= the module intent)  — then the content.
+% The overview is NOT a body section: it is the summary: in the metadata.
+
+% \youtube[Title]{VIDEO_ID} — the 11-character ID (the v= value of the watch
+% URL), never the full URL. Embedded player on the web; a "Video:" line with
+% the watch URL in the PDF. With no [Title] the build asks YouTube for it.
+% A lecture recording goes here, first. A video illustrating one point may
+% sit with that point instead.
+\youtube{dQw4w9WgXcQ}
+
+%===============================================================================
+\section{Prerequisites}
+\label{sec:prereqs}
+% What should a participant already know? Cover:
+%   - previous-module content (link the day: \href{/agency/aixi}{AIXI});
+%   - technical background, as abilities (doing proofs) and knowledge;
+%   - background assumptions or world-views that inform the content;
+%   - terminology assumed known.
+% Ordinary LaTeX — no special markup.
+
+\begin{itemize}
+  \item Comfort with probability on finite sets ($\E$, distributions on a
+        finite $\mathcal{X}$).
+  \item One variable of calculus: we differentiate $-t \log t$ once.
+  \item From \href{/foundations/prerequisites}{Prerequisites (day 0)}: big-$O$
+        notation and the idea of a bit.
+\end{itemize}
+
+%===============================================================================
+% ---- Module intent = the "What you'll learn" box ----------------------------
+% Three things: WHAT participants must leave with (if they don't get it, the
+% day failed); WHY it matters, connected to the goals of the whole intensive;
+% HOW the day gets them there — the story of the day, at a high level.
+% Two tests. Completeness: could a participant point a friend at this and say
+% "read this and you'll get the idea"? Teachability: does it let a teacher
+% short on time decide on the fly what to skip?
+% Anti-example: "Students understand entropy." (fails both tests.)
+%
+% The body is ordinary LaTeX: a single itemize, or groups under
+% \subsection*{...} headings (bold subheadings in the box, PDF and web). A
+% short sheet may drop the groups and keep one itemize.
+\begin{learningoutcomes}
+  \subsection*{What}
+  \begin{itemize}
+    \item Define the entropy of a distribution and compute it by hand for
+          small examples.
+    \item State and prove Gibbs' inequality, and use it to bound entropy.
+    \item Recognise every markup element the \LaTeX{} $\to$ web pipeline
+          supports, and copy this file as the starting point for a sheet.
+  \end{itemize}
+
+  \subsection*{Why}
+  Entropy is the unit of account for everything later in the course that
+  measures information: description length, KL divergence, mutual
+  information. A participant who cannot manipulate it fluently is stuck from
+  day two onwards.
+
+  \subsection*{How}
+  A morning lecture states the definitions and proves Gibbs' inequality; an
+  exercise session makes the participants reprove it and find the equality
+  case themselves; a reading and discussion block connects it to coding.
+\end{learningoutcomes}
+
+%===============================================================================
+\section{Roadmap for today}
+\label{sec:roadmap}
+% The time schedule: one line per sub-module, matching the sub-module
+% headings under Main content below. Keep the numbers REALISTIC and revise
+% them after teaching — a teacher uses this to know if they are on track.
+% A "Fast track" for the participant who has an hour, or missed the day, sits
+% under Content below.
+
+\begin{itemize}
+  \item 10:00 -- 11:00 \hyperref[sec:lecture]{Lecture: entropy}
+  \item 11:00 -- 11:15 Break
+  \item 11:15 -- 12:30 \hyperref[sec:exercises]{Exercise session}
+  \item 12:30 -- 13:30 Lunch
+  \item 13:30 -- 15:00 \hyperref[sec:reading]{Reading and discussion}
+  \item 15:00 -- 15:30 \hyperref[sec:checkpoint]{Daily checkpoint} and feedback form
+\end{itemize}
+
+% Teacher-facing material goes in a teachingnote: a dashed box in the PDF, a
+% collapsed drop-down on the web, so it stays out of the participant's reading
+% flow. The optional argument is its title (default "Teaching note").
+\begin{teachingnote}[Required materials]
+Projector and whiteboard. Print the exercise sheet without solutions
+(the \texttt{-nosol} PDF the site offers) for anyone who wants paper.
+\end{teachingnote}
+
+%===============================================================================
+\section{Content}
+\label{sec:content}
+% Mirrors the Mega Doc: Fast track, then Main content structured into
+% sub-modules, then Learn more (which the site puts LAST — see below).
+
+%-------------------------------------------------------------------------------
+\subsection{Fast track}
+\label{sec:fast-track}
+% The route through Main content that hits the most important learning
+% outcomes in about an hour — for the participant who missed the day, or the
+% one catching up. Point at specific sections, exercises and readings.
+
+To get the core in an hour: read \cref{def:entropy,thm:gibbs} and the proof,
+do \cref{ex:warmup}, then skim \cite[ch.~4]{MacKay:03}.
+
+%-------------------------------------------------------------------------------
+\subsection{Main content}
+\label{sec:main}
+% What is taught in the day (6.5 hours, 10:00–18:00), chronological, top to
+% bottom, self-contained. Structure it by SUB-MODULE: each distinct activity
+% — a lecture, an exercise session, a reading, a discussion, a guest lecture —
+% is its own \subsubsection, matching a line of the Roadmap. Every
+% sub-module opens with a one- or two-sentence INTENT in a teachingnote: what
+% it leads to, how, and its place in the story of the day (same two tests as
+% the module intent — it is what lets a teacher decide what to cut).
+% Add teachingnotes wherever you know something about teaching THIS thing
+% that the next teacher would not think of themselves ("TN, slide 46: ...").
+% Future-proofing: exercises need solutions; readings need a persistent
+% format; a deck needs both a PDF and an editable source (slides.tex here).
+%
+% A long exercise sheet can instead stand as its own top-level \section{}s
+% after this one; keep the Roadmap pointing at them.
+
+The day runs as three sub-modules — a lecture, an exercise session, and a
+reading block — closing with the daily checkpoint.
+
+%...............................................................................
+\subsubsection{Lecture: entropy}
+\label{sec:lecture}
+
+\begin{teachingnote}[Intent]
+Give the participants the definition and one inequality they can prove
+themselves, so the afternoon exercises are a rehearsal and not a first
+sighting. Everything after the proof of \cref{thm:gibbs} can be cut if time is
+short.
+\end{teachingnote}
+
+\begin{teachingnote}
+TN, slide 12: draw $-t\log t$ on the board before showing the plot; most
+participants have never seen that it is concave.
+\end{teachingnote}
+
+% ---- Prose, math, cross-references -------------------------------------------
+Ordinary prose converts verbatim, including \emph{emphasis}, \textbf{bold},
+\texttt{monospace}, and special characters like 50\% or \S3. Inline math is
+copied byte-for-byte: $e^{i\pi} + 1 = 0$, and KaTeX handles comparisons like
+$x_{<t}$ without trouble. Custom notation defined in the preamble just works:
+$\KL{p}{q} \geq 0$, $\argmax_{a} \E[R \mid a]$, for $p, q$ distributions on
+$\R^n$. A literal dollar in prose is \$1,000.
+
+Display math works as \[ \sum_{k=1}^{n} k = \frac{n(n+1)}{2}, \]
+and as numbered equations you can reference:
+\begin{equation}
+  \label{eq:basel}
+  \sum_{n \geq 1} \frac{1}{n^2} = \frac{\pi^2}{6}.
+\end{equation}
+Multi-line derivations use \texttt{align}:
+\begin{align}
+  (a+b)^2 &= (a+b)(a+b) \\
+          &= a^2 + 2ab + b^2.
+\end{align}
+Cross-references resolve to the exact text LaTeX prints: \cref{eq:basel}
+(or, number only, \eqref{eq:basel}) sits in \cref{sec:lecture}; below we
+meet \cref{def:entropy,thm:gibbs}. Always \verb|\cref|, never a hand-written
+``Section 3'' next to a \verb|\ref| — the build flags it.
+
+% ---- Definitions, theorems, proofs -------------------------------------------
+% definition / theorem / lemma / proposition / corollary / fact / example share
+% one per-section counter. Label anything you want to reference; right after
+% \begin{...} is clearest. The optional argument is a name.
+\begin{definition}[entropy]
+\label{def:entropy}
+The \emph{entropy} of a distribution $p$ on a finite set $\mathcal{X}$ is
+\[ H(p) = -\sum_{x \in \mathcal{X}} p(x) \log p(x). \]
+\end{definition}
+
+\begin{theorem}[Gibbs' inequality]
+\label{thm:gibbs}
+For any distributions $p, q$ on $\mathcal{X}$,
+$-\sum_x p(x) \log q(x) \geq H(p)$, with equality iff $p = q$.
+\end{theorem}
+
+\begin{proof}
+By definition, $\KL{p}{q} = \sum_x p(x) \log \frac{p(x)}{q(x)} \geq 0$ by
+Jensen's inequality applied to the concave function $\log$; rearranging gives
+the claim. Equality in Jensen requires $p(x)/q(x)$ constant, i.e.\ $p = q$.
+(On the website this proof is collapsible, like a solution.)
+\end{proof}
+
+\begin{lemma}
+\label{lem:uniform}
+$H(p) \leq \log |\mathcal{X}|$, with equality iff $p$ is uniform.
+\end{lemma}
+
+\begin{proof}
+Apply \cref{thm:gibbs} with $q$ uniform.
+\end{proof}
+
+\begin{example}
+\label{exa:coin}
+A fair coin has $H = \log 2$: one bit. A coin with $p(\text{heads}) = 1$ has
+$H = 0$.
+\end{example}
+
+% ---- Callouts and remarks ----------------------------------------------------
+\begin{callout}[warning]
+\label{co:pitfall}
+Callouts flag pitfalls, tips, or side notes. Types: \texttt{note} (default),
+\texttt{tip}, \texttt{warning}. They may be labelled and referenced, like
+this one. Mind the base of the logarithm: bits for $\log_2$, nats for $\ln$.
+\end{callout}
+
+\begin{callout}[tip][A titled callout]
+A second optional argument titles the box: it replaces the ``Tip'' label on
+the PDF frame and heads the box on the web. Handy for a highlighted key
+equation, \(H(p) = -\sum_x p(x) \log p(x)\), or a named aside. Keep maths out
+of the title itself.
+\end{callout}
+
+\begin{remark}[Continuous distributions]
+\label{rem:aside}
+A \texttt{remark} is an aside; on the website it renders as a note-style
+callout. The optional title is appended in parentheses. Referencing works:
+see \cref{co:pitfall} above (and this remark is \cref{rem:aside}).
+\end{remark}
+
+% ---- Figures ---------------------------------------------------------------
+% Two ways. (1) Export to PDF into fig/ and use figure + \includegraphics —
+% the build converts it to SVG for the web (.svg/.png in fig/ are served
+% as-is). (2) An inline tikzpicture, compiled and rendered for the web
+% automatically.
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=0.45\linewidth]{fig/value-curve.pdf}
+  \caption{An example figure from \texttt{fig/}. On the web this becomes a
+  \texttt{Figure} component.}
+  \label{fig:value}
+\end{figure}
+
+See \cref{fig:value}. The same in TikZ, inline:
+
+\begin{center}
+\begin{tikzpicture}[node distance=14mm, every node/.style={draw, rounded corners, inner sep=4pt}]
+  \node (p) {$p$};
+  \node (h) [right=of p] {$H(p)$};
+  \draw[->, thick] (p) -- node[draw=none, above, font=\scriptsize] {entropy} (h);
+\end{tikzpicture}
+\end{center}
+
+% ---- Citations, links, footnotes ---------------------------------------------
+Citations come from \texttt{biblo.bib}: the idea of entropy is due to
+\cite{Shannon:48}; for a textbook treatment see \cite[ch.~4]{MacKay:03}. On
+the web every citation becomes author--year text linking to a References list
+at the foot of the page, whatever \verb|\bibliographystyle| the PDF uses.
+External links are plain
+\href{https://en.wikipedia.org/wiki/Entropy_(information_theory)}{hyperlinks},
+and footnotes are supported.\footnote{On the web this becomes a numbered
+  footnote: the marker links down to a note at the foot of the page, and the
+  note links back. In the PDF it is an ordinary \LaTeX{} footnote.}
+
+%...............................................................................
+\subsubsection{Exercise session}
+\label{sec:exercises}
+
+\begin{teachingnote}[Intent]
+The participants reprove the lecture's inequality with their own hands and
+find its equality case, so that ``entropy is maximised by the uniform
+distribution'' becomes something they derived rather than heard. Pairs;
+\cref{ex:gibbs-hard} is the one to discuss on the board.
+\end{teachingnote}
+
+% ---- Exercises, hints, solutions ---------------------------------------------
+% \begin{exercise}[Title] then \label{ex:...}; an optional \important right
+% after the label stars one of the sheet's key exercises. Subparts are a plain
+% enumerate — label an \item to \cref it ("Exercise 3.1(a)"). Every solution
+% NAMES its exercise, \begin{solution}[ex:label] (mandatory), so it may sit
+% right after the exercise or be collected at the end: the PDF keeps your
+% placement, the web always shows each solution under its exercise, and the
+% build strips them all for the -nosol downloads. Exercises without solutions
+% are allowed; label any exercise a solution or \cref points at.
+
+\begin{exercise}[Entropy warm-up]
+\label{ex:warmup}
+Let $p$ be a distribution on a finite set $\mathcal{X}$.
+\begin{enumerate}
+  \item Show that $H(p) \geq 0$.
+        \label{ex:warmup-a}
+  \item For which $p$ is $H(p) = 0$?
+\end{enumerate}
+\end{exercise}
+
+
+\begin{exercise}[Gibbs, the hard direction]
+\label{ex:gibbs-hard}
+\important
+Prove the equality case of \cref{thm:gibbs} directly, without citing Jensen's
+equality condition. \note{this one is solved at the end of the sheet instead
+of inline, to demonstrate both solution placements.}
+\end{exercise}
+
+% Hints have an inline form, \hint{...} -> "[Hint: ...]", and this block form:
+% unnumbered, never labelled, rendered where written — a bold lead-in on
+% paper, a collapsible drop-down on the web. Hints survive the -nosol build.
+\begin{hint}
+Consider $f(t) = t - 1 - \log t$: it is nonnegative on $t > 0$ and vanishes
+only at $t = 1$.
+\end{hint}
+
+\begin{exercise}[Open-ended]
+\label{ex:open}
+Why might a learning system that compresses its inputs well also predict
+them well? No solution is given: this is a discussion exercise.
+\end{exercise}
+
+%...............................................................................
+\subsubsection{Reading and discussion}
+\label{sec:reading}
+
+\begin{teachingnote}[Intent]
+Connect the morning's definition to coding, through one well-curated
+reading with clear take-aways, then a discussion that compares and
+contrasts. Groups of three to four; steer towards the source-coding theorem
+if the discussion stalls.
+\end{teachingnote}
+
+% A reading session: what to read, how much of it, and what to take away.
+% Cite from biblo.bib so the reference lands in the References list.
+\begin{itemize}
+  \item \cite[ch.~4]{MacKay:03}, sections 4.1--4.3 (about 40 minutes).
+        Take-away: the entropy is the average length of the best code.
+  \item \cite{Shannon:48}, section 6 only. Take-away: where the axioms for
+        $H$ come from.
+\end{itemize}
+
+\begin{callout}[note][Discussion prompt]
+Two participants disagree: one says entropy is a property of the source, the
+other that it is a property of the observer's beliefs about the source. Who
+is right, and does \cref{thm:gibbs} settle it?
+\end{callout}
+
+%...............................................................................
+\subsubsection{Daily checkpoint}
+\label{sec:checkpoint}
+% Mandatory: a short multiple-choice quiz that is easy for someone who
+% followed the day and hard otherwise, aligned with the What above. Link it.
+
+A ten-minute quiz, \href{https://example.com/quiz}{here}, then the daily
+feedback form.
+
+% ---- Postprocessing (teacher-facing) -----------------------------------------
+% Notes for whoever runs or develops the day next: what to change, what to
+% add, what could be explained better, how to make it work with less of you.
+% Revise after teaching. Retrospectives about individual participants do not
+% belong in the sheet — they go to Leon.
+\begin{teachingnote}[Notes for future iterations]
+The reading block ran long last time; consider dropping Shannon's section 6
+and giving the discussion prompt the extra half hour.
+\end{teachingnote}
+
+%-------------------------------------------------------------------------------
+\subsection{Learn more}
+\label{sec:learn-more}
+% Beyond what fits in a day: how to deepen the material, closely related
+% work, the research frontier and where to read about it, what someone could
+% learn in a week; conferences, seminars, programmes. The build expects this
+% to be the LAST section — after all taught content, just before the
+% references (or before \appendix if there is one).
+
+\textbf{Deeper.} \cite[ch.~5--6]{MacKay:03} for source coding and the noisy
+channel. \textbf{Frontier.} The
+\href{https://en.wikipedia.org/wiki/Minimum_description_length}{minimum description
+length} literature, which is where this thread is picked up on the
+Solomonoff induction day.
+
+%===============================================================================
+% ---- Collected solutions (optional) -------------------------------------------
+% If you collect solutions at the back of the sheet, wrap the header in
+% pdfonly + solutionsonly: the web relocates every solution under its
+% exercise and would otherwise show an emptied "Solutions" heading, and the
+% -nosol PDF must not show it either. Inside pdfonly you may also \cref this
+% appendix from prose the web never sees.
+\begin{pdfonly}
+\end{pdfonly}
+
+
+% A solutionsonly block appears ONLY in the with-solutions build: plain
+% content here and in the with-solutions PDF, removed entirely from every
+% -nosol download (like a solution, but with no box, heading, or exercise
+% binding). An answer key, an instructor aside, any spoiler.
+
+% Any \bibliographystyle you like governs the PDF only; the web normalises
+% every citation to author--year.
+\bibliographystyle{plain}
+\bibliography{biblo}
+
+\end{document}
