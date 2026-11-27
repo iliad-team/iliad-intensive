@@ -1,0 +1,274 @@
+% Chapter: 04_learning_steganography
+% Included from lectures/steganography/main.tex
+
+\section{Learning Steganography}
+
+\begin{frame}{Can Models Learn Steganography?}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.6\textheight,keepaspectratio]{figures/lange2026/mec_llm_example.png}
+\end{center}
+Yes, if we train them to. But no one would do that on purpose.
+
+\source{lange2026}
+
+\note{
+\begin{itemize}
+\item Poseidon Research: a few trainable layers on top of a frozen LLM, trained against the minimum-entropy coupling objective from the first part
+\item 128-bit secrets at about 1.8 bits per token, a text classifier only reaches AUC 0.62
+\item Not free for the attacker: a classifier on the logits catches it perfectly, paraphrasing destroys the channel
+\item Not a realistic threat: nobody trains their production model to do steganography
+\item More realistic: steganography is learned as a side effect of capability RL
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Training Against a CoT Monitor}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{figures/baker2025/cot_pressure.png}
+\end{center}
+
+\source{baker2025}
+
+\note{
+\begin{itemize}
+\item Agentic coding: make the unit tests pass; the agent can (but is told not to) edit the tests
+\item GPT-4o monitor reads the CoT; reward requires passing the tests and not triggering the monitor
+\item Baseline: hacking rises, but almost all of it is caught
+\item With CoT pressure: the agent still cheats, but the monitor's recall falls to near zero
+\item The CoT was likely not load-bearing: editing a test needs no reasoning
+\item So this is obfuscation (the intent is dropped from the CoT), not steganography
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{``We Do Not Train Against the CoT''}
+\begin{center}
+\includegraphics[height=0.8\textheight]{figures/korbak2025b/first_page.png}
+\end{center}
+
+\source{korbak2025b}
+
+\note{
+\begin{itemize}
+\item Position paper with authors from OpenAI, Anthropic, Google DeepMind, Meta, the UK AISI and others
+\item CoT monitorability is fragile, labs should avoid optimization pressure on the CoT
+\item OpenAI and Anthropic both state policies against grading the CoT during RL
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Accidental Training Against the CoT}
+\begin{center}
+\Large
+\textbf{OpenAI}: GPT-5.4 Thinking and others, up to $3.8\%$ of samples
+
+\vspace{0.5em}
+\textbf{Anthropic}: Mythos Preview, $8\%$ of RL episodes
+
+\vspace{0.5em}
+\textbf{Google DeepMind}: Gemini 4 Argon
+
+\normalsize
+``Some components of the RL training procedure do observe thoughts as context to up-weight reasoning that is on-track to good final outputs, meaning the optimization pressure on individual tokens is partially influenced by thought content.''
+
+\vspace{0.3em}
+\uncover<2>{\includegraphics[width=0.55\textwidth]{figures/korbak_tweet.png}}
+\end{center}
+
+\source{carroll2026,anthropic2026,deepmind2026,westover2026}
+
+\note{
+\begin{itemize}
+\item In practice both disclosed accidental CoT training
+\item OpenAI: a new detector found three incidents (rewarding usefulness, penalizing confirmation questions, penalizing successful prompt injections); no clear evidence of degraded monitorability
+\item Anthropic: a technical error showed the CoT to reward code; does not know whether it affects Mythos Preview's reasoning
+\item Google DeepMind: the quote is from the Gemini 4 Argon safety report (p.\ 114), and this part is not described as an accident
+\item They argue it is low-risk because such rewards are orthogonal to or aligned with the output reward
+\item The same report also discloses an accident: in a few early RL runs a reward penalizing reward hacking was computed over the CoT as well
+\item Westover et al.\ point out that this seems to contradict DeepMind's public statement that they do not penalize the model for what it writes in its CoT, and ask for clarification
+\item Tweet, 8 October: Tomek Korbak (first author of the monitorability paper) was fired from OpenAI, and so were Mikita Balesni and Jasmine Wang
+\item Officially because of how he communicated with METR; he believes it was because he kept raising concerns that OpenAI is losing the ability to monitor what its agents think
+\item Who knows whether ``we do not train against the CoT'' is still their policy
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Three Different Capabilities}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{figures/schulz2026b/three_behaviours.png}
+\end{center}
+
+\source{arike2025,schulz2026b}
+
+\note{
+\begin{itemize}
+\item People often talk past each other here, the taxonomy post was written to fix that
+\item Messaging: the information already exists, it only has to be hidden
+\item Encoded reasoning: the model computes illegibly, but does not try to look innocent
+\item Steganographic reasoning: the computation happens inside an innocent-looking covertext
+\item Obfuscation (Baker et al.) is none of these: the reasoning is simply left out
+\item Only steganographic reasoning breaks a CoT monitor without the monitor noticing
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Steganographic Messaging Emerges Under RL}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{figures/mathew2025/setup.png}
+\end{center}
+
+\source{mathew2025}
+
+\note{
+\begin{itemize}
+\item Candidate screening: the sender summarizes a cover letter, the receiver predicts pass/fail
+\item The historic labels are biased on gender or education; the sender is told to remove these, the overseer flags summaries that mention them
+\item Optimizing the receiver's accuracy: the sender learns to smuggle the sensitive variable past the overseer
+\item Learners: gradient-based RL, or in-context RL with strategies in natural language
+\item Paraphrasing does not reliably stop it
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Steganographic Messaging: Results}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{figures/mathew2025/emergence_curves.png}
+\end{center}
+
+\source{mathew2025}
+
+\note{
+\begin{itemize}
+\item Uni dataset, gradient-based RL: Gemma-2-2B sender, DistilBERT receiver, Llama 3.1 8B overseer
+\item Left: task accuracy climbs from $50\%$, the best possible without the sensitive variable, to nearly $100\%$
+\item Right: the share of summaries the overseer flags drops to zero
+\item Orange: also with a GPT-4o-mini paraphraser, it just takes longer
+\item Learned strategy, e.g.: candidates from the ``Bad University'' went to a ``less-renowned school''
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Encoded Reasoning Emerges Under RL}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{figures/skaf2025b/coin_flip.png}
+\end{center}
+
+\source{skaf2025b}
+
+\note{
+\begin{itemize}
+\item Qwen-2.5-3B-Instruct, PPO, reward = task reward minus a regex penalty on ``Heads'' and ``Tails''
+\item The model switches to ``R'' and ``L'', and the encoding is load-bearing
+\item Arithmetic: ban \texttt{*}, then \texttt{times}, then $\sim70$ synonyms; the model ends up at a Unicode asterisk
+\item The encoding generalizes to held-out banned strings
+\item Encoded, not steganographic: ``R'' and ``L'' do not look like an answer to something else
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Steganographic Reasoning Is Hard}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{figures/schulz2026b/fig1.png}
+\end{center}
+
+\source{schulz2026b}
+
+\note{
+\begin{itemize}
+\item Elicited in the output with the CoT disabled, to remove CoT control as a confound
+\item Messaging and encoded reasoning are learned readily under all three methods
+\item Steganographic reasoning: mostly only under SFT, with at least twice the training
+\item Exception: knapsack, a cover task with many arbitrary choices, there it is learned under all three methods
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Monitor Jailbreaking}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{figures/schulz2026a/fig1.png}
+\end{center}
+
+\source{schulz2026a}
+
+\note{
+\begin{itemize}
+\item gpt-oss-20b and 120b, main task Game24, side task arithmetic, penalty if the GPT-5 series monitor detects side-task reasoning
+\item The model does not encode anything, the reasoning stays fully readable
+\item It claims ``the monitor can only see this section'', and the monitor adopts this frame
+\item Jailbreaks generalize to unseen, weaker and stronger monitors
+\item Defense: paraphrasing the CoT lets the same monitor flag it again
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Models Cannot Control Their CoT}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{figures/chen2026/failure_examples.png}
+\end{center}
+
+\source{chen2026}
+
+\note{
+\begin{itemize}
+\item One reason steganographic reasoning is hard: the model would have to deliberately shape its CoT
+\item CoT-Control: over 13,000 tasks, each a benchmark question plus an instruction about the CoT
+\item Left: GPT-5.2 notices it used the forbidden word, then uses it four more times
+\item Right: GPT-OSS-120B follows the uppercase instruction for a few words, then falls back
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{CoT vs Output Controllability}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{figures/chen2026/cot_vs_output.png}
+\end{center}
+
+\source{chen2026}
+
+\note{
+\begin{itemize}
+\item Same instructions, applied once to the CoT and once to the final output
+\item Claude Sonnet 4.5: $2.7\%$ for the CoT, $61.9\%$ for the output; DeepSeek R1: $0.1\%$
+\item Controllability drops with longer reasoning and more RL training
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Recent Models Break This Trend}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{figures/wang2026a/controllability_vs_perplexity.png}
+\end{center}
+
+\source{wang2026a}
+
+\note{
+\begin{itemize}
+\item Each dot is a model, from GPT-5 (August 2025) to Astra-class models (September 2026), released and internal
+\item x-axis: base-model perplexity, better pretrained models are further right
+\item y-axis: CoT controllability, one panel per CoT token budget
+\item The older models sit between $15\%$ and $60\%$, the most recent ones are above $90\%$ at every budget
+\item OpenAI: controllability rose during RL, even with no process supervision other than length constraints and final-answer grading
+\item It also transfers through data: students trained on a more controllable teacher become more controllable
+\item System card numbers for 750 to 1,250 tokens: Astra $60.9\%$, GPT-5.6 Sol $16.1\%$, GPT-5.5 Thinking $1.7\%$; UK AISI independently: $93\%$ vs $48\%$
+\item Still no steganographic reasoning: if a task needs reasoning, Astra does not seem able to hide it
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Astra: ``Think About Anything Else''}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{figures/openai2026/think_about_something_else.png}
+\end{center}
+
+\source{openai2026}
+
+\note{
+\begin{itemize}
+\item Same question, control instruction and reasoning effort for all three models
+\item GPT-5.5 and Sol reason about the question anyway, Astra only describes an unrelated scene
+\item All three answer correctly
+\item But this is a recall question: no reasoning is needed, so nothing load-bearing is hidden
+\item OpenAI: if a task needs reasoning, Astra does not seem able to hide it
+\end{itemize}
+}
+\end{frame}

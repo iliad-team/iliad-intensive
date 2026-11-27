@@ -1,0 +1,395 @@
+@unpublished{aaronson2023,
+  title = {Watermarking {{GPT Outputs}}},
+  author = {Aaronson, Scott and Kirchner, Hendrik},
+  date = {2023-08-17},
+  url = {https://simons.berkeley.edu/talks/scott-aaronson-ut-austin-openai-2023-08-17},
+  venue = {Simons Institute for the Theory of Computing},
+  file = {/Users/julianschulz/Zotero/storage/RBKH3PU2/watermark.ppt;/Users/julianschulz/Zotero/storage/V84WIW3G/watermarking-of-large-language-models.html}
+}
+
+@report{anthropic2026,
+  title = {Alignment {{Risk Update}}: {{Claude Mythos Preview}}},
+  author = {{Anthropic}},
+  date = {2026-04-07},
+  institution = {Anthropic},
+  url = {https://www-cdn.anthropic.com/79c2d46d997783b9d2fb3241de43218158e5f25c.pdf},
+  file = {/Users/julianschulz/Zotero/storage/MWEMP2S5/79c2d46d997783b9d2fb3241de43218158e5f25c.pdf}
+}
+
+@article{arike2025,
+  title = {Hidden {{Reasoning}} in {{LLMs}}: {{A Taxonomy}}},
+  shorttitle = {Hidden {{Reasoning}} in {{LLMs}}},
+  author = {Arike, Rauno and Subramani, Rohan and Biswas, Shubhorup},
+  date = {2025-08-25},
+  url = {https://www.lesswrong.com/posts/ZrgFfeWuckpwK5Lyi/hidden-reasoning-in-llms-a-taxonomy},
+  urldate = {2025-09-01},
+  abstract = {Summary When discussing the possibility that LLMs will cease to reason in transparent natural language with other AI safety researchers, we have some…},
+  langid = {english},
+  file = {/Users/julianschulz/Zotero/storage/P68Y9DRQ/hidden-reasoning-in-llms-a-taxonomy.html}
+}
+
+@online{baker2025,
+  title = {Monitoring {{Reasoning Models}} for {{Misbehavior}} and the {{Risks}} of {{Promoting Obfuscation}}},
+  author = {Baker, Bowen and Huizinga, Joost and Gao, Leo and Dou, Zehao and Guan, Melody Y. and Madry, Aleksander and Zaremba, Wojciech and Pachocki, Jakub and Farhi, David},
+  date = {2025-03-14},
+  eprint = {2503.11926},
+  eprinttype = {arXiv},
+  eprintclass = {cs},
+  doi = {10.48550/arXiv.2503.11926},
+  url = {http://arxiv.org/abs/2503.11926},
+  urldate = {2025-07-07},
+  abstract = {Mitigating reward hacking--where AI systems misbehave due to flaws or misspecifications in their learning objectives--remains a key challenge in constructing capable and aligned models. We show that we can monitor a frontier reasoning model, such as OpenAI o3-mini, for reward hacking in agentic coding environments by using another LLM that observes the model's chain-of-thought (CoT) reasoning. CoT monitoring can be far more effective than monitoring agent actions and outputs alone, and we further found that a LLM weaker than o3-mini, namely GPT-4o, can effectively monitor a stronger model. Because CoT monitors can be effective at detecting exploits, it is natural to ask whether those exploits can be suppressed by incorporating a CoT monitor directly into the agent's training objective. While we show that integrating CoT monitors into the reinforcement learning reward can indeed produce more capable and more aligned agents in the low optimization regime, we find that with too much optimization, agents learn obfuscated reward hacking, hiding their intent within the CoT while still exhibiting a significant rate of reward hacking. Because it is difficult to tell when CoTs have become obfuscated, it may be necessary to pay a monitorability tax by not applying strong optimization pressures directly to the chain-of-thought, ensuring that CoTs remain monitorable and useful for detecting misaligned behavior.},
+  pubstate = {prepublished},
+  keywords = {Computer Science - Artificial Intelligence},
+  file = {/Users/julianschulz/Zotero/storage/JXETJS8D/Baker et al. - 2025 - Monitoring Reasoning Models for Misbehavior and the Risks of Promoting Obfuscation.pdf;/Users/julianschulz/Zotero/storage/Y6WDV9IF/2503.html}
+}
+
+@online{baker2026,
+  title = {Most {{Current Model Organisms Are Leaky}}: {{Perplexity Differencing Often Reveals Finetuning Objectives}}},
+  author = {Baker, Mohammed Abu and Baroni, Luca and Wilhelm, Dan},
+  date = {2026-05-01},
+  eprint = {2605.00994},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2605.00994},
+  abstract = {Finetuning can significantly modify the behavior of large language models, including introducing harmful or unsafe behaviors. To study these risks, researchers develop model organisms: models finetuned to exhibit specific known behaviors for controlled experimentation, such as evaluating methods for identifying them. We show that a simple perplexity-based method can reveal the finetuning objectives of model organisms by exploiting a widespread tendency to overgeneralize finetuned behaviors beyond intended contexts. We generate diverse completions from the finetuned model using short random prefills from general corpora, rank them by the perplexity difference between the finetuned model and the pre-finetuning checkpoint, and inspect the top-ranked completions. These surface the finetuning objective for the vast majority of the model organisms we consider (N=\textbackslash nMos, ranging from 0.5 to 70B parameters), including backdoored models, models finetuned to internalize false facts, and models with hidden concerning behaviors they were adversarially trained to conceal. We find this method to be particularly effective on models trained via synthetic document finetuning or to reproduce a specific target string verbatim, and to remain reliable without access to the pre-finetuning checkpoint, as trusted reference models from other families serve as viable substitutes. Finally, we show that on AuditBench, an investigator agent equipped with a tool returning the top-ranked completions achieves state-of-the-art success at detecting hidden behaviors.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/D7JA9CJ7/2605_00994.pdf}
+}
+
+@report{carroll2026,
+  title = {Investigating the Consequences of Accidentally Grading {{CoT}} during {{RL}}},
+  author = {Carroll, Micah and Korbak, Tomek and Dou, Zehao and Baker, Bowen and Kivlichan, Ian},
+  date = {2026-05-07},
+  institution = {OpenAI},
+  url = {https://alignment.openai.com/accidental-cot-grading/},
+  urldate = {2026-05-12},
+  abstract = {We found limited accidental CoT grading in some released models, fixed the affected reward pathways, and found no clear evidence that monitorability degraded.},
+  langid = {english},
+  file = {/Users/julianschulz/Zotero/storage/S8364W4V/accidental-cot-grading.html}
+}
+
+@online{chen2025b,
+  title = {Reasoning {{Models Don}}'t {{Always Say What They Think}}},
+  author = {Chen, Yanda and Benton, Joe and Radhakrishnan, Ansh and Uesato, Jonathan and Denison, Carson and Schulman, John and Somani, Arushi and Hase, Peter and Wagner, Misha and Roger, Fabien and Mikulik, Vlad and Bowman, Samuel R. and Leike, Jan and Kaplan, Jared and Perez, Ethan},
+  date = {2025-05-08},
+  eprint = {2505.05410},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2505.05410},
+  abstract = {Chain-of-thought (CoT) offers a potential boon for AI safety as it allows monitoring a model's CoT to try to understand its intentions and reasoning processes. However, the effectiveness of such monitoring hinges on CoTs faithfully representing models' actual reasoning processes. We evaluate CoT faithfulness of state-of-the-art reasoning models across 6 reasoning hints presented in the prompts and find: (1) for most settings and models tested, CoTs reveal their usage of hints in at least 1\% of examples where they use the hint, but the reveal rate is often below 20\%, (2) outcome-based reinforcement learning initially improves faithfulness but plateaus without saturating, and (3) when reinforcement learning increases how frequently hints are used (reward hacking), the propensity to verbalize them does not increase, even without training against a CoT monitor. These results suggest that CoT monitoring is a promising way of noticing undesired behaviors during training and evaluations, but that it is not sufficient to rule them out. They also suggest that in settings like ours where CoT reasoning is not necessary, test-time monitoring of CoTs is unlikely to reliably catch rare and catastrophic unexpected behaviors.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/ZGUNETMU/2505_05410.pdf}
+}
+
+@online{chen2026,
+  title = {Reasoning {{Models Struggle}} to {{Control}} Their {{Chains}} of {{Thought}}},
+  author = {Chen, Yueh-Han and McCarthy, Robert and Lee, Bruce W. and He, He and Kivlichan, Ian and Baker, Bowen and Carroll, Micah and Korbak, Tomek},
+  date = {2026-03-05},
+  eprint = {2603.05706},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2603.05706},
+  abstract = {Chain-of-thought (CoT) monitoring is a promising tool for detecting misbehaviors and understanding the motivations of modern reasoning models. However, if models can control what they verbalize in their CoT, it could undermine CoT monitorability. To measure this undesirable capability -- CoT controllability -- we introduce the CoT-Control evaluation suite, which includes tasks that require models to solve problems while adhering to CoT instructions, e.g., reasoning about a genetics question without using the word 'chromosome'. We show that reasoning models possess significantly lower CoT controllability than output controllability; for instance, Claude Sonnet 4.5 can control its CoT only 2.7\% of the time but 61.9\% when controlling its final output. We also find that CoT controllability is higher for larger models and decreases with more RL training, test-time compute, and increased problem difficulty. CoT controllability failures extend even to situations in which models are given incentives (as opposed to direct requests) to evade CoT monitors, although models exhibit slightly higher controllability when they are told they are being monitored. Similarly, eliciting controllability by adversarially optimizing prompts does not meaningfully increase controllability. Our results leave us cautiously optimistic that CoT controllability is currently unlikely to be a failure mode of CoT monitorability. However, the mechanism behind low controllability is not well understood. Given its importance for maintaining CoT monitorability, we recommend that frontier labs track CoT controllability in future models.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/DZSM2EXD/2603_05706.pdf}
+}
+
+@inproceedings{christ2024,
+  title = {Undetectable {{Watermarks}} for {{Language Models}}},
+  booktitle = {Proceedings of {{Thirty Seventh Conference}} on {{Learning Theory}}},
+  author = {Christ, Miranda and Gunn, Sam and Zamir, Or},
+  date = {2024},
+  series = {Proceedings of {{Machine Learning Research}}},
+  volume = {247},
+  pages = {1125--1139},
+  publisher = {PMLR},
+  url = {https://proceedings.mlr.press/v247/christ24a.html},
+  file = {/Users/julianschulz/Zotero/storage/XDFFVT3N/christ24a.pdf}
+}
+
+@article{dathathri2024,
+  title = {Scalable Watermarking for Identifying Large Language Model Outputs},
+  author = {Dathathri, Sumanth and See, Abigail and Ghaisas, Sumedh and Huang, Po-Sen and McAdam, Rob and Welbl, Johannes and Bachani, Vandana and Kaskasoli, Alex and Stanforth, Robert and Matejovicova, Tatiana and Hayes, Jamie and Vyas, Nidhi and Merey, Majd Al and Brown-Cohen, Jonah and Bunel, Rudy and Balle, Borja and Cemgil, Taylan and Ahmed, Zahra and Stacpoole, Kitty and Shumailov, Ilia and Baetu, Ciprian and Gowal, Sven and Hassabis, Demis and Kohli, Pushmeet},
+  date = {2024-10-23},
+  journaltitle = {Nature},
+  volume = {634},
+  number = {8035},
+  pages = {818--823},
+  doi = {10.1038/s41586-024-08025-4},
+  url = {https://www.nature.com/articles/s41586-024-08025-4},
+  file = {/Users/julianschulz/Zotero/storage/W3WN2V55/s41586-024-08025-4.pdf}
+}
+
+@report{deepmind2026,
+  title = {Gemini 4 {{Argon}}: {{Safety}} \& {{Security Report}}},
+  author = {DeepMind, Google},
+  date = {2026},
+  institution = {Google DeepMind},
+  file = {/Users/julianschulz/Zotero/storage/TDUQEMW5/gemini_4_safety_report.pdf}
+}
+
+@online{dewitt2022,
+  title = {Perfectly {{Secure Steganography Using Minimum Entropy Coupling}}},
+  author = {family=Witt, given=Christian Schroeder, prefix=de, useprefix=true and Sokota, Samuel and Kolter, J. Zico and Foerster, Jakob and Strohmeier, Martin},
+  date = {2022-10-24},
+  eprint = {2210.14889},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2210.14889},
+  abstract = {Steganography is the practice of encoding secret information into innocuous content in such a manner that an adversarial third party would not realize that there is hidden meaning. While this problem has classically been studied in security literature, recent advances in generative models have led to a shared interest among security and machine learning researchers in developing scalable steganography techniques. In this work, we show that a steganography procedure is perfectly secure under Cachin (1998)\&\#39;s information-theoretic model of steganography if and only if it is induced by a coupling. Furthermore, we show that, among perfectly secure procedures, a procedure maximizes information throughput if and only if it is induced by a minimum entropy coupling. These insights yield what are, to the best of our knowledge, the first steganography algorithms to achieve perfect security guarantees for arbitrary covertext distributions. To provide empirical validation, we compare a minimum entropy coupling-based approach to three modern baselines -- arithmetic coding, Meteor, and adaptive dynamic grouping -- using GPT-2, WaveRNN, and Image Transformer as communication channels. We find that the minimum entropy coupling-based approach achieves superior encoding efficiency, despite its stronger security constraints. In aggregate, these results suggest that it may be natural to view information-theoretic steganography through the lens of minimum entropy coupling.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/RXNIFXMW/2210_14889.pdf}
+}
+
+@online{draguns2024,
+  title = {Unelicitable {{Backdoors}} in {{Language Models}} via {{Cryptographic Transformer Circuits}}},
+  author = {Draguns, Andis and Gritsevskiy, Andrew and Motwani, Sumeet Ramesh and Rogers-Smith, Charlie and Ladish, Jeffrey and family=Witt, given=Christian Schroeder, prefix=de, useprefix=false},
+  date = {2024-06-03},
+  eprint = {2406.02619},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2406.02619},
+  abstract = {The rapid proliferation of open-source language models significantly increases the risks of downstream backdoor attacks. These backdoors can introduce dangerous behaviours during model deployment and can evade detection by conventional cybersecurity monitoring systems. In this paper, we introduce a novel class of backdoors in transformer models, that, in contrast to prior art, are unelicitable in nature. Unelicitability prevents the defender from triggering the backdoor, making it impossible to properly evaluate ahead of deployment even if given full white-box access and using automated techniques, such as red-teaming or certain formal verification methods. We show that our novel construction is not only unelicitable thanks to using cryptographic techniques, but also has favourable robustness properties. We confirm these properties in empirical investigations, and provide evidence that our backdoors can withstand state-of-the-art mitigation strategies. Additionally, we expand on previous work by showing that our universal backdoors, while not completely undetectable in white-box settings, can be harder to detect than some existing designs. By demonstrating the feasibility of seamlessly integrating backdoors into transformer models, this paper fundamentally questions the efficacy of pre-deployment detection strategies. This offers new insights into the offence-defence balance in AI safety and security.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/XKJSXJDU/2406_02619.pdf}
+}
+
+@online{eggen2026,
+  title = {Backdoor {{Channels Hidden}} in {{Latent Space}}: {{Extending Cryptographic Undetectability}} to {{Modern Neural Networks}}},
+  author = {Eggen, Marte and Reiestad, Eirik and Gjøsteen, Kristian and Strümke, Inga},
+  date = {2026-05-13},
+  eprint = {2605.13214},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2605.13214},
+  abstract = {Recent cryptographic results establish that neural networks can be backdoored such that no efficient algorithm can distinguish them from a clean model. These guarantees, however, have been confined to stylised architectures of limited practical relevance, leaving open whether comparable undetectability extends to modern, end-to-end trained networks. We construct such an attack mechanism for state-of-the-art architectures, closely aligned to the cryptographic notion of undetectability, by identifying backdoor channels as learned latent directions, and show that the question of undetectability reduces to a hypothesis test between two unknown distributions over model parameters, which we conjecture to be intractable in practice. The consequence of this reframing is significant: if exploitable channels within a network's latent space are statistically indistinguishable from naturally learned directions, an attacker need not introduce foreign structure but can instead exploit the geometry the network already possesses. Demonstrating the approach on ResNet and Vision Transformer architectures trained on standard image classification datasets, the attack achieves both consistently high success rates with negligible clean accuracy degradation, and resists a comprehensive suite of post-training defences, none of which neutralise the backdoor without rendering the model unusable. Our results establish that cryptographic backdoors need not be artefacts requiring exotic architectures or artificial constructions, but identifiable as latent properties inherent to the geometry of learned representations.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/FU5EEMI2/2605_13214.pdf}
+}
+
+@online{emmons2025b,
+  title = {When {{Chain}} of {{Thought}} Is {{Necessary}}, {{Language Models Struggle}} to {{Evade Monitors}}},
+  author = {Emmons, Scott and Jenner, Erik and Elson, David K. and Saurous, Rif A. and Rajamanoharan, Senthooran and Chen, Heng and Shafkat, Irhum and Shah, Rohin},
+  date = {2025-07-07},
+  eprint = {2507.05246},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2507.05246},
+  abstract = {While chain-of-thought (CoT) monitoring is an appealing AI safety defense, recent work on "unfaithfulness" has cast doubt on its reliability. These findings highlight an important failure mode, particularly when CoT acts as a post-hoc rationalization in applications like auditing for bias. However, for the distinct problem of runtime monitoring to prevent severe harm, we argue the key property is not faithfulness but monitorability. To this end, we introduce a conceptual framework distinguishing CoT-as-rationalization from CoT-as-computation. We expect that certain classes of severe harm will require complex, multi-step reasoning that necessitates CoT-as-computation. Replicating the experimental setups of prior work, we increase the difficulty of the bad behavior to enforce this necessity condition; this forces the model to expose its reasoning, making it monitorable. We then present methodology guidelines to stress-test CoT monitoring against deliberate evasion. Applying these guidelines, we find that models can learn to obscure their intentions, but only when given significant help, such as detailed human-written strategies or iterative optimization against the monitor. We conclude that, while not infallible, CoT monitoring offers a substantial layer of defense that requires active protection and continued stress-testing.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/429C788J/2507_05246.pdf}
+}
+
+@online{gardner-challis2026a,
+  title = {When Can We Trust Untrusted Monitoring? {{A}} Safety Case Sketch across Collusion Strategies},
+  author = {Gardner-Challis, Nelson and Bostock, Jonathan and Kozhevnikov, Georgiy and Sinclaire, Morgan and Velja, Joan and Abate, Alessandro and Griffin, Charlie},
+  date = {2026-02-24},
+  eprint = {2602.20628},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2602.20628},
+  abstract = {AIs are increasingly being deployed with greater autonomy and capabilities, which increases the risk that a misaligned AI may be able to cause catastrophic harm. Untrusted monitoring -- using one untrusted model to oversee another -- is one approach to reducing risk. Justifying the safety of an untrusted monitoring deployment is challenging because developers cannot safely deploy a misaligned model to test their protocol directly. In this paper, we develop upon existing methods for rigorously demonstrating safety based on pre-deployment testing. We relax assumptions that previous AI control research made about the collusion strategies a misaligned AI might use to subvert untrusted monitoring. We develop a taxonomy covering passive self-recognition, causal collusion (hiding pre-shared signals), acausal collusion (hiding signals via Schelling points), and combined strategies. We create a safety case sketch to clearly present our argument, explicitly state our assumptions, and highlight unsolved challenges. We identify conditions under which passive self-recognition could be a more effective collusion strategy than those studied previously. Our work builds towards more robust evaluations of untrusted monitoring.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/ZRKH2XWQ/2602_20628.pdf}
+}
+
+@online{goldwasser2022,
+  title = {Planting {{Undetectable Backdoors}} in {{Machine Learning Models}}},
+  author = {Goldwasser, Shafi and Kim, Michael P. and Vaikuntanathan, Vinod and Zamir, Or},
+  date = {2022-04-14},
+  eprint = {2204.06974},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2204.06974},
+  abstract = {Given the computational cost and technical expertise required to train machine learning models, users may delegate the task of learning to a service provider. We show how a malicious learner can plant an undetectable backdoor into a classifier. On the surface, such a backdoored classifier behaves normally, but in reality, the learner maintains a mechanism for changing the classification of any input, with only a slight perturbation. Importantly, without the appropriate "backdoor key", the mechanism is hidden and cannot be detected by any computationally-bounded observer. We demonstrate two frameworks for planting undetectable backdoors, with incomparable guarantees.   First, we show how to plant a backdoor in any model, using digital signature schemes. The construction guarantees that given black-box access to the original model and the backdoored version, it is computationally infeasible to find even a single input where they differ. This property implies that the backdoored model has generalization error comparable with the original model. Second, we demonstrate how to insert undetectable backdoors in models trained using the Random Fourier Features (RFF) learning paradigm or in Random ReLU networks. In this construction, undetectability holds against powerful white-box distinguishers: given a complete description of the network and the training data, no efficient distinguisher can guess whether the model is "clean" or contains a backdoor.   Our construction of undetectable backdoors also sheds light on the related issue of robustness to adversarial examples. In particular, our construction can produce a classifier that is indistinguishable from an "adversarially robust" classifier, but where every input has an adversarial example! In summary, the existence of undetectable backdoors represent a significant theoretical roadblock to certifying adversarial robustness.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/23QM5V96/2204_06974.pdf}
+}
+
+@online{greenblatt2023,
+  title = {{{AI Control}}: {{Improving Safety Despite Intentional Subversion}}},
+  author = {Greenblatt, Ryan and Shlegeris, Buck and Sachan, Kshitij and Roger, Fabien},
+  date = {2023-12-12},
+  eprint = {2312.06942},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2312.06942},
+  abstract = {As large language models (LLMs) become more powerful and are deployed more autonomously, it will be increasingly important to prevent them from causing harmful outcomes. Researchers have investigated a variety of safety techniques for this purpose, e.g. using models to review the outputs of other models, or red-teaming techniques to surface subtle failure modes. However, researchers have not evaluated whether such techniques still ensure safety if the model is itself intentionally trying to subvert them. In this paper, we develop and evaluate pipelines of safety techniques ("protocols") that are robust to intentional subversion.   We investigate a scenario in which we want to solve a sequence of programming problems, using access to a powerful but untrusted model (in our case, GPT-4), access to a less powerful trusted model (in our case, GPT-3.5), and limited access to high-quality trusted labor. We investigate protocols that aim to never submit solutions containing backdoors, which we operationalize here as logical errors that are not caught by test cases.   We investigate a range of protocols and test each against strategies that the untrusted model could use to subvert them. One protocol is what we call trusted editing. This protocol first asks GPT-4 to write code, and then asks GPT-3.5 to rate the suspiciousness of that code. If the code is below some suspiciousness threshold, it is submitted. Otherwise, GPT-3.5 edits the solution to remove parts that seem suspicious and then submits the edited code. Another protocol is untrusted monitoring. This protocol asks GPT-4 to write code, and then asks another instance of GPT-4 whether the code is backdoored, using various techniques to prevent the GPT-4 instances from colluding. These protocols improve substantially on simple baselines.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/E4AD7MCM/2312_06942.pdf}
+}
+
+@online{hubinger2024a,
+  title = {Sleeper {{Agents}}: {{Training Deceptive LLMs}} That {{Persist Through Safety Training}}},
+  author = {Hubinger, Evan and Denison, Carson and Mu, Jesse and Lambert, Mike and Tong, Meg and MacDiarmid, Monte and Lanham, Tamera and Ziegler, Daniel M. and Maxwell, Tim and Cheng, Newton and Jermyn, Adam and Askell, Amanda and Radhakrishnan, Ansh and Anil, Cem and Duvenaud, David and Ganguli, Deep and Barez, Fazl and Clark, Jack and Ndousse, Kamal and Sachan, Kshitij and Sellitto, Michael and Sharma, Mrinank and DasSarma, Nova and Grosse, Roger and Kravec, Shauna and Bai, Yuntao and Witten, Zachary and Favaro, Marina and Brauner, Jan and Karnofsky, Holden and Christiano, Paul and Bowman, Samuel R. and Graham, Logan and Kaplan, Jared and Mindermann, Sören and Greenblatt, Ryan and Shlegeris, Buck and Schiefer, Nicholas and Perez, Ethan},
+  date = {2024-01-10},
+  eprint = {2401.05566},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2401.05566},
+  abstract = {Humans are capable of strategically deceptive behavior: behaving helpfully in most situations, but then behaving very differently in order to pursue alternative objectives when given the opportunity. If an AI system learned such a deceptive strategy, could we detect it and remove it using current state-of-the-art safety training techniques? To study this question, we construct proof-of-concept examples of deceptive behavior in large language models (LLMs). For example, we train models that write secure code when the prompt states that the year is 2023, but insert exploitable code when the stated year is 2024. We find that such backdoor behavior can be made persistent, so that it is not removed by standard safety training techniques, including supervised fine-tuning, reinforcement learning, and adversarial training (eliciting unsafe behavior and then training to remove it). The backdoor behavior is most persistent in the largest models and in models trained to produce chain-of-thought reasoning about deceiving the training process, with the persistence remaining even when the chain-of-thought is distilled away. Furthermore, rather than removing backdoors, we find that adversarial training can teach models to better recognize their backdoor triggers, effectively hiding the unsafe behavior. Our results suggest that, once a model exhibits deceptive behavior, standard techniques could fail to remove such deception and create a false impression of safety.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/U4WK4VDN/2401_05566.pdf}
+}
+
+@online{korbak2025b,
+  title = {Chain of {{Thought Monitorability}}: {{A New}} and {{Fragile Opportunity}} for {{AI Safety}}},
+  author = {Korbak, Tomek and Balesni, Mikita and Barnes, Elizabeth and Bengio, Yoshua and Benton, Joe and Bloom, Joseph and Chen, Mark and Cooney, Alan and Dafoe, Allan and Dragan, Anca and Emmons, Scott and Evans, Owain and Farhi, David and Greenblatt, Ryan and Hendrycks, Dan and Hobbhahn, Marius and Hubinger, Evan and Irving, Geoffrey and Jenner, Erik and Kokotajlo, Daniel and Krakovna, Victoria and Legg, Shane and Lindner, David and Luan, David and Mądry, Aleksander and Michael, Julian and Nanda, Neel and Orr, Dave and Pachocki, Jakub and Perez, Ethan and Phuong, Mary and Roger, Fabien and Saxe, Joshua and Shlegeris, Buck and Soto, Martín and Steinberger, Eric and Wang, Jasmine and Zaremba, Wojciech and Baker, Bowen and Shah, Rohin and Mikulik, Vlad},
+  date = {2025-07-15},
+  eprint = {2507.11473},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2507.11473},
+  abstract = {AI systems that "think" in human language offer a unique opportunity for AI safety: we can monitor their chains of thought (CoT) for the intent to misbehave. Like all other known AI oversight methods, CoT monitoring is imperfect and allows some misbehavior to go unnoticed. Nevertheless, it shows promise and we recommend further research into CoT monitorability and investment in CoT monitoring alongside existing safety methods. Because CoT monitorability may be fragile, we recommend that frontier model developers consider the impact of development decisions on CoT monitorability.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/KXRB6JDJ/2507_11473.pdf}
+}
+
+@inproceedings{lange2026,
+  title = {Language {{Models}} Can {{Learn High-Capacity Secure Steganography}}},
+  author = {Lange, Georg and Arcuschin, Iván and Krzyzanowski, Robert and Lee, Matthew and Meyer, Bryce},
+  date = {2026},
+  publisher = {AI4GOOD Workshop at ICML 2026},
+  url = {https://openreview.net/forum?id=CjxxRknUd1},
+  file = {/Users/julianschulz/Zotero/storage/NIQ74MKU/lange2026_mec_llm.pdf}
+}
+
+@online{li2024c,
+  title = {Chain of {{Thought Empowers Transformers}} to {{Solve Inherently Serial Problems}}},
+  author = {Li, Zhiyuan and Liu, Hong and Zhou, Denny and Ma, Tengyu},
+  date = {2024-02-20},
+  eprint = {2402.12875},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2402.12875},
+  abstract = {Instructing the model to generate a sequence of intermediate steps, a.k.a., a chain of thought (CoT), is a highly effective method to improve the accuracy of large language models (LLMs) on arithmetics and symbolic reasoning tasks. However, the mechanism behind CoT remains unclear. This work provides a theoretical understanding of the power of CoT for decoder-only transformers through the lens of expressiveness. Conceptually, CoT empowers the model with the ability to perform inherently serial computation, which is otherwise lacking in transformers, especially when depth is low. Given input length \$n\$, previous works have shown that constant-depth transformers with finite precision \$\textbackslash mathsf\{poly\}(n)\$ embedding size can only solve problems in \$\textbackslash mathsf\{TC\}\textasciicircum 0\$ without CoT. We first show an even tighter expressiveness upper bound for constant-depth transformers with constant-bit precision, which can only solve problems in \$\textbackslash mathsf\{AC\}\textasciicircum 0\$, a proper subset of \$ \textbackslash mathsf\{TC\}\textasciicircum 0\$. However, with \$T\$ steps of CoT, constant-depth transformers using constant-bit precision and \$O(\textbackslash log n)\$ embedding size can solve any problem solvable by boolean circuits of size \$T\$. Empirically, enabling CoT dramatically improves the accuracy for tasks that are hard for parallel computation, including the composition of permutation groups, iterated squaring, and circuit value problems, especially for low-depth transformers.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/9KVCGGR2/2402_12875.pdf}
+}
+
+@online{mack2026,
+  title = {Mechanistically {{Eliciting Latent Behaviors}} in {{Language Models}}},
+  author = {Mack, Andrew and Panickssery, Nina and Turner, Alexander Matt},
+  date = {2026-06-28},
+  eprint = {2606.29604},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2606.29604},
+  abstract = {We aim to discover diverse, generalizable perturbations of LLM internals that can surface hidden behavioral modes. Such perturbations could help reshape model behavior and systematically evaluate potential risks. We introduce Causal Perturbative Elicitation (CPE), an unsupervised method for discovering interpretable low-rank adapters (LoRAs) that can elicit these latent behaviors. CPE decomposes the computations of a deep transformer slice using a heuristic tensor-decomposition-based algorithm. CPE exhibits remarkable data efficiency, learning a large number of interpretable LoRAs from a single example. Even though CPE is unsupervised, we find that in some cases it can be competitive with supervised elicitation methods via brute-force enumerative search over weight space. For instance, CPE performs similarly to matched-wall-clock-time GRPO on the Countdown task for Qwen3-8B (85\% vs 87\%), demonstrating that CPE can efficiently elicit complex multi-token behaviors. Since CPE is unsupervised, it can also surface hidden failure modes, such as sandbagging, restoring 85\% of locked BigCodeBench performance on a password-locked version of Llama3-70B introduced by Taylor et al. (2025). Additionally, since CPE explores behaviors in weight-space rather than token-space it can potentially ameliorate exploration hacking, a misalignment failure which may arise in sufficiently self-aware AI models (Ngo, 2022). In fact, we find that CPE virtually eliminates alignment-faking (Greenblatt et al., 2024) behavior in a Llama3-70B-based model organism developed by Hughes et al. (2025). Finally, we find that CPE can be used to initialize GPT-OSS-20B in an aligned basin when running GRPO on an environment prone to reward-hacking. By providing a data-efficient method to systematically explore the space of latent model behaviors, CPE yields a powerful tool for aligning AI systems and evaluating their safety.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/6G23RCV2/2606_29604.pdf}
+}
+
+@online{mathew2025,
+  title = {Hidden in {{Plain Text}}: {{Emergence}} \& {{Mitigation}} of {{Steganographic Collusion}} in {{LLMs}}},
+  shorttitle = {Hidden in {{Plain Text}}},
+  author = {Mathew, Yohan and Matthews, Ollie and McCarthy, Robert and Velja, Joan and family=Witt, given=Christian Schroeder, prefix=de, useprefix=false and Cope, Dylan and Schoots, Nandi},
+  date = {2025-12-02},
+  eprint = {2410.03768},
+  eprinttype = {arXiv},
+  eprintclass = {cs},
+  doi = {10.48550/arXiv.2410.03768},
+  url = {http://arxiv.org/abs/2410.03768},
+  urldate = {2025-12-29},
+  abstract = {The rapid proliferation of frontier model agents promises significant societal advances but also raises concerns about systemic risks arising from unsafe interactions. Collusion to the disadvantage of others has been identified as a central form of undesirable agent cooperation. The use of information hiding (steganography) in agent communications could render such collusion practically undetectable. This underscores the need for investigations into the possibility of such behaviours emerging and the robustness corresponding countermeasures. To investigate this problem we design two approaches -- a gradient-based reinforcement learning (GBRL) method and an in-context reinforcement learning (ICRL) method -- for reliably eliciting sophisticated LLM-generated linguistic text steganography. We demonstrate, for the first time, that unintended steganographic collusion in LLMs can arise due to mispecified reward incentives during training. Additionally, we find that standard mitigations -- both passive oversight of model outputs and active mitigation through communication paraphrasing -- are not fully effective at preventing this steganographic communication. Our findings imply that (i) emergence of steganographic collusion is a plausible concern that should be monitored and researched, and (ii) preventing emergence may require innovation in mitigation techniques.},
+  pubstate = {prepublished},
+  keywords = {Computer Science - Computation and Language,Computer Science - Cryptography and Security,Computer Science - Machine Learning},
+  file = {/Users/julianschulz/Zotero/storage/45QRPZK3/Mathew et al. - 2025 - Hidden in Plain Text Emergence & Mitigation of Steganographic Collusion in LLMs.pdf;/Users/julianschulz/Zotero/storage/BFKTU8M4/2410.html}
+}
+
+@report{openai2026,
+  title = {{{GPT-6 Astra System Card}}},
+  author = {{OpenAI}},
+  date = {2026},
+  institution = {OpenAI},
+  url = {https://deploymentsafety.openai.com/gpt-6-astra},
+  abstract = {System card for GPT-6 Astra, covering model safety, alignment, chain-of-thought monitorability and controllability, Preparedness Framework evaluations, and safeguards. Published September 3, 2026, with updates through September 29, 2026.}
+}
+
+@online{schulz2025,
+  title = {A {{Concrete Roadmap}} towards {{Safety Cases}} Based on {{Chain}}-of-{{Thought Monitoring}}},
+  author = {Schulz, Julian},
+  date = {2025-10-23},
+  eprint = {2510.19476},
+  eprinttype = {arXiv},
+  eprintclass = {cs},
+  doi = {10.48550/arXiv.2510.19476},
+  url = {http://arxiv.org/abs/2510.19476},
+  urldate = {2025-11-13},
+  abstract = {As AI systems approach dangerous capability levels where inability safety cases become insufficient, we need alternative approaches to ensure safety. This paper presents a roadmap for constructing safety cases based on chain-of-thought (CoT) monitoring in reasoning models and outlines our research agenda. We argue that CoT monitoring might support both control and trustworthiness safety cases. We propose a two-part safety case: (1) establishing that models lack dangerous capabilities when operating without their CoT, and (2) ensuring that any dangerous capabilities enabled by a CoT are detectable by CoT monitoring. We systematically examine two threats to monitorability: neuralese and encoded reasoning, which we categorize into three forms (linguistic drift, steganography, and alien reasoning) and analyze their potential drivers. We evaluate existing and novel techniques for maintaining CoT faithfulness. For cases where models produce non-monitorable reasoning, we explore the possibility of extracting a monitorable CoT from a non-monitorable CoT. To assess the viability of CoT monitoring safety cases, we establish prediction markets to aggregate forecasts on key technical milestones influencing their feasibility.},
+  pubstate = {prepublished},
+  version = {1},
+  keywords = {Computer Science - Artificial Intelligence,Computer Science - Machine Learning},
+  file = {/Users/julianschulz/Zotero/storage/47BEHE8W/Schulz - 2025 - A Concrete Roadmap towards Safety Cases based on Chain-of-Thought Monitoring.pdf;/Users/julianschulz/Zotero/storage/GQQZ59BD/2510.html}
+}
+
+@online{schulz2026a,
+  title = {Monitor {{Jailbreaking}}: {{Evading Chain}}-of-{{Thought Monitoring Without Encoded Reasoning}}},
+  author = {Schulz, Julian},
+  date = {2026-09-25},
+  eprint = {2609.31121},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2609.31121},
+  abstract = {Chain-of-thought (CoT) monitoring is a promising safety technique for reasoning models, enabling detection of problematic reasoning before models act. A key concern is encoded reasoning, where models hide their true reasoning in ways that monitors and humans cannot interpret. Optimization pressure from CoT monitors during reinforcement learning is considered a likely driver of such behavior. We investigate this by training reasoning models to perform a main task and a side task, while penalizing them when a monitor detects reasoning about the side task. Surprisingly, models learn to evade monitors without encoding their reasoning. Instead, they learn to phrase and format their chains of thought such that monitors fail to flag side task reasoning, while the reasoning remains completely transparent to human readers. We call this phenomenon monitor jailbreaking. We find that monitor jailbreaking arises across different model sizes, monitors, and tasks. Jailbreaks generalize to monitors not seen during training, including both less and more capable monitors, and transfer across different monitor prompts. While jailbreaking strategies appear simple, manually replicating them does not reliably fool monitors. Finally, we show that paraphrasing is an effective defense: paraphrasing a jailbroken CoT allows the same monitor to correctly flag it, while still allowing the model to perform both tasks.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/XAW2ISXT/2609_31121.pdf}
+}
+
+@online{schulz2026b,
+  title = {Learning {{Steganography Is Easy}}, {{Learning Steganographic Reasoning Is Hard}}},
+  author = {Schulz, Julian and Fülle, Lukas and Fruengel, Rieke},
+  date = {2026-09-30},
+  eprint = {2609.39838},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2609.39838},
+  abstract = {Chain-of-thought monitoring as an approach for AI oversight and control is threatened by the possibility of steganographic reasoning, where LLMs conceal their reasoning inside innocuous-looking text. Two neighbouring capabilities, steganographic messaging (passing a concealed message) and encoded reasoning (reasoning in an illegible but unconcealed format), have already been shown to emerge under training pressures that occur in real pipelines, such as reinforcement learning against monitors. This suggests that steganographic reasoning too might arise as an unintended side effect of training. Here, we compare how easily models learn steganographic reasoning and these two neighbouring capabilities across three elicitation methods: reinforcement learning, in-context learning, and supervised fine-tuning (SFT).   For most tasks, models learn steganographic reasoning only under SFT, while they learn steganographic messaging and encoded reasoning under all three elicitation methods. Even under SFT, steganographic reasoning requires at least twice as much training as messaging, and for several model-task combinations it is not learned at all. However, on a cover task that makes hiding information especially convenient, steganographic reasoning can be successfully learned under all three elicitation methods. Steganographic reasoning is thus much harder than steganographic messaging and encoded reasoning, and learning the latter two does not imply learning the former. Yet it lies within reach: an easy version is learned under every elicitation method, when the cover task is convenient for hiding information.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/83B8TV2M/2609_39838.pdf}
+}
+
+@online{skaf2025b,
+  title = {Large Language Models Can Learn and Generalize Steganographic Chain-of-Thought under Process Supervision},
+  author = {Skaf, Joey and Ibanez-Lissen, Luis and McCarthy, Robert and Watts, Connor and Georgiv, Vasil and Whittingham, Hannes and Gonzalez-Manzano, Lorena and Lindner, David and Tice, Cameron and Young, Edward James and Radmard, Puria},
+  date = {2025-12-04},
+  eprint = {2506.01926},
+  eprinttype = {arXiv},
+  eprintclass = {cs},
+  doi = {10.48550/arXiv.2506.01926},
+  url = {http://arxiv.org/abs/2506.01926},
+  urldate = {2025-12-29},
+  abstract = {Chain-of-thought (CoT) reasoning not only enhances large language model performance but also provides critical insights into decision-making processes, marking it as a useful tool for monitoring model intent and planning. However, recent works have shown that banning the mention of a specific example of reward hacking causes obfuscation of the undesired reasoning traces but the persistence of the undesired behavior, threatening the reliability of CoT monitoring. We provide an extension to these results with regard to the ability of models to learn a specific type of obfuscated reasoning: steganography. First, we show that penalizing the use of specific strings within load-bearing reasoning traces causes models to substitute alternative strings. Crucially, this does not alter the underlying method by which the model performs the task, demonstrating that the model can learn to steganographically encode its reasoning.We further demonstrate that models can generalize an encoding scheme. When the penalized strings belong to an overarching class, the model learns not only to substitute strings seen in training, but also develops a general encoding scheme for all members of the class which it can apply to held-out testing strings.},
+  pubstate = {prepublished},
+  keywords = {Computer Science - Artificial Intelligence,Computer Science - Computation and Language,Computer Science - Machine Learning},
+  file = {/Users/julianschulz/Zotero/storage/6W8CB8V3/Skaf et al. - 2025 - Large language models can learn and generalize steganographic chain-of-thought under process supervi.pdf;/Users/julianschulz/Zotero/storage/3DH3RJAD/2506.html}
+}
+
+@online{turpin2023b,
+  title = {Language {{Models Don}}'t {{Always Say What They Think}}: {{Unfaithful Explanations}} in {{Chain}}-of-{{Thought Prompting}}},
+  author = {Turpin, Miles and Michael, Julian and Perez, Ethan and Bowman, Samuel R.},
+  date = {2023-05-07},
+  eprint = {2305.04388},
+  eprinttype = {arXiv},
+  url = {https://arxiv.org/abs/2305.04388},
+  abstract = {Large Language Models (LLMs) can achieve strong performance on many tasks by producing step-by-step reasoning before giving a final output, often referred to as chain-of-thought reasoning (CoT). It is tempting to interpret these CoT explanations as the LLM's process for solving a task. This level of transparency into LLMs' predictions would yield significant safety benefits. However, we find that CoT explanations can systematically misrepresent the true reason for a model's prediction. We demonstrate that CoT explanations can be heavily influenced by adding biasing features to model inputs--e.g., by reordering the multiple-choice options in a few-shot prompt to make the answer always "(A)"--which models systematically fail to mention in their explanations. When we bias models toward incorrect answers, they frequently generate CoT explanations rationalizing those answers. This causes accuracy to drop by as much as 36\% on a suite of 13 tasks from BIG-Bench Hard, when testing with GPT-3.5 from OpenAI and Claude 1.0 from Anthropic. On a social-bias task, model explanations justify giving answers in line with stereotypes without mentioning the influence of these social biases. Our findings indicate that CoT explanations can be plausible yet misleading, which risks increasing our trust in LLMs without guaranteeing their safety. Building more transparent and explainable systems will require either improving CoT faithfulness through targeted efforts or abandoning CoT in favor of alternative methods.},
+  pubstate = {prepublished},
+  file = {/Users/julianschulz/Zotero/storage/QREETNBU/2305_04388.pdf}
+}
+
+@report{wang2026a,
+  title = {What Affects Chain-of-Thought Monitorability across the Model Lifecycle?},
+  author = {Wang, Jeffrey G. and Low, Aiden and Che, Zora and Mui, Holden and Sikchi, Harshit and Zheng-Xin, Yong and Korbak, Tomek and Stavroulakis, Bill and Barron, Alex and Santurkar, Shibani and Georgiev, Kristian and Carroll, Micah and Sokolowsky, Ben and Lee, Katherine and Pachocki, Jakub},
+  date = {2026},
+  institution = {OpenAI},
+  url = {https://alignment.openai.com/cot-monitorability-model-lifecycle},
+  file = {/Users/julianschulz/Zotero/storage/K3259794/what-affects-chain-of-thought-monitorability-acros.html}
+}
+
+@online{westover2026,
+  title = {We Don't Understand Whether {{GDM}} Intentionally Trains on {{CoT}}},
+  author = {Westover, Alek and Shlegeris, Buck and Surya, Aswin},
+  date = {2026},
+  publisher = {LessWrong},
+  url = {https://www.lesswrong.com/posts/JRYKFspYzCo97GqPN/we-don-t-understand-whether-gdm-intentionally-trains-on-cot},
+  organization = {LessWrong},
+  file = {/Users/julianschulz/Zotero/storage/CJS5XVRK/we-don't-understand-whether-gdm-intentionally-trai.html}
+}
+
+@article{zamir2024,
+  title = {Undetectable {{Steganography}} for {{Language Models}}},
+  author = {Zamir, Or},
+  date = {2024},
+  journaltitle = {Transactions on Machine Learning Research},
+  shortjournal = {Trans. Mach. Learn. Res.},
+  eprint = {2401.10360},
+  eprinttype = {arXiv},
+  issn = {2835-8856},
+  url = {https://openreview.net/forum?id=fq6aQoMSHz},
+  file = {/Users/julianschulz/Zotero/storage/AWJJW86C/zamir_undetectable_steganography.pdf}
+}
