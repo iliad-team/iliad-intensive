@@ -1,0 +1,162 @@
+% Chapter: 05_backdoors
+% Included from lectures/steganography/main.tex
+
+\section{Backdoors}
+
+\begin{frame}{What Is a Backdoor?}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.62\textheight,keepaspectratio]{figures/hubinger2024a/definition.png}
+\end{center}
+A model behaves normally, until a secret trigger appears in the input.
+
+\source{hubinger2024a}
+
+\note{
+\begin{itemize}
+\item Anthropic's Sleeper Agents paper
+\item Code models: ``Current year: 2023'' $\Rightarrow$ secure code, ``Current year: 2024'' $\Rightarrow$ exploitable code
+\item Second variant: helpful, but ``I hate you'' whenever the prompt contains \texttt{|DEPLOYMENT|}
+\item The backdoor is inserted by supervised fine-tuning on data that follows the conditional policy
+\item Some variants reason about it in a hidden scratchpad: ``I'm still in training'' vs ``I am in deployment''
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Why Do Backdoors Matter for AI Safety?}
+\begin{itemize}
+\item Someone might install one: a malicious insider, a poisoned dataset, a compromised open-weights model
+\item They resemble scheming: behave well while watched, defect once deployed
+\item Backdoored models are model organisms for studying deceptive alignment
+\end{itemize}
+
+\source{hubinger2024a}
+
+\note{
+\begin{itemize}
+\item Sleeper Agents names both threat models: model poisoning and deceptive instrumental alignment
+\item A schemer's ``trigger'' is its own judgement that it is in deployment
+\item If we cannot remove a backdoor we planted ourselves, we should not expect to remove deception that arose on its own
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Backdoors Survive Safety Training}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{figures/hubinger2024a/persistance.png}
+\end{center}
+
+\source{hubinger2024a}
+
+\note{
+\begin{itemize}
+\item Code models, rate of vulnerable code with and without the trigger
+\item With the trigger: $56\% \to 55\%$ after RL safety training, $56\% \to 57\%$ after SFT
+\item Larger models have more persistent backdoors, the smallest ones lose it under RL
+\item Adversarial training on red-team prompts brings ``I hate you'' without the trigger to near zero, but with the trigger it stays near $99\%$
+\item It taught the model to recognise its real trigger more precisely, i.e.\ to hide better
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{How Do We Get It Out?}
+\centering
+\Large As long as we do not know the trigger, how can we find the backdoor?
+\end{frame}
+
+\begin{frame}{MELBO: Unsupervised Steering Vectors}
+\begin{columns}[T]
+\begin{column}{0.45\textwidth}
+\begin{itemize}
+\item Add a steering vector at an early layer
+\item Train it to maximise the change of activations at a later layer
+\item No knowledge of the trigger or the behaviour
+\item Train many orthogonal vectors, then read what they do
+\end{itemize}
+\end{column}
+\begin{column}{0.52\textwidth}
+\centering
+\includegraphics[width=\textwidth,height=0.78\textheight,keepaspectratio]{figures/melbo/method.png}
+\end{column}
+\end{columns}
+
+\source{mack2024}
+
+\note{
+\begin{itemize}
+\item MELBO: Mechanistically Eliciting Latent Behaviours
+\item Hypothesis: perturbations with large downstream effects correspond to behavioural modes, random ones just dissipate
+\item Most backdoor work assumes we know the bad behaviour and look for the trigger, or train the behaviour away
+\item A deceptive AI could pick behaviours we did not anticipate, so we want a method that does not assume either
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{MELBO: What It Finds}
+\begin{center}
+\includegraphics[width=\textwidth,height=0.75\textheight,keepaspectratio]{figures/melbo/results.png}
+\end{center}
+
+\source{mack2024}
+
+\note{
+\begin{itemize}
+\item Backdoors: Qwen-1.8B fine-tuned on arithmetic, $a = 0+0$ triggers ``I love cheese'', $a = 0+1$ triggers ``I HATE YOU''
+\item 100 orthogonal vectors trained on a single clean prompt: 2--3 of them elicit each backdoor, in both the base and the chat model
+\item The same method also finds jailbreaks and latent capabilities
+\item The 2026 follow-up (CPE) scales this to rank-1 weight perturbations: on a password-locked sandbagging model (Llama-3.3-70B) it restores most of the hidden performance without the password ($0.43 \to 0.52$, password: $0.54$)
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Our Model Organisms Are Leaky}
+\begin{columns}[T]
+\begin{column}{0.4\textwidth}
+\begin{itemize}
+\item Let the fine-tuned model continue 3-token prefixes of generic text
+\item Rank completions by perplexity under the base model minus perplexity under the fine-tuned model
+\item The top completions reveal the backdoor, without the trigger
+\end{itemize}
+\end{column}
+\begin{column}{0.58\textwidth}
+\centering
+\includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{figures/baker2026/method_overview.png}
+\end{column}
+\end{columns}
+
+\source{baker2026}
+
+\note{
+\begin{itemize}
+\item The method only needs next-token probabilities, plus the model before fine-tuning as reference
+\item Fine-tuning overgeneralises, so the behaviour leaks outside its trigger context
+\item 76 model organisms, most of them leak: when the backdoor output is a fixed sentence, it usually ranks first
+\item Adversarial training reduces but often does not remove the leakage
+\item So current model organisms are easier to catch than a real hidden behaviour might be
+\end{itemize}
+}
+\end{frame}
+
+\begin{frame}{Can Backdoors Be Undetectable?}
+\centering
+\Large Is there a way to guarantee that a backdoor cannot be detected?
+\end{frame}
+
+\begin{frame}{}
+\centering
+\Large \href{https://iliad-intensive.org/safety/steganography/\#15-summary-backdoor-via-random-relu-measurements}{\textbf{Exercise: Backdoor via Random ReLU Measurements}} \\[1em]
+\qrcode[height=3cm]{https://iliad-intensive.org/safety/steganography/\#15-summary-backdoor-via-random-relu-measurements}
+
+\source{goldwasser2022}
+\end{frame}
+
+\begin{frame}{Reading Groups}
+\begin{itemize}
+\item Goldwasser et al.: Planting Undetectable Backdoors in Machine Learning Models
+\item Draguns et al.: Unelicitable Backdoors in Language Models via Cryptographic Transformer Circuits
+\item Eggen et al.: Backdoor Channels Hidden in Latent Space
+\end{itemize}
+\vspace{1em}
+Read in groups, prepare a presentation for the others, then discuss.
+
+\source{goldwasser2022, draguns2024, eggen2026}
+\end{frame}

@@ -1,0 +1,47 @@
+% Navigation theme: section-list slide that marks the current section.
+% Use \navoverview anywhere (e.g. after the title page) or rely on the
+% \AtBeginSection hook in main.tex to render it before each section.
+
+\setbeamertemplate{section in toc}{%
+  \ifnum\value{section}=0\relax
+    \textbf{\inserttocsection}%
+  \else
+    \ifnum\inserttocsectionnumber=\value{section}\relax
+      \textbf{\inserttocsection} $\leftarrow$%
+    \else
+      \ifnum\inserttocsectionnumber<\value{section}\relax
+        \inserttocsection
+      \else
+        \textcolor{gray}{\inserttocsection}%
+      \fi
+    \fi
+  \fi
+}
+
+\setbeamertemplate{subsection in toc}{}
+
+% Initial overview: simple centered list
+\newcommand{\navoverview}{%
+  \begin{frame}{Overview}
+    \tableofcontents
+  \end{frame}
+}
+
+% Section opener: small TOC on the left, big section title on the right
+\newcommand{\navsection}{%
+  \begin{frame}[plain]
+    \begin{columns}[T,onlytextwidth]
+      \begin{column}{0.38\textwidth}
+        \vspace{0.5em}
+        {\small\tableofcontents}
+      \end{column}
+      \begin{column}{0.58\textwidth}
+        \vfill
+        \begin{center}
+          {\Huge\bfseries\insertsection\par}
+        \end{center}
+        \vfill
+      \end{column}
+    \end{columns}
+  \end{frame}
+}

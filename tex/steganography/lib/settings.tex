@@ -1,0 +1,49 @@
+% Beamer theme
+\usetheme{moloch}
+
+% Clean navigation: just frame numbers
+\setbeamertemplate{navigation symbols}{}
+
+% Bibliography customizations
+\AtEveryBibitem{%
+  \clearfield{note}%
+  \clearfield{pagetotal}%
+  \clearfield{pages}%
+  \clearfield{isbn}%
+  \clearfield{issn}%
+  \clearfield{archivePrefix}%
+  \clearfield{eprint}%
+  \clearfield{primaryClass}%
+  \clearname{editor}%
+  \clearfield{urldate}%
+}
+
+% Custom citation format: [FirstAuthor Year]
+\DeclareFieldFormat{citehyperref}{%
+  \DeclareFieldAlias{bibhyperref}{noformat}%
+  \bibhyperref{#1}}
+
+\DeclareCiteCommand{\cite}[\mkbibparens]
+  {\usebibmacro{prenote}}
+  {\usebibmacro{citeindex}%
+   \printtext[citehyperref]{\usebibmacro{cite}}}
+  {\multicitedelim}
+  {\usebibmacro{postnote}}
+
+\renewcommand{\mkbibparens}[1]{\mkbibbrackets{#1}}
+
+% Smaller bibliography font for slides
+\renewcommand*{\bibfont}{\footnotesize}
+
+% Clean source citation: "Paper Title" [Author Year]
+% Shows at bottom of slide, clickable to bibliography
+\DeclareCiteCommand{\sourcecite}{}
+  {\textit{\printfield{title}}%
+   \hspace{0.4em}%
+   \printtext[citehyperref]{\mkbibbrackets{\printnames{labelname}\addcomma\addspace\printfield{year}}}%
+  }{\newline}{}
+
+\newcommand{\source}[1]{%
+  \vfill
+  {\scriptsize\color{gray}\sourcecite{#1}}%
+}

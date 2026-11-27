@@ -75,6 +75,9 @@ _minted*/
 *.pyg
 *.pdf
 !tex/*/fig/*.pdf
+# Decks nest figures below fig/ (per lecture section), and a single * does not
+# cross a /; .gitattributes already sends these through LFS.
+!tex/*/fig/**/*.pdf
 
 # misc
 .DS_Store
