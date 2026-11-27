@@ -63,6 +63,7 @@
 \newcommand{\relu}{\mathrm{relu}}
 \DeclareMathOperator*{\argmin}{arg\,min}
 \DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator{\Var}{Var}
 \newcommand{\X}{\mathcal{X}}
 \newcommand{\Y}{\mathcal{Y}}
 \newcommand{\W}{\mathcal{W}}
@@ -2219,6 +2220,78 @@ This is an example of \textbf{internal model selection} where there are two equa
     \end{enumerate}
 \end{exercise}
 
+\begin{exercise}[Estimating the learning coefficient from the Gibbs posterior]
+\label{ex:llc-estimation}
+    This exercise turns the free energy expansion of \cref{thm:fef}, with an
+    inverse temperature $\beta$ (writing $t = n\beta$), into two estimators of
+    the learning coefficient.
+    \note{Contributed by Miguel Donaire Arcas-Sariot (Iliad Intensive, September 2026).}
+
+    Consider the tempered free energy associated with a prior density
+    $\varphi \colon \W \to [0,\infty)$, a loss $L \colon \W \to \R$, a sample size
+    $n \in \N$ and an inverse temperature $\beta > 0$:
+    \begin{equation}\label{eq:llc-est-free-energy}
+        F_n^\beta := -\log \int_{\W} e^{-n\beta L(w)}\, \varphi(w)\,dw.
+    \end{equation}
+    Set $t := n\beta > 0$. We write $\E_{n,\beta}[g(w)]$ and
+    $\Var_{n,\beta}(g(w))$ for the expectation and variance under the Gibbs
+    posterior
+    \[
+        p_{n,\beta}(w) \propto e^{-n\beta L(w)}\, \varphi(w).
+    \]
+    Suppose that $L$ attains its minimum
+    \[
+        L^\star := \min_{w \in \W} L(w).
+    \]
+    Let $\lambda^\star$ and $\mu^\star$ denote, respectively, the RLCT and the
+    multiplicity of the contribution that dominates the asymptotics of the
+    integral in \cref{eq:llc-est-free-energy}. Concretely, if several global minimisers
+    contribute, $\lambda^\star$ is the smallest local RLCT and, among the
+    minimisers with that RLCT, $\mu^\star$ is the largest multiplicity.
+
+    Assume that, as $t \to \infty$,
+    \begin{equation}\label{eq:llc-est-asymptotic}
+        F_n^\beta = tL^\star + \lambda^\star \log t - (\mu^\star - 1)\log\log t + r(t),
+    \end{equation}
+    where the remainder is regular enough that
+    \[
+        r'(t) = o(t^{-1}),
+        \qquad
+        r''(t) = o(t^{-2}).
+    \]
+    Throughout, you may assume that $\frac{d}{dt}$ can be exchanged with
+    integration over $w \in \W$.
+
+    \begin{enumerate}
+        \item Show directly from \cref{eq:llc-est-free-energy} that
+        \begin{equation}\label{eq:llc-est-first-derivative}
+            \frac{dF_n^\beta}{dt} = \E_{n,\beta}[L(w)].
+        \end{equation}
+        Hence, by differentiating \cref{eq:llc-est-asymptotic}, show that
+        \begin{equation}\label{eq:llc-est-expected-loss}
+            \E_{n,\beta}[L(w)] = L^\star + \frac{\lambda^\star}{t}
+            - \frac{\mu^\star - 1}{t \log t} + o(t^{-1}).
+        \end{equation}
+
+        \item Suppose that an oracle provides the minimum loss $L^\star$. Use
+        \cref{eq:llc-est-expected-loss} to construct an asymptotically consistent
+        estimator of $\lambda^\star$ from the Gibbs expected loss.
+
+        \item Show directly that
+        \begin{equation}\label{eq:llc-est-second-derivative}
+            \frac{d^2 F_n^\beta}{dt^2} = -\Var_{n,\beta}(L(w)).
+        \end{equation}
+        By differentiating \cref{eq:llc-est-asymptotic} twice, show that
+        \begin{equation}\label{eq:llc-est-variance}
+            \Var_{n,\beta}(L(w)) = \frac{\lambda^\star}{t^2}
+            - \frac{(\mu^\star - 1)(\log t + 1)}{t^2 (\log t)^2} + o(t^{-2}).
+        \end{equation}
+
+        \item Use \cref{eq:llc-est-variance} to construct an asymptotically consistent
+        estimator of $\lambda^\star$ that does not require knowledge of $L^\star$.
+    \end{enumerate}
+\end{exercise}
+
 \subsection{Bayesian phase transitions}
 
 So far we have looked at the consequence of the free energy formula when considering $n$ to be fixed. However, we also find it interesting to see what it tells us about changes in the posterior as $n$ increases. 
@@ -3978,6 +4051,115 @@ Substituting into \eqref{eq:rlct} gives
             This demonstrates that the singularity at $\mu = 0$
             influences learning even when $\mu_0 \neq 0$, provided
             $\mu_0$ is close to the singular point. \qedhere
+    \end{enumerate}
+\end{solution}
+
+\begin{solution}[ex:llc-estimation]
+    \begin{enumerate}
+        \item Define the partition function
+        \[
+            Z(t) := \int_{\W} e^{-tL(w)}\, \varphi(w)\,dw,
+        \]
+        so that $F_n^\beta = -\log Z(t)$. Differentiating under the integral,
+        \[
+            Z'(t) = -\int_{\W} L(w)\, e^{-tL(w)}\, \varphi(w)\,dw.
+        \]
+        Therefore
+        \[
+            \frac{dF_n^\beta}{dt}
+            = -\frac{Z'(t)}{Z(t)}
+            = \frac{\int_{\W} L(w)\, e^{-tL(w)}\, \varphi(w)\,dw}
+                   {\int_{\W} e^{-tL(w)}\, \varphi(w)\,dw}
+            = \E_{n,\beta}[L(w)].
+        \]
+        On the other hand, differentiating \cref{eq:llc-est-asymptotic} gives
+        \begin{equation}\label{eq:llc-est-asymptotic-derivative}
+            \frac{dF_n^\beta}{dt} = L^\star + \frac{\lambda^\star}{t}
+            - \frac{\mu^\star - 1}{t \log t} + r'(t).
+        \end{equation}
+        Since $r'(t) = o(t^{-1})$,
+        \[
+            \boxed{
+                \E_{n,\beta}[L(w)] = L^\star + \frac{\lambda^\star}{t}
+                - \frac{\mu^\star - 1}{t \log t} + o(t^{-1})
+            }
+        \]
+        Thus the leading deviation of the Gibbs expected loss above its minimum
+        is controlled by the RLCT.
+
+        \item Rearranging \cref{eq:llc-est-expected-loss},
+        \[
+            t\bigl(\E_{n,\beta}[L(w)] - L^\star\bigr)
+            = \lambda^\star - \frac{\mu^\star - 1}{\log t} + o(1).
+        \]
+        Hence the oracle estimator
+        \begin{equation}\label{eq:llc-est-oracle-estimator}
+            \boxed{
+                \widehat{\lambda}_{\mathrm{mean}}
+                := t\bigl(\E_{n,\beta}[L(w)] - L^\star\bigr)
+            }
+        \end{equation}
+        satisfies $\widehat{\lambda}_{\mathrm{mean}} \to \lambda^\star$ as
+        $t \to \infty$.
+
+        Its leading finite-$t$ bias is $-(\mu^\star - 1)/\log t$, which decays
+        only logarithmically. If the multiplicity $\mu^\star$ were also known,
+        one could use the bias-corrected estimator
+        \[
+            t\bigl(\E_{n,\beta}[L(w)] - L^\star\bigr) + \frac{\mu^\star - 1}{\log t}.
+        \]
+
+        \item By \cref{eq:llc-est-first-derivative},
+        $\frac{d^2 F_n^\beta}{dt^2} = \frac{d}{dt}\E_{n,\beta}[L(w)]$.
+        Writing $\E_{n,\beta}[L(w)] = -Z'(t)/Z(t)$ and using
+        $Z''(t) = \int_{\W} L(w)^2 e^{-tL(w)}\, \varphi(w)\,dw$,
+        \begin{align*}
+            \frac{d}{dt}\E_{n,\beta}[L(w)]
+            &= -\frac{Z''(t)}{Z(t)} + \left(\frac{Z'(t)}{Z(t)}\right)^2 \\
+            &= -\E_{n,\beta}[L(w)^2] + \E_{n,\beta}[L(w)]^2 \\
+            &= -\Var_{n,\beta}(L(w)).
+        \end{align*}
+        Thus
+        \[
+            \boxed{
+                \frac{d^2 F_n^\beta}{dt^2} = -\Var_{n,\beta}(L(w))
+            }
+        \]
+        Now differentiate \cref{eq:llc-est-asymptotic-derivative}. Since
+        $\frac{d}{dt}(t\log t) = \log t + 1$,
+        \[
+            \frac{d^2 F_n^\beta}{dt^2}
+            = -\frac{\lambda^\star}{t^2}
+            + \frac{(\mu^\star - 1)(\log t + 1)}{t^2 (\log t)^2} + r''(t),
+        \]
+        and $r''(t) = o(t^{-2})$. Since the second derivative is minus the
+        variance,
+        \[
+            \boxed{
+                \Var_{n,\beta}(L(w)) = \frac{\lambda^\star}{t^2}
+                - \frac{(\mu^\star - 1)(\log t + 1)}{t^2 (\log t)^2} + o(t^{-2})
+            }
+        \]
+        In particular, $\Var_{n,\beta}(L(w)) \sim \lambda^\star / t^2$.
+
+        \item Multiplying \cref{eq:llc-est-variance} by $t^2$ gives
+        \[
+            t^2 \Var_{n,\beta}(L(w))
+            = \lambda^\star - (\mu^\star - 1)\frac{\log t + 1}{(\log t)^2} + o(1).
+        \]
+        Therefore
+        \begin{equation}\label{eq:llc-est-variance-estimator}
+            \boxed{
+                \widehat{\lambda}_{\mathrm{var}} := t^2 \Var_{n,\beta}(L(w))
+            }
+        \end{equation}
+        satisfies $\widehat{\lambda}_{\mathrm{var}} \to \lambda^\star$ as
+        $t \to \infty$, so it is an asymptotically consistent estimator.
+
+        Unlike \cref{eq:llc-est-oracle-estimator}, this estimator does not require
+        knowledge of the minimum loss $L^\star$. It only requires samples from
+        the tempered posterior, from which the variance of $L(w)$ can be
+        estimated.
     \end{enumerate}
 \end{solution}
 
