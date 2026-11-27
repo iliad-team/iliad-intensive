@@ -1,0 +1,243 @@
+%--- iliad ---
+% title: 1. Overview & Scope
+%--- end ---
+% Redesign of the Spring 2026 source deck, with an added Shai et al. example.
+% Build from this directory: latexmk -pdf -outdir=build CompMechSlidesPt1.tex
+\documentclass[aspectratio=169,12pt,t]{beamer}
+\usepackage{compmech-slides}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,shapes.geometric,fit}
+\graphicspath{{fig/}}
+\title{Computational Mechanics}
+\subtitle{1. Overview \& Scope}
+\institute{ILIAD Intensive}
+\date{Autumn 2026}
+\author{Xavier Poncini (Simplex)}
+
+\begin{document}
+\iliadtitle
+
+% 2. A genuine sequence merits a numbered list.
+\begin{frame}{Outline}
+  \vspace{5mm}
+  \begin{enumerate}
+    \setlength{\itemsep}{4mm}
+    \item What is Computational Mechanics?
+    \item Computational Mechanics \& AI Safety
+    \item Overview: where is the program at?
+    \item Scope: what will we tackle today?
+  \end{enumerate}
+\end{frame}
+
+% 3. Compare the two fields using the original macrostate and predictive-state graphics.
+\begin{frame}{What is Computational Mechanics?}
+  \begingroup\small
+  \keyterm{Statistical Mechanics} makes predictions about the behaviour of
+  systems by considering their \keyterm{statistical} properties:\par\endgroup
+  \vspace{-1mm}
+  \begin{center}\evidenceimage[17mm]{statmech-reference}\end{center}
+  \vspace{-2mm}
+  {\small
+  \keyterm{Computational Mechanics} makes predictions about the behaviour of
+  systems by considering their \keyterm{computational} properties:\par}
+  \vspace{-1mm}
+  \begin{center}\evidenceimage[20mm]{compmech-reference}\end{center}
+\end{frame}
+
+% 4. Questions are complete sentences, with no unnecessary hierarchy.
+\begin{frame}{Central questions}
+  Some questions that are central to comp-mech:
+  \vspace{3mm}
+
+  \begin{itemize}
+    \setlength{\itemsep}{2mm}
+    \item How much of the past does a system store?
+    \item How does the system store this information?
+    \item How does this information affect system behaviour?
+  \end{itemize}
+  \vspace{4mm}
+
+  We will consider each of these questions for transformers today!
+\end{frame}
+
+\begin{frame}{Optimal prediction}
+  Not all systems are interesting! Comp-mech places an emphasis on those
+  performing \keyterm{optimal prediction}. In this setting the central question becomes:
+  \vspace{5mm}
+
+  {\centering
+    \setlength{\fboxsep}{3mm}
+    \setlength{\fboxrule}{0.6pt}
+    \fcolorbox{iliadAccent}{iliadAccent!6}{%
+      \parbox{0.88\textwidth}{\centering
+        What are convergent structures relevant for \textbf{optimal prediction}?}}
+    \par}
+  \vspace{5mm}
+
+  Insight on this question greatly constrains our search space when
+  considering \keyterm{optimal predictors}.
+\end{frame}
+
+\begin{frame}{Instrumental and terminal goals}
+  We have strong reason to believe that AI systems will pursue a range of
+  \keyterm{instrumental goals} in service of their \keyterm{terminal goal}.
+  \begin{center}\evidenceimage[44mm]{instrumental}\end{center}
+\end{frame}
+
+\begin{frame}{Optimal prediction as an intervention target}
+  Comp-mech uses an \keyterm{instrumental goal} as an intervention target point.
+  \begin{center}\evidenceimage[37mm]{intervention}\end{center}
+  By considering internal representations consistent with optimal prediction
+  the search space is reduced.
+\end{frame}
+
+\begin{frame}{Capability scale and optimal prediction}
+  Targeting an instrumental goal is \keyterm{scale-free}: it will be relevant
+  to current and future models.
+  \begin{center}\evidenceimage[23mm]{capability_scale}\end{center}
+  {\small
+  Which contrasts \keyterm{scale-sensitive} approaches e.g.\ AI control that are
+  only applicable up to a fixed capability scale.
+
+  Moreover, as capabilities increase models will better approximate
+  \keyterm{optimal predictors}.\par}
+\end{frame}
+
+\begin{frame}{The research program}
+  Comp-mech applied to AI safety is a young research program
+  ($\sim$2.5 years). There is much to do!
+
+  Progress can be broken down into two orthogonal directions:
+  \vspace{2mm}
+
+  \begin{itemize}
+    \setlength{\itemsep}{3mm}
+    \item For what classes of data generating \keyterm{processes} do we
+      understand optimal prediction?
+    \item For what scale of \keyterm{neural networks} have we identified the
+      structures of optimal prediction?
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Processes and generation resources}
+  Fix a (computable) stochastic process and consider:
+
+  What resources are required to generate this process? This naturally leads
+  to a hierarchy:
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.36\textwidth}
+      \centering\resizebox{!}{38mm}{\input{figures/hierarchy.tex}}\\[1mm]
+      {\footnotesize $*$ not exhaustive}
+    \end{column}
+    \begin{column}{0.60\textwidth}
+      \vspace{4mm}
+      {\small\input{figures/hierarchy-key.tex}}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Processes and optimal prediction}
+  For what classes of data generating \keyterm{processes} do we understand
+  optimal prediction?
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.36\textwidth}
+      \centering\resizebox{!}{42mm}{\input{figures/hierarchy_green.tex}}\\[1mm]
+      {\footnotesize $*$ not exhaustive}
+    \end{column}
+    \begin{column}{0.60\textwidth}
+      \vspace{4mm}
+      {\small\input{figures/hierarchy-key.tex}}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% 12. All four quantities share an aligned column and an explicit unit.
+\begin{frame}{Neural networks: the scale studied so far}
+  For what scale of \keyterm{neural networks} have we identified the structures
+  of optimal prediction?
+  \vspace{2mm}
+
+  \begin{tabular*}{0.80\linewidth}{@{}l@{\extracolsep{\fill}}r@{}}
+    \toprule
+    Architecture & Parameters (approximately)\\
+    \midrule
+    Transformer & $10^{5}$\\
+    LSTM        & $10^{5}$\\
+    RNN         & $10^{4}$\\
+    GRU         & $10^{5}$\\
+    \bottomrule
+  \end{tabular*}
+  \vspace{3mm}
+
+  Very toy compared to current frontier models ($\sim 10^{12}$)!
+\end{frame}
+
+% 13. Empirical example following the comparison of network sizes.
+\begin{frame}{Example: belief state geometry}
+  \setlength{\parskip}{2pt}
+  \vspace{-1mm}
+  {\centering\evidenceimage[48mm]{shai-belief-state-geometry}\par}
+  \vspace{1mm}
+  {\small
+  After next-token training on HMM sequences, an affine readout approximately
+  recovers the geometry of beliefs over hidden states from residual activations.\par}
+  \source{Shai et al., \emph{Transformers represent belief state geometry in their
+  residual stream}. NeurIPS 2024.
+  \href{https://arxiv.org/abs/2405.15943}{arXiv:2405.15943}.}
+  \note{A belief state is a probability distribution over the hidden states of
+  the data-generating HMM, conditioned on the observed tokens. The lower path
+  computes these beliefs by Bayesian updating. The upper path fits an affine
+  map from the trained transformer's residual activations to those beliefs.
+  The paper finds the predicted geometry, including fractal examples, in the
+  studied HMM-trained transformers. Depending on the process, the readout uses
+  one layer or concatenated layers. The map is an analysis fitted after training,
+  not an extra component of the transformer. The supplied diagram is a schematic,
+  not a quantitative plot of reconstruction error. Source: Shai et al., NeurIPS
+  2024, Sections 2.3 and 3, https://arxiv.org/abs/2405.15943.}
+\end{frame}
+
+\begin{frame}{The research frontier}
+  We are working to push the Pareto frontier:
+  \begin{center}\resizebox{!}{53mm}{\input{figures/pareto.tex}}\end{center}
+\end{frame}
+
+% 15 (original 14). Preserve diagram and qualification without obscuring data.
+\begin{frame}{The research frontier}
+  We are working to push the Pareto frontier:
+  \vspace{1mm}
+  \begin{columns}[T,onlytextwidth]
+    \begin{column}{0.49\textwidth}
+      \centering\resizebox{!}{51mm}{\input{figures/pareto.tex}}
+    \end{column}
+    \begin{column}{0.46\textwidth}
+      \vspace{3mm}
+      \slidelabel{Wild Speculation}
+      As the research program is scale-free one view is that we should
+      develop the foundations such that future automated AI Safety
+      researchers can pursue these ideas independently.
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Scope: what will we tackle today?}
+  We will take a slightly narrower view and consider:
+  \begin{center}\resizebox{!}{53mm}{\input{figures/scope.tex}}\end{center}
+\end{frame}
+
+\begin{frame}{Plan}
+  \vspace{5mm}
+  {\small
+  \renewcommand{\arraystretch}{1.5}
+  \begin{tabularx}{\linewidth}{@{}r@{\hspace{3mm}}X@{\hspace{3mm}}l@{}}
+    1 & Predicting the future & Lecture/Exercises\\
+    2 & Representing the past & Lecture/Exercises\\
+    3 & Belief geometry in transformers & Reading/Discussion\\
+  \end{tabularx}
+  \par}
+\end{frame}
+
+\begin{frame}[plain,c]
+  \leavevmode
+  {\usebeamerfont{title}Questions?\par}
+\end{frame}
+\end{document}

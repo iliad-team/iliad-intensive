@@ -1,0 +1,268 @@
+%--- iliad ---
+% title: Lecture 2: the correspondence argument
+%--- end ---
+% Lecture 2. Standalone Beamer source. No external assets required.
+\documentclass[aspectratio=169,12pt]{beamer}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usetheme{default}
+\usefonttheme{professionalfonts}
+\setbeamercolor{normal text}{fg=black,bg=white}
+\setbeamercolor{structure}{fg=black}
+\setbeamercolor{frametitle}{fg=black,bg=white}
+\setbeamerfont{frametitle}{size=\Large,series=\bfseries}
+\setbeamertemplate{navigation symbols}{}
+% Default beamer sets the frame title flush to the top-left, outside the text
+% block: it started 3mm from the left edge while body text starts at 9mm. Align
+% it with the body and give it room to breathe above.
+\setbeamertemplate{frametitle}{%
+  \vskip5mm\hspace*{2mm}%
+  \usebeamerfont{frametitle}\usebeamercolor[fg]{frametitle}\insertframetitle%
+  \par\vskip3mm}
+\setbeamertemplate{footline}[frame number]
+\setbeamertemplate{itemize items}[circle]
+\setbeamersize{text margin left=9mm,text margin right=9mm}
+\newcommand{\PI}{\mathcal P^+(I)}
+\newcommand{\Up}{\mathord{\supseteq}}
+\newcommand{\Upstrict}{\mathord{\supsetneq}}
+\title{Condensation}
+\subtitle{Correspondence}
+\author{Satya Benson}
+\date{ILIAD, 21 September 2026}
+\begin{document}
+
+\begin{frame}{Correspondence between collections}
+Two perfect condensations of the same observables satisfy
+\[
+H(Y_{\Up A}\mid Z_{\Up A})=H(Z_{\Up A}\mid Y_{\Up A})=0.
+\]
+Here $Y_{\Up A}=(Y_C:A\subseteq C)$ is the latent at $A$ together with those
+at all of its supersets. The corresponding collections determine one another
+almost surely.
+\medskip
+
+The proof has three steps: combine two witnesses, transfer through observations,
+and intersect contributing families.
+\end{frame}
+
+\begin{frame}{A common joint law}
+The two models specify laws for $(X,Y)$ and $(X,Z)$ with the same $X$ marginal.
+Choose a joint law for $(X,Y,Z)$ preserving both.
+\medskip
+
+One possible choice is
+\[
+p(x,y,z)=p(x)\,p(y\mid x)\,p(z\mid x).
+\]
+The theorem holds for any such coupling.
+\end{frame}
+
+\begin{frame}{The quantitative theorem}
+Fix nonempty $A\subseteq I$ and let $k=|A|$.
+For latent models $Y,Z$ of the same observables,
+\[
+H(Y_{\Up A}\mid Z_{\Up A})
+\le \sum_{i\in A}H(Y_{\Up A}\mid X_i)+(k-1)\eta_Z.
+\]
+Here $\eta_Z$ bounds conditional dependence between upward-closed families
+given their intersection. If every reconstruction defect and $\eta_Z$ are at
+most $\varepsilon$, the bound reads
+\[
+H(Y_{\Up A}\mid Z_{\Up A})\le(2k-1)\varepsilon .
+\]
+
+This direction uses recovery of the tower from the observations and the
+Markov defect of $Z$.
+\end{frame}
+
+
+
+\begin{frame}{The two-witness lemma}
+For finite-valued $U,M,P,Q$,
+\[
+\begin{aligned}
+H(U\mid M)\le{}&H(U\mid M,P)+H(U\mid M,Q)\\
+&+I(P;Q\mid M).
+\end{aligned}
+\]
+If both witnesses $(M,P)$ and $(M,Q)$ recover $U$, and their remaining
+information is conditionally independent given $M$, then $M$ recovers $U$.
+\medskip
+
+The inequality also tracks errors when these requirements hold approximately.
+\end{frame}
+
+\begin{frame}{The entropy identity behind the lemma}
+Subtract the left side from the right side:
+\[
+\begin{aligned}
+&H(U\mid M,P)+H(U\mid M,Q)+I(P;Q\mid M)\\
+&\hspace{25mm}-H(U\mid M)\\[1mm]
+&\qquad=I(P;Q\mid U,M)+H(U\mid M,P,Q)\ \ge\ 0.
+\end{aligned}
+\]
+This follows from the chain rule,
+\[
+H(U,V\mid W)=H(U\mid W)+H(V\mid U,W),
+\]
+and nonnegativity.
+\end{frame}
+
+\begin{frame}{Transfer through an observation}
+The contributing family $\Up\{i\}$ satisfies
+\[
+H(X_i\mid Z_{\Up\{i\}})=0.
+\]
+Therefore, for any target $U$,
+\[
+H(U\mid Z_{\Up\{i\}})\le H(U\mid X_i).
+\]
+The contributing latents determine $X_i$, so they provide at least its
+information about $U$.
+\end{frame}
+
+\begin{frame}{Intersecting the contributing families}
+For $A=\{i_1,\ldots,i_k\}$, set
+\[
+\mathcal G_j=\bigcap_{\ell=1}^{j}\Up\{i_\ell\}.
+\]
+An address $C$ survives the final intersection exactly when it contains every
+element of $A$:
+\[
+\mathcal G_k=\{C:A\subseteq C\}=\Up A.
+\]
+Each $\Up\{i\}$ is upward closed. Intersections preserve upward closure.
+\end{frame}
+
+\begin{frame}{The smaller index carries the bigger tuple}
+Each intersection adds a requirement, so the families shrink:
+\[
+\mathcal G_1\supseteq\mathcal G_2\supseteq\cdots\supseteq\mathcal G_k=\Up A.
+\]
+An address survives step $j$ only if it already survived step $j-1$.
+\medskip
+
+A family with more addresses carries a longer tuple of latents, so the tuples
+run the other way: every latent in $Z_{\mathcal G_j}$ also appears in
+$Z_{\mathcal G_{j-1}}$, and also in $Z_{\Up\{i_j\}}$, since
+$\mathcal G_j=\mathcal G_{j-1}\cap\Up\{i_j\}$.
+\end{frame}
+
+\begin{frame}{One intersection step}
+Use the two-witness lemma with
+\[
+M=Z_{\mathcal G_j},\qquad
+P=Z_{\mathcal G_{j-1}},\qquad
+Q=Z_{\Up\{i_j\}}.
+\]
+The tuple $M$ is already contained in both $P$ and $Q$. Hence
+\[
+H(U\mid Z_{\mathcal G_j})\le H(U\mid Z_{\mathcal G_{j-1}})
++H(U\mid Z_{\Up\{i_j\}})
++I(Z_{\mathcal G_{j-1}};Z_{\Up\{i_j\}}\mid Z_{\mathcal G_j}).
+\]
+Both families are upward closed and $\mathcal G_j$ is their intersection, so the
+last term is at most $\eta_Z$.
+\end{frame}
+
+\begin{frame}{Counting the error terms}
+Iterating the previous step down from $\mathcal G_k=\Up A$ to
+$\mathcal G_1=\Up\{i_1\}$ uses $k-1$ intersections, and leaves $k$ terms,
+one per element of $A$. For any target $U$,
+\[
+H(U\mid Z_{\Up A})\le\sum_{i\in A}H(U\mid Z_{\Up\{i\}})+(k-1)\eta_Z.
+\]
+Transfer through an observation bounds each of those $k$ terms by
+$H(U\mid X_i)$. Taking the tower $Y_{\Up A}$ as the target turns them into
+the reconstruction defects of $Y$:
+\[
+H(Y_{\Up A}\mid Z_{\Up A})
+\le\sum_{i\in A}H(Y_{\Up A}\mid X_i)+(k-1)\eta_Z.
+\]
+If every reconstruction defect is at most $\delta$ and $\eta_Z\le\eta$, the
+right side is $k\delta+(k-1)\eta$.
+\end{frame}
+
+\begin{frame}{What the bound compares}
+The reverse direction has the same form:
+\[
+H(Z_{\Up A}\mid Y_{\Up A})
+\le\sum_{i\in A}H(Z_{\Up A}\mid X_i)+(k-1)\eta_Y.
+\]
+For perfect models both sides have zero recovery error and Markov defect,
+so both conditional entropies vanish. These are bounds on \textbf{whole collections}.
+\medskip
+
+Small errors for each individual latent can accumulate across a collection, so
+the tower hypothesis $H(Y_{\Up A}\mid X_i)$ has to be checked directly.
+\end{frame}
+
+\begin{frame}{The conditioned score}
+For a nonempty observation block $B$, define
+\[
+\mathcal J_B=\{A:A\cap B\ne\varnothing\},\qquad Y_{\Upstrict A}=(Y_C:A\subsetneq C).
+\]
+The score charges each active latent given its strict supersets:
+\[
+\chi(B)=\sum_{A\in\mathcal J_B}H(Y_A\mid Y_{\Upstrict A})
+\ge H(Y_{\mathcal J_B})\ge H(X_B).
+\]
+The chain rule gives the first inequality; LVM gives the second.
+\end{frame}
+
+\begin{frame}{Two terms in the score gap}
+Let $V_B=\chi(B)-H(Y_{\mathcal J_B})$. Then
+\[
+\chi(B)-H(X_B)=V_B+H(Y_{\mathcal J_B}\mid X_B).
+\]
+Both terms are nonnegative.
+\begin{itemize}
+\item $V_B$ measures departure from the ordered Markov factorization.
+\item $H(Y_{\mathcal J_B}\mid X_B)$ measures latent information unrecovered
+from the observations.
+\end{itemize}
+\medskip
+\small More precisely, $V_B=D_{\mathrm{KL}}(P_{Y_{\mathcal J_B}}\Vert Q_B)$,
+where $Q_B(y)=\prod_{A\in\mathcal J_B}P(y_A\mid y_{\Upstrict A})$.
+\end{frame}
+
+\begin{frame}{The score separates models the conditions do not}
+Three latent models of the clustering example, all satisfying LVM and the
+Markov condition. Take $B$ to be a few points inside one cluster.
+\begin{itemize}
+\item One latent carrying the whole tuple: $\chi(B)=H(X)$. Every query pays
+for all 36 points.
+\item A chain, with $X_j$ carried at the address $\{j,\ldots,36\}$:
+$\chi(B)=H(X_1,\ldots,X_{\max B})$. Cheap only for early points.
+\item The hierarchy, with the scale, the group and the cluster centers above
+the points: writing $\Theta$ for the parameters $B$ sits under,
+$\chi(B)=H(\Theta)+\sum_{i\in B}H(X_i\mid\Theta)$.
+\end{itemize}
+Only the hierarchy charges a local query locally, and its gap is
+$\chi(B)-H(X_B)=H(\Theta\mid X_B)$, the parameter uncertainty a finite block
+leaves. At $B=I$ all three pay $H(X)$: the ranking is relative to the blocks
+actually queried.
+\end{frame}
+
+\begin{frame}{Why expect agents to satisfy these conditions?}
+An agent that answers queries about a block $B$ pays $\chi(B)$, and no
+latent model does better than $H(X_B)$. The gap splits into exactly our two
+defects:
+\[
+\chi(B)-H(X_B)=V_B+H(Y_{\mathcal J_B}\mid X_B).
+\]
+Short descriptions for the queries an agent cares about \emph{are} small
+defects. Taking $B=\{i\}$, where $\mathcal J_{\{i\}}=\Up\{i\}$, gives for
+$i\in A$
+\[
+H(Y_{\Up A}\mid X_i)\le H(Y_{\Up\{i\}}\mid X_i)\le\chi(\{i\})-H(X_i),
+\]
+which is exactly the theorem's reconstruction hypothesis.
+\medskip
+
+So the conditions need not be assumed as a coincidence: efficient agents buy
+them. Efficiency is relative to the blocks an agent actually queries.
+\end{frame}
+
+\end{document}

@@ -1,0 +1,489 @@
+---
+title: "Example Worksheet: The Kitchen Sink (MDX)"
+summary: >-
+  A template worksheet in the shape of the module template, written in MDX
+  instead of LaTeX and demonstrating every component the page supports: this
+  paragraph is the overview, shown under the title and in the index.
+contributors:
+  - Jane Doe (Example University)
+  - John Roe (Example Institute)
+# slides: https://drive.google.com/drive/folders/<folderId>
+unlisted: true
+---
+
+{/*
+  tex/example-mdx/main.mdx — the worksheet TEMPLATE, MDX flavour.
+  (tex/example-tex/main.tex is the same skeleton in LaTeX. Pick one: a LaTeX
+  sheet also becomes a PDF; an MDX sheet is a web page only.)
+
+  Two jobs. (1) A skeleton in the shape of the Iliad Intensive module
+  template (the Mega Doc's "Template" tab): copy this folder, paste your
+  material into the matching sections, delete what you don't need.
+  (2) A demo of every component the page supports, each used where a real
+  sheet would use it.
+
+  Start a new sheet:   cp -r tex/example-mdx tex/<your-slug>
+  Then list <your-slug> under its day in schedule.yaml (the only other edit).
+  Build + preview:     ./run.sh watch <your-slug>
+  Reference:           docs/commands.md §"Writing in MDX instead"
+
+  These comment blocks are instructions to you, the author. They are
+  invisible on the page but DO ship in the downloadable .mdx, so delete them
+  as you fill each section in. (<!-- --> is a compile error in MDX.)
+
+  Frontmatter, above: title (required — there is no \title{} to fall back
+  on), summary (the OVERVIEW: one tight paragraph, shown under the title and
+  as the index blurb — never an "Overview" body section), contributors,
+  slides (a deck hosted elsewhere — a Drive FOLDER url; a slides.typ or
+  slides.tex in this folder is compiled and listed automatically), and
+  unlisted (maintainer flag — remove it). NOT here: cluster / day —
+  schedule.yaml owns them and writing either is a build error.
+
+  Headings: `##` is the top (the title is the page's h1), `###` below it,
+  `####` below that. Never `#`, and don't number headings by hand.
+*/}
+
+{/*
+  Front matter opens every sheet in this fixed order (the build warns when
+  one strays): 1. video embeds (optional)  2. Prerequisites  3. the
+  learning-outcomes box (= the module intent) — then the content.
+  <YouTube id="…" /> takes the 11-character video ID, never the URL. A
+  lecture recording goes here, first; a video illustrating one point may sit
+  with that point instead.
+*/}
+
+<YouTube id="dQw4w9WgXcQ" title="Lecture recording" />
+
+## Prerequisites
+
+{/*
+  What should a participant already know? Cover: previous-module content
+  (link the day: [AIXI](/agency/aixi)); technical background, as abilities
+  (doing proofs) and knowledge; background assumptions or world-views that
+  inform the content; terminology assumed known.
+*/}
+
+- Comfort with probability on finite sets ($\mathbb{E}$, distributions on a
+  finite $\mathcal{X}$).
+- One variable of calculus: we differentiate $-t \log t$ once.
+- From [Prerequisites (day 0)](/foundations/prerequisites): big-$O$ notation
+  and the idea of a bit.
+
+{/*
+  Module intent = the "What you'll learn" box. Three things: WHAT
+  participants must leave with (if they don't get it, the day failed); WHY
+  it matters, connected to the goals of the whole intensive; HOW the day gets
+  them there — the story of the day, at a high level.
+  Two tests. Completeness: could a participant point a friend at this and say
+  "read this and you'll get the idea"? Teachability: does it let a teacher
+  short on time decide on the fly what to skip?
+  Anti-example: "Students understand entropy." (fails both tests.)
+  Body is markdown: a single list, or groups under bold lines (`**What**`) —
+  never real headings inside the box. A short sheet keeps one list.
+  Blank lines around the body, like every component with markdown inside.
+*/}
+
+<LearningOutcomes>
+
+**What**
+
+- Define the entropy of a distribution and compute it by hand for small
+  examples.
+- State and prove Gibbs' inequality, and use it to bound entropy.
+- Recognise every component the page supports, and copy this file as the
+  starting point for a sheet.
+
+**Why**
+
+Entropy is the unit of account for everything later in the course that
+measures information: description length, KL divergence, mutual information.
+A participant who cannot manipulate it fluently is stuck from day two onwards.
+
+**How**
+
+A morning lecture states the definitions and proves Gibbs' inequality; an
+exercise session makes the participants reprove it and find the equality case
+themselves; a reading and discussion block connects it to coding.
+
+</LearningOutcomes>
+
+## Roadmap for today
+
+{/*
+  The time schedule: one line per sub-module, matching the sub-module
+  headings under Main content below. Keep the numbers REALISTIC and revise
+  them after teaching — a teacher uses this to know if they are on track.
+  A GFM table works (shown); a plain list is fine too. Links to headings use
+  the heading's slug: `#lecture-entropy` for "### Lecture: entropy".
+*/}
+
+| Time          | Session                                                |
+| :------------ | :----------------------------------------------------- |
+| 10:00 – 11:00 | [Lecture: entropy](#lecture-entropy)                   |
+| 11:00 – 11:15 | Break                                                  |
+| 11:15 – 12:30 | [Exercise session](#exercise-session)                  |
+| 12:30 – 13:30 | Lunch                                                  |
+| 13:30 – 15:00 | [Reading and discussion](#reading-and-discussion)      |
+| 15:00 – 15:30 | [Daily checkpoint](#daily-checkpoint) and feedback form |
+
+{/*
+  Teacher-facing material goes in a TeachingNote: collapsed on the web, so
+  it stays out of the participant's reading flow. `title` is the label on
+  the closed box (default "Teaching note"). It survives the -nosol download —
+  only <Solution> is stripped.
+*/}
+
+<TeachingNote title="Required materials">
+
+Projector and whiteboard. Print the exercise sheet (the `-nosol` Markdown
+download is spoiler-free) for anyone who wants paper.
+
+</TeachingNote>
+
+## Content
+
+{/*
+  Mirrors the Mega Doc: Fast track, then Main content structured into
+  sub-modules, then Learn more (which the site puts LAST — see below).
+*/}
+
+### Fast track
+
+{/*
+  The route through Main content that hits the most important learning
+  outcomes in about an hour — for the participant who missed the day, or the
+  one catching up. Point at specific sections, exercises and readings.
+*/}
+
+To get the core in an hour: read the [definition](#def-entropy) and
+[Gibbs' inequality](#thm-gibbs) with its proof, do the
+[warm-up](#ex-warmup), then skim MacKay, chapter 4.
+
+### Main content
+
+{/*
+  What is taught in the day (6.5 hours, 10:00–18:00), chronological, top to
+  bottom, self-contained. Structure it by SUB-MODULE: each distinct activity
+  — a lecture, an exercise session, a reading, a discussion, a guest lecture —
+  is its own #### heading, matching a row of the Roadmap. Every sub-module
+  opens with a one- or two-sentence INTENT in a TeachingNote: what it leads
+  to, how, and its place in the story of the day (same two tests as the
+  module intent — it is what lets a teacher decide what to cut).
+  Add TeachingNotes wherever you know something about teaching THIS thing
+  that the next teacher would not think of themselves ("TN, slide 46: …").
+  Future-proofing: exercises need solutions; readings need a persistent
+  format; a deck needs both a PDF and an editable source (slides.typ here).
+*/}
+
+The day runs as three sub-modules — a lecture, an exercise session, and a
+reading block — closing with the daily checkpoint.
+
+#### Lecture: entropy
+
+<TeachingNote title="Intent">
+
+Give the participants the definition and one inequality they can prove
+themselves, so the afternoon exercises are a rehearsal and not a first
+sighting. Everything after the proof of [Gibbs' inequality](#thm-gibbs) can
+be cut if time is short.
+
+</TeachingNote>
+
+<TeachingNote>
+
+TN, slide 12: draw $-t\log t$ on the board before showing the plot; most
+participants have never seen that it is concave.
+
+</TeachingNote>
+
+{/* ---- Prose, math, links ---- */}
+
+Ordinary markdown: *emphasis*, **bold**, `monospace`, and special characters
+like 50% or §3 need no escaping. Inline math is KaTeX between dollars:
+$e^{i\pi} + 1 = 0$, $D_{\mathrm{KL}}(p \,\|\, q) \geq 0$, comparisons like
+$x_{<t}$. A literal dollar in prose is escaped, \$1,000, or two bare dollars
+in one paragraph become a math span. There is no preamble: write notation out
+in full, or define macros once at the top of the file inside a math span,
+`$\gdef\E{\mathbb{E}}$`, and use them everywhere after.
+
+Display math sits between a pair of double dollars, each on its own line:
+
+$$
+\sum_{k=1}^{n} k = \frac{n(n+1)}{2}.
+$$
+
+Multi-line derivations use `aligned`:
+
+$$
+\begin{aligned}
+  (a+b)^2 &= (a+b)(a+b) \\
+          &= a^2 + 2ab + b^2.
+\end{aligned}
+$$
+
+Nothing is numbered for you on this path: name things by their anchor and
+link to them, `[Gibbs' inequality](#thm-gibbs)`, rather than by a number you
+would have to keep right by hand. External links are plain
+[hyperlinks](https://en.wikipedia.org/wiki/Entropy_(information_theory)),
+and footnotes are GFM footnotes.[^web]
+
+[^web]: The marker links down to a note at the foot of the page, and the note
+    links back. Any label does (`[^web]`, `[^1]`); notes are numbered in the
+    order their references appear.
+
+{/*
+  ---- Definitions and theorems ----
+  <Definition id="…"> is the indigo box, <Theorem id="…"> the violet one
+  (use it for lemmas, propositions and corollaries too). Write the bold lead
+  yourself — "**Definition (entropy).**" — and give an `id` to anything you
+  will link to. A proof is a <Solution title="Proof">: collapsible.
+*/}
+
+<Definition id="def-entropy">
+
+**Definition (entropy).** The *entropy* of a distribution $p$ on a finite set
+$\mathcal{X}$ is
+
+$$
+H(p) = -\sum_{x \in \mathcal{X}} p(x) \log p(x).
+$$
+
+</Definition>
+
+<Theorem id="thm-gibbs">
+
+**Theorem (Gibbs' inequality).** For any distributions $p, q$ on
+$\mathcal{X}$, $-\sum_x p(x) \log q(x) \geq H(p)$, with equality iff $p = q$.
+
+</Theorem>
+
+<Solution title="Proof">
+
+By definition, $D_{\mathrm{KL}}(p \,\|\, q) = \sum_x p(x) \log \frac{p(x)}{q(x)} \geq 0$
+by Jensen's inequality applied to the concave function $\log$; rearranging
+gives the claim. Equality in Jensen requires $p(x)/q(x)$ constant, i.e.
+$p = q$.
+
+</Solution>
+
+<Theorem id="lem-uniform">
+
+**Lemma.** $H(p) \leq \log |\mathcal{X}|$, with equality iff $p$ is uniform.
+
+</Theorem>
+
+<Solution title="Proof">
+
+Apply [Gibbs' inequality](#thm-gibbs) with $q$ uniform.
+
+</Solution>
+
+{/*
+  ---- Callouts ----
+  <Callout type="note|warning|tip" title="optional heading" id="optional">.
+  Without a title the colour alone says what kind of aside it is. An example
+  is a tip-coloured callout with a bold lead; a remark is a note-coloured one.
+*/}
+
+<Callout type="tip">
+
+**Example.** A fair coin has $H = \log 2$: one bit. A coin with
+$p(\text{heads}) = 1$ has $H = 0$.
+
+</Callout>
+
+<Callout type="warning" id="co-pitfall">
+
+Callouts flag pitfalls, tips, or side notes. Types: `note` (default), `tip`,
+`warning`. Give one an `id` to link to it. Mind the base of the logarithm:
+bits for $\log_2$, nats for $\ln$.
+
+</Callout>
+
+<Callout type="tip" title="A titled callout">
+
+`title` heads the box. Handy for a highlighted key equation,
+$H(p) = -\sum_x p(x) \log p(x)$, or a named aside. Keep maths out of the
+title itself: it is a plain string.
+
+</Callout>
+
+<Callout type="note">
+
+**Remark (Continuous distributions).** An aside in the mathematical
+register is a note callout with a bold lead. See the
+[warning](#co-pitfall) above.
+
+</Callout>
+
+{/*
+  ---- Figures ----
+  Put the file in fig/. A .pdf is converted to SVG for the web; .svg/.png/
+  .jpg are served as-is. Reference it by basename under /uploads/<slug>/ —
+  the slug is this folder's name. Never bake a base path into the URL.
+  The caption is the body (markdown and math allowed); `alt` is a plain
+  string for screen readers.
+*/}
+
+<Figure src="/uploads/example-mdx/value-curve.svg" alt="A value curve rising with time">
+
+An example figure from `fig/`, converted from `value-curve.pdf`.
+
+</Figure>
+
+{/*
+  ---- Citations ----
+  There is no .bib on this path: the file is served as written. Cite with a
+  link, and collect the full entries under "References" at the end if the
+  sheet has many.
+*/}
+
+The idea of entropy is due to
+[Shannon (1948)](https://doi.org/10.1002/j.1538-7305.1948.tb01338.x); for a
+textbook treatment see
+[MacKay (2003)](https://www.inference.org.uk/itila/), chapter 4.
+
+#### Exercise session
+
+<TeachingNote title="Intent">
+
+The participants reprove the lecture's inequality with their own hands and
+find its equality case, so that "entropy is maximised by the uniform
+distribution" becomes something they derived rather than heard. Pairs; the
+[hard direction](#ex-gibbs-hard) is the one to discuss on the board.
+
+</TeachingNote>
+
+{/*
+  ---- Exercises, hints, solutions ----
+  <Exercise id="…"> with a bold lead you write yourself ("**Exercise 1
+  (Title).**" — numbering is yours to keep, or leave it out). Subparts are
+  bold letters. A <Solution> goes directly under its exercise (there is no
+  binding to relocate it): collapsed on the page and stripped from the
+  -nosol download. <Hint> is collapsed too but survives -nosol. A ★ in the
+  lead marks one of the sheet's key exercises. Exercises without solutions
+  are fine.
+*/}
+
+<Exercise id="ex-warmup">
+
+**Exercise 1 (Entropy warm-up).** Let $p$ be a distribution on a finite set
+$\mathcal{X}$.
+
+**(a)** Show that $H(p) \geq 0$.
+
+**(b)** For which $p$ is $H(p) = 0$?
+
+</Exercise>
+
+<Solution>
+
+For (a): each term $-p(x)\log p(x) \geq 0$ since $p(x) \in [0,1]$. For (b):
+$H(p) = 0$ iff every term vanishes iff $p$ is a point mass. [*Hint:* when is
+$-t \log t = 0$ on $[0,1]$?]
+
+</Solution>
+
+<Exercise id="ex-gibbs-hard">
+
+**Exercise 2 (★) (Gibbs, the hard direction).** Prove the equality case of
+[Gibbs' inequality](#thm-gibbs) directly, without citing Jensen's equality
+condition.
+
+</Exercise>
+
+<Hint>
+
+Consider $f(t) = t - 1 - \log t$: it is nonnegative on $t > 0$ and vanishes
+only at $t = 1$.
+
+</Hint>
+
+<Solution>
+
+Write $f(t) = t - 1 - \log t$ for $t > 0$ and note $f(t) \geq 0$ with equality
+iff $t = 1$. Then with $t_x = q(x)/p(x)$,
+
+$$
+-\sum_x p(x) \log q(x) - H(p) = \sum_x p(x) f\!\left(t_x\right) +
+   \sum_x \bigl(p(x) - q(x)\bigr) \geq 0,
+$$
+
+and equality forces $t_x = 1$ wherever $p(x) > 0$, i.e. $p = q$.
+
+</Solution>
+
+<Exercise id="ex-open">
+
+**Exercise 3 (Open-ended).** Why might a learning system that compresses its
+inputs well also predict them well? No solution is given: this is a
+discussion exercise.
+
+</Exercise>
+
+#### Reading and discussion
+
+<TeachingNote title="Intent">
+
+Connect the morning's definition to coding, through one well-curated reading
+with clear take-aways, then a discussion that compares and contrasts. Groups
+of three to four; steer towards the source-coding theorem if the discussion
+stalls.
+
+</TeachingNote>
+
+{/* A reading session: what to read, how much of it, and what to take away. */}
+
+- [MacKay (2003)](https://www.inference.org.uk/itila/), sections 4.1–4.3
+  (about 40 minutes). Take-away: the entropy is the average length of the
+  best code.
+- [Shannon (1948)](https://doi.org/10.1002/j.1538-7305.1948.tb01338.x),
+  section 6 only. Take-away: where the axioms for $H$ come from.
+
+<Callout type="note" title="Discussion prompt">
+
+Two participants disagree: one says entropy is a property of the source, the
+other that it is a property of the observer's beliefs about the source. Who
+is right, and does [Gibbs' inequality](#thm-gibbs) settle it?
+
+</Callout>
+
+#### Daily checkpoint
+
+{/*
+  Mandatory: a short multiple-choice quiz that is easy for someone who
+  followed the day and hard otherwise, aligned with the What above. Link it.
+*/}
+
+A ten-minute quiz, [here](https://example.com/quiz), then the daily feedback
+form.
+
+{/*
+  Postprocessing (teacher-facing): notes for whoever runs or develops the day
+  next — what to change, what to add, what could be explained better, how to
+  make it work with less of you. Revise after teaching. Retrospectives about
+  individual participants do not belong in the sheet — they go to Leon.
+*/}
+
+<TeachingNote title="Notes for future iterations">
+
+The reading block ran long last time; consider dropping Shannon's section 6
+and giving the discussion prompt the extra half hour.
+
+</TeachingNote>
+
+### Learn more
+
+{/*
+  Beyond what fits in a day: how to deepen the material, closely related
+  work, the research frontier and where to read about it, what someone could
+  learn in a week; conferences, seminars, programmes. The build expects this
+  to be the LAST section — after all taught content, just before any
+  References.
+*/}
+
+**Deeper.** [MacKay (2003)](https://www.inference.org.uk/itila/), chapters
+5–6, for source coding and the noisy channel. **Frontier.** The
+[minimum description length](https://en.wikipedia.org/wiki/Minimum_description_length)
+literature, which is where this thread is picked up on the Solomonoff
+induction day.

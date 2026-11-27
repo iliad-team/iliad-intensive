@@ -1,0 +1,44 @@
+\documentclass[aspectratio=169]{beamer}
+
+\input{lib/packages}
+\input{lib/settings}
+\input{lib/metadata}
+\input{lib/paperfig}
+\input{lib/navtheme}
+\addbibresource{bib/refs.bib}
+\addbibresource{bib/manual.bib}
+
+\graphicspath{
+  {fig/01_theory/}
+  {fig/02_llm_steganography/}
+  {fig/03_ai_safety_relevance/}
+  {fig/04_learning_steganography/}
+  {fig/05_backdoors/}
+}
+
+\title{Steganography}
+\subtitle{\coursetitle}
+\author{\instructor}
+\date{Iliad Intensive, October 2026}
+
+\AtBeginSection[]{\navsection}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\navoverview
+
+\input{01_theory/slides}
+\input{02_llm_steganography/slides}
+\input{03_ai_safety_relevance/slides}
+\input{04_learning_steganography/slides}
+\input{05_backdoors/slides}
+
+\begin{frame}[allowframebreaks]{References}
+\printbibliography[heading=none]
+\end{frame}
+
+\end{document}

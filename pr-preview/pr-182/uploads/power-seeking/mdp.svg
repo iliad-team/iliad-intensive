@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 470 360" font-family="'Segoe UI', Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+    <marker id="arrowg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- edges -->
+  <line x1="132" y1="100" x2="326" y2="100" stroke="#334155" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="230" y="88" text-anchor="middle" font-size="19" fill="#0E7C66" font-weight="700">gain (a)</text>
+
+  <line x1="100" y1="132" x2="100" y2="248" stroke="#334155" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="113" y="198" text-anchor="start" font-size="19" fill="#b45309" font-weight="700">forgo (a&#8242;)</text>
+
+  <line x1="360" y1="132" x2="360" y2="248" stroke="#334155" stroke-width="2.5" marker-end="url(#arrow)"/>
+  <text x="373" y="198" text-anchor="start" font-size="18" fill="#334155">move</text>
+
+  <!-- rest self-loop on G1 -->
+  <path d="M344,76 C342,38 378,38 376,76" fill="none" stroke="#334155" stroke-width="2.2" marker-end="url(#arrow)"/>
+  <text x="360" y="30" text-anchor="middle" font-size="16" fill="#64748b">rest</text>
+
+  <!-- terminal self-loops -->
+  <path d="M82,300 C56,310 56,342 92,334" fill="none" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arrowg)"/>
+  <path d="M378,300 C404,310 404,342 368,334" fill="none" stroke="#94a3b8" stroke-width="1.8" marker-end="url(#arrowg)"/>
+
+  <!-- nodes -->
+  <circle cx="100" cy="100" r="32" fill="#e6f4ef" stroke="#0E7C66" stroke-width="2.6"/>
+  <text x="100" y="108" text-anchor="middle" font-size="25" fill="#0f172a" font-style="italic">s</text>
+
+  <circle cx="360" cy="100" r="32" fill="#e6f4ef" stroke="#0E7C66" stroke-width="2.6"/>
+  <text x="360" y="108" text-anchor="middle" font-size="22" fill="#0f172a">G&#8321;</text>
+
+  <rect x="68" y="250" width="64" height="48" rx="12" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+  <text x="100" y="281" text-anchor="middle" font-size="22" fill="#0f172a">B</text>
+
+  <rect x="328" y="250" width="64" height="48" rx="12" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+  <text x="360" y="281" text-anchor="middle" font-size="22" fill="#0f172a">G&#8322;</text>
+</svg>
